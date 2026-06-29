@@ -1,20 +1,13 @@
 'use client';
 
-import {
-  AuthMeResponseSchema,
-  AuthTokensSchema,
-  LoginChallengeResponseSchema,
-  LoginRequestSchema,
-  MfaVerifyRequestSchema,
-} from '@aljeel/shared-types';
+import { AuthMeResponseSchema, AuthTokensSchema, LoginRequestSchema } from '@aljeel/shared-types';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiFetch } from '@/lib/api-client';
 
 interface AuthState {
   user: ReturnType<typeof AuthMeResponseSchema.parse> | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ challengeId: string }>;
-  verifyMfa: (challengeId: string, code: string) => Promise<ReturnType<typeof AuthMeResponseSchema.parse>>;
+  login: (email: string, password: string) => Promise<ReturnType<typeof AuthMeResponseSchema.parse>>;
   logout: () => void;
 }
 
@@ -58,17 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const dto = LoginRequestSchema.parse({ email, password });
-    const challenge = await apiFetch('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(dto),
-      schema: LoginChallengeResponseSchema,
-    });
-    return { challengeId: challenge.challengeId };
-  }, []);
-
-  const verifyMfa = useCallback(async (challengeId: string, code: string) => {
-    const dto = MfaVerifyRequestSchema.parse({ challengeId, code });
-    const tokens = await apiFetch('/auth/mfa', {
+    const tokens = await apiFetch('/auth/login', {
       method: 'POST',
       body: JSON.stringify(dto),
       schema: AuthTokensSchema,
@@ -84,10 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(
-    () => ({ user, isLoading, login, verifyMfa, logout }),
-    [user, isLoading, login, verifyMfa, logout],
-  );
+  const value = useMemo(() => ({ user, isLoading, login, logout }), [user, isLoading, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

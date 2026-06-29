@@ -36,9 +36,9 @@ erDiagram
 | **PurchaseOrder** | supplierId, poNumber, status, currency | Read-synced from ERP |
 | **PoLine** | poId, description, qty, unitPrice, vatRate | |
 | **GoodsReceipt** | poId, receivedQty, receivedAt | For 3-way match |
-| **Invoice** | supplierId, invoiceNumber, date, poId, currency, subtotal, vat, total, status, source, matchResult | FSM-driven lifecycle |
-| **InvoiceLine** | invoiceId, description, qty, unitPrice, vatRate, amount, glCode, costCenter | |
-| **Document** | invoiceId, type, storageKey, ocrData(JSON), virusScanStatus | Files in S3 |
+| **Invoice** | supplierId, invoiceNumber, date, poId, currency, subtotal, vat, total, status, source, matchResult | FSM-driven lifecycle; `invoiceNumber` uses `DRAFT-*` placeholder until OCR populates real value |
+| **InvoiceLine** | invoiceId, description, qty, unitPrice, vatRate, amount, glCode, costCenter | Populated by OCR after upload; empty at draft creation |
+| **Document** | invoiceId, type, storageKey, ocrData(JSON), virusScanStatus | Invoice PDF (`INVOICE`) required before submit; supporting files typed as `OTHER`, `DELIVERY_NOTE`, etc. |
 | **ApprovalStep** | invoiceId, approverId, action, comment, slaDueAt | Workflow history |
 | **Payment** | reference, amount, currency, paidAt, remittanceDocKey | From treasury/ERP |
 | **PaymentAllocation** | paymentId, invoiceId, amount | Supports partial/grouped payments |

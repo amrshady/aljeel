@@ -80,7 +80,7 @@ Goal: a runnable monorepo with CI, auth shell, and a deployable "hello" slice en
 
 # Phase 1 — MVP
 
-Goal: suppliers onboard, upload an invoice manually, and track status; AP can review and
+Goal: suppliers onboard, upload an invoice (PDF + attachments), and track status; AP can review and
 move it through the lifecycle; ERP vendor/PO read-sync works.
 
 ### Epic P1-E1 — Supplier Onboarding
@@ -106,8 +106,8 @@ move it through the lifecycle; ERP vendor/PO read-sync works.
 - `[ ]` **P1-E2-T3 — Reconciliation job.** Scheduled sync with retry/dead-letter + a
   reconciliation report of mismatches.
 
-### Epic P1-E3 — Manual Invoice Submission
-- `[ ]` **P1-E3-T1 — Invoice draft API.** Create/update draft, lines, totals.
+### Epic P1-E3 — Invoice Submission (upload-only)
+- `[ ]` **P1-E3-T1 — Invoice draft API.** Create empty draft (placeholder header until OCR); update draft fields/lines (AP/OCR).
   - Depends on: P0-E2-T2.
 - `[x]` **P1-E3-T2 — Document upload API.** Multipart upload to `POST /invoices/:id/documents`
   (local-disk `StorageService`, S3-swappable), register `Document`, size/type allowlist,
@@ -115,13 +115,13 @@ move it through the lifecycle; ERP vendor/PO read-sync works.
   ownership enforced.
 - `[ ]` **P1-E3-T3 — Invoice lifecycle FSM.** Implement state machine + transitions per
   `ARCHITECTURE.md §4`; guard illegal transitions.
-- `[ ]` **P1-E3-T4 — Basic validation on submit.** Duplicate-invoice check, VAT math
-  validation, currency/PO consistency.
-  - Done when: invalid invoices are rejected with clear field-level errors.
+- `[ ]` **P1-E3-T4 — Basic validation on submit.** Invoice PDF required; duplicate-invoice check
+  and VAT math validation deferred until OCR populates fields (Phase 2).
+  - Done when: submit without invoice PDF is rejected; placeholder drafts submit successfully.
 - `[ ]` **P1-E3-T5 — Submit endpoint.** `/invoices/{id}/submit` → SUBMITTED/UNDER_REVIEW.
   - Depends on: P1-E3-T3, P1-E3-T4.
-- `[~]` **P1-E3-T6 — Submission UI.** Drag-drop upload + attachments list done (new-invoice
-  form and invoice detail page); PDF preview, PO linkage, and draft auto-save still pending.
+- `[~]` **P1-E3-T6 — Submission UI.** Upload-only: invoice PDF dropzone + additional attachments
+  dropzone; save draft and submit actions. PDF preview on detail page still pending.
   - Depends on: P1-E3-T1..T5.
 
 ### Epic P1-E4 — Supplier Dashboard & Status
@@ -142,8 +142,8 @@ move it through the lifecycle; ERP vendor/PO read-sync works.
 - `[ ]` **P1-E6-T2 — Trigger wiring.** Emit on: submitted, rejected, approved, status change.
 - `[ ]` **P1-E6-T3 — Notifications UI + live updates.** Notification center + SSE/WebSocket.
 
-**Phase 1 exit criteria:** an external supplier can register, get approved, upload an
-invoice, and watch it go `Submitted → Under Review → Approved`; AP can action it; emails fire;
+**Phase 1 exit criteria:** an external supplier can register, get approved, upload an invoice
+(PDF + attachments), and watch it go `Submitted → Under Review → Approved`; AP can action it; emails fire;
 all changes audited; multi-tenant isolation verified by tests.
 
 ---
@@ -156,8 +156,8 @@ configurable approval workflow handles the rest, ZATCA compliance for e-invoices
 ### Epic P2-E1 — OCR / IDP
 - `[ ]` **P2-E1-T1 — OCR provider abstraction + worker.** Pluggable provider (Azure DI/Textract);
   queue-driven extraction; store `ocrData` + confidence on `Document`.
-- `[ ]` **P2-E1-T2 — Field mapping + confidence UI.** Pre-fill smart form; highlight
-  low-confidence fields for review.
+- `[ ]` **P2-E1-T2 — Field mapping + AP review UI.** Populate invoice from OCR; highlight
+  low-confidence fields for AP review/correction.
 - `[ ]` **P2-E1-T3 — Virus scanning.** Real AV scan on upload; block on infected.
 - `[ ]` **P2-E1-T4 — Email-to-portal intake.** Inbound email → invoice draft with attribution.
 

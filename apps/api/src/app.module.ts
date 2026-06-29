@@ -15,8 +15,6 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { StorageModule } from './storage/storage.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ApModule } from './ap/ap.module';
-import { ErpModule } from './erp/erp.module';
-import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { RootModule } from './root.module';
 
 @Module({
@@ -42,8 +40,6 @@ import { RootModule } from './root.module';
     InvoicesModule,
     DocumentsModule,
     ApModule,
-    ErpModule,
-    PurchaseOrdersModule,
     HealthModule,
     RootModule,
   ],

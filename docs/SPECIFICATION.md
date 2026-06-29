@@ -61,18 +61,19 @@ RBAC with least privilege. Suppliers are strictly scoped to their own organizati
 - Vendor categories, payment terms, default currency synced from ERP.
 
 ### 3.2 Invoice Submission (core flow)
-- **Upload:** drag-and-drop PDF/image/XML; bulk/zip; email-to-portal with sender attribution.
-- **OCR/IDP extraction:** invoice no., date, PO no., line items, subtotal, VAT, total,
-  currency, supplier VAT/CR — with per-field confidence scores.
-- **Smart form:** extracted data pre-filled; supplier confirms/corrects; inline validation.
-- **PO linkage:** select from open POs (from ERP); auto-populate expected values.
-- **Attachments:** delivery notes, GRN copy, timesheets, contracts — typed & tagged.
-- **Real-time validation before submit:**
-  - Duplicate invoice check (supplier + invoice no.).
-  - VAT math validation (line × rate = tax; sums tie to total).
+- **Upload-only intake:** supplier uploads the invoice PDF plus any supporting attachments
+  (delivery notes, GRN copy, timesheets, contracts) — no manual data entry required.
+- **OCR/IDP extraction (async):** after submit, the system extracts invoice no., date, PO no.,
+  line items, subtotal, VAT, total, currency, supplier VAT/CR — with per-field confidence scores.
+- **PO linkage:** matched automatically from OCR or assigned by AP during review (not supplier-entered).
+- **Attachments:** typed & tagged (invoice PDF vs supporting documents).
+- **Validation before submit:**
+  - Invoice PDF attachment required.
+  - Duplicate invoice check (supplier + invoice no.) — runs after OCR extracts the number.
+  - VAT math validation — runs after OCR populates line items.
   - Currency / PO consistency.
   - ZATCA (Fatoora) format check for XML/UBL submissions.
-- **Draft & resume** with auto-save.
+- **Draft & resume** — supplier can save a draft with uploads and return later to submit.
 
 ### 3.3 3-Way Matching & Validation Engine
 - Automated **PO ↔ GRN ↔ Invoice** match with configurable tolerances (price %, qty %, amount).
@@ -119,12 +120,11 @@ RBAC with least privilege. Suppliers are strictly scoped to their own organizati
 
 **Supplier submits an invoice (happy path):**
 1. Log in → "Submit Invoice."
-2. Drag PDF → OCR extracts fields (~3–5s).
-3. Select matching open PO → values reconcile.
-4. Confirm data, attach GRN → Submit.
-5. System runs duplicate + VAT + ZATCA + 3-way match.
-6. Within tolerance → auto-approved → "Scheduled for payment on [date]."
-7. Supplier notified; status visible on dashboard.
+2. Upload invoice PDF + any supporting attachments → Submit.
+3. System runs OCR extraction (~3–5s) and populates invoice fields.
+4. System runs duplicate + VAT + ZATCA + 3-way match on extracted data.
+5. Within tolerance → auto-approved → "Scheduled for payment on [date]."
+6. Supplier notified; status visible on dashboard.
 
 **Exception path:** Out of tolerance → routed to AP clerk → clarification via in-app
 message → supplier corrects/resubmits → approved.

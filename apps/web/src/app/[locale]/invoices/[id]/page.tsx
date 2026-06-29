@@ -73,13 +73,6 @@ function InvoiceDetailContent() {
           <p className="text-sm text-muted-foreground">
             {new Date(invoice.invoiceDate).toLocaleDateString()} · {t(`status.${invoice.status}`)}
           </p>
-          {invoice.poId && (
-            <p className="mt-1 text-sm">
-              <Link href={`/purchase-orders/${invoice.poId}`} className="text-primary underline">
-                {t('linkedPo')}
-              </Link>
-            </p>
-          )}
         </div>
         {canSubmit && (
           <Button onClick={onSubmit} disabled={submitting}>

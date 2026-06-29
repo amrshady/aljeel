@@ -2,6 +2,7 @@
 
 import type { UserRole } from '@aljeel/shared-types';
 import { Button, cn } from '@aljeel/ui';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/auth-provider';
 import { LocaleSwitcher } from '@/components/locale-switcher';
@@ -11,8 +12,6 @@ import type { ReactNode } from 'react';
 const supplierNav = [
   { href: '/dashboard', key: 'dashboard' as const },
   { href: '/invoices', key: 'invoices' as const },
-  { href: '/purchase-orders', key: 'purchaseOrders' as const },
-  { href: '/profile', key: 'profile' as const },
 ];
 
 const apNav = [{ href: '/ap/review', key: 'review' as const }];
@@ -31,9 +30,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              A
-            </div>
+            <Image
+              src="/aljeel-logo.jpeg"
+              alt="Aljeel"
+              width={96}
+              height={38}
+              className="h-8 w-auto object-contain"
+            />
             <div>
               <p className="text-sm font-semibold leading-none">{tDash('portalName')}</p>
               <p className="mt-1 text-xs text-muted-foreground">{user?.fullName}</p>

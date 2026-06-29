@@ -21,7 +21,6 @@ export interface QueueConsumer {
 export const QUEUE_NAMES = {
   OCR: 'aljeel.ocr',
   MATCHING: 'aljeel.matching',
-  ERP_SYNC: 'aljeel.erp-sync',
   NOTIFICATIONS: 'aljeel.notifications',
   DEAD_LETTER: 'aljeel.dead-letter',
 } as const;

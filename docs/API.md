@@ -78,14 +78,14 @@
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/invoices` | Create draft invoice |
+| POST | `/invoices` | **Implemented.** Create empty draft (placeholder `invoiceNumber` until OCR) |
 | POST | `/invoices/{id}/documents` | **Implemented.** Multipart (`file` + `type`) upload; registers `Document`; type/size validated (PDF/image/XML, ≤ 25 MB) |
 | GET | `/invoices/{id}/documents` | **Implemented.** List documents attached to an invoice |
 | GET | `/documents/{id}/download` | **Implemented.** Stream a document file (attachment) |
 | DELETE | `/documents/{id}` | **Implemented.** Remove a document from an editable invoice |
 | GET | `/invoices/{id}/ocr` | OCR extraction result + per-field confidence (Phase 2) |
-| PUT | `/invoices/{id}` | Update draft fields/lines |
-| POST | `/invoices/{id}/submit` | Submit → runs dedup + VAT + ZATCA + 3-way match |
+| PUT | `/invoices/{id}` | Update draft fields/lines (AP/OCR-populated data) |
+| POST | `/invoices/{id}/submit` | Submit — requires at least one `INVOICE` document; dedup + VAT + 3-way match run after OCR (Phase 2) |
 | GET | `/invoices` | List with filters/search/pagination |
 | GET | `/invoices/{id}` | Full detail + status timeline |
 | POST | `/invoices/{id}/messages` | Post message in invoice thread |

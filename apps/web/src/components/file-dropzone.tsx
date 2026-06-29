@@ -19,9 +19,24 @@ interface FileDropzoneProps {
   files: File[];
   onChange: (files: File[]) => void;
   disabled?: boolean;
+  multiple?: boolean;
+  accept?: string;
+  /** When true, selecting files replaces the current selection instead of appending. */
+  single?: boolean;
+  title?: string;
+  hint?: string;
 }
 
-export function FileDropzone({ files, onChange, disabled }: FileDropzoneProps) {
+export function FileDropzone({
+  files,
+  onChange,
+  disabled,
+  multiple = true,
+  accept = ACCEPT_ATTR,
+  single = false,
+  title,
+  hint,
+}: FileDropzoneProps) {
   const t = useTranslations('documents');
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +56,7 @@ export function FileDropzone({ files, onChange, disabled }: FileDropzoneProps) {
     }
     setWarning(rejected.length > 0 ? t('rejected', { files: rejected.join(', ') }) : null);
     if (accepted.length > 0) {
-      onChange([...files, ...accepted]);
+      onChange(single ? accepted : [...files, ...accepted]);
     }
   }
 
@@ -75,14 +90,14 @@ export function FileDropzone({ files, onChange, disabled }: FileDropzoneProps) {
           dragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-primary'}`}
       >
-        <p className="text-sm font-medium">{t('dropTitle')}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{t('dropHint')}</p>
+        <p className="text-sm font-medium">{title ?? t('dropTitle')}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{hint ?? t('dropHint')}</p>
         <input
           id={inputId}
           ref={inputRef}
           type="file"
-          multiple
-          accept={ACCEPT_ATTR}
+          multiple={multiple}
+          accept={accept}
           className="hidden"
           disabled={disabled}
           onChange={(e) => {

@@ -123,16 +123,15 @@ sequenceDiagram
     participant M as Matching Worker
     participant DB as PostgreSQL
 
-    S->>W: Upload invoice PDF
-    W->>API: POST /invoices (draft) + signed upload
-    API->>DB: create Invoice(Draft)
-    API->>Q: enqueue OCR job
-    Q->>OCR: process document
-    OCR->>API: extracted fields + confidence
-    API->>DB: update Invoice (prefilled)
-    API-->>W: OCR result
-    S->>W: confirm + select PO + submit
+    S->>W: Upload invoice PDF + attachments
+    W->>API: POST /invoices (empty draft)
+    API->>DB: create Invoice(Draft, placeholder header)
+    W->>API: POST /invoices/{id}/documents (INVOICE + OTHER)
     W->>API: POST /invoices/{id}/submit
+    API->>Q: enqueue OCR job
+    Q->>OCR: process invoice PDF
+    OCR->>API: extracted fields + confidence
+    API->>DB: update Invoice (populated from OCR)
     API->>Q: enqueue match job
     Q->>M: run 3-way match
     M->>API: within tolerance

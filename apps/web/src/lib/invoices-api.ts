@@ -1,4 +1,5 @@
 import {
+  CreateInvoiceDraftSchema,
   DocumentListSchema,
   DocumentSchema,
   InvoiceDetailSchema,
@@ -34,8 +35,8 @@ export function getInvoice(id: string) {
   return apiFetch(`/invoices/${id}`, { schema: InvoiceDetailSchema });
 }
 
-export function createInvoiceDraft(body: UpsertInvoiceDraft) {
-  const payload = UpsertInvoiceDraftSchema.parse(body);
+export function createInvoiceDraft() {
+  const payload = CreateInvoiceDraftSchema.parse({});
   return apiFetch('/invoices', {
     method: 'POST',
     body: JSON.stringify(payload),

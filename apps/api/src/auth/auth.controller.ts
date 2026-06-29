@@ -1,11 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  LoginRequestSchema,
-  MfaVerifyRequestSchema,
-  type AuthTokens,
-  type LoginChallengeResponse,
-} from '@aljeel/shared-types';
+import { LoginRequestSchema, type AuthTokens } from '@aljeel/shared-types';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
@@ -18,18 +13,10 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @ApiOperation({ summary: 'Start login (returns MFA challenge)' })
-  login(@Body() body: unknown): LoginChallengeResponse {
+  @ApiOperation({ summary: 'Login with email and password' })
+  login(@Body() body: unknown): AuthTokens {
     const dto = LoginRequestSchema.parse(body);
     return this.authService.login(dto);
-  }
-
-  @Public()
-  @Post('mfa')
-  @ApiOperation({ summary: 'Verify MFA and receive tokens' })
-  verifyMfa(@Body() body: unknown): AuthTokens {
-    const dto = MfaVerifyRequestSchema.parse(body);
-    return this.authService.verifyMfa(dto.challengeId, dto.code);
   }
 
   @Public()

@@ -26,9 +26,9 @@ automated intake pipeline that feeds the ERP.
 
 ## TL;DR of the product
 
-- **Suppliers** upload invoices (PDF/image/XML), attach docs, link to POs, and see status:
+- **Suppliers** upload an invoice PDF plus optional supporting attachments and see status:
   `Draft → Submitted → Under Review → Approved → Scheduled → Paid` (or `Rejected/On Hold`).
-- **OCR/IDP** auto-extracts invoice fields; **3‑way matching** (PO ↔ GRN ↔ Invoice) drives
+- **OCR/IDP** auto-extracts invoice fields from the uploaded PDF; **3‑way matching** (PO ↔ GRN ↔ Invoice) drives
   touchless processing.
 - **AP team** handles only exceptions; everything else flows straight to the ERP.
 - **Compliance-first** for KSA: ZATCA/Fatoora e‑invoicing, VAT, PDPL, Arabic RTL + English.

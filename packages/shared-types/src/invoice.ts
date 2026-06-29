@@ -21,6 +21,16 @@ export const InvoiceLineSchema = InvoiceLineInputSchema.extend({
 });
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>;
 
+/** Empty body — server generates placeholder header until OCR populates fields. */
+export const CreateInvoiceDraftSchema = z.object({}).strict();
+export type CreateInvoiceDraft = z.infer<typeof CreateInvoiceDraftSchema>;
+
+export const PLACEHOLDER_INVOICE_NUMBER_PREFIX = 'DRAFT-';
+
+export function isPlaceholderInvoiceNumber(invoiceNumber: string): boolean {
+  return invoiceNumber.startsWith(PLACEHOLDER_INVOICE_NUMBER_PREFIX);
+}
+
 export const UpsertInvoiceDraftSchema = z.object({
   invoiceNumber: z.string().min(1).max(100),
   invoiceDate: z.string().min(1),
@@ -72,39 +82,3 @@ export const SubmitInvoiceResponseSchema = z.object({
     .optional(),
 });
 export type SubmitInvoiceResponse = z.infer<typeof SubmitInvoiceResponseSchema>;
-
-export const UpdateSupplierProfileSchema = z.object({
-  legalName: z.string().min(2).max(200).optional(),
-  paymentTerms: z.string().max(100).optional(),
-  defaultCurrency: z.string().length(3).optional(),
-});
-export type UpdateSupplierProfile = z.infer<typeof UpdateSupplierProfileSchema>;
-
-export const InviteSupplierUserSchema = z.object({
-  email: z.string().email(),
-  fullName: z.string().min(2).max(200),
-  role: z.enum(['SUPPLIER_ADMIN', 'SUPPLIER_USER']).default('SUPPLIER_USER'),
-});
-export type InviteSupplierUser = z.infer<typeof InviteSupplierUserSchema>;
-
-export const SupplierUserSchema = z.object({
-  id: z.string(),
-  supplierId: z.string(),
-  email: z.string().email(),
-  fullName: z.string(),
-  role: z.enum([
-    'SUPPLIER_ADMIN',
-    'SUPPLIER_USER',
-    'AP_CLERK',
-    'AP_APPROVER',
-    'PROCUREMENT',
-    'TREASURY',
-    'VENDOR_MASTER',
-    'SYSTEM_ADMIN',
-    'AUDITOR',
-  ]),
-  mfaEnabled: z.boolean(),
-  isActive: z.boolean(),
-  createdAt: z.string(),
-});
-export type SupplierUser = z.infer<typeof SupplierUserSchema>;

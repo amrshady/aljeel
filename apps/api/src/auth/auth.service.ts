@@ -6,12 +6,8 @@ import type { AuthMeResponse, AuthTokens, LoginRequest } from '@aljeel/shared-ty
 export class AuthService {
   constructor(private readonly provider: MockAuthProvider) {}
 
-  login(dto: LoginRequest) {
+  login(dto: LoginRequest): AuthTokens {
     return this.provider.login(dto);
-  }
-
-  verifyMfa(challengeId: string, code: string): AuthTokens {
-    return this.provider.verifyMfa(challengeId, code);
   }
 
   refresh(refreshToken: string): AuthTokens {

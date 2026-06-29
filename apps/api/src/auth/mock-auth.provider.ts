@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRole, type AuthTokens, type JwtPayload, type LoginRequest } from '@aljeel/shared-types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface DevUser {
   id: string;
@@ -13,19 +12,12 @@ interface DevUser {
   mfaEnabled: boolean;
 }
 
-interface MfaChallenge {
-  userId: string;
-  expiresAt: Date;
-}
-
 /**
  * Dev/mock auth provider — replace with Keycloak OIDC adapter (P0-E4-T1).
  * Never use in production.
  */
 @Injectable()
 export class MockAuthProvider {
-  private readonly challenges = new Map<string, MfaChallenge>();
-
   private readonly users: DevUser[] = [
     {
       id: 'user_supplier_admin',
@@ -58,35 +50,10 @@ export class MockAuthProvider {
 
   constructor(private readonly jwt: JwtService) {}
 
-  login(dto: LoginRequest): { challengeId: string; mfaRequired: true } {
+  login(dto: LoginRequest): AuthTokens {
     const user = this.users.find((u) => u.email === dto.email && u.password === dto.password);
     if (!user) {
       throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Invalid email or password.' });
-    }
-
-    const challengeId = uuidv4();
-    this.challenges.set(challengeId, {
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-    });
-
-    return { challengeId, mfaRequired: true as const };
-  }
-
-  verifyMfa(challengeId: string, code: string): AuthTokens {
-    const challenge = this.challenges.get(challengeId);
-    if (!challenge || challenge.expiresAt < new Date()) {
-      throw new UnauthorizedException({ code: 'MFA_EXPIRED', message: 'MFA challenge expired.' });
-    }
-
-    if (code !== '000000') {
-      throw new UnauthorizedException({ code: 'MFA_INVALID', message: 'Invalid MFA code.' });
-    }
-
-    this.challenges.delete(challengeId);
-    const user = this.users.find((u) => u.id === challenge.userId);
-    if (!user) {
-      throw new UnauthorizedException();
     }
 
     return this.issueTokens(user);

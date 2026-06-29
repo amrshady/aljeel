@@ -3,11 +3,15 @@ import {
   Injectable,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import {
+  CreateInvoiceDraftSchema,
   InvoiceListQuerySchema,
+  PLACEHOLDER_INVOICE_NUMBER_PREFIX,
   UpsertInvoiceDraftSchema,
   assertInvoiceTransition,
   computeInvoiceTotals,
+  isPlaceholderInvoiceNumber,
   validateInvoiceMath,
   InvalidInvoiceTransitionError,
   type InvoiceListQuery,
@@ -76,34 +80,16 @@ export class InvoicesService {
   ) {}
 
   async createDraft(user: AuthUser, body: unknown) {
-    const dto: UpsertInvoiceDraft = UpsertInvoiceDraftSchema.parse(body);
+    CreateInvoiceDraftSchema.parse(body ?? {});
     const supplierId = requireSupplierId(user);
-    this.validateDraft(dto);
-
-    const totals = computeInvoiceTotals(dto.lines);
 
     const invoice = await this.prisma.invoice.create({
       data: {
         supplierId,
-        invoiceNumber: dto.invoiceNumber,
-        invoiceDate: new Date(dto.invoiceDate),
-        poId: dto.poId ?? null,
-        currency: dto.currency,
-        subtotal: totals.subtotal,
-        vat: totals.vat,
-        total: totals.total,
+        invoiceNumber: `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
+        invoiceDate: new Date(),
+        currency: 'SAR',
         status: 'DRAFT',
-        lines: {
-          create: totals.lines.map((line) => ({
-            description: line.description,
-            qty: line.qty,
-            unitPrice: line.unitPrice,
-            vatRate: line.vatRate,
-            amount: line.amount,
-            glCode: line.glCode,
-            costCenter: line.costCenter,
-          })),
-        },
       },
       include: { lines: true },
     });
@@ -251,36 +237,50 @@ export class InvoicesService {
       throw error;
     }
 
-    const mathIssues = validateInvoiceMath(
-      invoice.lines.map((line) => ({
-        description: line.description,
-        qty: line.qty.toString(),
-        unitPrice: line.unitPrice.toString(),
-        vatRate: line.vatRate.toString(),
-      })),
-    );
-    if (mathIssues.length > 0) {
+    const invoicePdf = await this.prisma.document.findFirst({
+      where: { invoiceId: id, type: 'INVOICE' },
+    });
+    if (!invoicePdf) {
       throw new UnprocessableEntityException({
-        code: 'VALIDATION_FAILED',
-        message: 'Invoice validation failed.',
-        details: { fields: mathIssues },
+        code: 'INVOICE_PDF_REQUIRED',
+        message: 'An invoice PDF must be attached before submitting.',
       });
     }
 
-    const duplicate = await this.prisma.invoice.findFirst({
-      where: {
-        supplierId,
-        invoiceNumber: invoice.invoiceNumber,
-        id: { not: id },
-        status: { notIn: ['DRAFT', 'REJECTED'] },
-      },
-    });
-    if (duplicate) {
-      throw new ConflictException({
-        code: 'INVOICE_DUPLICATE',
-        message: 'An invoice with this number already exists.',
-        details: { invoiceNumber: invoice.invoiceNumber },
+    if (invoice.lines.length > 0) {
+      const mathIssues = validateInvoiceMath(
+        invoice.lines.map((line) => ({
+          description: line.description,
+          qty: line.qty.toString(),
+          unitPrice: line.unitPrice.toString(),
+          vatRate: line.vatRate.toString(),
+        })),
+      );
+      if (mathIssues.length > 0) {
+        throw new UnprocessableEntityException({
+          code: 'VALIDATION_FAILED',
+          message: 'Invoice validation failed.',
+          details: { fields: mathIssues },
+        });
+      }
+    }
+
+    if (!isPlaceholderInvoiceNumber(invoice.invoiceNumber)) {
+      const duplicate = await this.prisma.invoice.findFirst({
+        where: {
+          supplierId,
+          invoiceNumber: invoice.invoiceNumber,
+          id: { not: id },
+          status: { notIn: ['DRAFT', 'REJECTED'] },
+        },
       });
+      if (duplicate) {
+        throw new ConflictException({
+          code: 'INVOICE_DUPLICATE',
+          message: 'An invoice with this number already exists.',
+          details: { invoiceNumber: invoice.invoiceNumber },
+        });
+      }
     }
 
     await this.prisma.invoice.update({

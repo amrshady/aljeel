@@ -7,24 +7,12 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
-export const MfaVerifyRequestSchema = z.object({
-  challengeId: z.string(),
-  code: z.string().length(6),
-});
-export type MfaVerifyRequest = z.infer<typeof MfaVerifyRequestSchema>;
-
 export const AuthTokensSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   expiresIn: z.number().int().positive(),
 });
 export type AuthTokens = z.infer<typeof AuthTokensSchema>;
-
-export const LoginChallengeResponseSchema = z.object({
-  challengeId: z.string(),
-  mfaRequired: z.literal(true),
-});
-export type LoginChallengeResponse = z.infer<typeof LoginChallengeResponseSchema>;
 
 export const JwtPayloadSchema = z.object({
   sub: z.string(),

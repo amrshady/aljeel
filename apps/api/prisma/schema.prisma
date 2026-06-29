@@ -1,0 +1,318 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SupplierStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum UserRole {
+  SUPPLIER_ADMIN
+  SUPPLIER_USER
+  AP_CLERK
+  AP_APPROVER
+  PROCUREMENT
+  TREASURY
+  VENDOR_MASTER
+  SYSTEM_ADMIN
+  AUDITOR
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  ON_HOLD
+  REJECTED
+  SCHEDULED
+  PAID
+}
+
+enum InvoiceSource {
+  UPLOAD
+  EMAIL
+  XML
+  BULK
+}
+
+enum DocumentType {
+  INVOICE
+  DELIVERY_NOTE
+  GRN_COPY
+  CONTRACT
+  TIMESHEET
+  OTHER
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+}
+
+enum ApprovalAction {
+  PENDING
+  APPROVED
+  REJECTED
+  HOLD
+}
+
+model Supplier {
+  id              String         @id @default(cuid())
+  legalName       String
+  crNumber        String?        @unique
+  vatNumber       String?        @unique
+  status          SupplierStatus @default(PENDING)
+  paymentTerms    String?
+  defaultCurrency String         @default("SAR")
+  erpVendorId     String?        @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  users          SupplierUser[]
+  bankAccounts   BankAccount[]
+  purchaseOrders PurchaseOrder[]
+  invoices       Invoice[]
+}
+
+model SupplierUser {
+  id         String   @id @default(cuid())
+  supplierId String
+  email      String   @unique
+  fullName   String
+  role       UserRole @default(SUPPLIER_USER)
+  mfaEnabled Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+}
+
+model BankAccount {
+  id                 String             @id @default(cuid())
+  supplierId         String
+  iban               String
+  bankName           String
+  accountHolder      String
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedById       String?
+  version            Int                @default(1)
+  isActive           Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+}
+
+model PurchaseOrder {
+  id         String   @id @default(cuid())
+  supplierId String
+  poNumber   String
+  status     String
+  currency   String   @default("SAR")
+  erpPoId    String?  @unique
+  createdAt  DateTime @default(now())
+
+  supplier Supplier       @relation(fields: [supplierId], references: [id])
+  lines    PoLine[]
+  receipts GoodsReceipt[]
+  invoices Invoice[]
+
+  @@unique([supplierId, poNumber])
+  @@index([supplierId])
+}
+
+model PoLine {
+  id          String  @id @default(cuid())
+  poId        String
+  description String
+  qty         Decimal
+  unitPrice   Decimal
+  vatRate     Decimal @default(15)
+
+  po PurchaseOrder @relation(fields: [poId], references: [id])
+
+  @@index([poId])
+}
+
+model GoodsReceipt {
+  id          String   @id @default(cuid())
+  poId        String
+  receivedQty Decimal
+  receivedAt  DateTime
+
+  po PurchaseOrder @relation(fields: [poId], references: [id])
+
+  @@index([poId])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  supplierId      String
+  invoiceNumber   String
+  invoiceDate     DateTime
+  poId            String?
+  currency        String        @default("SAR")
+  subtotal        Decimal       @default(0)
+  vat             Decimal       @default(0)
+  total           Decimal       @default(0)
+  status          InvoiceStatus @default(DRAFT)
+  source          InvoiceSource @default(UPLOAD)
+  matchResult     Json?
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  po          PurchaseOrder?      @relation(fields: [poId], references: [id])
+  lines       InvoiceLine[]
+  documents   Document[]
+  approvals   ApprovalStep[]
+  messages    Message[]
+  allocations PaymentAllocation[]
+
+  @@unique([supplierId, invoiceNumber])
+  @@index([supplierId, status])
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  qty         Decimal
+  unitPrice   Decimal
+  vatRate     Decimal @default(15)
+  amount      Decimal
+  glCode      String?
+  costCenter  String?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model Document {
+  id              String       @id @default(cuid())
+  invoiceId       String
+  type            DocumentType @default(INVOICE)
+  fileName        String
+  storageKey      String
+  mimeType        String
+  sizeBytes       Int
+  ocrData         Json?
+  virusScanStatus ScanStatus   @default(PENDING)
+  createdAt       DateTime     @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model ApprovalStep {
+  id         String         @id @default(cuid())
+  invoiceId  String
+  approverId String?
+  sequence   Int
+  action     ApprovalAction @default(PENDING)
+  comment    String?
+  slaDueAt   DateTime?
+  actedAt    DateTime?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  reference        String   @unique
+  amount           Decimal
+  currency         String   @default("SAR")
+  paidAt           DateTime
+  remittanceDocKey String?
+  createdAt        DateTime @default(now())
+
+  allocations PaymentAllocation[]
+}
+
+model PaymentAllocation {
+  id        String  @id @default(cuid())
+  paymentId String
+  invoiceId String
+  amount    Decimal
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  channel   String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  invoiceId String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  actorId   String?
+  entity    String
+  entityId  String
+  action    String
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+model IdempotencyRecord {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  path      String
+  method    String
+  status    Int
+  body      Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

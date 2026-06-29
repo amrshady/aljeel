@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aljeel
+          POSTGRES_PASSWORD: aljeel
+          POSTGRES_DB: aljeel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - name: Generate Prisma client
+        run: pnpm --filter @aljeel/api prisma:generate
+        env:
+          DATABASE_URL: postgresql://aljeel:aljeel@localhost:5432/aljeel?schema=public
+
+      - run: pnpm test
+
+      - run: pnpm build
+        env:
+          DATABASE_URL: postgresql://aljeel:aljeel@localhost:5432/aljeel?schema=public

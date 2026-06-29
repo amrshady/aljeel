@@ -1,0 +1,22 @@
+{
+  "name": "@aljeel/worker-example",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"Worker tests in P0-E2-T3\""
+  },
+  "dependencies": {
+    "@aljeel/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@aljeel/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2"
+  }
+}

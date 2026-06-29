@@ -36,14 +36,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter @aljeel/api prisma:generate
+
       - run: pnpm lint
 
       - run: pnpm typecheck
-
-      - name: Generate Prisma client
-        run: pnpm --filter @aljeel/api prisma:generate
-        env:
-          DATABASE_URL: postgresql://aljeel:aljeel@localhost:5432/aljeel?schema=public
 
       - run: pnpm test
 

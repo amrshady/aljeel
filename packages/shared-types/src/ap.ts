@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { InvoiceListItemSchema, InvoiceSchema } from './invoice';
+import { InvoiceFolderListItemSchema, InvoiceSchema } from './invoice';
 import { InvoiceStatusSchema } from './index';
 import { InvoiceTimelineEventSchema } from './timeline';
 import { PaginatedResponseSchema } from './index';
 
-export const ApExceptionInvoiceSchema = InvoiceListItemSchema.extend({
+export const ApExceptionInvoiceSchema = InvoiceFolderListItemSchema.extend({
   supplierName: z.string(),
 });
 export type ApExceptionInvoice = z.infer<typeof ApExceptionInvoiceSchema>;

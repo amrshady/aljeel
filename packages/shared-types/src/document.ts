@@ -50,6 +50,14 @@ export type Document = z.infer<typeof DocumentSchema>;
 export const DocumentListSchema = z.array(DocumentSchema);
 export type DocumentList = z.infer<typeof DocumentListSchema>;
 
+/** Presigned URL returned by GET /documents/:id/content when using KB storage. */
+export const DocumentContentUrlSchema = z.object({
+  url: z.string(),
+  mimeType: z.string(),
+  fileName: z.string(),
+});
+export type DocumentContentUrl = z.infer<typeof DocumentContentUrlSchema>;
+
 /** Any MIME type is accepted for invoice attachments. */
 export function isAllowedDocumentMimeType(_mimeType: string): boolean {
   return true;

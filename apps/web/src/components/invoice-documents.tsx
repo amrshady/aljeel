@@ -21,6 +21,10 @@ import {
 interface InvoiceDocumentsProps {
   invoiceId: string;
   editable: boolean;
+  viewable?: boolean;
+  selectedDocumentId?: string | null;
+  onSelectDocument?: (documentId: string) => void;
+  compact?: boolean;
 }
 
 function DocumentSkeleton() {
@@ -53,7 +57,14 @@ function PendingFileRow({
   );
 }
 
-export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps) {
+export function InvoiceDocuments({
+  invoiceId,
+  editable,
+  viewable = false,
+  selectedDocumentId,
+  onSelectDocument,
+  compact = false,
+}: InvoiceDocumentsProps) {
   const t = useTranslations('documents');
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<KbQueuedFile[]>([]);
@@ -114,12 +125,18 @@ export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps)
   const showList = isLoading || uploading.length > 0 || documents.length > 0;
 
   return (
-    <section className="mt-8">
-      <h2 className="font-semibold">{t('title')}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+    <section className={compact ? undefined : 'mt-8'}>
+      {!compact && (
+        <>
+          <h2 className="font-semibold">{t('title')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+        </>
+      )}
 
       {showList && (
-        <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div
+          className={`overflow-hidden rounded-xl border bg-card shadow-sm ${compact ? '' : 'mt-4'}`}
+        >
           <ul className="divide-y">
             {isLoading && (
               <>
@@ -133,7 +150,17 @@ export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps)
               ))}
             {!isLoading &&
               documents.map((doc) => (
-                <li key={doc.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                <li
+                  key={doc.id}
+                  className={`flex items-center justify-between gap-3 p-3 text-sm ${
+                    viewable ? 'cursor-pointer hover:bg-muted/50' : ''
+                  } ${selectedDocumentId === doc.id ? 'bg-muted' : ''}`}
+                  onClick={
+                    viewable && onSelectDocument
+                      ? () => onSelectDocument(doc.id)
+                      : undefined
+                  }
+                >
                   <div className="flex min-w-0 items-start gap-3">
                     <span className="text-lg leading-none" aria-hidden>
                       {fileIcon(doc.fileName)}

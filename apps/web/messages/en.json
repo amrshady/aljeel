@@ -85,9 +85,11 @@
     "fileCount": "{count, plural, one {# file} other {# files}}",
     "columns": {
       "name": "Name",
+      "supplier": "Supplier",
       "files": "Files",
       "modified": "Date modified",
       "size": "Size",
+      "status": "Status",
       "actions": "Actions"
     },
     "status": {
@@ -122,6 +124,9 @@
     "loading": "Loading invoice…",
     "notFound": "Invoice not found",
     "back": "Back to invoices",
+    "backToReview": "Back to review queue",
+    "documentsTitle": "Documents",
+    "documentsHint": "Click a file to preview it inline",
     "submit": "Submit for review",
     "submitting": "Submitting…",
     "submitError": "Submit failed",
@@ -178,7 +183,12 @@
       "CLEAN": "Scanned",
       "INFECTED": "Threat detected",
       "FAILED": "Scan failed"
-    }
+    },
+    "viewerSelectFile": "Select a file to preview",
+    "viewerLoading": "Loading preview…",
+    "viewerError": "Could not load preview",
+    "viewerUnsupported": "Preview not available for this file type",
+    "viewerOpenTab": "Open in new tab"
   },
   "timeline": {
     "empty": "No activity recorded yet",
@@ -211,9 +221,11 @@
     "loading": "Loading queue…",
     "empty": "No invoices need review right now",
     "selectHint": "Select an invoice from the queue to review",
+    "evidence": "Evidence",
+    "evidenceHint": "Click a file to preview it inline — no download required",
     "invoice": "Invoice",
     "supplier": "Supplier",
-    "status": "Status",
+    "statusColumn": "Status",
     "total": "Total",
     "actions": "Actions",
     "approve": "Approve",

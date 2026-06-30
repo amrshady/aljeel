@@ -54,10 +54,34 @@ export class ApService {
       }),
     ]);
 
+    const rowIds = rows.map((row) => row.id);
+    const documentStats =
+      rowIds.length === 0
+        ? []
+        : await this.prisma.document.groupBy({
+            by: ['invoiceId'],
+            where: { invoiceId: { in: rowIds } },
+            _count: { id: true },
+            _sum: { sizeBytes: true },
+          });
+    const statsByInvoiceId = new Map(
+      documentStats.map((stat) => [
+        stat.invoiceId,
+        {
+          documentCount: stat._count.id,
+          totalSizeBytes: stat._sum.sizeBytes ?? 0,
+        },
+      ]),
+    );
+
     return {
       data: rows.map((row) => {
         const { lines: _lines, ...item } = serializeInvoice(row);
-        return { ...item, supplierName: row.supplier.legalName };
+        const stats = statsByInvoiceId.get(row.id) ?? {
+          documentCount: 0,
+          totalSizeBytes: 0,
+        };
+        return { ...item, ...stats, supplierName: row.supplier.legalName };
       }),
       page: params.page,
       pageSize: params.pageSize,

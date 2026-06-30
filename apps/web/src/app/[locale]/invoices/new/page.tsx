@@ -15,7 +15,7 @@ import { RequireAuth } from '@/components/require-auth';
 import { formatClientError } from '@/lib/format-error';
 import { createInvoiceDraft, submitInvoice } from '@/lib/invoices-api';
 import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
-import { useRouter } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { useQueryClient } from '@tanstack/react-query';
 
 const UPLOAD_CONCURRENCY = 3;
@@ -23,6 +23,7 @@ const DONE_PAUSE_MS = 900;
 
 function InvoiceUploadContent() {
   const t = useTranslations('invoiceForm');
+  const tDetail = useTranslations('invoiceDetail');
   const router = useRouter();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
@@ -140,7 +141,10 @@ function InvoiceUploadContent() {
   return (
     <AppShell>
       <div className="max-w-3xl">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <Link href="/dashboard" className="text-sm text-primary underline">
+          {tDetail('back')}
+        </Link>
+        <h1 className="mt-2 text-2xl font-bold">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
         <form className="mt-8 space-y-8">

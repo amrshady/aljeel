@@ -85,9 +85,11 @@
     "fileCount": "{count, plural, one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفاً} other {# ملف}}",
     "columns": {
       "name": "الاسم",
+      "supplier": "المورد",
       "files": "الملفات",
       "modified": "تاريخ التعديل",
       "size": "الحجم",
+      "status": "الحالة",
       "actions": "إجراءات"
     },
     "status": {
@@ -122,6 +124,9 @@
     "loading": "جاري تحميل الفاتورة…",
     "notFound": "الفاتورة غير موجودة",
     "back": "العودة للفواتير",
+    "backToReview": "العودة إلى قائمة المراجعة",
+    "documentsTitle": "المستندات",
+    "documentsHint": "انقر على ملف لمعاينته مباشرة",
     "submit": "تقديم للمراجعة",
     "submitting": "جاري التقديم…",
     "submitError": "فشل التقديم",
@@ -178,7 +183,12 @@
       "CLEAN": "تم الفحص",
       "INFECTED": "تم اكتشاف تهديد",
       "FAILED": "فشل الفحص"
-    }
+    },
+    "viewerSelectFile": "اختر ملفاً للمعاينة",
+    "viewerLoading": "جاري تحميل المعاينة…",
+    "viewerError": "تعذر تحميل المعاينة",
+    "viewerUnsupported": "المعاينة غير متاحة لهذا النوع من الملفات",
+    "viewerOpenTab": "فتح في تبويب جديد"
   },
   "timeline": {
     "empty": "لا يوجد نشاط مسجل بعد",
@@ -211,9 +221,11 @@
     "loading": "جاري تحميل القائمة…",
     "empty": "لا توجد فواتير تحتاج مراجعة حالياً",
     "selectHint": "اختر فاتورة من القائمة للمراجعة",
+    "evidence": "الأدلة",
+    "evidenceHint": "انقر على ملف لمعاينته مباشرة — دون الحاجة للتنزيل",
     "invoice": "الفاتورة",
     "supplier": "المورد",
-    "status": "الحالة",
+    "statusColumn": "الحالة",
     "total": "الإجمالي",
     "actions": "الإجراءات",
     "approve": "موافقة",

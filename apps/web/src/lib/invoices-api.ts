@@ -1,5 +1,6 @@
 import {
   CreateInvoiceDraftSchema,
+  DocumentContentUrlSchema,
   DocumentListSchema,
   InvoiceDetailSchema,
   InvoiceFolderListItemSchema,
@@ -71,6 +72,46 @@ export function listInvoiceDocuments(invoiceId: string) {
   return apiFetch(`/invoices/${invoiceId}/documents`, {
     schema: DocumentListSchema,
   });
+}
+
+export async function getDocumentViewUrl(documentId: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const headers: HeadersInit = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${baseUrl}/documents/${documentId}/content`, {
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not load document');
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const data: unknown = await response.json();
+    const parsed = DocumentContentUrlSchema.parse(data);
+    return {
+      kind: 'remote' as const,
+      url: parsed.url,
+      mimeType: parsed.mimeType,
+      fileName: parsed.fileName,
+    };
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  return {
+    kind: 'blob' as const,
+    blob,
+    mimeType: contentType || 'application/octet-stream',
+    fileName: match?.[1] ?? 'document',
+  };
 }
 
 export function deleteInvoiceDocument(documentId: string) {

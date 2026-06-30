@@ -45,7 +45,7 @@ const TENANT_BUCKETS = {
 const TENANT_ACCESS = {
   maher:       ['amr@accordpartners.ai', 'malik@accordpartners.ai', '@aljeel.com'],
   marwan:      ['amr@accordpartners.ai', 'malik@accordpartners.ai', '@aljeel.com'],
-  'aljeel-ap': ['amr@accordpartners.ai', 'malik@accordpartners.ai', '@aljeel.com'],
+  'aljeel-ap': ['amr@accordpartners.ai', 'malik@accordpartners.ai', 'ahmed.samy@myregent.ai', '@aljeel.com'],
   asateel:     ['amr@accordpartners.ai', 'malik@accordpartners.ai', '@aljeel.com']
 };
 

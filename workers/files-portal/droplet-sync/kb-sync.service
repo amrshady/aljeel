@@ -1,0 +1,9 @@
+[Unit]
+Description=KB Sync — pull Spaces to local volume, detect changes, reindex
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/kb-sync.env
+ExecStart=/usr/local/bin/kb-sync.sh
+User=root

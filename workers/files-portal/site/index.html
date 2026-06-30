@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en" data-brand="regent">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Files — Regent</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fbfaf6;
+      --paper: #ffffff;
+      --text: #0e0e0e;
+      --soft: #2a2a2a;
+      --muted: #5a5a5a;
+      --dim: #8a8a8a;
+      --line: #e6e2d6;
+      --accent: #8a6d3a;
+      --accent-soft: #b18f4e;
+      --accent-tint: #f5efe0;
+      --error: #c0392b;
+      --success: #2a7a3a;
+    }
+    html[data-brand="accord"] {
+      --bg: #f7f8fa;
+      --paper: #ffffff;
+      --text: #0e1a2e;
+      --soft: #1f2a3d;
+      --muted: #4a5568;
+      --dim: #8a96a8;
+      --line: #dee3eb;
+      --accent: #1f3b6e;
+      --accent-soft: #2f5396;
+      --accent-tint: #eaf0fa;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Inter',system-ui,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      font-size:14px;
+      line-height:1.55;
+      min-height:100vh;
+    }
+
+    /* TOP BAR */
+    .topbar {
+      background:#0e0e0e;
+      color:#fff;
+      padding:0.85rem 1.75rem;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    html[data-brand="accord"] .topbar { background:var(--accent); }
+    .brand { display:flex; align-items:center; gap:0.85rem; }
+    .brand-icon {
+      width:34px; height:34px;
+      background:#0a0a0a;
+      border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-family:Georgia,serif; font-weight:700; font-size:1.3rem;
+      color:var(--accent);
+    }
+    html[data-brand="accord"] .brand-icon { background:#fff; color:var(--accent); }
+    .brand-name {
+      font-family:'Playfair Display',serif;
+      font-size:1.15rem; font-weight:700; letter-spacing:-0.3px;
+    }
+    .brand-tag {
+      font-size:0.65rem; letter-spacing:2px; text-transform:uppercase;
+      color:rgba(255,255,255,0.6); font-weight:500; margin-top:0.1rem;
+    }
+    .user-chip { display:flex; align-items:center; gap:0.5rem; font-size:0.82rem; color:rgba(255,255,255,0.85); }
+    .user-avatar {
+      width:28px; height:28px; border-radius:50%;
+      background:var(--accent); color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:600; font-size:0.78rem;
+    }
+
+    /* TABS */
+    .tabs {
+      background:var(--paper);
+      border-bottom:1px solid var(--line);
+      padding:0 1.75rem;
+      display:flex; gap:0;
+    }
+    .tab {
+      background:transparent; border:none;
+      padding:1rem 1.5rem;
+      font-family:'Inter',sans-serif; font-size:0.9rem;
+      color:var(--muted); font-weight:500; cursor:pointer;
+      border-bottom:3px solid transparent;
+      margin-bottom:-1px;
+      display:flex; align-items:center; gap:0.6rem;
+    }
+    .tab:hover { color:var(--text); }
+    .tab.active {
+      color:var(--accent);
+      border-bottom-color:var(--accent);
+      font-weight:600;
+    }
+    .tab-badge {
+      font-size:0.7rem; color:var(--muted);
+      background:var(--bg);
+      padding:0.15rem 0.6rem; border-radius:100px;
+      font-weight:500;
+    }
+    .tab.active .tab-badge { background:var(--accent-tint); color:var(--accent); }
+
+    /* MAIN */
+    .main {
+      max-width:1100px;
+      margin:0 auto;
+      padding:2rem 1.75rem 2rem;
+    }
+    .header-row {
+      display:flex; justify-content:space-between; align-items:flex-end;
+      margin-bottom:1.5rem;
+    }
+    .header-row h1 {
+      font-family:'Playfair Display',serif;
+      font-size:1.7rem; font-weight:700; letter-spacing:-0.3px;
+    }
+    .header-row .sub { color:var(--muted); font-size:0.88rem; margin-top:0.2rem; }
+    .toolbar { display:flex; gap:0.5rem; align-items:center; }
+    .btn {
+      background:transparent; border:1px solid var(--line);
+      color:var(--soft);
+      padding:0.5rem 1rem; border-radius:6px;
+      font-family:'Inter',sans-serif; font-size:0.84rem; font-weight:500;
+      cursor:pointer;
+    }
+    .btn:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* DROPZONE — compact when there are files */
+    .dropzone {
+      background:var(--paper);
+      border:2px dashed var(--line);
+      border-radius:10px;
+      padding:1.5rem 1.5rem;
+      text-align:center;
+      margin-bottom:1.25rem;
+      cursor:pointer;
+      transition:all 0.15s;
+      display:flex; align-items:center; justify-content:center; gap:1rem;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color:var(--accent);
+      background:var(--accent-tint);
+    }
+    .dropzone-icon { font-size:1.6rem; opacity:0.7; }
+    .dropzone-text { text-align:left; }
+    .dropzone h3 {
+      font-family:'Inter',sans-serif; font-size:0.95rem; font-weight:600;
+      margin-bottom:0.15rem;
+    }
+    .dropzone p { color:var(--muted); font-size:0.8rem; }
+    .dropzone .pick { color:var(--accent); font-weight:600; text-decoration:underline; cursor:pointer; }
+    .dropzone-actions {
+      display:flex; gap:0.5rem;
+      margin-left:auto;
+    }
+    .dropzone-actions .btn { white-space:nowrap; }
+
+    /* UPLOAD PROGRESS */
+    .upload-list { margin-bottom:1.25rem; }
+    .upload-row {
+      background:var(--paper);
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:0.65rem 1rem;
+      margin-bottom:0.4rem;
+      display:flex; align-items:center; gap:1rem;
+      font-size:0.85rem;
+    }
+    .upload-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .upload-bar {
+      flex:0 0 180px; height:5px;
+      background:var(--line); border-radius:100px;
+      overflow:hidden;
+    }
+    .upload-bar-fill {
+      height:100%;
+      background:var(--accent);
+      transition:width 0.2s;
+    }
+    .upload-status {
+      flex:0 0 80px;
+      text-align:right;
+      font-size:0.76rem; color:var(--muted);
+    }
+    .upload-status.done { color:var(--success); }
+    .upload-status.err { color:var(--error); }
+
+    /* BREADCRUMB + FILTERS */
+    .crumb-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:0.85rem;
+      gap:1rem;
+      flex-wrap:wrap;
+    }
+    .breadcrumb {
+      display:flex; align-items:center; gap:0.35rem;
+      font-size:0.92rem;
+      flex-wrap:wrap;
+    }
+    .breadcrumb a {
+      color:var(--muted); text-decoration:none; cursor:pointer;
+      padding:0.2rem 0.4rem; border-radius:4px;
+    }
+    .breadcrumb a:hover { background:var(--accent-tint); color:var(--accent); }
+    .breadcrumb .crumb-sep { color:var(--dim); font-size:0.78rem; }
+    .breadcrumb .current { color:var(--text); font-weight:600; padding:0.2rem 0.4rem; }
+    .filter-controls {
+      display:flex; gap:0.4rem; align-items:center;
+    }
+    .filter-controls input {
+      padding:0.45rem 0.8rem;
+      border:1px solid var(--line);
+      border-radius:6px;
+      font-family:inherit; font-size:0.84rem;
+      background:var(--paper); color:var(--text);
+      width:180px;
+    }
+    .filter-controls input:focus { outline:none; border-color:var(--accent); }
+    .filter-chip {
+      padding:0.35rem 0.75rem;
+      border:1px solid var(--line);
+      border-radius:100px;
+      background:var(--paper);
+      color:var(--muted);
+      font-size:0.76rem; cursor:pointer; font-family:inherit;
+    }
+    .filter-chip.active {
+      background:var(--accent-tint);
+      border-color:var(--accent);
+      color:var(--accent);
+      font-weight:600;
+    }
+
+    /* FILE LIST */
+    .file-list {
+      background:var(--paper);
+      border:1px solid var(--line);
+      border-radius:8px;
+    }
+    .file-list-header {
+      display:grid;
+      grid-template-columns:1fr 110px 130px 110px;
+      gap:1rem;
+      padding:0.7rem 1.1rem;
+      background:var(--bg);
+      border-bottom:1px solid var(--line);
+      font-size:0.62rem;
+      letter-spacing:1.8px;
+      text-transform:uppercase;
+      color:var(--muted);
+      font-weight:600;
+      border-radius:8px 8px 0 0;
+    }
+    .file-row {
+      display:grid;
+      grid-template-columns:1fr 110px 130px 110px;
+      gap:1rem;
+      padding:0.85rem 1.1rem;
+      border-bottom:1px solid var(--line);
+      align-items:center;
+    }
+    .file-row:last-child { border-bottom:none; border-radius:0 0 8px 8px; }
+    .file-row.is-folder { cursor:pointer; }
+    .file-row.is-folder:hover { background:var(--accent-tint); }
+    .file-row:hover:not(.is-folder) { background:var(--bg); }
+    .file-row.archived { opacity:0.55; }
+    .file-row.archived .file-name-text { text-decoration:line-through; }
+    .file-name {
+      font-size:0.88rem;
+      color:var(--text);
+      overflow:hidden;
+      display:flex; align-items:center; gap:0.65rem;
+    }
+    .file-icon { font-size:1.05rem; flex-shrink:0; }
+    .file-name-text {
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      font-weight:500;
+    }
+    .file-row.is-folder .file-name-text { font-weight:600; }
+    .file-size {
+      font-size:0.78rem; color:var(--muted);
+      font-variant-numeric:tabular-nums;
+      text-align:right;
+    }
+    .file-modified { font-size:0.78rem; color:var(--muted); }
+    .file-actions { display:flex; gap:0.35rem; justify-content:flex-end; }
+    .file-action-btn {
+      background:transparent;
+      border:1px solid var(--line);
+      padding:0.3rem 0.55rem;
+      border-radius:4px;
+      font-size:0.72rem;
+      color:var(--muted);
+      cursor:pointer; font-family:inherit;
+    }
+    .file-action-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .file-action-btn.danger:hover { color:var(--error); border-color:var(--error); }
+    .file-list-empty {
+      padding:3rem 1.5rem;
+      text-align:center;
+      color:var(--muted); font-size:0.9rem;
+    }
+
+    /* TOAST */
+    #toast-container {
+      position:fixed; bottom:1.5rem; right:1.5rem;
+      display:flex; flex-direction:column; gap:0.5rem;
+      z-index:100;
+    }
+    .toast {
+      background:var(--text); color:var(--paper);
+      padding:0.7rem 1.1rem; border-radius:6px;
+      font-size:0.84rem;
+      box-shadow:0 4px 16px rgba(0,0,0,0.18);
+      animation:toastIn 0.2s;
+      max-width:340px;
+    }
+    .toast.success { background:var(--success); }
+    .toast.error { background:var(--error); }
+    @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    /* SPINNER */
+    .spinner {
+      width:16px; height:16px;
+      border:2px solid var(--line); border-top-color:var(--accent);
+      border-radius:50%;
+      animation:spin 0.6s linear infinite;
+      display:inline-block; vertical-align:middle;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .full-spinner {
+      display:flex; align-items:center; justify-content:center;
+      padding:3rem;
+      color:var(--muted); font-size:0.86rem; gap:0.6rem;
+    }
+
+    @media (max-width: 600px) {
+      .dropzone { flex-direction:column; gap:0.4rem; padding:1.2rem; }
+      .dropzone-actions { margin-left:0; }
+      .dropzone-text { text-align:center; }
+      .crumb-row { flex-direction:column; align-items:flex-start; }
+      .filter-controls input { width:100%; }
+      .file-list-header { grid-template-columns:1fr 80px; }
+      .file-list-header > div:nth-child(3), .file-list-header > div:nth-child(4) { display:none; }
+      .file-row { grid-template-columns:1fr 80px; }
+      .file-row > div:nth-child(2), .file-row > div:nth-child(3) { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon" id="brand-icon">M</div>
+    <div>
+      <div class="brand-name" id="brand-name">Regent</div>
+      <div class="brand-tag">Files</div>
+    </div>
+  </div>
+  <div class="user-chip" id="user-chip">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <span id="user-email">signed in</span>
+  </div>
+</div>
+
+<div class="tabs" id="tab-switcher"></div>
+
+<div class="main">
+
+  <div class="header-row">
+    <div>
+      <h1 id="page-title">Knowledge Base</h1>
+      <div class="sub" id="page-sub">Upload, organize, archive — changes flow to the assistant automatically.</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="refresh-btn">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="dropzone-icon">⬆</div>
+    <div class="dropzone-text">
+      <h3>Drop files or folders here</h3>
+      <p>or <span class="pick" id="pick-files">choose files</span> · <span class="pick" id="pick-folder">choose a folder</span></p>
+    </div>
+    <div class="dropzone-actions">
+      <input type="file" id="file-input" multiple style="display:none">
+      <input type="file" id="folder-input" multiple webkitdirectory style="display:none">
+    </div>
+  </div>
+
+  <div class="upload-list" id="upload-list"></div>
+
+  <div class="crumb-row">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="filter-controls">
+      <input type="text" id="filter-input" placeholder="Search this folder…">
+      <button class="filter-chip active" data-filter="active">Active</button>
+      <button class="filter-chip" data-filter="archived">Archived</button>
+      <button class="filter-chip" data-filter="all">All</button>
+    </div>
+  </div>
+
+  <div class="file-list-header">
+    <div>Name</div>
+    <div style="text-align:right;">Size</div>
+    <div>Modified</div>
+    <div style="text-align:right;">Actions</div>
+  </div>
+  <div class="file-list" id="file-list">
+    <div class="full-spinner"><span class="spinner"></span> loading…</div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// =====================================================
+// CONFIG
+// =====================================================
+const TENANTS = {
+  maher: { name: 'Maher', label: 'HR Assistant', brand: 'regent', icon: 'M' },
+  marwan: { name: 'Marwan', label: 'KAM Assistant', brand: 'regent', icon: 'M' },
+  'aljeel-ap': { name: 'Al Jawal', label: 'Finance Agent', brand: 'accord', icon: 'A' },
+  asateel: { name: 'Asateel', label: 'Finance Agent', brand: 'accord', icon: 'A' }
+};
+const SITE_TENANTS = location.hostname.includes('accordpartners')
+  ? ['aljeel-ap', 'asateel']
+  : ['maher', 'marwan'];
+
+let activeTenant = SITE_TENANTS[0];
+let activePath = '';      // current folder path ('' = root)
+let activeFilter = 'active';
+let allFiles = [];
+
+// =====================================================
+// API helpers
+// =====================================================
+async function api(p, opts = {}) {
+  const r = await fetch(`/api${p}`, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts
+  });
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error(`API ${r.status}: ${err.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
+function tenant() { return TENANTS[activeTenant]; }
+
+function toast(msg, kind = '') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function fileIcon(name, isFolder) {
+  if (isFolder) return '📁';
+  const ext = name.split('.').pop().toLowerCase();
+  if (['pdf'].includes(ext)) return '📕';
+  if (['doc','docx'].includes(ext)) return '📘';
+  if (['xls','xlsx','csv'].includes(ext)) return '📗';
+  if (['ppt','pptx'].includes(ext)) return '📙';
+  if (['png','jpg','jpeg','gif','webp'].includes(ext)) return '🖼';
+  if (['txt','md'].includes(ext)) return '📄';
+  if (['zip','tar','gz','7z'].includes(ext)) return '🗜';
+  return '📎';
+}
+
+function humanSize(b) {
+  if (b == null) return '—';
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1024*1024*1024) return (b/(1024*1024)).toFixed(1) + ' MB';
+  return (b/(1024*1024*1024)).toFixed(2) + ' GB';
+}
+
+function humanDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + ' min ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  if (diff < 86400*7) return Math.floor(diff/86400) + 'd ago';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// =====================================================
+// TABS + BRAND
+// =====================================================
+function renderTabs() {
+  const tabs = document.getElementById('tab-switcher');
+  tabs.innerHTML = '';
+  SITE_TENANTS.forEach(t => {
+    const T = TENANTS[t];
+    const el = document.createElement('button');
+    el.className = 'tab' + (t === activeTenant ? ' active' : '');
+    el.innerHTML = `<span>${T.name}</span><span class="tab-badge" data-tab-count="${t}">—</span>`;
+    el.onclick = () => switchTenant(t);
+    tabs.appendChild(el);
+  });
+}
+
+function switchTenant(t) {
+  activeTenant = t;
+  activePath = '';
+  renderTabs();
+  applyBrand();
+  loadFiles();
+}
+
+function applyBrand() {
+  const T = tenant();
+  document.documentElement.dataset.brand = T.brand;
+  document.getElementById('brand-icon').textContent = T.icon;
+  document.getElementById('brand-name').textContent = T.brand === 'accord' ? 'Accord Partners' : 'Regent';
+  document.getElementById('page-title').textContent = `${T.name} — Knowledge Base`;
+  document.getElementById('page-sub').textContent = `${T.label}. Upload, organize, archive — changes flow to the assistant automatically.`;
+  document.title = `Files — ${T.brand === 'accord' ? 'Accord' : 'Regent'} (${T.name})`;
+}
+
+// =====================================================
+// LOAD FILES
+// =====================================================
+async function loadFiles() {
+  const list = document.getElementById('file-list');
+  list.innerHTML = '<div class="full-spinner"><span class="spinner"></span> loading…</div>';
+  try {
+    const data = await api(`/files?tenant=${activeTenant}`);
+    allFiles = data.files || [];
+    document.querySelectorAll('[data-tab-count]').forEach(el => {
+      if (el.dataset.tabCount === activeTenant) {
+        el.textContent = allFiles.filter(f => !f.archived).length;
+      }
+    });
+    renderBreadcrumb();
+    renderFiles();
+  } catch (e) {
+    list.innerHTML = `<div class="full-spinner" style="color:var(--error)">${e.message}</div>`;
+  }
+}
+
+// =====================================================
+// BREADCRUMB
+// =====================================================
+function renderBreadcrumb() {
+  const crumb = document.getElementById('breadcrumb');
+  const parts = activePath ? activePath.split('/') : [];
+  let html = `<a data-path="" class="crumb-link">All files</a>`;
+  let acc = '';
+  parts.forEach((p, i) => {
+    acc = acc ? `${acc}/${p}` : p;
+    if (i === parts.length - 1) {
+      html += `<span class="crumb-sep">›</span><span class="current">${p}</span>`;
+    } else {
+      html += `<span class="crumb-sep">›</span><a data-path="${acc}" class="crumb-link">${p}</a>`;
+    }
+  });
+  crumb.innerHTML = html;
+  crumb.querySelectorAll('.crumb-link').forEach(el => {
+    el.onclick = (e) => {
+      e.preventDefault();
+      activePath = el.dataset.path;
+      renderBreadcrumb();
+      renderFiles();
+    };
+  });
+}
+
+// =====================================================
+// FILE LIST — Dropbox-style: folders are first-class rows
+// =====================================================
+function renderFiles() {
+  const list = document.getElementById('file-list');
+  const query = document.getElementById('filter-input').value.toLowerCase();
+
+  // Filter to active path + active/archived/all filter + search
+  const filtered = allFiles.filter(f => {
+    if (activeFilter === 'active' && f.archived) return false;
+    if (activeFilter === 'archived' && !f.archived) return false;
+    // Path scope: f.path must start with activePath/ (or activePath be empty)
+    if (activePath && !(f.path.startsWith(activePath + '/'))) return false;
+    if (query && !f.path.toLowerCase().includes(query)) return true && f.path.toLowerCase().includes(query);
+    if (query && !f.path.toLowerCase().includes(query)) return false;
+    return true;
+  });
+
+  // Group into folders + files at the current depth
+  const folders = {}; // name → { count, totalSize, modifiedMax, sample }
+  const directFiles = [];
+
+  filtered.forEach(f => {
+    // path relative to activePath
+    const rel = activePath ? f.path.substring(activePath.length + 1) : f.path;
+    if (!rel) return;
+    const parts = rel.split('/');
+    if (parts.length === 1) {
+      // file directly in current folder
+      directFiles.push(f);
+    } else {
+      // first segment is a subfolder
+      const folderName = parts[0];
+      if (!folders[folderName]) {
+        folders[folderName] = { count: 0, totalSize: 0, modifiedMax: 0 };
+      }
+      folders[folderName].count++;
+      folders[folderName].totalSize += f.size || 0;
+      if ((f.modified || 0) > folders[folderName].modifiedMax) {
+        folders[folderName].modifiedMax = f.modified;
+      }
+    }
+  });
+
+  if (Object.keys(folders).length === 0 && directFiles.length === 0) {
+    list.innerHTML = `<div class="file-list-empty">${activeFilter === 'archived' ? 'No archived files in this folder.' : 'Empty folder — drop files above to populate.'}</div>`;
+    return;
+  }
+
+  // Render folders first, then files
+  const html = [];
+  Object.keys(folders).sort().forEach(name => {
+    const meta = folders[name];
+    const folderPath = activePath ? `${activePath}/${name}` : name;
+    html.push(`
+      <div class="file-row is-folder" data-folder="${encodeURIComponent(folderPath)}" title="Open ${name}">
+        <div class="file-name">
+          <span class="file-icon">📁</span>
+          <div>
+            <div class="file-name-text">${name}</div>
+            <div style="font-size:0.72rem;color:var(--dim);">${meta.count} item${meta.count === 1 ? '' : 's'}</div>
+          </div>
+        </div>
+        <div class="file-size">${humanSize(meta.totalSize)}</div>
+        <div class="file-modified">${humanDate(meta.modifiedMax)}</div>
+        <div class="file-actions">
+          <button class="file-action-btn danger" data-act="archive-folder" data-folder="${encodeURIComponent(folderPath)}" data-count="${meta.count}" title="Archive folder + all ${meta.count} item${meta.count === 1 ? '' : 's'}">⌫</button>
+        </div>
+      </div>
+    `);
+  });
+
+  directFiles.sort((a, b) => (b.modified || 0) - (a.modified || 0)).forEach(f => {
+    const name = f.path.split('/').pop();
+    html.push(`
+      <div class="file-row ${f.archived ? 'archived' : ''}">
+        <div class="file-name">
+          <span class="file-icon">${fileIcon(name, false)}</span>
+          <div>
+            <div class="file-name-text">${name}</div>
+          </div>
+        </div>
+        <div class="file-size">${humanSize(f.size)}</div>
+        <div class="file-modified">${humanDate(f.modified)}</div>
+        <div class="file-actions">
+          <button class="file-action-btn" data-act="download" data-key="${encodeURIComponent(f.path)}" title="Download">↓</button>
+          <button class="file-action-btn ${f.archived ? '' : 'danger'}" data-act="${f.archived ? 'restore' : 'archive'}" data-key="${encodeURIComponent(f.path)}" title="${f.archived ? 'Restore' : 'Archive'}">${f.archived ? '↺' : '⌫'}</button>
+        </div>
+      </div>
+    `);
+  });
+
+  list.innerHTML = html.join('');
+
+  // Folder clicks (single-click — Dropbox actually uses single-click on web)
+  list.querySelectorAll('.is-folder').forEach(row => {
+    row.onclick = (e) => {
+      if (e.target.closest('.file-action-btn')) return;
+      activePath = decodeURIComponent(row.dataset.folder);
+      renderBreadcrumb();
+      renderFiles();
+    };
+  });
+  // File action buttons
+  list.querySelectorAll('.file-action-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      if (act === 'archive-folder') {
+        const folder = decodeURIComponent(btn.dataset.folder);
+        const count = btn.dataset.count;
+        return archiveFolder(folder, count);
+      }
+      const key = decodeURIComponent(btn.dataset.key);
+      if (act === 'download') return downloadFile(key);
+      if (act === 'archive') return archiveFile(key);
+      if (act === 'restore') return restoreFile(key);
+    };
+  });
+}
+
+// =====================================================
+// UPLOAD — files + folders
+// =====================================================
+function setupDropzone() {
+  const dz = document.getElementById('dropzone');
+  const fInput = document.getElementById('file-input');
+  const dirInput = document.getElementById('folder-input');
+
+  document.getElementById('pick-files').onclick = (e) => { e.stopPropagation(); fInput.click(); };
+  document.getElementById('pick-folder').onclick = (e) => { e.stopPropagation(); dirInput.click(); };
+  dz.onclick = () => fInput.click();
+
+  fInput.onchange = () => handleFiles([...fInput.files].map(f => ({ file: f, relPath: f.name })));
+  dirInput.onchange = () => {
+    const items = [...dirInput.files].map(f => ({
+      file: f,
+      relPath: f.webkitRelativePath || f.name
+    }));
+    handleFiles(items);
+  };
+
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('dragover'); };
+  dz.ondragleave = () => dz.classList.remove('dragover');
+  dz.ondrop = async e => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    const items = await extractDroppedItems(e.dataTransfer);
+    handleFiles(items);
+  };
+}
+
+// Extract files + nested folders from a drop event using DataTransferItemList
+async function extractDroppedItems(dataTransfer) {
+  const items = [];
+  const entries = [];
+  for (const item of dataTransfer.items) {
+    if (item.kind === 'file') {
+      const entry = item.webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+      else {
+        const f = item.getAsFile();
+        if (f) items.push({ file: f, relPath: f.name });
+      }
+    }
+  }
+  for (const entry of entries) {
+    await walkEntry(entry, '', items);
+  }
+  return items;
+}
+
+async function walkEntry(entry, basePath, out) {
+  if (entry.isFile) {
+    await new Promise((resolve) => {
+      entry.file(f => {
+        out.push({ file: f, relPath: basePath ? `${basePath}/${f.name}` : f.name });
+        resolve();
+      }, () => resolve());
+    });
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    const allEntries = [];
+    let batch;
+    do {
+      batch = await new Promise((resolve) => reader.readEntries(resolve, () => resolve([])));
+      allEntries.push(...batch);
+    } while (batch.length > 0);
+    for (const child of allEntries) {
+      await walkEntry(child, basePath ? `${basePath}/${entry.name}` : entry.name, out);
+    }
+  }
+}
+
+async function handleFiles(items) {
+  const list = document.getElementById('upload-list');
+  // Upload up to 4 in parallel
+  const queue = [...items];
+  const concurrency = 4;
+  const workers = Array(Math.min(concurrency, queue.length)).fill(null).map(async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      if (!item) break;
+      await uploadOne(item, list);
+    }
+  });
+  await Promise.all(workers);
+  loadFiles();
+}
+
+async function uploadOne({ file, relPath }, listEl) {
+  // Compose the target key: prefix with activePath if user is inside a folder
+  const targetKey = activePath ? `${activePath}/${relPath}` : relPath;
+  const row = document.createElement('div');
+  row.className = 'upload-row';
+  row.innerHTML = `
+    <div class="upload-name">${fileIcon(file.name, false)} ${targetKey}</div>
+    <div class="upload-bar"><div class="upload-bar-fill" style="width:0%"></div></div>
+    <div class="upload-status">queued</div>
+  `;
+  listEl.appendChild(row);
+  const bar = row.querySelector('.upload-bar-fill');
+  const status = row.querySelector('.upload-status');
+  try {
+    status.textContent = 'signing…';
+    const sign = await api(`/upload-url?tenant=${activeTenant}&name=${encodeURIComponent(targetKey)}&size=${file.size}`, { method: 'POST' });
+    status.textContent = 'uploading…';
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) {
+          const pct = (e.loaded / e.total) * 100;
+          bar.style.width = pct + '%';
+          status.textContent = Math.floor(pct) + '%';
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status < 300) return resolve();
+        // Surface the server's actual response body (e.g. SignatureDoesNotMatch)
+        // so we can debug encoding/signing issues without guessing.
+        const detail = (xhr.responseText || '').slice(0, 200);
+        const codeMatch = detail.match(/<Code>([^<]+)<\/Code>/);
+        const msgMatch = detail.match(/<Message>([^<]+)<\/Message>/);
+        let txt = `HTTP ${xhr.status}`;
+        if (codeMatch) txt += ` ${codeMatch[1]}`;
+        if (msgMatch) txt += `: ${msgMatch[1]}`;
+        reject(new Error(txt));
+      };
+      xhr.onerror = () => reject(new Error('network error (CORS or DNS — open browser dev console for details)'));
+      xhr.open('PUT', sign.url);
+      if (sign.headers) Object.entries(sign.headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+      xhr.send(file);
+    });
+    status.textContent = 'finalizing…';
+    await api(`/upload-finalize`, {
+      method: 'POST',
+      body: JSON.stringify({ tenant: activeTenant, key: sign.key, size: file.size })
+    });
+    status.textContent = 'done ✓';
+    status.classList.add('done');
+    setTimeout(() => row.remove(), 3000);
+  } catch (e) {
+    status.textContent = 'failed';
+    status.classList.add('err');
+    toast(`Upload failed: ${file.name} — ${e.message}`, 'error');
+  }
+}
+
+// =====================================================
+// ACTIONS
+// =====================================================
+async function archiveFile(key) {
+  if (!confirm(`Archive "${key.split('/').pop()}"?\n\nThe assistant will stop using it, but the file is preserved and can be restored.`)) return;
+  try {
+    await api(`/archive`, { method: 'POST', body: JSON.stringify({ tenant: activeTenant, key }) });
+    toast('Archived', 'success');
+    loadFiles();
+  } catch (e) { toast(`Archive failed: ${e.message}`, 'error'); }
+}
+
+async function archiveFolder(folder, count) {
+  const folderName = folder.split('/').pop();
+  if (!confirm(`Archive folder "${folderName}" and all ${count} item${count === '1' ? '' : 's'} inside?\n\nThe assistant will stop using these files, but everything is preserved and can be restored.`)) return;
+  try {
+    const r = await api(`/archive-folder`, {
+      method: 'POST',
+      body: JSON.stringify({ tenant: activeTenant, folder })
+    });
+    toast(`Archived folder (${r.archived} item${r.archived === 1 ? '' : 's'})`, 'success');
+    loadFiles();
+  } catch (e) { toast(`Archive folder failed: ${e.message}`, 'error'); }
+}
+
+async function restoreFile(key) {
+  try {
+    await api(`/restore`, { method: 'POST', body: JSON.stringify({ tenant: activeTenant, key }) });
+    toast('Restored', 'success');
+    loadFiles();
+  } catch (e) { toast(`Restore failed: ${e.message}`, 'error'); }
+}
+
+async function downloadFile(key) {
+  try {
+    const r = await api(`/download-url?tenant=${activeTenant}&key=${encodeURIComponent(key)}`);
+    window.open(r.url, '_blank');
+  } catch (e) { toast(`Download failed: ${e.message}`, 'error'); }
+}
+
+// =====================================================
+// USER
+// =====================================================
+async function loadUser() {
+  try {
+    const u = await api('/whoami');
+    if (u.email) {
+      document.getElementById('user-email').textContent = u.email;
+      document.getElementById('user-avatar').textContent = u.email[0].toUpperCase();
+    }
+  } catch (e) {}
+}
+
+// =====================================================
+// BOOT
+// =====================================================
+function setupFilterChips() {
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.onclick = () => {
+      document.querySelectorAll('.filter-chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      activeFilter = c.dataset.filter;
+      renderFiles();
+    };
+  });
+  document.getElementById('filter-input').oninput = () => renderFiles();
+  document.getElementById('refresh-btn').onclick = () => loadFiles();
+}
+
+renderTabs();
+applyBrand();
+setupDropzone();
+setupFilterChips();
+loadUser();
+loadFiles();
+</script>
+
+</body>
+</html>

@@ -1,19 +1,17 @@
 import {
   CreateInvoiceDraftSchema,
   DocumentListSchema,
-  DocumentSchema,
   InvoiceDetailSchema,
-  InvoiceListItemSchema,
+  InvoiceFolderListItemSchema,
   InvoiceSchema,
   PaginatedResponseSchema,
-  resolveDocumentMimeType,
   SubmitInvoiceResponseSchema,
   UpsertInvoiceDraftSchema,
-  type DocumentType,
+  ArchiveInvoiceResponseSchema,
   type UpsertInvoiceDraft,
 } from '@aljeel/shared-types';
 import { z } from 'zod';
-import { apiFetch, downloadFile, fetchFile } from './api-client';
+import { apiFetch } from './api-client';
 
 const DeletedDocumentSchema = z.object({
   id: z.string(),
@@ -27,7 +25,7 @@ export function listInvoices(params: Record<string, string | undefined> = {}) {
   });
   const qs = search.toString();
   return apiFetch(`/invoices${qs ? `?${qs}` : ''}`, {
-    schema: PaginatedResponseSchema(InvoiceListItemSchema),
+    schema: PaginatedResponseSchema(InvoiceFolderListItemSchema),
   });
 }
 
@@ -35,8 +33,10 @@ export function getInvoice(id: string) {
   return apiFetch(`/invoices/${id}`, { schema: InvoiceDetailSchema });
 }
 
-export function createInvoiceDraft() {
-  const payload = CreateInvoiceDraftSchema.parse({});
+export function createInvoiceDraft(invoiceNumber?: string) {
+  const payload = CreateInvoiceDraftSchema.parse(
+    invoiceNumber ? { invoiceNumber } : {},
+  );
   return apiFetch('/invoices', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -60,33 +60,16 @@ export function submitInvoice(id: string) {
   });
 }
 
-export function listInvoiceDocuments(invoiceId: string) {
-  return apiFetch(`/invoices/${invoiceId}/documents`, {
-    schema: DocumentListSchema,
+export function archiveInvoice(id: string) {
+  return apiFetch(`/invoices/${id}/archive`, {
+    method: 'POST',
+    schema: ArchiveInvoiceResponseSchema,
   });
 }
 
-export function normalizeUploadFile(file: File): File {
-  const type = resolveDocumentMimeType(file.name, file.type);
-  if (type === file.type) {
-    return file;
-  }
-  return new File([file], file.name, { type, lastModified: file.lastModified });
-}
-
-export function uploadInvoiceDocument(
-  invoiceId: string,
-  file: File,
-  type: DocumentType = 'INVOICE',
-) {
-  const normalized = normalizeUploadFile(file);
-  const form = new FormData();
-  form.append('file', normalized);
-  form.append('type', type);
+export function listInvoiceDocuments(invoiceId: string) {
   return apiFetch(`/invoices/${invoiceId}/documents`, {
-    method: 'POST',
-    body: form,
-    schema: DocumentSchema,
+    schema: DocumentListSchema,
   });
 }
 
@@ -95,12 +78,4 @@ export function deleteInvoiceDocument(documentId: string) {
     method: 'DELETE',
     schema: DeletedDocumentSchema,
   });
-}
-
-export function fetchInvoiceDocument(documentId: string) {
-  return fetchFile(`/documents/${documentId}/download`);
-}
-
-export function downloadInvoiceDocument(documentId: string, fileName: string) {
-  return downloadFile(`/documents/${documentId}/download`, fileName);
 }

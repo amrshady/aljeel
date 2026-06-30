@@ -17,7 +17,7 @@ import {
   type InvoiceListQuery,
   type UpsertInvoiceDraft,
 } from '@aljeel/shared-types';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
@@ -39,6 +39,7 @@ export function serializeInvoice(
     status: invoice.status,
     source: invoice.source,
     rejectionReason: invoice.rejectionReason,
+    archivedAt: invoice.archivedAt?.toISOString() ?? null,
     createdAt: invoice.createdAt.toISOString(),
     updatedAt: invoice.updatedAt.toISOString(),
     lines: invoice.lines.map((line) => ({
@@ -80,13 +81,29 @@ export class InvoicesService {
   ) {}
 
   async createDraft(user: AuthUser, body: unknown) {
-    CreateInvoiceDraftSchema.parse(body ?? {});
+    const dto = CreateInvoiceDraftSchema.parse(body ?? {});
     const supplierId = requireSupplierId(user);
+
+    if (dto.invoiceNumber) {
+      const existing = await this.prisma.invoice.findFirst({
+        where: {
+          supplierId,
+          invoiceNumber: dto.invoiceNumber,
+          status: { in: ['DRAFT', 'REJECTED'] },
+        },
+        include: { lines: true },
+      });
+      if (existing) {
+        return serializeInvoice(existing);
+      }
+    }
 
     const invoice = await this.prisma.invoice.create({
       data: {
         supplierId,
-        invoiceNumber: `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
+        invoiceNumber:
+          dto.invoiceNumber ??
+          `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
         invoiceDate: new Date(),
         currency: 'SAR',
         status: 'DRAFT',
@@ -179,6 +196,9 @@ export class InvoicesService {
 
     const where: Prisma.InvoiceWhereInput = {
       supplierId,
+      ...(params.archived
+        ? { archivedAt: { not: null } }
+        : { archivedAt: null }),
       ...(params.status ? { status: params.status } : {}),
       ...(params.q
         ? {
@@ -192,11 +212,17 @@ export class InvoicesService {
     const orderBy =
       params.sort === 'createdAt'
         ? { createdAt: 'asc' as const }
-        : params.sort === '-invoiceDate'
-          ? { invoiceDate: 'desc' as const }
-          : params.sort === 'invoiceDate'
-            ? { invoiceDate: 'asc' as const }
-            : { createdAt: 'desc' as const };
+        : params.sort === '-createdAt'
+          ? { createdAt: 'desc' as const }
+          : params.sort === 'updatedAt'
+            ? { updatedAt: 'asc' as const }
+            : params.sort === '-updatedAt'
+              ? { updatedAt: 'desc' as const }
+              : params.sort === '-invoiceDate'
+                ? { invoiceDate: 'desc' as const }
+                : params.sort === 'invoiceDate'
+                  ? { invoiceDate: 'asc' as const }
+                  : { updatedAt: 'desc' as const };
 
     const [total, rows] = await Promise.all([
       this.prisma.invoice.count({ where }),
@@ -209,15 +235,77 @@ export class InvoicesService {
       }),
     ]);
 
+    const rowIds = rows.map((row) => row.id);
+    const documentStats =
+      rowIds.length === 0
+        ? []
+        : await this.prisma.document.groupBy({
+            by: ['invoiceId'],
+            where: { invoiceId: { in: rowIds } },
+            _count: { id: true },
+            _sum: { sizeBytes: true },
+          });
+    const statsByInvoiceId = new Map(
+      documentStats.map((stat) => [
+        stat.invoiceId,
+        {
+          documentCount: stat._count.id,
+          totalSizeBytes: stat._sum.sizeBytes ?? 0,
+        },
+      ]),
+    );
+
     return {
       data: rows.map((row) => {
         const full = serializeInvoice(row);
         const { lines: _lines, ...item } = full;
-        return item;
+        const stats = statsByInvoiceId.get(row.id) ?? {
+          documentCount: 0,
+          totalSizeBytes: 0,
+        };
+        return { ...item, ...stats };
       }),
       page: params.page,
       pageSize: params.pageSize,
       total,
+    };
+  }
+
+  async archive(user: AuthUser, id: string) {
+    const supplierId = requireSupplierId(user);
+    const invoice = await this.findOwnedInvoice(supplierId, id);
+
+    if (invoice.archivedAt) {
+      return {
+        id: invoice.id,
+        archivedAt: invoice.archivedAt.toISOString(),
+      };
+    }
+
+    if (invoice.status !== 'DRAFT' && invoice.status !== 'REJECTED') {
+      throw new UnprocessableEntityException({
+        code: 'INVOICE_NOT_ARCHIVABLE',
+        message: 'Only draft or rejected invoices can be archived.',
+      });
+    }
+
+    const archived = await this.prisma.invoice.update({
+      where: { id },
+      data: { archivedAt: new Date() },
+    });
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Invoice',
+      entityId: id,
+      action: 'ARCHIVE',
+      before: { archivedAt: null },
+      after: { archivedAt: archived.archivedAt?.toISOString() ?? null },
+    });
+
+    return {
+      id: archived.id,
+      archivedAt: archived.archivedAt!.toISOString(),
     };
   }
 
@@ -237,13 +325,13 @@ export class InvoicesService {
       throw error;
     }
 
-    const invoicePdf = await this.prisma.document.findFirst({
-      where: { invoiceId: id, type: 'INVOICE' },
+    const documentCount = await this.prisma.document.count({
+      where: { invoiceId: id },
     });
-    if (!invoicePdf) {
+    if (documentCount === 0) {
       throw new UnprocessableEntityException({
-        code: 'INVOICE_PDF_REQUIRED',
-        message: 'An invoice PDF must be attached before submitting.',
+        code: 'DOCUMENTS_REQUIRED',
+        message: 'At least one document must be attached before submitting.',
       });
     }
 
@@ -327,7 +415,7 @@ export class InvoicesService {
   async getSummary(supplierId: string) {
     const groups = await this.prisma.invoice.groupBy({
       by: ['status'],
-      where: { supplierId },
+      where: { supplierId, archivedAt: null },
       _count: { status: true },
     });
 

@@ -73,12 +73,23 @@
     "subtitle": "عرض وإدارة الفواتير المقدمة",
     "newInvoice": "فاتورة جديدة",
     "all": "الكل",
+    "archived": "مؤرشفة",
+    "archive": "أرشفة",
+    "archiving": "جاري الأرشفة…",
     "loading": "جاري تحميل الفواتير…",
     "error": "فشل تحميل الفواتير",
     "empty": "لا توجد فواتير مطابقة",
     "prev": "السابق",
     "next": "التالي",
     "page": "صفحة {page} من {total}",
+    "fileCount": "{count, plural, one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفاً} other {# ملف}}",
+    "columns": {
+      "name": "الاسم",
+      "files": "الملفات",
+      "modified": "تاريخ التعديل",
+      "size": "الحجم",
+      "actions": "إجراءات"
+    },
     "status": {
       "DRAFT": "مسودة",
       "SUBMITTED": "مُقدَّمة",
@@ -92,23 +103,19 @@
   },
   "invoiceForm": {
     "title": "تقديم فاتورة",
-    "subtitle": "ارفع ملف PDF للفاتورة وأي مستندات داعمة. تُستخرج تفاصيل الفاتورة تلقائياً بعد التقديم.",
-    "invoicePdfTitle": "ملف الفاتورة (PDF)",
-    "invoicePdfHint": "ارفع الفاتورة الأصلية بصيغة PDF. مطلوب للتقديم للمراجعة.",
-    "invoicePdfDropTitle": "اسحب وأفلت ملف PDF للفاتورة هنا، أو انقر للاختيار",
-    "invoicePdfDropHint": "PDF فقط · حتى 25 ميجابايت",
-    "attachmentsTitle": "مرفقات إضافية",
-    "attachmentsHint": "مستندات داعمة اختيارية مثل إشعارات التسليم، نسخ سند الاستلام، العقود، أو جداول الساعات.",
-    "attachmentsDropTitle": "اسحب وأفلت الملفات هنا، أو انقر للاختيار",
-    "attachmentsDropHint": "PDF أو صور أو XML · حتى 25 ميجابايت لكل ملف",
+    "subtitle": "ارفع الفاتورة وأي مستندات داعمة. تُستخرج التفاصيل تلقائياً بعد التقديم.",
+    "filesTitle": "المستندات",
+    "filesHint": "أضف كل ملفاتك في رفع واحد. يظهر تقدم كل ملف أثناء الرفع.",
+    "filesDropTitle": "اسحب وأفلت مجلداً أو ملفات هنا، أو انقر للاختيار",
+    "filesDropHint": "ارفع مجلداً كاملاً — سيُعرض كل ملف بداخله ويُرفع على حدة",
     "saveDraft": "حفظ مسودة",
     "submit": "تقديم للمراجعة",
     "saving": "جاري الحفظ…",
     "submitting": "جاري التقديم…",
+    "uploadingFiles": "جاري رفع الملفات…",
     "error": "تعذر حفظ الفاتورة",
     "errors": {
-      "invoicePdfRequired": "يرجى إرفاق ملف PDF للفاتورة قبل التقديم للمراجعة",
-      "invoicePdfType": "يجب أن يكون ملف الفاتورة بصيغة PDF"
+      "filesRequired": "يرجى إرفاق ملف واحد على الأقل قبل التقديم للمراجعة"
     }
   },
   "invoiceDetail": {
@@ -140,17 +147,32 @@
     "subtitle": "المستندات الداعمة مثل إشعارات التسليم، نسخ سند الاستلام، العقود، أو جداول الساعات.",
     "formTitle": "إرفاق ملف الفاتورة (PDF)",
     "formHint": "ارفع الفاتورة الأصلية (PDF) وأي ملفات داعمة. سيتم إرفاقها عند الحفظ.",
-    "dropTitle": "اسحب وأفلت الملفات هنا، أو انقر للاختيار",
-    "dropHint": "PDF أو صور أو XML · حتى 25 ميجابايت لكل ملف",
+    "dropTitle": "اسحب وأفلت مجلداً أو ملفات هنا، أو انقر للاختيار",
+    "dropHint": "ارفع مجلداً كاملاً أو ملفات فردية",
+    "dropActive": "أفلت الملفات للرفع",
+    "dropActiveFolder": "أفلت المجلد للرفع",
+    "browsePrompt": "أو",
+    "browseLink": "تصفح الملفات",
+    "browseOr": "أو",
+    "browseFolderLink": "تصفح مجلد",
+    "scanningFolder": "جاري قراءة المجلد…",
+    "statusQueued": "في الانتظار",
+    "statusSigning": "جاري التجهيز…",
+    "statusUploadingStart": "جاري الرفع…",
+    "statusUploading": "{percent}%",
+    "statusFinalizing": "جاري الإنهاء…",
+    "statusDone": "تم ✓",
+    "statusFailed": "فشل",
     "loading": "جاري تحميل المستندات…",
     "empty": "لا توجد مستندات مرفقة بعد",
     "download": "تنزيل",
     "remove": "إزالة",
     "uploading": "جاري الرفع…",
+    "uploaded": "تم الرفع",
     "uploadCount": "رفع {count} ملف",
     "uploadError": "تعذر رفع الملف",
     "deleteError": "تعذر إزالة المستند",
-    "rejected": "تم التخطي (نوع غير مدعوم أو حجم كبير): {files}",
+    "rejected": "تم التخطي (الملف كبير جداً): {files}",
     "scan": {
       "PENDING": "بانتظار الفحص",
       "CLEAN": "تم الفحص",
@@ -213,5 +235,9 @@
       "REJECTED": "مرفوضة",
       "ON_HOLD": "معلقة"
     }
+  },
+  "footer": {
+    "copyright": "© {year} Accord Partners",
+    "rights": "جميع الحقوق محفوظة."
   }
 }

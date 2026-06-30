@@ -28,6 +28,9 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir}>
+      <head>
+        <meta name="theme-color" content="#1f3b6e" />
+      </head>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider messages={messages}>
           <Providers>

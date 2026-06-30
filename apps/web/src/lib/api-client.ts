@@ -94,7 +94,10 @@ async function fetchBinary(path: string): Promise<Blob> {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${getBaseUrl()}${path}`, { headers });
+  const response = await fetch(`${getBaseUrl()}${path}`, {
+    headers,
+    redirect: 'follow',
+  });
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     const parsed = ApiErrorSchema.safeParse(body);

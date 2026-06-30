@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Res,
   StreamableFile,
   UploadedFile,
   UseInterceptors,
@@ -22,6 +23,8 @@ import { DocumentsService } from './documents.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupplierScoped } from '../auth/guards/tenant.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { Response } from 'express';
+
 import type { AuthUser } from '../auth/auth.types';
 
 interface UploadedMulterFile {
@@ -38,9 +41,31 @@ interface UploadedMulterFile {
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
+  @Post('invoices/:id/documents/upload-url')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @ApiOperation({ summary: 'Get a presigned URL for direct upload to KB storage (Spaces/MinIO)' })
+  createUploadUrl(
+    @CurrentUser() user: AuthUser,
+    @Param('id') invoiceId: string,
+    @Body() body: unknown,
+  ) {
+    return this.documentsService.createUploadUrl(user, invoiceId, body);
+  }
+
+  @Post('invoices/:id/documents/complete')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @ApiOperation({ summary: 'Register a document after KB storage upload completes' })
+  completeUpload(
+    @CurrentUser() user: AuthUser,
+    @Param('id') invoiceId: string,
+    @Body() body: unknown,
+  ) {
+    return this.documentsService.completeUpload(user, invoiceId, body);
+  }
+
   @Post('invoices/:id/documents')
   @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
-  @ApiOperation({ summary: 'Upload a document (PDF/image/XML) for an invoice' })
+  @ApiOperation({ summary: 'Upload a document via multipart (local dev fallback only)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -75,17 +100,51 @@ export class DocumentsController {
 
   @Get('documents/:id/download')
   @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
-  @ApiOperation({ summary: 'Download a document' })
+  @ApiOperation({ summary: 'Download a document (redirects to presigned URL when using KB storage)' })
   async download(
     @CurrentUser() user: AuthUser,
     @Param('id') documentId: string,
-  ): Promise<StreamableFile> {
-    const { document, stream } = await this.documentsService.getForDownload(user, documentId);
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile | void> {
+    const result = await this.documentsService.getForDownload(user, documentId);
+    if ('redirectUrl' in result) {
+      res.redirect(result.redirectUrl);
+      return;
+    }
+    const { document, stream } = result;
     return new StreamableFile(stream, {
       type: document.mimeType,
       length: document.sizeBytes,
       disposition: `attachment; filename="${encodeURIComponent(document.fileName)}"`,
     });
+  }
+
+  @Get('documents/:id/content')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @ApiOperation({ summary: 'Preview URL or inline stream (never forces download)' })
+  async content(
+    @CurrentUser() user: AuthUser,
+    @Param('id') documentId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const result = await this.documentsService.getForView(user, documentId);
+    if ('viewUrl' in result && result.viewUrl) {
+      res.json({
+        url: result.viewUrl,
+        mimeType: result.document.mimeType,
+        fileName: result.document.fileName,
+      });
+      return;
+    }
+    const { document, stream } = result as {
+      document: { mimeType: string; fileName: string };
+      stream: NodeJS.ReadableStream;
+    };
+    res.set({
+      'Content-Type': document.mimeType,
+      'Content-Disposition': `inline; filename="${encodeURIComponent(document.fileName)}"`,
+    });
+    stream.pipe(res);
   }
 
   @Delete('documents/:id')

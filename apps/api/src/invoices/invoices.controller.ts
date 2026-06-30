@@ -70,4 +70,11 @@ export class InvoicesController {
   submit(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.invoicesService.submit(user, id);
   }
+
+  @Post(':id/archive')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @ApiOperation({ summary: 'Archive a draft or rejected invoice' })
+  archive(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.invoicesService.archive(user, id);
+  }
 }

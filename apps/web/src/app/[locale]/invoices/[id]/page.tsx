@@ -7,7 +7,6 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { InvoiceDocuments } from '@/components/invoice-documents';
-import { InvoicePdfPreview } from '@/components/invoice-pdf-preview';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
 import { ApiClientError } from '@/lib/api-client';
@@ -53,7 +52,7 @@ function InvoiceDetailContent() {
     return (
       <AppShell>
         <p className="text-destructive">{t('notFound')}</p>
-        <Link href="/invoices" className="mt-4 inline-block text-primary underline">
+        <Link href="/dashboard" className="mt-4 inline-block text-primary underline">
           {t('back')}
         </Link>
       </AppShell>
@@ -67,7 +66,7 @@ function InvoiceDetailContent() {
     <AppShell>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <Link href="/invoices" className="text-sm text-primary underline">
+          <Link href="/dashboard" className="text-sm text-primary underline">
             {t('back')}
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{invoice.invoiceNumber}</h1>
@@ -91,16 +90,7 @@ function InvoiceDetailContent() {
         </div>
       )}
 
-      <div className="mt-8">
-        <InvoicePdfPreview invoiceId={invoice.id} />
-      </div>
-
-      <InvoiceDocuments
-        invoiceId={invoice.id}
-        editable={canUploadDocs}
-        excludeTypes={['INVOICE']}
-        uploadType="OTHER"
-      />
+      <InvoiceDocuments invoiceId={invoice.id} editable={canUploadDocs} />
 
       <div className="mt-8 rounded-xl border bg-card p-6">
         <h2 className="text-lg font-semibold">{t('timeline')}</h2>
@@ -108,7 +98,6 @@ function InvoiceDetailContent() {
           <InvoiceTimeline events={invoice.timeline} />
         </div>
       </div>
-
     </AppShell>
   );
 }

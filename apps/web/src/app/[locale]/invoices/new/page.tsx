@@ -2,43 +2,72 @@
 
 import { Button } from '@aljeel/ui';
 import { useTranslations } from 'next-intl';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
-import { FileDropzone } from '@/components/file-dropzone';
+import {
+  KbFileUploader,
+  applyKbUploadProgress,
+  kbFileKey,
+  patchKbFile,
+  type KbQueuedFile,
+} from '@/components/kb-file-uploader';
 import { RequireAuth } from '@/components/require-auth';
 import { formatClientError } from '@/lib/format-error';
-import {
-  createInvoiceDraft,
-  submitInvoice,
-  uploadInvoiceDocument,
-} from '@/lib/invoices-api';
+import { createInvoiceDraft, submitInvoice } from '@/lib/invoices-api';
+import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
 import { useRouter } from '@/i18n/routing';
 import { useQueryClient } from '@tanstack/react-query';
 
-const PDF_ACCEPT = 'application/pdf,.pdf';
-
-function isPdfFile(file: File): boolean {
-  const name = file.name.toLowerCase();
-  return file.type === 'application/pdf' || name.endsWith('.pdf');
-}
+const UPLOAD_CONCURRENCY = 3;
+const DONE_PAUSE_MS = 900;
 
 function InvoiceUploadContent() {
   const t = useTranslations('invoiceForm');
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [invoicePdf, setInvoicePdf] = useState<File[]>([]);
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [files, setFiles] = useState<KbQueuedFile[]>([]);
+  const [folderName, setFolderName] = useState<string | null>(null);
+  const [draftInvoiceId, setDraftInvoiceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'uploading' | 'submitting'>('idle');
 
-  function validateForm(requireInvoicePdf: boolean): string | null {
-    if (requireInvoicePdf && invoicePdf.length === 0) {
-      return t('errors.invoicePdfRequired');
-    }
-    if (invoicePdf.length > 0 && !isPdfFile(invoicePdf[0]!)) {
-      return t('errors.invoicePdfType');
+  function validateForm(requireFiles: boolean): string | null {
+    if (requireFiles && files.length === 0) {
+      return t('errors.filesRequired');
     }
     return null;
+  }
+
+  async function uploadOne(invoiceId: string, item: KbQueuedFile) {
+    const key = kbFileKey(item);
+    setFiles((current) => patchKbFile(current, key, { status: 'signing', progress: 0 }));
+    try {
+      await uploadInvoiceDocumentViaKb(invoiceId, item.file, 'OTHER', (progress) => {
+        setFiles((current) => applyKbUploadProgress(current, key, progress));
+      });
+      setFiles((current) => patchKbFile(current, key, { status: 'done', progress: 100 }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('error');
+      setFiles((current) => patchKbFile(current, key, { status: 'error', error: message }));
+      throw err;
+    }
+  }
+
+  async function uploadAll(invoiceId: string, queue: KbQueuedFile[]) {
+    let nextIndex = 0;
+    const workers = Array(Math.min(UPLOAD_CONCURRENCY, queue.length))
+      .fill(null)
+      .map(async () => {
+        while (nextIndex < queue.length) {
+          const index = nextIndex++;
+          const item = queue[index];
+          if (!item) break;
+          await uploadOne(invoiceId, item);
+        }
+      });
+    await Promise.all(workers);
   }
 
   async function persistInvoice(submitAfter: boolean) {
@@ -48,25 +77,44 @@ function InvoiceUploadContent() {
       return;
     }
 
-    setLoading(true);
+    setUploading(true);
+    setSubmitPhase('uploading');
     setError(null);
+
+    const queue = files.filter((f) => f.status === 'pending' || f.status === 'error');
+    setFiles((current) =>
+      current.map((f) =>
+        queue.some((q) => kbFileKey(q) === kbFileKey(f))
+          ? { ...f, status: 'queued' as const, progress: 0, error: undefined }
+          : f,
+      ),
+    );
+    requestAnimationFrame(() => {
+      listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
     try {
-      const invoice = await createInvoiceDraft();
-      if (invoicePdf[0]) {
-        await uploadInvoiceDocument(invoice.id, invoicePdf[0], 'INVOICE');
+      let invoiceId = draftInvoiceId;
+      if (!invoiceId) {
+        const invoice = await createInvoiceDraft(folderName ?? undefined);
+        invoiceId = invoice.id;
+        setDraftInvoiceId(invoice.id);
       }
-      for (const file of attachments) {
-        await uploadInvoiceDocument(invoice.id, file, 'OTHER');
-      }
+      await uploadAll(invoiceId, queue);
+
       if (submitAfter) {
-        await submitInvoice(invoice.id);
+        setSubmitPhase('submitting');
+        await submitInvoice(invoiceId);
       }
+
+      await new Promise((resolve) => setTimeout(resolve, DONE_PAUSE_MS));
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      router.push(submitAfter ? '/invoices' : `/invoices/${invoice.id}`);
+      router.push(submitAfter ? '/dashboard' : `/invoices/${invoiceId}`);
     } catch (err) {
       setError(formatClientError(err, t('error')));
+      setSubmitPhase('idle');
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   }
 
@@ -80,6 +128,15 @@ function InvoiceUploadContent() {
     await persistInvoice(true);
   }
 
+  const canAddFiles =
+    !uploading && files.every((f) => f.status === 'pending' || f.status === 'error');
+
+  const buttonLabel = uploading
+    ? submitPhase === 'submitting'
+      ? t('submitting')
+      : t('uploadingFiles')
+    : null;
+
   return (
     <AppShell>
       <div className="max-w-3xl">
@@ -88,44 +145,39 @@ function InvoiceUploadContent() {
 
         <form className="mt-8 space-y-8">
           <div>
-            <h2 className="font-semibold">{t('invoicePdfTitle')}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t('invoicePdfHint')}</p>
+            <h2 className="font-semibold">{t('filesTitle')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t('filesHint')}</p>
             <div className="mt-3">
-              <FileDropzone
-                files={invoicePdf}
-                onChange={setInvoicePdf}
-                disabled={loading}
-                multiple={false}
-                single
-                accept={PDF_ACCEPT}
-                title={t('invoicePdfDropTitle')}
-                hint={t('invoicePdfDropHint')}
+              <KbFileUploader
+                files={files}
+                onChange={setFiles}
+                blockNewFiles={!canAddFiles}
+                allowFolder
+                onFolderName={(name) => {
+                  setFolderName((prev) => {
+                    if (prev !== name) setDraftInvoiceId(null);
+                    return name;
+                  });
+                }}
+                listRef={listRef}
+                title={t('filesDropTitle')}
+                hint={t('filesDropHint')}
               />
             </div>
           </div>
 
-          <div>
-            <h2 className="font-semibold">{t('attachmentsTitle')}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t('attachmentsHint')}</p>
-            <div className="mt-3">
-              <FileDropzone
-                files={attachments}
-                onChange={setAttachments}
-                disabled={loading}
-                title={t('attachmentsDropTitle')}
-                hint={t('attachmentsDropHint')}
-              />
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-3">
-            <Button type="button" disabled={loading} onClick={onSaveDraft}>
-              {loading ? t('saving') : t('saveDraft')}
+            <Button type="button" disabled={uploading} onClick={onSaveDraft}>
+              {uploading ? buttonLabel : t('saveDraft')}
             </Button>
-            <Button type="button" disabled={loading} onClick={onSaveAndSubmit}>
-              {loading ? t('submitting') : t('submit')}
+            <Button type="button" disabled={uploading} onClick={onSaveAndSubmit}>
+              {uploading ? buttonLabel : t('submit')}
             </Button>
           </div>
         </form>

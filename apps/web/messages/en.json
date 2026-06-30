@@ -73,12 +73,23 @@
     "subtitle": "View and manage your submitted invoices",
     "newInvoice": "New invoice",
     "all": "All",
+    "archived": "Archived",
+    "archive": "Archive",
+    "archiving": "Archiving…",
     "loading": "Loading invoices…",
     "error": "Failed to load invoices",
     "empty": "No invoices match your filters",
     "prev": "Previous",
     "next": "Next",
     "page": "Page {page} of {total}",
+    "fileCount": "{count, plural, one {# file} other {# files}}",
+    "columns": {
+      "name": "Name",
+      "files": "Files",
+      "modified": "Date modified",
+      "size": "Size",
+      "actions": "Actions"
+    },
     "status": {
       "DRAFT": "Draft",
       "SUBMITTED": "Submitted",
@@ -92,23 +103,19 @@
   },
   "invoiceForm": {
     "title": "Submit invoice",
-    "subtitle": "Upload your invoice PDF and any supporting documents. Invoice details are extracted automatically after submission.",
-    "invoicePdfTitle": "Invoice PDF",
-    "invoicePdfHint": "Upload the original invoice as a PDF file. Required to submit for review.",
-    "invoicePdfDropTitle": "Drag & drop your invoice PDF here, or click to browse",
-    "invoicePdfDropHint": "PDF only · up to 25 MB",
-    "attachmentsTitle": "Additional attachments",
-    "attachmentsHint": "Optional supporting documents such as delivery notes, GRN copies, contracts, or timesheets.",
-    "attachmentsDropTitle": "Drag & drop files here, or click to browse",
-    "attachmentsDropHint": "PDF, images, or XML · up to 25 MB each",
+    "subtitle": "Upload your invoice and any supporting documents. Details are extracted automatically after submission.",
+    "filesTitle": "Documents",
+    "filesHint": "Add all your files in one upload. Progress is shown for each file.",
+    "filesDropTitle": "Drag & drop a folder or files here, or click to browse",
+    "filesDropHint": "Upload a whole folder — every file inside will be listed and uploaded individually",
     "saveDraft": "Save draft",
     "submit": "Submit for review",
     "saving": "Saving…",
     "submitting": "Submitting…",
+    "uploadingFiles": "Uploading files…",
     "error": "Could not save invoice",
     "errors": {
-      "invoicePdfRequired": "Please attach the invoice PDF before submitting for review",
-      "invoicePdfType": "The invoice file must be a PDF"
+      "filesRequired": "Please attach at least one file before submitting for review"
     }
   },
   "invoiceDetail": {
@@ -140,17 +147,32 @@
     "subtitle": "Supporting documents such as delivery notes, GRN copies, contracts, or timesheets.",
     "formTitle": "Attach the invoice PDF",
     "formHint": "Upload the original invoice (PDF) and any supporting files. They will be attached when you save.",
-    "dropTitle": "Drag & drop files here, or click to browse",
-    "dropHint": "PDF, images, or XML · up to 25 MB each",
+    "dropTitle": "Drag & drop a folder or files here, or click to browse",
+    "dropHint": "Upload a whole folder or individual files",
+    "dropActive": "Drop files to upload",
+    "dropActiveFolder": "Drop folder to upload",
+    "browsePrompt": "or",
+    "browseLink": "browse files",
+    "browseOr": "or",
+    "browseFolderLink": "browse folder",
+    "scanningFolder": "Reading folder…",
+    "statusQueued": "queued",
+    "statusSigning": "signing…",
+    "statusUploadingStart": "uploading…",
+    "statusUploading": "{percent}%",
+    "statusFinalizing": "finalizing…",
+    "statusDone": "done ✓",
+    "statusFailed": "failed",
     "loading": "Loading documents…",
     "empty": "No documents attached yet",
     "download": "Download",
     "remove": "Remove",
     "uploading": "Uploading…",
+    "uploaded": "Uploaded",
     "uploadCount": "Upload {count} file(s)",
     "uploadError": "Could not upload the file",
     "deleteError": "Could not remove the document",
-    "rejected": "Skipped (unsupported type or too large): {files}",
+    "rejected": "Skipped (file too large): {files}",
     "scan": {
       "PENDING": "Scan pending",
       "CLEAN": "Scanned",
@@ -213,5 +235,9 @@
       "REJECTED": "Rejected",
       "ON_HOLD": "On hold"
     }
+  },
+  "footer": {
+    "copyright": "© {year} Accord Partners",
+    "rights": "All rights reserved."
   }
 }

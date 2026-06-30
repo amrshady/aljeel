@@ -1,35 +1,62 @@
 'use client';
 
 import { Button } from '@aljeel/ui';
-import type { DocumentType } from '@aljeel/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ApiClientError } from '@/lib/api-client';
+import { deleteInvoiceDocument, listInvoiceDocuments } from '@/lib/invoices-api';
+import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
 import {
-  deleteInvoiceDocument,
-  downloadInvoiceDocument,
-  listInvoiceDocuments,
-  uploadInvoiceDocument,
-} from '@/lib/invoices-api';
-import { FileDropzone, formatBytes } from './file-dropzone';
+  KbFileUploader,
+  KbUploadRow,
+  applyKbUploadProgress,
+  fileIcon,
+  formatBytes,
+  kbFileKey,
+  patchKbFile,
+  type KbQueuedFile,
+} from './kb-file-uploader';
 
 interface InvoiceDocumentsProps {
   invoiceId: string;
   editable: boolean;
-  excludeTypes?: DocumentType[];
-  uploadType?: DocumentType;
 }
 
-export function InvoiceDocuments({
-  invoiceId,
-  editable,
-  excludeTypes = [],
-  uploadType = 'INVOICE',
-}: InvoiceDocumentsProps) {
+function DocumentSkeleton() {
+  return (
+    <li className="flex items-center gap-3 p-3">
+      <div className="h-5 w-5 animate-pulse rounded bg-muted" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
+      </div>
+    </li>
+  );
+}
+
+function PendingFileRow({
+  item,
+  onRemove,
+  canRemove,
+  t,
+}: {
+  item: KbQueuedFile;
+  onRemove?: () => void;
+  canRemove: boolean;
+  t: ReturnType<typeof useTranslations<'documents'>>;
+}) {
+  return (
+    <li className="px-2 py-1">
+      <KbUploadRow item={item} onRemove={onRemove} canRemove={canRemove} t={t} />
+    </li>
+  );
+}
+
+export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps) {
   const t = useTranslations('documents');
   const queryClient = useQueryClient();
-  const [pending, setPending] = useState<File[]>([]);
+  const [pending, setPending] = useState<KbQueuedFile[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const { data: documents = [], isLoading } = useQuery({
@@ -38,17 +65,33 @@ export function InvoiceDocuments({
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (files: File[]) => {
-      for (const file of files) {
-        await uploadInvoiceDocument(invoiceId, file, uploadType);
+    mutationFn: async (files: KbQueuedFile[]) => {
+      setPending((current) =>
+        current.map((f) =>
+          files.some((q) => kbFileKey(q) === kbFileKey(f))
+            ? { ...f, status: 'queued' as const, progress: 0 }
+            : f,
+        ),
+      );
+      for (const item of files) {
+        const key = kbFileKey(item);
+        setPending((current) => patchKbFile(current, key, { status: 'signing', progress: 0 }));
+        try {
+          await uploadInvoiceDocumentViaKb(invoiceId, item.file, 'OTHER', (progress) =>
+            setPending((current) => applyKbUploadProgress(current, key, progress)),
+          );
+          setPending((current) => patchKbFile(current, key, { status: 'done', progress: 100 }));
+        } catch (err) {
+          const message = err instanceof ApiClientError ? err.message : t('uploadError');
+          setPending((current) => patchKbFile(current, key, { status: 'error', error: message }));
+          throw err;
+        }
       }
     },
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['invoices', invoiceId, 'documents'] });
       setPending([]);
       setError(null);
-      await queryClient.invalidateQueries({
-        queryKey: ['invoices', invoiceId, 'documents'],
-      });
     },
     onError: (err) => {
       setError(err instanceof ApiClientError ? err.message : t('uploadError'));
@@ -58,9 +101,7 @@ export function InvoiceDocuments({
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) => deleteInvoiceDocument(documentId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['invoices', invoiceId, 'documents'],
-      });
+      await queryClient.invalidateQueries({ queryKey: ['invoices', invoiceId, 'documents'] });
     },
     onError: (err) => {
       setError(err instanceof ApiClientError ? err.message : t('deleteError'));
@@ -68,67 +109,86 @@ export function InvoiceDocuments({
   });
 
   const busy = uploadMutation.isPending || deleteMutation.isPending;
-  const visibleDocuments = documents.filter((doc) => !excludeTypes.includes(doc.type));
+  const pendingUploads = pending.filter((f) => f.status === 'pending');
+  const uploading = pending.filter((f) => !['pending'].includes(f.status));
+  const showList = isLoading || uploading.length > 0 || documents.length > 0;
 
   return (
     <section className="mt-8">
       <h2 className="font-semibold">{t('title')}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
-      <div className="mt-4 rounded-xl border bg-card">
-        {isLoading ? (
-          <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
-        ) : visibleDocuments.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">{t('empty')}</p>
-        ) : (
+      {showList && (
+        <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
           <ul className="divide-y">
-            {visibleDocuments.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{doc.fileName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {doc.type} · {formatBytes(doc.sizeBytes)} ·{' '}
-                    {t(`scan.${doc.virusScanStatus}`)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => downloadInvoiceDocument(doc.id, doc.fileName)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {t('download')}
-                  </button>
+            {isLoading && (
+              <>
+                <DocumentSkeleton />
+                <DocumentSkeleton />
+              </>
+            )}
+            {!isLoading &&
+              uploading.map((item) => (
+                <PendingFileRow key={kbFileKey(item)} item={item} canRemove={false} t={t} />
+              ))}
+            {!isLoading &&
+              documents.map((doc) => (
+                <li key={doc.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="text-lg leading-none" aria-hidden>
+                      {fileIcon(doc.fileName)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{doc.fileName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatBytes(doc.sizeBytes)} · {t(`scan.${doc.virusScanStatus}`)}
+                      </p>
+                    </div>
+                  </div>
                   {editable && (
                     <button
                       type="button"
                       onClick={() => deleteMutation.mutate(doc.id)}
                       disabled={busy}
-                      className="text-xs text-destructive hover:underline disabled:opacity-50"
+                      className="shrink-0 text-xs text-destructive hover:underline disabled:opacity-50"
                     >
                       {t('remove')}
                     </button>
                   )}
-                </div>
-              </li>
-            ))}
+                </li>
+              ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!isLoading && !showList && !editable && (
+        <p className="mt-4 text-sm text-muted-foreground">{t('empty')}</p>
+      )}
 
       {editable && (
         <div className="mt-4">
-          <FileDropzone files={pending} onChange={setPending} disabled={busy} />
-          {pending.length > 0 && (
+          <KbFileUploader
+            files={pendingUploads}
+            onChange={(next) => {
+              const kept = pending.filter((f) => f.status !== 'pending');
+              setPending([...kept, ...next]);
+            }}
+            blockNewFiles={busy}
+            allowFolder
+            showFileList={false}
+            title={t('dropTitle')}
+            hint={t('dropHint')}
+          />
+          {pendingUploads.length > 0 && (
             <Button
               type="button"
               className="mt-3"
               disabled={busy}
-              onClick={() => uploadMutation.mutate(pending)}
+              onClick={() => uploadMutation.mutate(pendingUploads)}
             >
               {uploadMutation.isPending
                 ? t('uploading')
-                : t('uploadCount', { count: pending.length })}
+                : t('uploadCount', { count: pendingUploads.length })}
             </Button>
           )}
         </div>

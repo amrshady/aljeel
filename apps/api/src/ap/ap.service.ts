@@ -10,7 +10,7 @@ import {
   InvalidInvoiceTransitionError,
   type InvoiceListQuery,
 } from '@aljeel/shared-types';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';

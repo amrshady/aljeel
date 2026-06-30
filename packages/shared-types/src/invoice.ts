@@ -21,8 +21,12 @@ export const InvoiceLineSchema = InvoiceLineInputSchema.extend({
 });
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>;
 
-/** Empty body — server generates placeholder header until OCR populates fields. */
-export const CreateInvoiceDraftSchema = z.object({}).strict();
+/** Optional display name; server generates a placeholder when omitted. */
+export const CreateInvoiceDraftSchema = z
+  .object({
+    invoiceNumber: z.string().trim().min(1).max(100).optional(),
+  })
+  .strict();
 export type CreateInvoiceDraft = z.infer<typeof CreateInvoiceDraftSchema>;
 
 export const PLACEHOLDER_INVOICE_NUMBER_PREFIX = 'DRAFT-';
@@ -53,6 +57,7 @@ export const InvoiceSchema = z.object({
   status: InvoiceStatusSchema,
   source: z.enum(['UPLOAD', 'EMAIL', 'XML', 'BULK']),
   rejectionReason: z.string().nullable(),
+  archivedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   lines: z.array(InvoiceLineSchema),
@@ -62,12 +67,30 @@ export type Invoice = z.infer<typeof InvoiceSchema>;
 export const InvoiceListItemSchema = InvoiceSchema.omit({ lines: true });
 export type InvoiceListItem = z.infer<typeof InvoiceListItemSchema>;
 
+export const InvoiceFolderListItemSchema = InvoiceListItemSchema.extend({
+  documentCount: z.number().int(),
+  totalSizeBytes: z.number().int(),
+});
+export type InvoiceFolderListItem = z.infer<typeof InvoiceFolderListItemSchema>;
+
+export const ArchiveInvoiceResponseSchema = z.object({
+  id: z.string(),
+  archivedAt: z.string(),
+});
+export type ArchiveInvoiceResponse = z.infer<typeof ArchiveInvoiceResponseSchema>;
+
 export const InvoiceListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
   status: InvoiceStatusSchema.optional(),
+  archived: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((value) => value === 'true'),
   q: z.string().optional(),
-  sort: z.enum(['-createdAt', 'createdAt', '-invoiceDate', 'invoiceDate']).default('-createdAt'),
+  sort: z
+    .enum(['-createdAt', 'createdAt', '-updatedAt', 'updatedAt', '-invoiceDate', 'invoiceDate'])
+    .default('-updatedAt'),
 });
 export type InvoiceListQuery = z.infer<typeof InvoiceListQuerySchema>;
 

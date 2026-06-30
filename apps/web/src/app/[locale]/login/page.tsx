@@ -1,16 +1,17 @@
 'use client';
 
-import { Button, cn } from '@aljeel/ui';
-import Image from 'next/image';
+import { Button } from '@aljeel/ui';
 import { useTranslations } from 'next-intl';
+import { AljeelLogo } from '@/components/aljeel-logo';
 import { FormEvent, useState } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { ApiClientError } from '@/lib/api-client';
 import { useRouter } from '@/i18n/routing';
 import { LocaleSwitcher } from '@/components/locale-switcher';
+import { SiteFooter } from '@/components/site-footer';
 
 const inputClassName =
-  'mt-1.5 w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(210,45%,40%)]/30 focus-visible:border-[hsl(210,45%,40%)]';
+  'mt-1.5 w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
@@ -37,10 +38,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[linear-gradient(160deg,hsl(210,40%,97%)_0%,hsl(0,0%,100%)_45%,hsl(15,55%,97%)_100%)]">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[linear-gradient(160deg,hsl(var(--primary)/0.06)_0%,hsl(0,0%,100%)_45%,hsl(15,55%,97%)_100%)]">
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-[hsl(210,45%,40%)]/10 blur-3xl"
+        className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
       />
       <div
         aria-hidden
@@ -53,17 +54,10 @@ export default function LoginPage() {
 
       <main className="relative z-10 flex flex-1 items-center justify-center px-6 pb-16 pt-4">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-white/60 bg-white/80 p-8 shadow-[0_20px_60px_-24px_rgba(51,102,153,0.35)] backdrop-blur-sm sm:p-10">
+          <div className="rounded-2xl border border-white/60 bg-white/80 p-8 shadow-[0_20px_60px_-24px_rgba(31,59,110,0.35)] backdrop-blur-sm sm:p-10">
             <div className="flex flex-col items-center text-center">
-              <Image
-                src="/aljeel-logo.jpeg"
-                alt="Aljeel"
-                width={180}
-                height={72}
-                priority
-                className="h-14 w-auto object-contain"
-              />
-              <h1 className="mt-6 text-2xl font-semibold tracking-tight text-[hsl(210,45%,28%)]">
+              <AljeelLogo priority />
+              <h1 className="mt-6 text-2xl font-semibold tracking-tight text-primary">
                 {t('title')}
               </h1>
               <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
@@ -110,21 +104,15 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                size="lg"
-                className={cn(
-                  'w-full bg-[hsl(210,45%,40%)] text-white hover:bg-[hsl(210,45%,34%)]',
-                  'shadow-sm shadow-[hsl(210,45%,40%)]/25',
-                )}
-                disabled={loading}
-              >
+              <Button type="submit" size="lg" className="w-full shadow-sm shadow-primary/25" disabled={loading}>
                 {loading ? t('loading') : t('login')}
               </Button>
             </form>
           </div>
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

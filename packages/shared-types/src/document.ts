@@ -13,8 +13,8 @@ export type DocumentType = z.infer<typeof DocumentTypeSchema>;
 export const ScanStatusSchema = z.enum(['PENDING', 'CLEAN', 'INFECTED', 'FAILED']);
 export type ScanStatus = z.infer<typeof ScanStatusSchema>;
 
-/** Accepted upload formats: PDF, common images, and e-invoice XML. */
-export const ALLOWED_DOCUMENT_MIME_TYPES = [
+/** Common MIME types we can infer from extension when the browser sends octet-stream. */
+export const KNOWN_DOCUMENT_MIME_TYPES = [
   'application/pdf',
   'image/png',
   'image/jpeg',
@@ -24,7 +24,11 @@ export const ALLOWED_DOCUMENT_MIME_TYPES = [
   'text/xml',
 ] as const;
 
-export const MAX_DOCUMENT_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+/** @deprecated Use size-only validation; any file type is accepted. */
+export const ALLOWED_DOCUMENT_MIME_TYPES = KNOWN_DOCUMENT_MIME_TYPES;
+
+/** Matches workers/files-portal upload cap (50 MB per file). */
+export const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
 
 export const UploadDocumentMetaSchema = z.object({
   type: DocumentTypeSchema.default('INVOICE'),
@@ -46,8 +50,9 @@ export type Document = z.infer<typeof DocumentSchema>;
 export const DocumentListSchema = z.array(DocumentSchema);
 export type DocumentList = z.infer<typeof DocumentListSchema>;
 
-export function isAllowedDocumentMimeType(mimeType: string): boolean {
-  return (ALLOWED_DOCUMENT_MIME_TYPES as readonly string[]).includes(mimeType);
+/** Any MIME type is accepted for invoice attachments. */
+export function isAllowedDocumentMimeType(_mimeType: string): boolean {
+  return true;
 }
 
 const EXTENSION_MIME: Record<string, string> = {
@@ -59,16 +64,19 @@ const EXTENSION_MIME: Record<string, string> = {
   tif: 'image/tiff',
   tiff: 'image/tiff',
   xml: 'application/xml',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv: 'text/csv',
+  txt: 'text/plain',
+  zip: 'application/zip',
 };
 
-/** Browsers (esp. Safari/macOS) often report PDFs as application/octet-stream — infer from extension. */
+/** Resolve a stored MIME type from filename + browser hint; unknown types use octet-stream. */
 export function resolveDocumentMimeType(fileName: string, mimeType: string): string {
   const normalized = mimeType?.trim().toLowerCase() || '';
-  if (
-    normalized &&
-    normalized !== 'application/octet-stream' &&
-    isAllowedDocumentMimeType(normalized)
-  ) {
+  if (normalized && normalized !== 'application/octet-stream') {
     return normalized;
   }
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -76,14 +84,13 @@ export function resolveDocumentMimeType(fileName: string, mimeType: string): str
   if (fromExt) {
     return fromExt;
   }
-  return normalized;
+  return normalized || 'application/octet-stream';
 }
 
 export function isAcceptedDocumentFile(
-  fileName: string,
-  mimeType: string,
+  _fileName: string,
+  _mimeType: string,
   sizeBytes: number,
 ): boolean {
-  const resolved = resolveDocumentMimeType(fileName, mimeType);
-  return isAllowedDocumentMimeType(resolved) && sizeBytes <= MAX_DOCUMENT_SIZE_BYTES;
+  return sizeBytes <= MAX_DOCUMENT_SIZE_BYTES;
 }

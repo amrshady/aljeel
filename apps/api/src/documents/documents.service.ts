@@ -2,24 +2,30 @@ import {
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
+  ServiceUnavailableException,
   UnprocessableEntityException,
-  UnsupportedMediaTypeException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import {
+  DocumentCompleteUploadSchema,
+  DocumentUploadUrlRequestSchema,
+} from '@aljeel/kb-upload';
 import {
   MAX_DOCUMENT_SIZE_BYTES,
   UploadDocumentMetaSchema,
-  isAllowedDocumentMimeType,
   resolveDocumentMimeType,
   type DocumentType,
 } from '@aljeel/shared-types';
-import type { Document as DocumentRow } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.module';
+import type { Prisma } from '@prisma/client';
+import type { ReadStream } from 'node:fs';
+import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../storage/storage.service';
+import { KbStorageService } from '../kb/kb-storage.service';
 import type { AuthUser } from '../auth/auth.types';
 import { getSupplierScope } from '../auth/guards/tenant.guard';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
+
+type DocumentRow = Prisma.DocumentGetPayload<Record<string, never>>;
 
 const AP_ROLES = new Set(['AP_CLERK', 'AP_APPROVER']);
 
@@ -34,7 +40,6 @@ interface UploadedFile {
   buffer: Buffer;
 }
 
-// Statuses in which a supplier may still attach documents.
 const UPLOAD_ALLOWED_STATUSES = new Set([
   'DRAFT',
   'REJECTED',
@@ -67,9 +72,102 @@ export class DocumentsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly storage: StorageService,
+    private readonly kb: KbStorageService,
   ) {}
 
+  usesKbUpload(): boolean {
+    return this.kb.isEnabled();
+  }
+
+  async createUploadUrl(
+    user: AuthUser,
+    invoiceId: string,
+    body: unknown,
+  ) {
+    if (!this.kb.isEnabled()) {
+      throw new ServiceUnavailableException({
+        code: 'KB_UPLOAD_NOT_CONFIGURED',
+        message: 'Direct-to-storage upload is not configured on this server.',
+      });
+    }
+
+    const { fileName, sizeBytes, type } = DocumentUploadUrlRequestSchema.parse(body);
+    if (sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
+      throw new PayloadTooLargeException({
+        code: 'FILE_TOO_LARGE',
+        message: 'File exceeds the maximum allowed size.',
+        details: { maxBytes: MAX_DOCUMENT_SIZE_BYTES },
+      });
+    }
+
+    const supplierId = requireSupplierId(user);
+    const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
+    this.assertUploadAllowed(invoice.status);
+
+    const signed = await this.kb.createUploadUrl(invoiceId, sanitizeFileName(fileName));
+    return { ...signed, type };
+  }
+
+  async completeUpload(user: AuthUser, invoiceId: string, body: unknown) {
+    if (!this.kb.isEnabled()) {
+      throw new ServiceUnavailableException({
+        code: 'KB_UPLOAD_NOT_CONFIGURED',
+        message: 'Direct-to-storage upload is not configured on this server.',
+      });
+    }
+
+    const payload = DocumentCompleteUploadSchema.parse(body);
+    const { storageKey, fileName, mimeType, sizeBytes, type } = payload;
+
+    if (sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
+      throw new PayloadTooLargeException({
+        code: 'FILE_TOO_LARGE',
+        message: 'File exceeds the maximum allowed size.',
+        details: { maxBytes: MAX_DOCUMENT_SIZE_BYTES },
+      });
+    }
+    if (!storageKey.startsWith(`invoices/${invoiceId}/`)) {
+      throw new UnprocessableEntityException({
+        code: 'INVALID_STORAGE_KEY',
+        message: 'Storage key does not match this invoice.',
+      });
+    }
+
+    const supplierId = requireSupplierId(user);
+    const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
+    this.assertUploadAllowed(invoice.status);
+
+    const document = await this.prisma.document.create({
+      data: {
+        invoiceId,
+        type: type as DocumentType,
+        fileName: sanitizeFileName(fileName),
+        storageKey,
+        mimeType,
+        sizeBytes,
+        virusScanStatus: 'CLEAN',
+      },
+    });
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Document',
+      entityId: document.id,
+      action: 'UPLOAD',
+      after: { invoiceId, fileName, type, sizeBytes, storageKey, via: 'kb' },
+    });
+
+    return serializeDocument(document);
+  }
+
+  /** @deprecated Multipart upload — kept for environments without KB/Spaces config. */
   async upload(user: AuthUser, invoiceId: string, file: UploadedFile | undefined, meta: unknown) {
+    if (this.kb.isEnabled()) {
+      throw new UnprocessableEntityException({
+        code: 'USE_KB_UPLOAD',
+        message: 'Use the presigned upload flow (upload-url + complete) for this environment.',
+      });
+    }
     if (!file) {
       throw new UnprocessableEntityException({
         code: 'FILE_REQUIRED',
@@ -77,13 +175,6 @@ export class DocumentsService {
       });
     }
     const resolvedMime = resolveDocumentMimeType(file.originalname, file.mimetype);
-    if (!isAllowedDocumentMimeType(resolvedMime)) {
-      throw new UnsupportedMediaTypeException({
-        code: 'UNSUPPORTED_FILE_TYPE',
-        message: 'Only PDF, image, and XML files are accepted.',
-        details: { mimeType: file.mimetype, resolvedMime },
-      });
-    }
     if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException({
         code: 'FILE_TOO_LARGE',
@@ -95,18 +186,11 @@ export class DocumentsService {
     const { type } = UploadDocumentMetaSchema.parse(meta ?? {});
     const supplierId = requireSupplierId(user);
     const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
-
-    if (!UPLOAD_ALLOWED_STATUSES.has(invoice.status)) {
-      throw new UnprocessableEntityException({
-        code: 'UPLOAD_NOT_ALLOWED',
-        message: 'Documents cannot be added once an invoice is approved or paid.',
-        details: { status: invoice.status },
-      });
-    }
+    this.assertUploadAllowed(invoice.status);
 
     const fileName = sanitizeFileName(file.originalname);
-    const storageKey = `${supplierId}/${invoiceId}/${randomUUID()}-${fileName}`;
-    await this.storage.save(storageKey, file.buffer);
+    const storageKey = `local:${supplierId}/${invoiceId}/${crypto.randomUUID()}-${fileName}`;
+    await this.storage.save(storageKey.replace(/^local:/, ''), file.buffer);
 
     const document = await this.prisma.document.create({
       data: {
@@ -116,7 +200,6 @@ export class DocumentsService {
         storageKey,
         mimeType: resolvedMime,
         sizeBytes: file.size,
-        // Real malware scanning is wired in Phase 2 (P2-E1-T3); dev marks clean.
         virusScanStatus: 'CLEAN',
       },
     });
@@ -141,7 +224,13 @@ export class DocumentsService {
     return docs.map(serializeDocument);
   }
 
-  async getForDownload(user: AuthUser, documentId: string) {
+  async getForDownload(
+    user: AuthUser,
+    documentId: string,
+  ): Promise<
+    | { document: DocumentRow; redirectUrl: string }
+    | { document: DocumentRow; stream: ReadStream }
+  > {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { invoice: true },
@@ -150,7 +239,34 @@ export class DocumentsService {
       throw this.documentNotFound();
     }
     await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
-    const stream = this.storage.createReadStream(document.storageKey);
+
+    if (this.isKbStorageKey(document.storageKey)) {
+      const url = await this.kb.createDownloadUrl(document.storageKey);
+      return { document, redirectUrl: url };
+    }
+
+    const localKey = document.storageKey.replace(/^local:/, '');
+    const stream = this.storage.createReadStream(localKey);
+    return { document, stream };
+  }
+
+  async getForView(user: AuthUser, documentId: string) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      include: { invoice: true },
+    });
+    if (!document) {
+      throw this.documentNotFound();
+    }
+    await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
+
+    if (this.isKbStorageKey(document.storageKey)) {
+      const url = await this.kb.createDownloadUrl(document.storageKey);
+      return { document, viewUrl: url };
+    }
+
+    const localKey = document.storageKey.replace(/^local:/, '');
+    const stream = this.storage.createReadStream(localKey);
     return { document, stream };
   }
 
@@ -172,7 +288,12 @@ export class DocumentsService {
     }
 
     await this.prisma.document.delete({ where: { id: documentId } });
-    await this.storage.delete(document.storageKey);
+
+    if (this.isKbStorageKey(document.storageKey)) {
+      await this.kb.deleteObject(document.storageKey);
+    } else {
+      await this.storage.delete(document.storageKey.replace(/^local:/, ''));
+    }
 
     await this.audit.record({
       actorId: user.sub,
@@ -183,6 +304,20 @@ export class DocumentsService {
     });
 
     return { id: documentId, deleted: true };
+  }
+
+  private isKbStorageKey(storageKey: string): boolean {
+    return storageKey.startsWith('invoices/');
+  }
+
+  private assertUploadAllowed(status: string) {
+    if (!UPLOAD_ALLOWED_STATUSES.has(status)) {
+      throw new UnprocessableEntityException({
+        code: 'UPLOAD_NOT_ALLOWED',
+        message: 'Documents cannot be added once an invoice is approved or paid.',
+        details: { status },
+      });
+    }
   }
 
   private async assertInvoiceAccess(

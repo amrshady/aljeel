@@ -1,0 +1,14 @@
+[Unit]
+Description=Aljeel localhost.run tunnel manager
+After=network-online.target aljeel-flask.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/clawdbot/.openclaw/workspace/aljeel
+EnvironmentFile=/home/clawdbot/.openclaw/.env
+ExecStart=/usr/bin/python3 /home/clawdbot/.openclaw/workspace/aljeel/scripts/tunnel_manager.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

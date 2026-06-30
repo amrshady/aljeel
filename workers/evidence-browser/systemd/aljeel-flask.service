@@ -1,0 +1,17 @@
+[Unit]
+Description=AlJeel AP Flask API
+After=network.target
+
+[Service]
+Type=simple
+User=clawdbot
+WorkingDirectory=/home/clawdbot/.openclaw/workspace/aljeel
+ExecStart=/usr/bin/python3 scripts/droplet_api_flask.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/clawdbot/.openclaw/workspace/aljeel/tmp/flask.log
+StandardError=append:/home/clawdbot/.openclaw/workspace/aljeel/tmp/flask.log
+Environment=HOME=/home/clawdbot
+
+[Install]
+WantedBy=multi-user.target

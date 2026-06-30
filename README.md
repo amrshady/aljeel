@@ -22,6 +22,24 @@ automated intake pipeline that feeds the ERP.
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Phased delivery plan broken into epics → tasks, each scoped for a single agent/PR. |
 | [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) | **Read this first if you are an AI agent or new engineer.** Working rules, conventions, and how to pick up a task. |
 
+
+---
+
+## Deployed internal tools (live today)
+
+Beyond the greenfield spec above, this repo also vendors the **source + runbooks
+for the internal AlJeel AP tools that are already in production** (under `workers/`):
+
+| Tool | Live URL | Source | Runbook |
+|---|---|---|---|
+| **KB Upload Portal** (Al Jawal + Asateel tabs) | files-aljeel.accordpartners.ai | [`workers/files-portal/`](workers/files-portal/) | [`FILES_PORTAL.md`](workers/files-portal/FILES_PORTAL.md) |
+| **Evidence Browser** (folder tree + full-text search inside PDFs/emails) | aljeel-ap-files.accordpartners.ai/evidence | [`workers/evidence-browser/`](workers/evidence-browser/) | [`EVIDENCE_BROWSER.md`](workers/evidence-browser/EVIDENCE_BROWSER.md) |
+
+Each runbook documents the full architecture (Cloudflare Pages + Functions/Worker +
+DigitalOcean Spaces / Flask backend over a CF Tunnel), a reusable "how to spin up a
+new one" recipe, deploy commands, and gotchas. **No secrets are committed** — every
+credential is referenced by env-var name only.
+
 ---
 
 ## TL;DR of the product

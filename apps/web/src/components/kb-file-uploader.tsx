@@ -571,9 +571,8 @@ export function KbFileUploader({
             id={folderInputId}
             ref={folderInputRef}
             type="file"
-            // @ts-expect-error non-standard directory picker attributes
+            // @ts-expect-error non-standard webkitdirectory attribute for folder picker
             webkitdirectory=""
-            directory=""
             multiple
             className="hidden"
             disabled={zoneDisabled}

@@ -53,7 +53,7 @@
     "submitInvoice": "Submit invoice",
     "viewInvoices": "View invoices",
     "emptyTitle": "No invoices yet",
-    "emptyBody": "When you submit your first invoice, it will appear here and move through the pipeline: Draft → Submitted → Under Review → Approved → Scheduled → Paid.",
+    "emptyBody": "When you submit your first invoice, it will appear here and move through the pipeline: Draft → Under Review → Approved, or Rejected / On hold if AP needs changes.",
     "status": {
       "ACTIVE": "Active",
       "PENDING": "Pending",
@@ -62,11 +62,10 @@
     },
     "stages": {
       "draft": "Draft",
-      "submitted": "Submitted",
       "underReview": "Under review",
+      "onHold": "On hold",
       "approved": "Approved",
-      "scheduled": "Scheduled",
-      "paid": "Paid"
+      "rejected": "Rejected"
     }
   },
   "invoices": {
@@ -119,13 +118,10 @@
     "submit": "Submit for review",
     "submitting": "Submitting…",
     "submitError": "Submit failed",
-    "subtotal": "Subtotal",
-    "vat": "VAT",
-    "total": "Total",
-    "description": "Description",
-    "qty": "Qty",
-    "unitPrice": "Unit price",
-    "amount": "Amount",
+    "invoicePreviewTitle": "Invoice",
+    "invoicePreviewLoading": "Loading invoice…",
+    "invoicePreviewMissing": "No invoice PDF attached yet. Upload one in the attachments section below.",
+    "invoicePreviewError": "Could not load the invoice PDF",
     "rejectionReason": "Rejection reason",
     "timeline": "Status history",
     "status": {
@@ -141,7 +137,7 @@
   },
   "documents": {
     "title": "Attachments",
-    "subtitle": "Invoice PDF and supporting documents (delivery notes, GRN, contracts).",
+    "subtitle": "Supporting documents such as delivery notes, GRN copies, contracts, or timesheets.",
     "formTitle": "Attach the invoice PDF",
     "formHint": "Upload the original invoice (PDF) and any supporting files. They will be attached when you save.",
     "dropTitle": "Drag & drop files here, or click to browse",

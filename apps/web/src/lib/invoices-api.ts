@@ -13,7 +13,7 @@ import {
   type UpsertInvoiceDraft,
 } from '@aljeel/shared-types';
 import { z } from 'zod';
-import { apiFetch, downloadFile } from './api-client';
+import { apiFetch, downloadFile, fetchFile } from './api-client';
 
 const DeletedDocumentSchema = z.object({
   id: z.string(),
@@ -95,6 +95,10 @@ export function deleteInvoiceDocument(documentId: string) {
     method: 'DELETE',
     schema: DeletedDocumentSchema,
   });
+}
+
+export function fetchInvoiceDocument(documentId: string) {
+  return fetchFile(`/documents/${documentId}/download`);
 }
 
 export function downloadInvoiceDocument(documentId: string, fileName: string) {

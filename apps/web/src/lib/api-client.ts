@@ -86,8 +86,7 @@ export function getHealth() {
   return apiFetch('/health', { schema: HealthResponseSchema });
 }
 
-/** Fetches a binary resource (e.g. a document) and triggers a browser download. */
-export async function downloadFile(path: string, fileName: string): Promise<void> {
+async function fetchBinary(path: string): Promise<Blob> {
   const headers = new Headers();
   const token =
     typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -110,7 +109,17 @@ export async function downloadFile(path: string, fileName: string): Promise<void
     );
   }
 
-  const blob = await response.blob();
+  return response.blob();
+}
+
+/** Fetches a binary resource (e.g. a document) as a Blob. */
+export function fetchFile(path: string): Promise<Blob> {
+  return fetchBinary(path);
+}
+
+/** Fetches a binary resource (e.g. a document) and triggers a browser download. */
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const blob = await fetchBinary(path);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { InvoiceDocuments } from '@/components/invoice-documents';
+import { InvoicePdfPreview } from '@/components/invoice-pdf-preview';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
 import { ApiClientError } from '@/lib/api-client';
@@ -83,51 +84,23 @@ function InvoiceDetailContent() {
 
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm text-muted-foreground">{t('subtotal')}</p>
-          <p className="text-xl font-semibold">
-            {invoice.currency} {invoice.subtotal}
-          </p>
+      {invoice.rejectionReason && (
+        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
+          <p className="font-medium">{t('rejectionReason')}</p>
+          <p className="mt-1">{invoice.rejectionReason}</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm text-muted-foreground">{t('vat')}</p>
-          <p className="text-xl font-semibold">
-            {invoice.currency} {invoice.vat}
-          </p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm text-muted-foreground">{t('total')}</p>
-          <p className="text-xl font-semibold">
-            {invoice.currency} {invoice.total}
-          </p>
-        </div>
+      )}
+
+      <div className="mt-8">
+        <InvoicePdfPreview invoiceId={invoice.id} />
       </div>
 
-      <div className="mt-8 rounded-xl border bg-card">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-start text-muted-foreground">
-              <th className="p-3 font-medium">{t('description')}</th>
-              <th className="p-3 font-medium">{t('qty')}</th>
-              <th className="p-3 font-medium">{t('unitPrice')}</th>
-              <th className="p-3 font-medium">{t('amount')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.lines.map((line) => (
-              <tr key={line.id} className="border-b last:border-0">
-                <td className="p-3">{line.description}</td>
-                <td className="p-3">{line.qty}</td>
-                <td className="p-3">{line.unitPrice}</td>
-                <td className="p-3">{line.amount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <InvoiceDocuments invoiceId={invoice.id} editable={canUploadDocs} />
+      <InvoiceDocuments
+        invoiceId={invoice.id}
+        editable={canUploadDocs}
+        excludeTypes={['INVOICE']}
+        uploadType="OTHER"
+      />
 
       <div className="mt-8 rounded-xl border bg-card p-6">
         <h2 className="text-lg font-semibold">{t('timeline')}</h2>
@@ -136,12 +109,6 @@ function InvoiceDetailContent() {
         </div>
       </div>
 
-      {invoice.rejectionReason && (
-        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
-          <p className="font-medium">{t('rejectionReason')}</p>
-          <p className="mt-1">{invoice.rejectionReason}</p>
-        </div>
-      )}
     </AppShell>
   );
 }

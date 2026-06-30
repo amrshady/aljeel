@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@aljeel/ui';
+import type { DocumentType } from '@aljeel/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -16,9 +17,16 @@ import { FileDropzone, formatBytes } from './file-dropzone';
 interface InvoiceDocumentsProps {
   invoiceId: string;
   editable: boolean;
+  excludeTypes?: DocumentType[];
+  uploadType?: DocumentType;
 }
 
-export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps) {
+export function InvoiceDocuments({
+  invoiceId,
+  editable,
+  excludeTypes = [],
+  uploadType = 'INVOICE',
+}: InvoiceDocumentsProps) {
   const t = useTranslations('documents');
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<File[]>([]);
@@ -32,7 +40,7 @@ export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps)
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       for (const file of files) {
-        await uploadInvoiceDocument(invoiceId, file);
+        await uploadInvoiceDocument(invoiceId, file, uploadType);
       }
     },
     onSuccess: async () => {
@@ -60,6 +68,7 @@ export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps)
   });
 
   const busy = uploadMutation.isPending || deleteMutation.isPending;
+  const visibleDocuments = documents.filter((doc) => !excludeTypes.includes(doc.type));
 
   return (
     <section className="mt-8">
@@ -69,11 +78,11 @@ export function InvoiceDocuments({ invoiceId, editable }: InvoiceDocumentsProps)
       <div className="mt-4 rounded-xl border bg-card">
         {isLoading ? (
           <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
-        ) : documents.length === 0 ? (
+        ) : visibleDocuments.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">{t('empty')}</p>
         ) : (
           <ul className="divide-y">
-            {documents.map((doc) => (
+            {visibleDocuments.map((doc) => (
               <li key={doc.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{doc.fileName}</p>

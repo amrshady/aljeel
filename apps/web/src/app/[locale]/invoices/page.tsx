@@ -58,7 +58,7 @@ function InvoicesContent() {
         >
           {t('all')}
         </Button>
-        {(['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'PAID', 'REJECTED'] as const).map((s) => (
+        {(['DRAFT', 'UNDER_REVIEW', 'ON_HOLD', 'APPROVED', 'REJECTED'] as const).map((s) => (
           <Button
             key={s}
             variant={status === s ? 'default' : 'outline'}

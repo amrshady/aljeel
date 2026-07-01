@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApReviewActions } from '@/components/ap-review-actions';
 import { AppShell } from '@/components/app-shell';
+import { PageLoading } from '@/components/loading-spinner';
 import { useAuth } from '@/components/auth-provider';
 import { DocumentEvidenceViewer } from '@/components/document-evidence-viewer';
 import { InvoiceDocuments } from '@/components/invoice-documents';
@@ -68,7 +69,7 @@ function InvoiceDetailContent() {
   if (isLoading) {
     return (
       <AppShell>
-        <p className="text-muted-foreground">{t('loading')}</p>
+        <PageLoading className="min-h-[40vh]" />
       </AppShell>
     );
   }
@@ -134,7 +135,7 @@ function InvoiceDetailContent() {
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t('documentsTitle')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t('documentsHint')}</p>
-        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:items-start">
           <InvoiceDocuments
             invoiceId={invoice.id}
             editable={canUploadDocs}
@@ -143,10 +144,7 @@ function InvoiceDetailContent() {
             selectedDocumentId={selectedDocumentId}
             onSelectDocument={setSelectedDocumentId}
           />
-          <DocumentEvidenceViewer
-            documentId={selectedDocumentId}
-            className="min-h-[min(80vh,900px)]"
-          />
+          <DocumentEvidenceViewer documentId={selectedDocumentId} />
         </div>
       </section>
 

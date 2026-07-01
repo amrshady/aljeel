@@ -57,7 +57,7 @@ export function DocumentEvidenceViewer({
   if (!documentId) {
     return (
       <div
-        className={`flex min-h-[280px] items-center justify-center rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground ${className ?? ''}`}
+        className={`flex h-[min(80vh,900px)] items-center justify-center rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground ${className ?? ''}`}
       >
         {t('viewerSelectFile')}
       </div>
@@ -67,7 +67,7 @@ export function DocumentEvidenceViewer({
   if (isLoading) {
     return (
       <div
-        className={`flex min-h-[280px] items-center justify-center rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground ${className ?? ''}`}
+        className={`flex h-[min(80vh,900px)] items-center justify-center rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground ${className ?? ''}`}
       >
         {t('viewerLoading')}
       </div>
@@ -79,7 +79,7 @@ export function DocumentEvidenceViewer({
       error instanceof ApiClientError ? error.message : t('viewerError');
     return (
       <div
-        className={`flex min-h-[280px] items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive ${className ?? ''}`}
+        className={`flex h-[min(80vh,900px)] items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive ${className ?? ''}`}
       >
         {message}
       </div>
@@ -91,12 +91,12 @@ export function DocumentEvidenceViewer({
 
   if (isPdf(resolvedMime, resolvedName)) {
     return (
-      <div className={`flex min-h-[min(80vh,900px)] flex-col overflow-hidden rounded-lg border bg-background ${className ?? ''}`}>
+      <div className={`flex h-[min(80vh,900px)] flex-col overflow-hidden rounded-lg border bg-background ${className ?? ''}`}>
         <iframe
           key={src}
           title={resolvedName}
           src={src}
-          className="min-h-[min(80vh,900px)] w-full flex-1 bg-white"
+          className="h-full w-full flex-1 bg-white"
         />
       </div>
     );
@@ -105,13 +105,13 @@ export function DocumentEvidenceViewer({
   if (isImage(resolvedMime, resolvedName)) {
     return (
       <div
-        className={`flex min-h-[min(80vh,900px)] items-center justify-center overflow-hidden rounded-lg border bg-muted/20 p-4 ${className ?? ''}`}
+        className={`flex h-[min(80vh,900px)] items-center justify-center overflow-hidden rounded-lg border bg-muted/20 p-4 ${className ?? ''}`}
       >
         <img
           key={src}
           src={src}
           alt={resolvedName}
-          className="max-h-[min(80vh,900px)] max-w-full object-contain"
+          className="max-h-full max-w-full object-contain"
         />
       </div>
     );
@@ -119,7 +119,7 @@ export function DocumentEvidenceViewer({
 
   return (
     <div
-      className={`flex min-h-[min(80vh,900px)] flex-col items-center justify-center gap-3 rounded-lg border bg-muted/20 p-6 text-center text-sm ${className ?? ''}`}
+      className={`flex h-[min(80vh,900px)] flex-col items-center justify-center gap-3 rounded-lg border bg-muted/20 p-6 text-center text-sm ${className ?? ''}`}
     >
       <p className="font-medium">{t('viewerUnsupported')}</p>
       <p className="text-muted-foreground">{resolvedName}</p>

@@ -2,8 +2,8 @@
 
 import type { UserRole } from '@aljeel/shared-types';
 import { useAuth } from '@/components/auth-provider';
+import { PageLoading } from '@/components/loading-spinner';
 import { useRouter } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
 import { useEffect, type ReactNode } from 'react';
 
 interface RequireRoleProps {
@@ -14,8 +14,6 @@ interface RequireRoleProps {
 export function RequireRole({ roles, children }: RequireRoleProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const t = useTranslations('dashboard');
-
   useEffect(() => {
     if (!isLoading && user && !roles.includes(user.role)) {
       router.replace('/dashboard');
@@ -23,11 +21,7 @@ export function RequireRole({ roles, children }: RequireRoleProps) {
   }, [isLoading, user, roles, router]);
 
   if (isLoading || !user) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
-        {t('loading')}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!roles.includes(user.role)) {

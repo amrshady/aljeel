@@ -137,7 +137,9 @@ export function InvoiceDocuments({
         <div
           className={`overflow-hidden rounded-xl border bg-card shadow-sm ${compact ? '' : 'mt-4'}`}
         >
-          <ul className="divide-y">
+          <ul
+            className={`divide-y ${compact ? 'max-h-[min(80vh,900px)] overflow-y-auto' : ''}`}
+          >
             {isLoading && (
               <>
                 <DocumentSkeleton />

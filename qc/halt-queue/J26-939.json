@@ -1,0 +1,93 @@
+[
+  {
+    "sl_no": 9,
+    "passenger": "TEMSSAH/MARIAM MS(CHD)",
+    "description": "TEMSSAH/MARIAM MS(CHD) - RUH HBE (6906265462)",
+    "amount": 710.0,
+    "combo": "03-10100-60301004-140015-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 10,
+    "passenger": "TEMSSAH/MAZEN MR(CHD)",
+    "description": "TEMSSAH/MAZEN MR(CHD) - RUH HBE (6906265463)",
+    "amount": 710.01,
+    "combo": "03-10100-60301004-140015-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 12,
+    "passenger": "TEMSSAH/MARIAM MS(CHD)",
+    "description": "TEMSSAH/MARIAM MS(CHD) - HBE RUH (6906265466)",
+    "amount": 1070.0,
+    "combo": "03-10100-60301004-140015-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 13,
+    "passenger": "TEMSSAH/MAZEN MR(CHD)",
+    "description": "TEMSSAH/MAZEN MR(CHD) - HBE RUH (6906265467)",
+    "amount": 1070.0,
+    "combo": "03-10100-60301004-140015-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 43,
+    "passenger": "RAJA/KHAWAJ KHAN MR",
+    "description": "RAJA/KHAWAJ KHAN MR - DMM ISB DMM (6906294285)",
+    "amount": 2030.0,
+    "combo": "03-30100-60301004-140020-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 51,
+    "passenger": "KHADER/KINDA MS(CHD)",
+    "description": "KHADER/KINDA MS(CHD) - RUH JED (6906294321)",
+    "amount": 439.13,
+    "combo": "03-10100-60301003-160011-196-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 52,
+    "passenger": "KHADER/RAKAN MR(CHD)",
+    "description": "KHADER/RAKAN MR(CHD) - RUH JED (6906294322)",
+    "amount": 439.13,
+    "combo": "03-10100-60301003-160011-196-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  }
+]

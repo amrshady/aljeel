@@ -1,0 +1,829 @@
+/* ============================================================================
+   Accord Partners — design tokens & base element styling
+   Source: https://brand.accordpartners.ai (v2.0, May 2026). MANDATORY.
+   This file is the design-system foundation every Portal v2 view reuses.
+   ========================================================================== */
+
+:root {
+  /* ── Brand colors ──────────────────────────────────────────────────────── */
+  --navy:    #1E40AF;   /* primary brand — nav, headings                     */
+  --action:  #2563EB;   /* CTAs, links, interactive affordances, hover       */
+  --gold:    #B8860B;   /* editorial / milestone accents, sparingly          */
+  --sage:    #F0F4F3;   /* page background                                    */
+  --ink:     #111827;   /* body text                                         */
+  --ink2:    #6B7280;   /* secondary / muted text                            */
+  --line:    #E5E7EB;   /* borders & dividers                                 */
+
+  /* Status palette */
+  --ok:    #16A34A;
+  --warn:  #D97706;
+  --alert: #EA580C;
+  --err:   #DC2626;
+  --err-hover: #B91C1C;
+
+  /* Surfaces */
+  --surface: #FFFFFF;
+  --action-hover: var(--navy);
+
+  /* ── Radii / shadow ────────────────────────────────────────────────────── */
+  --radius-btn:  6px;
+  --radius-card: 8px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.10);
+  --shadow-pop:  0 8px 24px rgba(17, 24, 39, 0.12);
+
+  /* ── Spacing scale (4px base) ──────────────────────────────────────────── */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  /* ── Type scale (size / weight / line-height) ─────────────────────────── */
+  --fs-h1: 40px; --fs-h2: 32px; --fs-h3: 24px; --fs-h4: 20px; --fs-h5: 16px;
+  --fs-body-l: 18px; --fs-body-m: 16px; --fs-body-s: 14px; --fs-caption: 12px;
+
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Motion */
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --dur:  200ms;
+}
+
+/* ── Reset / base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+/* Always reserve the vertical scrollbar gutter on the scrolling root. The window
+   itself scrolls here — .shell is min-height:100vh and nothing inner sets
+   overflow:auto, so content past one viewport grows the document and the html
+   viewport scrolls. Short views (Batches, a tidy Run detail) fit without a
+   scrollbar; tall ones (Evidence, Report, Logs) show one. That appearing/
+   disappearing track re-centered the `margin:0 auto` .view column by ~15px on
+   every route change — the 'wide then thin' breathing. Reserving the gutter
+   permanently keeps the column's left edge and width pixel-stable across routes.
+   overflow-y:scroll is the fallback track for engines without scrollbar-gutter.
+   Right-edge gutter only (not both-edges): the navy sidebar is full-bleed and must
+   stay flush to the viewport's left edge — a left gutter would leave a sage strip
+   beside it. The scrollbar lives on the right and .view centers within shell__main
+   (right of the sidebar), so a right-only reserved gutter is enough to keep the
+   column's left edge and width constant on every route. */
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--fs-body-s);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--sage);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--action); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Type scale classes ──────────────────────────────────────────────────── */
+.h1 { font-size: var(--fs-h1); font-weight: 700; line-height: 1.15; letter-spacing: -.02em; margin: 0; }
+.h2 { font-size: var(--fs-h2); font-weight: 700; line-height: 1.2;  letter-spacing: -.01em; margin: 0; }
+.h3 { font-size: var(--fs-h3); font-weight: 600; line-height: 1.3;  margin: 0; }
+.h4 { font-size: var(--fs-h4); font-weight: 600; line-height: 1.35; margin: 0; }
+.h5 { font-size: var(--fs-h5); font-weight: 600; line-height: 1.4;  margin: 0; }
+.body-l  { font-size: var(--fs-body-l); font-weight: 400; line-height: 1.6; }
+.body-m  { font-size: var(--fs-body-m); font-weight: 400; line-height: 1.6; }
+.body-s  { font-size: var(--fs-body-s); font-weight: 400; line-height: 1.5; }
+.caption { font-size: var(--fs-caption); font-weight: 400; line-height: 1.4; }
+.muted   { color: var(--ink2); }
+.mono    { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: inherit;
+  font-size: var(--fs-body-s);
+  font-weight: 500;
+  line-height: 1;
+  padding: 10px 20px;
+  border-radius: var(--radius-btn);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur) var(--ease),
+              border-color var(--dur) var(--ease),
+              color var(--dur) var(--ease);
+}
+.btn:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+
+.btn--primary   { background: var(--action); color: #fff; }
+.btn--primary:not([disabled]):hover { background: var(--action-hover); }
+
+.btn--secondary { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.btn--secondary:not([disabled]):hover { background: var(--sage); }
+
+.btn--ghost     { background: transparent; color: var(--action); }
+.btn--ghost:not([disabled]):hover { background: var(--sage); }
+
+.btn--danger    { background: var(--err); color: #fff; }
+.btn--danger:not([disabled]):hover { background: var(--err-hover); }
+
+.btn--sm { padding: 6px 12px; font-size: var(--fs-caption); }
+
+/* Download button lives in a .stack (flex column, align-items:stretch); hug its
+   content so it's only as wide as the label + icon, left-aligned. Harmless in a
+   table cell where there is no cross-axis stretch to override. */
+.btn--download { align-self: flex-start; }
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Status badges / chips ──────────────────────────────────────────────────
+   Rounded pill, 4/10 padding, 12px, text at 100% / bg at 15% opacity.        */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.badge svg { width: 14px; height: 14px; }
+
+.badge--ok    { color: var(--ok);    background: rgba(22, 163, 74, .15); }
+.badge--warn  { color: var(--warn);  background: rgba(217, 119, 6, .15); }
+.badge--alert { color: var(--alert); background: rgba(234, 88, 12, .15); }
+.badge--err   { color: var(--err);   background: rgba(220, 38, 38, .15); }
+.badge--info  { color: var(--action);background: rgba(37, 99, 235, .15); }
+.badge--prem  { color: var(--gold);  background: rgba(184, 134, 11, .15); }
+.badge--muted { color: var(--ink2);  background: rgba(107, 114, 128, .15); }
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  background: var(--navy);
+  color: #fff;
+  padding: 0 var(--sp-6);
+  height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.nav__brand { display: flex; align-items: baseline; gap: var(--sp-3); }
+.nav__wordmark { font-size: var(--fs-h5); font-weight: 700; letter-spacing: -.01em; color: #fff; }
+.nav__product  { font-size: var(--fs-caption); font-weight: 500; color: rgba(255,255,255,.75); }
+
+/* Breadcrumb now lives in the light top bar (see Console shell section below). */
+.breadcrumb { display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.breadcrumb li { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body-s); }
+.breadcrumb a { color: var(--ink2); }
+.breadcrumb a:hover { color: var(--action); text-decoration: none; }
+.breadcrumb li[aria-current="page"] { color: var(--ink); font-weight: 600; }
+.breadcrumb .sep { color: var(--line); }
+
+/* Active nav item affordance (Action-Blue) for any in-nav link */
+.nav a.is-active { background: var(--action); border-radius: var(--radius-btn); padding: 4px 10px; color: #fff; }
+
+/* ── Layout helpers ──────────────────────────────────────────────────────── */
+/* width:100% gives this flex item (child of the .shell__main flex column) a
+   DEFINITE cross size so it always spans min(container, 1100px). Without it the
+   `margin:0 auto` auto cross-margins suppress flex `stretch`, sizing .view to its
+   content's max-content width — wide-content routes (Batches/Runs tables, dense
+   rows) hit the 1100px cap and look right, but a narrow route (Run detail: short
+   cards, a 120px-tick timeline, a tab strip) collapsed to ~440-640px and centered.
+   The explicit width makes every route fill the same column, same left edge. */
+.view { width: 100%; max-width: 1100px; margin: 0 auto; padding: var(--sp-8) var(--sp-6); }
+.view__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-6); }
+.stack    { display: flex; flex-direction: column; }
+.row      { display: flex; align-items: center; }
+.gap-1 { gap: var(--sp-1); } .gap-2 { gap: var(--sp-2); } .gap-3 { gap: var(--sp-3); } .gap-4 { gap: var(--sp-4); }
+
+/* Card grid (batches, runs) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-4);
+}
+
+/* Lucide icon defaults: outline, 1.5px stroke, currentColor */
+.icon { width: 20px; height: 20px; stroke: currentColor; stroke-width: 1.5; fill: none;
+        stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icon--lg { width: 24px; height: 24px; }
+.spin { animation: spin 1s linear infinite; transform-origin: center; }
+
+/* ── States: empty / error / skeleton ───────────────────────────────────── */
+.notice { padding: var(--sp-8); text-align: center; color: var(--ink2); }
+.notice--error { color: var(--err); }
+
+.skeleton {
+  position: relative; overflow: hidden;
+  background: #eef1f4; border-radius: var(--radius-card);
+}
+.skeleton::after {
+  content: ""; position: absolute; inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+                           transition-duration: .001ms !important; }
+}
+
+/* ============================================================================
+   Phase 5 — list/detail components (StageBar, RunTimeline, tabs, run rows).
+   Layout only; all color/spacing/motion comes from the tokens above.
+   ========================================================================== */
+
+/* Disabled <a> rendered as a button (download before the artifact exists) */
+.btn.is-disabled { opacity: .55; cursor: not-allowed; pointer-events: none; }
+
+/* ── StageBar ───────────────────────────────────────────────────────────── */
+.stagebar { display: flex; flex-direction: column; gap: var(--sp-2); }
+.stagebar__track {
+  position: relative; height: 8px; border-radius: var(--radius-pill);
+  background: var(--line); overflow: hidden;
+}
+.stagebar__fill {
+  height: 100%; width: 0; border-radius: var(--radius-pill);
+  background: var(--action);
+  transition: width var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.stagebar__fill--done { background: var(--ok); }
+.stagebar__fill--fail { background: var(--err); }
+
+/* ── RunTimeline ────────────────────────────────────────────────────────── */
+.timeline { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
+.timeline__tick { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 120px; }
+.timeline__dot {
+  width: 10px; height: 10px; border-radius: var(--radius-pill);
+  background: var(--surface); border: 2px solid var(--line); flex: none;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.timeline__dot.is-on    { background: var(--action); border-color: var(--action); }
+.timeline__dot.is-ok    { background: var(--ok);     border-color: var(--ok); }
+.timeline__dot.is-err   { background: var(--err);    border-color: var(--err); }
+.timeline__dot.is-muted { background: var(--ink2);   border-color: var(--ink2); }
+.timeline__time { font-variant-numeric: tabular-nums; }
+
+/* ── Stalled overlay banner ─────────────────────────────────────────────── */
+.stalled-banner {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--alert);
+  border-left-width: 4px;
+  border-radius: var(--radius-card);
+  background: rgba(234, 88, 12, .08);
+  color: var(--alert);
+  margin-bottom: var(--sp-5);
+}
+.stalled-banner .h5 { color: var(--ink); }
+.stalled-banner .body-s { color: var(--ink2); }
+
+/* ── Tabs (simple strip; FLIP collapsing-columns lands in Phase 8) ─────────── */
+.tabs { display: flex; gap: var(--sp-1); border-bottom: 1px solid var(--line); margin-bottom: var(--sp-4); flex-wrap: wrap; }
+.tab {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  background: transparent; border: none; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-body-s); font-weight: 500; color: var(--ink2);
+  padding: 10px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.tab:hover { color: var(--ink); }
+.tab.is-active { color: var(--action); border-bottom-color: var(--action); }
+.tab:focus-visible { outline: 2px solid var(--action); outline-offset: -2px; }
+
+/* ── Run-history rows ───────────────────────────────────────────────────── */
+.runrow {
+  display: flex; align-items: center; gap: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5); cursor: pointer;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.runrow:hover { box-shadow: var(--shadow-pop); transform: translateY(-1px); }
+.runrow:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+.runrow__metrics { flex: 1; }
+.runrow__metrics .body-s { font-variant-numeric: tabular-nums; }
+.runrow__chevron { color: var(--ink2); display: flex; flex: none; }
+
+/* ============================================================================
+   Phase 6 — Evidence browser (EvidenceTree + MsgReader).
+   Layout only; all color/spacing/motion comes from the tokens above.
+   ========================================================================== */
+
+/* Two-pane: tree | reader. Stacks on narrow viewports. */
+.evidence {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: var(--sp-5);
+  align-items: start;
+}
+@media (max-width: 760px) { .evidence { grid-template-columns: 1fr; } }
+
+.evidence__tree {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  max-height: 600px;
+  overflow: auto;
+  padding: var(--sp-2);
+}
+.evidence__treehead { padding: var(--sp-2) var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); margin-bottom: var(--sp-1); }
+.evidence__reader { min-width: 0; }
+
+/* ── EvidenceTree ───────────────────────────────────────────────────────── */
+.evtree { display: flex; flex-direction: column; }
+.evtree__row {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 6px 8px; border-radius: var(--radius-btn);
+  cursor: pointer; user-select: none;
+  transition: background-color var(--dur) var(--ease);
+}
+.evtree__row:hover { background: var(--sage); }
+.evtree__row:focus-visible { outline: 2px solid var(--action); outline-offset: -2px; }
+.evtree__icon { width: 16px; height: 16px; color: var(--ink2); }
+.evtree__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evtree__file .evtree__name { font-size: var(--fs-body-s); }
+.evtree__folder .evtree__name { font-weight: 600; }
+.evtree__bytes { flex: none; font-variant-numeric: tabular-nums; }
+.evtree__mtime { flex: none; min-width: 78px; text-align: right; }
+.evtree__count {
+  flex: none; min-width: 24px; text-align: center;
+  background: rgba(107, 114, 128, .15); border-radius: var(--radius-pill); padding: 1px 8px;
+}
+.evtree__twisty { display: flex; flex: none; color: var(--ink2); transition: transform var(--dur) var(--ease); }
+.evtree__twisty svg { width: 16px; height: 16px; }
+.evtree__folder.is-open .evtree__twisty { transform: rotate(90deg); }
+.evtree__row.is-selected { background: rgba(37, 99, 235, .12); box-shadow: inset 2px 0 0 var(--gold); }
+.evtree__row.is-selected .evtree__name { color: var(--action); }
+.evtree__row.is-selected .evtree__icon { color: var(--action); }
+
+/* ── MsgReader pane ─────────────────────────────────────────────────────── */
+.evreader { min-height: 320px; }
+
+/* Inline doc viewer (pdf / image) */
+.evreader__bar {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  flex-wrap: wrap; margin-bottom: var(--sp-3);
+}
+.evreader__barinfo { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.evreader__barinfo .body-s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evreader__pdf { width: 100%; height: 620px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); }
+.evreader__imgwrap {
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  background: var(--sage); padding: var(--sp-4); text-align: center;
+}
+.evreader__img { max-width: 100%; height: auto; border-radius: var(--radius-btn); }
+
+/* Structured email card */
+.evreader__email { display: flex; flex-direction: column; gap: var(--sp-4); }
+.evreader__subject { word-break: break-word; }
+.evreader__headers {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding-bottom: var(--sp-4); border-bottom: 1px solid var(--line);
+}
+.evreader__meta { display: flex; align-items: baseline; gap: var(--sp-3); }
+.evreader__metalabel {
+  flex: none; min-width: 64px; text-transform: uppercase; letter-spacing: .04em;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.evreader__metalabel svg { width: 12px; height: 12px; }
+.evreader__attach { cursor: pointer; text-decoration: none; }
+.evreader__attach:hover { text-decoration: none; filter: brightness(.96); }
+.evreader__attach svg { width: 12px; height: 12px; }
+.evreader__body {
+  font-size: var(--fs-body-s); line-height: 1.6; color: var(--ink);
+  white-space: pre-wrap; word-break: break-word;
+  background: var(--sage); border: 1px solid var(--line); border-radius: var(--radius-card);
+  padding: var(--sp-4); max-height: 520px; overflow: auto;
+}
+
+/* ============================================================================
+   Phase 7 — Risk & Inconsistencies report (ReportTable + report view).
+   Layout only; all color/spacing/motion comes from the tokens above.
+   ========================================================================== */
+
+.gap-5 { gap: var(--sp-5); } .gap-6 { gap: var(--sp-6); }
+
+/* Toolbar: title + generated stamp | regenerate + downloads */
+.report-view__bar {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--sp-4); flex-wrap: wrap;
+}
+
+/* ── Headline KPI cards ─────────────────────────────────────────────────────── */
+.report-kpis {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.report-kpi { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1); }
+.report-kpi__value { font-variant-numeric: tabular-nums; line-height: 1.1; }
+.report-kpi__label { text-transform: uppercase; letter-spacing: .04em; }
+.report-kpi--accent { border-color: var(--action); }
+.report-kpi--accent .report-kpi__value { color: var(--navy); }
+
+/* ── Category breakdown bars + severity strip ──────────────────────────────── */
+.report-sevstrip { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.report-cats { display: flex; flex-direction: column; gap: var(--sp-2); }
+.report-cat {
+  display: grid; grid-template-columns: minmax(140px, 240px) 1fr auto;
+  align-items: center; gap: var(--sp-3);
+}
+.report-cat__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-cat__track {
+  position: relative; height: 10px; border-radius: var(--radius-pill);
+  background: var(--line); overflow: hidden;
+}
+.report-cat__fill {
+  height: 100%; border-radius: var(--radius-pill); background: var(--action);
+  transition: width var(--dur) var(--ease);
+}
+.report-cat__count { font-variant-numeric: tabular-nums; min-width: 28px; text-align: right; }
+@media (max-width: 560px) {
+  .report-cat { grid-template-columns: 1fr auto; }
+  .report-cat__track { grid-column: 1 / -1; order: 3; }
+}
+
+/* ── Exceptions table ──────────────────────────────────────────────────────── */
+.report-tablewrap {
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  overflow: auto; max-height: 640px; background: var(--surface);
+}
+.report-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body-s); }
+.report-table th, .report-table td {
+  text-align: left; padding: 10px var(--sp-4); vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.report-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--sage); color: var(--ink2);
+  font-weight: 600; font-size: var(--fs-caption);
+  text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;
+}
+.report-table tbody tr:last-child td { border-bottom: none; }
+.report-table tbody tr:hover { background: var(--sage); }
+.report-td--num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.report-td--detail { min-width: 280px; max-width: 520px; color: var(--ink); }
+
+/* ============================================================================
+   Phase 8 — Logs view (LogTail) + motion polish.
+   Brand tokens only — no new colors/fonts. All animation is transform/opacity
+   and is neutralised by the global prefers-reduced-motion rule above.
+   ========================================================================== */
+
+/* ── Tabs: FLIP collapsing-columns (active expands, siblings collapse) ──────── */
+.tabs { align-items: flex-end; }
+.tab {
+  border-radius: var(--radius-btn) var(--radius-btn) 0 0;
+  /* width/position settle is driven by the JS FLIP helper (transform); these
+     transitions cover the color + background of the pill. */
+}
+.tab__label { display: inline-block; }
+.tab.is-active {
+  background: rgba(37, 99, 235, .10);
+  color: var(--action);
+  font-weight: 600;
+  padding-left: 18px;   /* the "expand": active column grows, pushing siblings */
+  padding-right: 18px;
+}
+/* On narrow viewports the inactive columns truly collapse to icon-only. */
+@media (max-width: 640px) { .tab:not(.is-active) .tab__label { display: none; } }
+
+/* ── Logs toolbar + live indicator ─────────────────────────────────────────── */
+.logs__bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); flex-wrap: wrap;
+}
+/* Toggle "on" affordance (Logs auto-scroll button) */
+.btn.is-active { background: rgba(37, 99, 235, .10); border-color: var(--action); color: var(--action); }
+
+.logs__live { display: inline-flex; align-items: center; gap: 6px; color: var(--ok); }
+.logs__livedot {
+  position: relative; width: 8px; height: 8px; flex: none;
+  border-radius: var(--radius-pill); background: var(--ok);
+}
+.logs__livedot::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--ok); transform: scale(1); opacity: .5;
+  animation: livepulse 1.6s var(--ease) infinite;
+}
+@keyframes livepulse { to { transform: scale(2.6); opacity: 0; } }
+
+/* ── LogTail viewport (light, on-brand — not a dark "toy" terminal) ─────────── */
+.logtail { display: flex; flex-direction: column; }
+.logtail__viewport {
+  max-height: 60vh; min-height: 280px; overflow: auto;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: var(--sp-3);
+}
+.logtail__viewport:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+.logtail__lines {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: var(--fs-caption); line-height: 1.55; color: var(--ink);
+}
+.logtail__line { display: flex; gap: var(--sp-2); }
+.logtail__ts { color: var(--ink2); flex: none; }
+.logtail__text { white-space: pre-wrap; word-break: break-word; min-width: 0; }
+.logtail__status { color: var(--ink2); }
+
+/* ── Evidence tree: stagger-reveal on expand (≤120ms spread) ───────────────── */
+@keyframes evReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.evtree__reveal { animation: evReveal 130ms var(--ease) both; }
+
+/* ============================================================================
+   Console shell — persistent navy left sidebar + light top breadcrumb bar.
+   Replaces the thin top-only nav. Brand tokens only.
+   ========================================================================== */
+:root { --sidebar-w: 232px; --topbar-h: 56px; }
+
+.shell { display: flex; min-height: 100vh; }
+
+/* ── Sidebar (navy, sticky full-height) ───────────────────────────────────── */
+.sidebar {
+  flex: none; width: var(--sidebar-w);
+  background: var(--navy); color: #fff;
+  display: flex; flex-direction: column; gap: var(--sp-6);
+  padding: var(--sp-5) var(--sp-4);
+  position: sticky; top: 0; height: 100vh;
+  z-index: 50;
+  transition: width var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.sidebar__brand { display: flex; flex-direction: column; gap: 2px; padding: 0 var(--sp-2); }
+.sidebar__wordmark { font-size: var(--fs-h5); font-weight: 700; letter-spacing: -.01em; color: #fff; white-space: nowrap; }
+.sidebar__wordmark:hover { text-decoration: none; }
+.sidebar__product { font-size: var(--fs-caption); font-weight: 500; color: rgba(255,255,255,.65); white-space: nowrap; }
+
+.sidebar__nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar__label {
+  padding: 0 var(--sp-2); margin-bottom: var(--sp-1);
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: rgba(255,255,255,.45);
+}
+.sidenav__item {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 9px var(--sp-3); border-radius: var(--radius-btn);
+  color: rgba(255,255,255,.82); font-size: var(--fs-body-s); font-weight: 500;
+  white-space: nowrap; overflow: hidden;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.sidenav__item:hover { background: rgba(255,255,255,.08); color: #fff; text-decoration: none; }
+.sidenav__item .icon { flex: none; }
+.sidenav__item.is-active { background: var(--action); color: #fff; }
+.sidenav__item.is-active:hover { background: var(--action); }
+
+/* ── Main column ──────────────────────────────────────────────────────────── */
+.shell__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; gap: var(--sp-3);
+  height: var(--topbar-h); padding: 0 var(--sp-6);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar__toggle {
+  display: none; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex: none;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--radius-btn);
+  color: var(--ink); cursor: pointer;
+}
+.topbar__toggle:hover { background: var(--sage); }
+
+/* Sidebar is collapsible on narrow widths: it slides off-canvas; the toggle shows. */
+@media (max-width: 880px) {
+  .topbar__toggle { display: inline-flex; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh;
+    transform: translateX(-100%); box-shadow: var(--shadow-pop);
+  }
+  .shell.is-nav-open .sidebar { transform: translateX(0); }
+  .shell__scrim {
+    display: none; position: fixed; inset: 0; z-index: 45;
+    background: rgba(17,24,39,.4);
+  }
+  .shell.is-nav-open .shell__scrim { display: block; }
+}
+
+/* ============================================================================
+   Page header (consistent across views) + toolbars
+   ========================================================================== */
+.page-head { margin-bottom: var(--sp-6); }
+.page-head__title { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.page-head__caption { margin-top: var(--sp-1); }
+
+/* ── Summary strip (small stat chips above a grid/list) ─────────────────────── */
+.summary-strip { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.summary-stat {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 8px var(--sp-4); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-pill);
+}
+.summary-stat__num { font-size: var(--fs-h5); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.summary-stat__label { font-size: var(--fs-caption); color: var(--ink2); }
+.summary-stat--alert .summary-stat__num { color: var(--err); }
+
+/* ── Toolbar (search + chips + sort) ───────────────────────────────────────── */
+.toolbar {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  margin-bottom: var(--sp-5);
+}
+.toolbar__search {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 0 var(--sp-3); height: 38px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-btn);
+  min-width: 220px; flex: 1 1 240px; max-width: 360px;
+  color: var(--ink2);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.toolbar__search:focus-within { border-color: var(--action); box-shadow: 0 0 0 3px rgba(37,99,235,.12); color: var(--ink); }
+.toolbar__search input {
+  border: none; outline: none; background: transparent;
+  font-family: inherit; font-size: var(--fs-body-s); color: var(--ink);
+  width: 100%; min-width: 0;
+}
+.toolbar__spacer { flex: 1 1 auto; }
+
+/* Filter chips (segmented, brand) */
+.chips { display: inline-flex; gap: var(--sp-1); flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px var(--sp-3); border-radius: var(--radius-pill);
+  background: var(--surface); border: 1px solid var(--line);
+  font-family: inherit; font-size: var(--fs-caption); font-weight: 500; color: var(--ink2);
+  cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.chip:hover { background: var(--sage); color: var(--ink); }
+.chip.is-active { background: rgba(37,99,235,.10); border-color: var(--action); color: var(--action); }
+.chip__count { font-variant-numeric: tabular-nums; opacity: .8; }
+
+/* Sort dropdown */
+.toolbar__sort {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-caption); color: var(--ink2);
+}
+.select {
+  font-family: inherit; font-size: var(--fs-body-s); color: var(--ink);
+  padding: 8px var(--sp-3); height: 38px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.select:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+
+/* ============================================================================
+   Data table (global Runs view, evidence run picker, etc.)
+   ========================================================================== */
+.dtable-wrap {
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  overflow: auto; background: var(--surface); box-shadow: var(--shadow-card);
+}
+.dtable { width: 100%; border-collapse: collapse; font-size: var(--fs-body-s); }
+.dtable th, .dtable td { text-align: left; padding: 12px var(--sp-4); vertical-align: middle; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dtable thead th {
+  position: sticky; top: 0; z-index: 1; background: var(--sage); color: var(--ink2);
+  font-weight: 600; font-size: var(--fs-caption); text-transform: uppercase; letter-spacing: .04em;
+}
+.dtable tbody tr:last-child td { border-bottom: none; }
+.dtable tbody tr.is-link { cursor: pointer; transition: background-color var(--dur) var(--ease); }
+.dtable tbody tr.is-link:hover { background: var(--sage); }
+.dtable td--num { font-variant-numeric: tabular-nums; }
+.dtable td--actions { text-align: right; }
+.dtable .mono { font-size: var(--fs-caption); }
+
+/* ============================================================================
+   Evidence browser (#/evidence) — batch picker cards + run-picker bar
+   ========================================================================== */
+.ev-pickbar {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-5);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card);
+}
+.ev-pickbar__label { font-size: var(--fs-caption); color: var(--ink2); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Evidence path breadcrumb (above the batch two-pane browser) */
+.ev-crumb {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px var(--sp-3); margin-bottom: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-btn);
+}
+.ev-crumb svg { width: 14px; height: 14px; color: var(--ink2); flex: none; }
+.ev-crumb__sep { color: var(--line); }
+.ev-crumb__cur { color: var(--ink); font-weight: 600; }
+
+/* Lazy-tree per-folder load states */
+.evtree__loaderr { display: flex; align-items: center; gap: 6px; color: var(--err); padding: 6px 8px; }
+.evtree__loaderr svg { width: 14px; height: 14px; }
+.evtree__empty { padding: 6px 8px; }
+
+/* ============================================================================
+   Batches list (#/) — dense rows. Gold (#B8860B) appears ONLY as a milestone
+   accent: the left rail on hover / for an active run, and the COVERAGE %
+   underline. Never a fill, never a button.
+   ========================================================================== */
+.batchrows {
+  background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  overflow: hidden; box-shadow: var(--shadow-card);
+}
+.batchrow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) 116px minmax(150px, 1fr) minmax(180px, 1.2fr) auto;
+  grid-template-areas: "id items status figure actions";
+  align-items: center; gap: var(--sp-4);
+  padding: 8px var(--sp-5); min-height: 60px;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;   /* the gold accent rail (transparent by default) */
+  transition: background-color var(--dur) var(--ease), border-left-color var(--dur) var(--ease);
+}
+.batchrow:last-child { border-bottom: none; }
+
+.batchrow__id      { grid-area: id; }
+.batchrow__items   { grid-area: items; }
+.batchrow__status  { grid-area: status; }
+.batchrow__figure  { grid-area: figure; }
+.batchrow__actions { grid-area: actions; }
+
+/* Column-label header */
+.batchrow--head {
+  min-height: 0; padding-top: 9px; padding-bottom: 9px;
+  background: var(--sage); border-left-color: transparent;
+  font-size: var(--fs-caption); text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
+}
+
+/* Interactive rows */
+.batchrow.is-link { cursor: pointer; }
+.batchrow.is-link:hover { background: var(--sage); border-left-color: var(--gold); }
+.batchrow.is-link:focus-visible { outline: 2px solid var(--action); outline-offset: -2px; }
+
+/* Active run (last run still in flight) → persistent gold rail (the milestone) */
+.batchrow--active { border-left-color: var(--gold); }
+
+/* (1) Batch id — navy, H5 weight, stacked-layers icon */
+.batchrow__id { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.batchrow__idicon { width: 18px; height: 18px; color: var(--navy); flex: none; }
+.batchrow__idtext {
+  font-size: var(--fs-h5); font-weight: 600; color: var(--navy);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* (2) Item count — muted, folder icon, tabular number */
+.batchrow__items { display: flex; align-items: center; gap: 6px; color: var(--ink2); }
+.batchrow__itemsicon { width: 16px; height: 16px; color: var(--ink2); flex: none; }
+.batchrow__items .mono { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* (3) Status pill + relative time */
+.batchrow__status { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* (4) Flagged · COVERAGE figure — coverage % is the headline (ink, tabular) and
+   the milestone → gold underline. Flagged rides along as a smaller secondary
+   stat; a caption beneath shows blank-cell count (warn-tinted when low). */
+.batchrow__figure { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.batchrow__figmain { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.batchrow__num { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.batchrow__dot { color: var(--line); }
+/* Coverage % — the milestone figure, gold underline (the only gold figure here) */
+.batchrow__coverage {
+  font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;
+  border-bottom: 2px solid var(--gold); padding-bottom: 1px;   /* milestone accent */
+}
+/* Fallback em-dash when coverage_pct is absent (older runs / pre-deploy) */
+.batchrow__covnone { font-weight: 700; color: var(--ink2); }
+/* Flagged — now a secondary stat next to coverage (muted, no underline) */
+.batchrow__secondary { font-weight: 600; color: var(--ink2); font-variant-numeric: tabular-nums; }
+/* Caption beneath the figure — blank-cell count */
+.batchrow__cap { color: var(--ink2); }
+.batchrow__cap--warn { color: var(--warn); }   /* low coverage → status color, NOT gold */
+
+/* (5) Actions — primary Run + ghost Open */
+.batchrow__actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+.batchrow__actions .btn--ghost svg { width: 16px; height: 16px; }
+
+/* Responsive collapse — desktop-first ops console; reflow under 860px */
+@media (max-width: 860px) {
+  .batchrow {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "id      actions"
+      "status  status"
+      "figure  figure";
+    row-gap: 8px; padding-top: 12px; padding-bottom: 12px;
+  }
+  .batchrow__items { display: none; }     /* least-critical column on narrow widths */
+  .batchrow--head { display: none; }
+}

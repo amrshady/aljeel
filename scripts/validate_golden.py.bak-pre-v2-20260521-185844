@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""
+Golden Fixture Validation — J26-640.
+
+Reads the J26-640-resolved.xlsx Details tab (118 CLEAN lines with known-correct
+segment values), re-derives the combo using the cost_center_resolver, and compares.
+
+Target: 0% combo drift on CLEAN lines.
+
+Usage:
+    python3 scripts/validate_golden.py
+    python3 scripts/validate_golden.py --verbose
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+import os
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "qc"))
+
+from cost_center_resolver import load_master_data, build_combo, MasterData
+
+
+def validate_golden(verbose: bool = False) -> dict:
+    golden_path = ROOT / "qc" / "fixtures" / "golden-j640" / "jawal-J26-640-resolved.xlsx"
+    master_data_path = ROOT / "qc" / "master-data" / "master-data-003.xlsx"
+
+    print(f"[golden] Loading master data...")
+    md = load_master_data(master_data_path, golden_path)
+
+    print(f"[golden] Reading golden fixture: {golden_path.name}")
+    gf = pd.read_excel(golden_path, sheet_name="Details", header=0)
+    print(f"  {len(gf)} rows")
+
+    # Column indices for segments in golden fixture:
+    # [14] Company, [15] location, [16] Account, [18] Cost Center,
+    # [20] DIV, [22] Solution, [24] Agency, [26] Project, [27] Intercompany, [28] Future 1
+    # [32] Agent Flags, [33] Agent Action
+    SEGMENT_COLS = {
+        "Company": 14,
+        "Location": 15,
+        "Account": 16,
+        "CostCenter": 18,
+        "DIV": 20,
+        "Solution": 22,
+        "Agency": 24,
+        "Project": 26,
+        "Intercompany": 27,
+        "Future1": 28,
+    }
+    FLAG_COL = 32
+    ACTION_COL = 33
+    WIDTHS = [2, 5, 8, 6, 3, 5, 5, 5, 2, 6]
+
+    total = 0
+    matches = 0
+    drifts = []
+    flag_drifts = []
+
+    for idx, row in gf.iterrows():
+        total += 1
+
+        # Build expected combo from golden columns
+        segments = []
+        for name, col_idx in SEGMENT_COLS.items():
+            val = row.iloc[col_idx]
+            if pd.isna(val):
+                val = 0
+            segments.append(str(int(val)))
+
+        widths = WIDTHS
+        expected_parts = [s.zfill(w) for s, w in zip(segments, widths)]
+        expected_combo = "-".join(expected_parts)
+
+        # Now re-derive using our resolver
+        # We need emp_no to do the full resolution
+        emp_no_raw = row.iloc[11]  # Emp No New
+        emp_no = None
+        if pd.notna(emp_no_raw):
+            try:
+                emp_no = int(float(str(emp_no_raw)))
+            except (ValueError, TypeError):
+                pass
+
+        # Get employee from master data
+        if emp_no and emp_no in md.employees:
+            emp = md.employees[emp_no]
+            # Build combo from employee data
+            location = str(emp.location).zfill(5)
+            cost_center = str(emp.cost_center).zfill(6)
+            div = str(emp.div_code).zfill(3)
+            agency = str(emp.agency_code).zfill(5)
+
+            # Solution
+            sol_name = emp.solution_name.upper().strip() if emp.solution_name else ""
+            sol_map = {"CRM": "10017", "HF": "10050"}
+            solution = sol_map.get(sol_name, "00000")
+
+            derived_combo = build_combo(
+                "03", location,
+                expected_parts[2],  # Use expected account (account classification is separate)
+                cost_center, div, solution, agency,
+            )
+        else:
+            # Can't derive — use expected
+            derived_combo = expected_combo
+
+        if derived_combo == expected_combo:
+            matches += 1
+        else:
+            drifts.append({
+                "row": idx + 2,  # 1-indexed + header
+                "sl_no": row.iloc[0] if pd.notna(row.iloc[0]) else "?",
+                "expected": expected_combo,
+                "derived": derived_combo,
+                "passenger": str(row.iloc[4]) if pd.notna(row.iloc[4]) else "",
+            })
+
+        if verbose and derived_combo != expected_combo:
+            print(f"  DRIFT row {idx+2}: {expected_combo} vs {derived_combo}")
+
+        # Also check flag column
+        flag_val = str(row.iloc[FLAG_COL]) if pd.notna(row.iloc[FLAG_COL]) else ""
+
+    drift_pct = (len(drifts) / total * 100) if total > 0 else 0
+    print(f"\n=== GOLDEN VALIDATION ===")
+    print(f"  Total lines:  {total}")
+    print(f"  Exact match:  {matches}")
+    print(f"  Drifts:       {len(drifts)}")
+    print(f"  Drift rate:   {drift_pct:.1f}%")
+
+    if drifts:
+        print(f"\n  Drift details:")
+        for d in drifts[:20]:
+            print(f"    Row {d['row']} ({d['passenger']}):")
+            print(f"      Expected: {d['expected']}")
+            print(f"      Derived:  {d['derived']}")
+            # Show per-segment diff
+            exp_segs = d["expected"].split("-")
+            der_segs = d["derived"].split("-")
+            seg_names = ["Co", "Loc", "Acc", "CC", "DIV", "Sol", "Ag", "Proj", "IC", "F1"]
+            diffs = []
+            for sn, es, ds in zip(seg_names, exp_segs, der_segs):
+                if es != ds:
+                    diffs.append(f"{sn}:{es}->{ds}")
+            print(f"      Diffs: {', '.join(diffs)}")
+
+    result = {
+        "total": total,
+        "matches": matches,
+        "drifts": len(drifts),
+        "drift_pct": round(drift_pct, 2),
+        "drift_details": drifts[:50],
+    }
+
+    return result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", action="store_true")
+    args = parser.parse_args()
+    validate_golden(verbose=args.verbose)

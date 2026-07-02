@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AlJeel AP — Discrepancy Review · v25</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Accord Partners brand tokens ── */
+:root{
+  --navy:#1E40AF; --action:#2563EB; --action-hover:#1E40AF;
+  --ink:#111827; --body:#374151; --muted:#6B7280; --subtle:#9CA3AF;
+  --sage:#F0F4F3; --white:#FFFFFF; --border:#E5E7EB; --border-strong:#D1D5DB;
+  --error:#DC2626; --error-bg:#FEF2F2; --error-tint:rgba(220,38,38,.1);
+  --warn:#B8860B; --warn-bg:#FFFBEB; --warn-tint:rgba(184,134,11,.1);
+  --info:#2563EB; --info-bg:#EFF6FF; --info-tint:rgba(37,99,235,.08);
+  --success:#16A34A; --success-bg:#F0FDF4; --success-tint:rgba(22,163,74,.1);
+  --shadow:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--sage);color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased}
+
+/* ── Header / Nav ── */
+.nav{position:sticky;top:0;z-index:60;background:var(--navy);
+  padding-top:env(safe-area-inset-top,0)}
+.nav-inner{padding:14px 16px 0;display:flex;align-items:center;gap:10px}
+.nav-logo{display:flex;align-items:center;gap:8px}
+.nav-logo svg{flex:0 0 auto}
+.nav-brand{font-size:13px;font-weight:300;color:rgba(255,255,255,.7);letter-spacing:.01em}
+.nav-brand strong{font-weight:600;color:#fff}
+.nav-title{margin-left:auto;font-size:13px;font-weight:500;
+  color:rgba(255,255,255,.65);white-space:nowrap}
+
+/* ── Score strip ── */
+.score-strip{display:flex;gap:6px;padding:10px 16px 0;overflow-x:auto;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.score-strip::-webkit-scrollbar{display:none}
+.score-chip{flex:0 0 auto;padding:6px 14px;border-radius:20px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);
+  border:1.5px solid transparent;transition:all .14s;white-space:nowrap}
+.score-chip.active{background:rgba(255,255,255,.2);color:#fff;
+  border-color:rgba(255,255,255,.5)}
+.score-chip.perfect{background:rgba(22,163,74,.25);color:#86EFAC}
+.score-chip.perfect.active{border-color:#86EFAC}
+
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.15);
+  padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-size:13px;font-weight:500;
+  color:rgba(255,255,255,.55);cursor:pointer;
+  border-bottom:2.5px solid transparent;transition:all .14s;white-space:nowrap}
+.tab.active{color:#fff;border-bottom-color:#fff}
+
+/* ── Panels ── */
+.panels{padding-bottom:env(safe-area-inset-bottom,24px)}
+.panel{display:none}.panel.active{display:block}
+
+/* ── Batch summary ── */
+.batch-summary{background:var(--white);border-bottom:1px solid var(--border);
+  padding:16px;display:flex;align-items:center;gap:14px}
+.batch-score{font-size:32px;font-weight:700;line-height:1}
+.batch-score.perfect{color:var(--success)}
+.batch-score.good{color:var(--action)}
+.batch-score.warn{color:var(--warn)}
+.batch-meta{flex:1}
+.batch-meta h3{font-size:15px;font-weight:600;color:var(--ink)}
+.batch-meta p{font-size:13px;color:var(--muted);margin-top:2px}
+.batch-pills{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.mini-pill{font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;
+  background:var(--info-bg);color:var(--action)}
+
+/* ── Section label ── */
+.section-label{padding:14px 16px 6px;font-size:11px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ── Issue cards ── */
+.card{margin:6px 12px;border-radius:10px;background:var(--white);
+  box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.card-head{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;
+  cursor:pointer;user-select:none;-webkit-user-select:none}
+.card-head:active{background:var(--sage)}
+
+/* Status badge — Accord spec: rounded pill, 12px, bg 15% */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;
+  font-size:11px;font-weight:600;letter-spacing:.02em;white-space:nowrap;
+  flex:0 0 auto;margin-top:1px}
+.badge-error{background:var(--error-tint);color:var(--error)}
+.badge-warning{background:var(--warn-tint);color:var(--warn)}
+.badge-info{background:var(--info-tint);color:var(--info)}
+
+.card-content{flex:1;min-width:0}
+.card-pax{font-size:15px;font-weight:600;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.opex-ref{display:inline-block;margin-top:4px;font-size:11px;
+  color:var(--action);font-weight:500}
+.card-chevron{flex:0 0 auto;color:var(--muted);font-size:20px;
+  transition:transform .18s;padding-top:1px;line-height:1}
+.card.open .card-chevron{transform:rotate(180deg)}
+
+/* Card body — field comparison */
+.card-body{display:none;border-top:1px solid var(--border)}
+.card.open .card-body{display:block}
+.field-header{display:grid;grid-template-columns:30% 35% 35%;padding:8px 14px;
+  background:var(--sage);border-bottom:1px solid var(--border)}
+.field-header span{font-size:10px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted)}
+.field-row{display:grid;grid-template-columns:30% 35% 35%;
+  padding:9px 14px;border-bottom:1px solid var(--border)}
+.field-row:last-child{border-bottom:none}
+.field-name{font-size:12px;font-weight:600;color:var(--muted)}
+.field-val{font-size:12px;color:var(--ink);padding-right:6px;word-break:break-word}
+.field-val.ours{color:var(--error)}
+.field-val.truth{color:var(--success)}
+
+/* ── Perfect state ── */
+.perfect-panel{margin:20px 12px;border-radius:12px;padding:28px 20px;
+  background:var(--success-bg);border:1px solid rgba(22,163,74,.2);text-align:center}
+.perfect-check{font-size:44px;line-height:1;margin-bottom:8px}
+.perfect-panel h3{font-size:22px;font-weight:700;color:var(--success)}
+.perfect-panel p{font-size:14px;color:var(--muted);margin-top:6px}
+
+/* ── Footer ── */
+.footer{text-align:center;padding:20px 16px;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <!-- Accord A chevron mark (inline SVG) -->
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 17.5L11 4.5L19 17.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M7 13.5H15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div class="nav-brand"><strong>Accord</strong> Partners</div>
+    </div>
+    <div class="nav-title">AlJeel AP · v25</div>
+  </div>
+  <div class="score-strip" id="scoreStrip"></div>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<div class="panels" id="panels"></div>
+
+<script>
+const DATA = [{"id": "J26640", "batch": "J26-640", "period": "Apr 24–30", "rows": 117, "correct": 117, "pct": 100.0, "acct_pct": 100.0, "cc_pct": 100.0, "version": "v25", "discrepancies": []}, {"id": "J26550", "batch": "J26-550", "period": "Apr 1–7", "rows": 72, "correct": 63, "pct": 87.5, "acct_pct": 95.8, "cc_pct": 95.8, "version": "v25", "discrepancies": [{"ticket": "6904763668", "pax": "ALEJO/JOE MARIE MR", "route": "DMM MNL", "note": "Exit visa trip. PC email in evidence but cascade assigned G&A travel account. CC/Agency also off.", "tag": "Personal contribution", "kind": "warning", "fields": [{"field": "Account", "ours": "60301004 · G&A Employee Travel", "truth": "21070229 · Accrued Employee Annual Tickets"}, {"field": "Cost Center", "ours": "150020 · Admin", "truth": "250010 · Tech HO"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10206 · Technical Services"}]}, {"ticket": "6904823462", "pax": "ALTAIR/MOHAMMED MR", "route": "RUH DOH PVG DOH RUH", "note": "Cascade assigned G&A Employee Travel (60301004) based on Manpower DIV. Truth is S&M (60301003) — likely stale Manpower. Awaiting updated export from Qasim.", "tag": "Wrong account", "kind": "warning", "fields": [{"field": "Account", "ours": "60301004 · G&A Employee Travel", "truth": "60301003 · Travel Tickets"}]}, {"ticket": "6904856041", "pax": "BIN MUDHIAN/FAISAL MR", "route": "RUH IST LYS IST RUH", "note": "Account 60308009 = Training Expenses per AlJeel GL index. Pipeline currently routes BIN MUDHIAN to 60301003 (Travel Tickets). AlJeel Finance needs to confirm whether this trip should be Training Expenses — if so pipeline GL map needs to recognise 60308009 as a valid account.", "tag": "Unknown account", "kind": "error", "fields": [{"field": "Account", "ours": "60301003 · Travel Tickets", "truth": "60308009 · Training Expenses"}]}, {"ticket": "6904732451", "pax": "KHADER/OMAR MR", "route": "RUH JED RUH", "note": "Agency mismatch — stale Oracle Manpower. Awaiting updated export from Qasim.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10200 · S&M", "truth": "10055 · Steris"}]}, {"ticket": "6904823513", "pax": "ELAZHARY/MOHAMED MR", "route": "CAI RUH", "note": "CC mismatch — dept transfer. Awaiting updated Manpower from Qasim.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "150020 · Admin", "truth": "170020 · Strategy"}]}, {"ticket": "26-550", "pax": "HAITHAM ELKHATEEB", "route": "TRAIN TICKET", "note": "CC close but wrong (250010 vs 250020). Awaiting updated Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "250020 · Maintenance"}]}]}, {"id": "J26589", "batch": "J26-589", "period": "Apr 8–15", "rows": 129, "correct": 103, "pct": 79.8, "acct_pct": 96.9, "cc_pct": 93.8, "version": "v25", "discrepancies": [{"ticket": "6904900847", "pax": "ALANAZI/FARHAN MR", "route": "RUH TUU RUH", "note": "Cascade assigned G&A Employee Travel (60301004). ALANAZI/FARHAN may have transferred dept — Manpower shows G&A (DIV 888) but truth is S&M (60301003). Awaiting updated Manpower export from Qasim.", "tag": "Wrong account", "kind": "warning", "fields": [{"field": "Account", "ours": "60301004 · G&A Employee Travel", "truth": "60301003 · Travel Tickets"}]},   {"ticket": "26-600", "pax": "ABDULLAH ALMADDAH", "route": "Hotel Belfast - 4 NTS.", "note": "Account now correctly classified as EHRA sponsorship (60307021). CC/Agency still from employee home dept (250010/10206) instead of sponsoring dept (160014/10072 · Abbott). Awaiting updated master or OPEX-driven CC override.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "10206 · Tech Services", "truth": "10072 · Abbott"}]}, {"ticket": "26-611", "pax": "ABDULLAH ALMADDAH", "route": "AIRPORT RETURN TRANSFER", "note": "Same as 26-600 — account now 60307021 ✓. CC/Agency mismatch from employee home dept vs sponsoring dept. Stale master.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "10206 · Tech Services", "truth": "10072 · Abbott"}]}, {"ticket": "6904982191", "pax": "ALMUTAIRI/MAJED MR", "route": "JED JFK JED", "note": "Stale master — Manpower shows Warehouse dept. Needs updated Manpower export from Qasim.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "140040 · Warehouse", "truth": "160011 · S&M HF/EP/CRM"}, {"field": "DIV", "ours": "150", "truth": "196"}, {"field": "Agency", "ours": "10200 · S&M", "truth": "10100 · Getinge"}]}, {"ticket": "6904982219", "pax": "ALMUTAIRI/MAJED MR", "route": "JFK ORD JFK", "note": "Same ALMUTAIRI stale master issue. Both legs affected.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "140040 · Warehouse", "truth": "160011 · S&M HF/EP/CRM"}, {"field": "DIV", "ours": "150", "truth": "196"}, {"field": "Agency", "ours": "10200 · S&M", "truth": "10100 · Getinge"}]}, {"ticket": "26-590", "pax": "MAJED ALMUTAIRI +1", "route": "Hyatt Regency Chicago - 4 NTS.", "note": "Hotel room for ALMUTAIRI conference (AATS). Agency mismatch from stale master.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10156 · NUBOMED", "truth": "10100 · Getinge"}]}, {"ticket": "6904982257", "pax": "ALATTAR/ABDULLAH MR", "route": "RUH DMM RUH", "note": "Stale master — dept transfer reflected in truth. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "160013 · S&M DMS2", "truth": "160012 · S&M DMS"}, {"field": "Agency", "ours": "10202 · Solventum", "truth": "10132 · Illumina"}]}, {"ticket": "6905012408", "pax": "MADKHALI/MAJED MR", "route": "GIZ JED GIZ", "note": "Stale master — cascade matched wrong dept. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "160013 · S&M DMS2", "truth": "160011 · S&M HF/EP/CRM"}, {"field": "Agency", "ours": "10202 · Solventum", "truth": "10081 · GE"}]}, {"ticket": "6905012409", "pax": "MADKHALI/MAJED MR", "route": "JED CMN JED", "note": "Return leg of same MADKHALI trip. Identical stale master issue.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "160013 · S&M DMS2", "truth": "160011 · S&M HF/EP/CRM"}, {"field": "Agency", "ours": "10202 · Solventum", "truth": "10081 · GE"}]}, {"ticket": "6905012446", "pax": "ALANAZI/ABDULAZIZ MR", "route": "GIZ JED", "note": "Stale master — Manpower shows wrong dept. Awaiting update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "150020 · Admin", "truth": "140020 · Operations"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10200 · S&M"}]}, {"ticket": "6905055883", "pax": "KHADER/OMAR MR", "route": "RUH JED RUH", "note": "Same KHADER/OMAR agency mismatch as J26-550. Consistent stale master issue.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10200 · S&M", "truth": "10055 · Steris"}]}]}, {"id": "J26593", "batch": "J26-593", "period": "Apr 16–23", "rows": 160, "correct": 131, "pct": 81.9, "acct_pct": 96.2, "cc_pct": 86.2, "version": "v25", "discrepancies": [{"ticket": "6905084636", "pax": "ALQARNI/MOHAMMED MR", "route": "JED DOH MUC", "note": "External conference attendee (DMS 2026 Munich). Not in master. Needs Laith to add CC/Agency for ALQARNI.", "tag": "Not in master", "kind": "error", "fields": [{"field": "Account", "ours": "60301003 · Travel Tickets", "truth": "60307021 · Sponsoring Expenses"}, {"field": "Cost Center", "ours": "999999 · —", "truth": "160013 · S&M DMS2"}, {"field": "Agency", "ours": "00000 · —", "truth": "10005 · Kavo"}]}, {"ticket": "6905084638", "pax": "ALQARNI/MOHAMMED MR", "route": "MUC JED", "note": "Return leg — same ALQARNI issue. Needs master entry.", "tag": "Not in master", "kind": "error", "fields": [{"field": "Account", "ours": "60301003 · Travel Tickets", "truth": "60307021 · Sponsoring Expenses"}, {"field": "Cost Center", "ours": "999999 · —", "truth": "160013 · S&M DMS2"}, {"field": "Agency", "ours": "00000 · —", "truth": "10005 · Kavo"}]}, {"ticket": "6905084640", "pax": "HALAWANI/RAGHEB MR", "route": "JED MUC JED", "note": "Same DMS 2026 event. Not in master. Needs Laith to confirm CC/Agency for HALAWANI.", "tag": "Not in master", "kind": "error", "fields": [{"field": "Account", "ours": "60301003 · Travel Tickets", "truth": "60307021 · Sponsoring Expenses"}, {"field": "Cost Center", "ours": "999999 · —", "truth": "160013 · S&M DMS2"}, {"field": "Agency", "ours": "00000 · —", "truth": "10005 · Kavo"}]}, {"ticket": "6905202187", "pax": "DAGRIRI/KHALID MR", "route": "RUH VIE RUH", "note": "Prague Rhythm 2026. Not in master. Needs Laith to confirm CC/Agency for DAGRIRI.", "tag": "Not in master", "kind": "error", "fields": [{"field": "Account", "ours": "60301003 · Travel Tickets", "truth": "60307021 · Sponsoring Expenses"}, {"field": "Cost Center", "ours": "999999 · —", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "00000 · —", "truth": "10072 · Abbott"}]}, {"ticket": "6905129164", "pax": "ABDELMAQSOUD/AHMED MR", "route": "RUH DMM", "note": "PC email found in evidence but ABDELMAQSOUD is a regular employee. Pipeline over-classified as personal contribution. Monitor for recurrence.", "tag": "Over-classified", "kind": "warning", "fields": [{"field": "Account", "ours": "21070229 · Accrued Employee Annual Tickets", "truth": "60301003 · Travel Tickets"}]}, {"ticket": "6905129167", "pax": "ABDELMAQSOUD/AHMED MR", "route": "DMM RUH", "note": "Return leg. Same over-classification of ABDELMAQSOUD as PC.", "tag": "Over-classified", "kind": "warning", "fields": [{"field": "Account", "ours": "21070229 · Accrued Employee Annual Tickets", "truth": "60301003 · Travel Tickets"}]}, {"ticket": "6905084597", "pax": "ALSOMALI/NADIYA MS", "route": "RUH IST BCN IST RUH", "note": "HF-2026-15 Heart Failure Assoc. Manpower shows old dept — stale export. Awaiting Qasim update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "10206 · Tech Services", "truth": "10072 · Abbott"}]}, {"ticket": "6905084601", "pax": "ALANAZI/ABDULAZIZ MR", "route": "TUU JED", "note": "Stale master. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "150020 · Admin", "truth": "140020 · Operations"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10200 · S&M"}]}, {"ticket": "6905084613", "pax": "ALHUSSEIN/MOSAAD MR", "route": "RUH JED BCN JED RUH", "note": "HF-2026-14. Stale master — cascade matched old dept. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "160011 · S&M HF/EP/CRM", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "10038 · Fluke", "truth": "10072 · Abbott"}]}, {"ticket": "6905084673", "pax": "ALATTAR/ABDULLAH MR", "route": "RUH TIF RUH", "note": "Stale master — CC/Agency off by one division. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "160013 · S&M DMS2", "truth": "160012 · S&M DMS"}, {"field": "Agency", "ours": "10202 · Solventum", "truth": "10132 · Illumina"}]}, {"ticket": "6905129222", "pax": "SHAIK/IMTIAZ AHMED MR", "route": "DMM AUH MUC AUH DMM", "note": "DMS 2026. Stale master — Manpower shows wrong division.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "140040 · Warehouse", "truth": "160013 · S&M DMS2"}, {"field": "Agency", "ours": "10200 · S&M", "truth": "10005 · Kavo"}]}, {"ticket": "6905129223", "pax": "ALRESHIDAN/MOHAMMED MR", "route": "RUH JED YYZ JED RUH", "note": "ISHLT-KFMC. Stale master — Finance dept vs Contribution. Awaiting Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "130010 · Finance", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10072 · Abbott"}]}, {"ticket": "6905173588", "pax": "ALSHAMMARI/ABD ALMAJID MR", "route": "AHB RUH", "note": "Stale master — Operations vs S&M DMS. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "140020 · Operations", "truth": "160012 · S&M DMS"}, {"field": "Agency", "ours": "10200 · S&M", "truth": "10153 · BMX"}]}, {"ticket": "6905173589", "pax": "ALSHAMMARI/ABD ALMAJID MR", "route": "RUH AHB", "note": "Outbound leg — same ALSHAMMARI stale master issue.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "140020 · Operations", "truth": "160012 · S&M DMS"}, {"field": "Agency", "ours": "10200 · S&M", "truth": "10153 · BMX"}]}, {"ticket": "6905173604", "pax": "ALANAZI/YOUSEF MR", "route": "HAS RUH", "note": "Stale master. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "150020 · Admin", "truth": "160011 · S&M HF/EP/CRM"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10083 · Physio Control"}]}, {"ticket": "6905173612", "pax": "AHMED/AHMED MOHAMED MR", "route": "CAI CDG ORD CDG CAI", "note": "Heart Rhythm 2026. Stale master — Tech Services vs Contribution.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "10206 · Tech Services", "truth": "10072 · Abbott"}]}, {"ticket": "6905173622", "pax": "ALHUSSEIN/MOSAAD MR", "route": "RUH CDG BCN JED RUH", "note": "HF-2026-14. Second HF trip for ALHUSSEIN. Same stale master issue.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "160011 · S&M HF/EP/CRM", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "10038 · Fluke", "truth": "10072 · Abbott"}]}, {"ticket": "6905202186", "pax": "ALGHAMDI/SALEH MR", "route": "RUH VIE RUH", "note": "Prague Rhythm 2026. Stale master — Collection vs Contribution.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "130020 · Collection", "truth": "160014 · Contribution"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10072 · Abbott"}]}, {"ticket": "6905202199", "pax": "ALANAZI/ABDULAZIZ MR", "route": "GIZ JED", "note": "Stale master — Admin vs Operations. Awaiting Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "150020 · Admin", "truth": "140020 · Operations"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10200 · S&M"}]}, {"ticket": "6905202222", "pax": "ALGHAMDI/ABDULLAH MR", "route": "RUH ELQ RUH", "note": "Stale master — Collection vs Tech HO. Awaiting Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "130020 · Collection", "truth": "250010 · Tech HO"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10206 · Tech Services"}]}, {"ticket": "6905234779", "pax": "ALOTAIBI/FAISAL", "route": "GIZ JED", "note": "Stale master — Tech HO vs Collection dept swap. Awaiting Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "130020 · Collection"}, {"field": "Agency", "ours": "10206 · Tech Services", "truth": "88888 · G&A"}]}, {"ticket": "6905234786", "pax": "ALENAZI/ABDULAZIZ MR", "route": "GIZ JED", "note": "Stale master. Awaiting Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "130020 · Collection", "truth": "140020 · Operations"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10200 · S&M"}]}, {"ticket": "6905234799", "pax": "ABDELAZIZ/MOHAMED MR", "route": "GIZ JED", "note": "Stale master — Tech HO vs Collection. Awaiting Manpower.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "250010 · Tech HO", "truth": "130020 · Collection"}, {"field": "Agency", "ours": "10206 · Tech Services", "truth": "88888 · G&A"}]}, {"ticket": "6905234833", "pax": "DAWOD/MOHAMED MR", "route": "RUH IST STR IST RUH", "note": "Agency mismatch — NUBOMED vs KLS Martin. Stale master.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10156 · NUBOMED", "truth": "10052 · KLS Martin"}]}, {"ticket": "6905234849", "pax": "KHADER/OMAR MR", "route": "RUH JED", "note": "Outbound leg — S&M vs NUBOMED agency. Consistent KHADER stale master.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10200 · S&M", "truth": "10156 · NUBOMED"}]}, {"ticket": "6905234850", "pax": "KHADER/OMAR MR", "route": "JED RUH", "note": "Return leg — same KHADER stale master.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10200 · S&M", "truth": "10156 · NUBOMED"}]}, {"ticket": "6905264359", "pax": "ALANAZI/YOUSEF MR", "route": "AJF RUH", "note": "Stale master. Awaiting Manpower update.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Cost Center", "ours": "150020 · Admin", "truth": "160011 · S&M HF/EP/CRM"}, {"field": "Agency", "ours": "88888 · G&A", "truth": "10083 · Physio Control"}]}, {"ticket": "26-616", "pax": "UTHMAN ALUTHMAN", "route": "AATS 106th Annual Meeting - 3 NTS.", "note": "Hotel for AATS Chicago. Agency mismatch — NUBOMED vs Getinge. Stale master.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10156 · NUBOMED", "truth": "10100 · Getinge"}]}, {"ticket": "26-617", "pax": "MAJED ALMUTAIRI", "route": "AATS 106th Annual Meeting - 3 NTS.", "note": "Hotel for AATS Chicago. Same ALMUTAIRI agency mismatch.", "tag": "Stale master", "kind": "info", "fields": [{"field": "Agency", "ours": "10156 · NUBOMED", "truth": "10100 · Getinge"}]}]}];
+
+function badgeClass(kind){
+  return kind==='error'?'badge-error':kind==='warning'?'badge-warning':'badge-info';
+}
+
+function buildPanel(d){
+  if(d.discrepancies.length===0){
+    return `<div class="perfect-panel">
+      <div class="perfect-check">✓</div>
+      <h3>100% match</h3>
+      <p>All ${d.rows} rows matched AlJeel exactly.<br>${d.period} 2026</p>
+    </div>`;
+  }
+  const pctClass = d.pct>=95?'perfect':d.pct>=80?'good':'warn';
+  let html = `<div class="batch-summary">
+    <div class="batch-score ${pctClass}">${d.pct}%</div>
+    <div class="batch-meta">
+      <h3>${d.correct} of ${d.rows} rows exact · ${d.period}</h3>
+      <p>${d.discrepancies.length} issues · ${d.rows-d.correct} rows with gaps</p>
+      <div class="batch-pills">
+        <span class="mini-pill">Account ${d.acct_pct}%</span>
+        <span class="mini-pill">CC ${d.cc_pct}%</span>
+      </div>
+    </div>
+  </div>
+  <div class="section-label">${d.discrepancies.length} issues</div>`;
+
+  d.discrepancies.forEach((row,i)=>{
+    const id=`${d.id}_${i}`;
+    const noteHtml = row.note ? `<span class="opex-ref">${row.note}</span>` : '';
+    let fhHtml=`<div class="field-header">
+      <span>Field</span><span>Ours</span><span>AlJeel</span>
+    </div>`;
+    let frHtml=row.fields.map(f=>`<div class="field-row">
+      <span class="field-name">${f.field}</span>
+      <span class="field-val ours">${f.ours}</span>
+      <span class="field-val truth">${f.truth}</span>
+    </div>`).join('');
+
+    html+=`<div class="card" id="${id}">
+      <div class="card-head" onclick="toggle('${id}')">
+        <span class="badge ${badgeClass(row.kind)}">${row.tag}</span>
+        <div class="card-content">
+          <div class="card-pax">${row.pax}</div>
+          <div class="card-sub">${row.ticket}${row.route?' · '+row.route:''}</div>
+          ${noteHtml}
+        </div>
+        <span class="card-chevron">⌄</span>
+      </div>
+      <div class="card-body">${fhHtml}${frHtml}</div>
+    </div>`;
+  });
+  return html+`<div class="footer">AlJeel AP · v25 · June 2026 · Accord Partners</div>`;
+}
+
+function toggle(id){document.getElementById(id).classList.toggle('open');}
+
+function switchTab(idx){
+  document.querySelectorAll('.score-chip').forEach((c,i)=>c.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+  document.querySelectorAll('.score-chip')[idx].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+const strip=document.getElementById('scoreStrip');
+const tabs=document.getElementById('tabs');
+const panels=document.getElementById('panels');
+
+DATA.forEach((d,i)=>{
+  const pctClass = d.pct>=95?'perfect':'';
+  const chip=document.createElement('div');
+  chip.className=`score-chip ${pctClass}${i===0?' active':''}`;
+  chip.textContent=`${d.batch}  ${d.pct}%`;
+  chip.onclick=()=>switchTab(i);
+  strip.appendChild(chip);
+
+  const tab=document.createElement('div');
+  tab.className=`tab${i===0?' active':''}`;
+  tab.textContent=d.batch;
+  tab.onclick=()=>switchTab(i);
+  tabs.appendChild(tab);
+
+  const panel=document.createElement('div');
+  panel.className=`panel${i===0?' active':''}`;
+  panel.id=`panel_${i}`;
+  panel.innerHTML=buildPanel(d);
+  panels.appendChild(panel);
+});
+</script>
+</body>
+</html>

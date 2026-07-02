@@ -1,0 +1,499 @@
+[scan] 140 ticket-number evidence folder/file name(s) indexed; 231 bundled PDF ticket(s) indexed
+[load] cascade: Spreadsheet-J26-954-FILLED-v15.11.2.xlsx
+[load] 139 cascade rows
+[load] master data...
+[scan] 81 evidence folders scanned across roots
+[scan] building reverse folder + PC index (v30 — adj-ticket expansion)...
+[v30-fix-a] 20 adjacent-ticket entries added (family/PC folder expansion ±5)
+[scan] reverse=129 mappings  pc=50 PC folders
+[verified-lock] row 0: emp_no 1000257 name-matched -> locked
+[verified-lock] row 1: emp_no 1002340 name-matched -> locked
+[verified-lock] row 3: emp_no 1001811 name-matched -> locked
+[verified-lock] row 4: emp_no 1001811 segments corrected from master (was requestor 1002483)
+[verified-lock] row 4: emp_no 1001811 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 4: emp_no 1001811 name-matched -> locked
+[verified-lock] row 7: emp_no 1000467 name-matched -> locked
+[verified-lock] row 8: emp_no 1000557 name-matched -> locked
+[verified-lock] row 9: emp_no 1001126 name-matched -> locked
+[verified-lock] row 10: emp_no 1000368 segments corrected from master (was requestor 1002558)
+[verified-lock] row 10: emp_no 1000368 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 10: emp_no 1000368 name-matched -> locked
+[verified-lock] row 11: emp_no 1002294 name-matched -> locked
+[verified-lock] row 12: emp_no 1002119 name-matched -> locked
+[verified-lock] row 13: emp_no 1002119 segments corrected from master (was requestor 1002484)
+[verified-lock] row 13: emp_no 1002119 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 13: emp_no 1002119 name-matched -> locked
+[verified-lock] row 20: emp_no 1000557 name-matched -> locked
+[verified-lock] row 21: emp_no 1000368 segments corrected from master (was requestor 1002558)
+[verified-lock] row 21: emp_no 1000368 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 21: emp_no 1000368 name-matched -> locked
+[verified-lock] row 22: emp_no 1002201 name-matched -> locked
+[verified-lock] row 23: emp_no 1002013 name-matched -> locked
+[verified-lock] row 25: emp_no 1002217 name-matched -> locked
+[verified-lock] row 26: emp_no 1002217 segments corrected from master (was requestor 1002558)
+[verified-lock] row 26: emp_no 1002217 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 26: emp_no 1002217 name-matched -> locked
+[verified-lock] row 27: emp_no 1002317 name-matched -> locked
+[verified-lock] row 34: emp_no 1002132 name-matched -> locked
+[verified-lock] row 35: emp_no 1002132 name-matched -> locked
+[verified-lock] row 37: emp_no 1002217 name-matched -> locked
+[verified-lock] row 38: emp_no 1001799 name-matched -> locked
+[verified-lock] row 39: emp_no 1000443 name-matched -> locked
+[verified-lock] row 58: emp_no 1000467 name-matched -> locked
+[verified-lock] row 59: emp_no 1000364 name-matched -> locked
+[verified-lock] row 72: emp_no 1002398 name-matched -> locked
+[verified-lock] row 73: emp_no 1001686 name-matched -> locked
+[verified-lock] row 74: emp_no 1001686 segments corrected from master (was requestor 1002169)
+[verified-lock] row 74: emp_no 1001686 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 74: emp_no 1001686 name-matched -> locked
+[verified-lock] row 75: emp_no 1002398 name-matched -> locked
+[verified-lock] row 76: emp_no 1002057 name-matched -> locked
+[verified-lock] row 77: emp_no 1002057 name-matched -> locked
+[verified-lock] row 79: emp_no 1002340 name-matched -> locked
+[verified-lock] row 81: emp_no 1001008 name-matched -> locked
+[verified-lock] row 85: emp_no 1000523 name-matched -> locked
+[verified-lock] row 87: emp_no 1000557 name-matched -> locked
+[verified-lock] row 88: emp_no 1001008 name-matched -> locked
+[verified-lock] row 89: emp_no 1000320 name-matched -> locked
+[verified-lock] row 90: emp_no 1002442 name-matched -> locked
+[verified-lock] row 91: emp_no 1001406 name-matched -> locked
+[verified-lock] row 92: emp_no 1002442 name-matched -> locked
+[verified-lock] row 93: emp_no 1000361 segments corrected from master (was requestor 1002169)
+[verified-lock] row 93: emp_no 1000361 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 93: emp_no 1000361 name-matched -> locked
+[verified-lock] row 94: emp_no 1001811 segments corrected from master (was requestor 1002483)
+[verified-lock] row 94: emp_no 1001811 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 94: emp_no 1001811 name-matched -> locked
+[verified-lock] row 95: emp_no 1001811 segments corrected from master (was requestor 1002483)
+[verified-lock] row 95: emp_no 1001811 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 95: emp_no 1001811 name-matched -> locked
+[verified-lock] row 96: emp_no 1000379 name-matched -> locked
+[verified-lock] row 97: emp_no 1000379 segments corrected from master (was requestor 1002169)
+[verified-lock] row 97: emp_no 1000379 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 97: emp_no 1000379 name-matched -> locked
+[verified-lock] row 100: emp_no 1002484 name-matched -> locked
+[verified-lock] row 101: emp_no 1000055 name-matched -> locked
+[verified-lock] row 102: emp_no 1001811 segments corrected from master (was requestor 1002483)
+[verified-lock] row 102: emp_no 1001811 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 102: emp_no 1001811 name-matched -> locked
+[verified-lock] row 103: emp_no 1001811 segments corrected from master (was requestor 1002483)
+[verified-lock] row 103: emp_no 1001811 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 103: emp_no 1001811 name-matched -> locked
+[verified-lock] row 105: emp_no 1000668 name-matched -> locked
+[verified-lock] row 106: emp_no 1002338 segments corrected from master (was requestor 1002169)
+[verified-lock] row 106: emp_no 1002338 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 106: emp_no 1002338 name-matched -> locked
+[verified-lock] row 107: emp_no 1000467 name-matched -> locked
+[verified-lock] row 109: emp_no 1000378 name-matched -> locked
+[verified-lock] row 112: emp_no 1001028 name-matched -> locked
+[verified-lock] row 114: emp_no 1001105 name-matched -> locked
+[verified-lock] row 118: emp_no 1001105 name-matched -> locked
+[verified-lock] row 121: emp_no 1000256 name-matched -> locked
+[verified-lock] row 122: emp_no 1000615 name-matched -> locked
+[verified-lock] row 123: emp_no 1000257 name-matched -> locked
+[verified-lock] row 125: emp_no 1001059 segments corrected from master (was requestor 1002483)
+[verified-lock] row 125: emp_no 1001059 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 125: emp_no 1001059 name-matched -> locked
+[verified-lock] row 126: emp_no 1000803 segments corrected from master (was requestor 1002169)
+[verified-lock] row 126: emp_no 1000803 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 126: emp_no 1000803 name-matched -> locked
+[verified-lock] row 127: emp_no 1001184 segments corrected from master (was requestor 1002169)
+[verified-lock] row 127: emp_no 1001184 account corrected 60307021 -> 60301003 (employee cannot be sponsorship)
+[verified-lock] row 127: emp_no 1001184 name-matched -> locked
+[verified-lock] row 130: emp_no 1002405 name-matched -> locked
+[verified-lock] row 133: emp_no 1000443 name-matched -> locked
+[verified-lock] 64 Ref.No. employee row(s) locked
+[ticket-pdf-scan] row 4: ticket 6906420031 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/16jun/6906420030/MR AHMED ALEM-8YG85T.pdf
+[ticket-pdf-scan] row 6: ticket 6906462486 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/16jun/6906462485/MR OMAR ABO NOUFAL-8YDRQL.pdf
+[ticket-pdf-scan] row 10: ticket 6906462497 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/16jun/1950063341 change/MOHAMMAD ENG AYYASH-9HGUQT.pdf
+[ticket-pdf-scan] row 13: ticket 6906462511 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/16jun/6906462510/MR NASSER ALBALBESI-93EUOP.pdf
+[ticket-pdf-scan] row 16: ticket 6906462516 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/16jun/6906462515/MR ABDULLAH ABUWAAR-93WGDM.pdf
+[missing-evidence] row 19: no folder - allocation blanked
+[missing-evidence] row 20: no folder - allocation blanked
+[ticket-pdf-scan] row 24: ticket 6906462573 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/17jun/OPEX  CSP  CRM-2026-39/MS RANIA ALHAJALI-9JCY8E.pdf
+[ticket-pdf-scan] row 26: ticket 6906462584 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/17jun/6906462583/MR FERAS BIN RAJAB-9KKK9G.pdf
+[missing-evidence] row 28: no folder - allocation blanked
+[missing-evidence] row 29: no folder - allocation blanked
+[missing-evidence] row 30: no folder - allocation blanked
+[missing-evidence] row 31: no folder - allocation blanked
+[missing-evidence] row 32: no folder - allocation blanked
+[missing-evidence] row 33: no folder - allocation blanked
+[ticket-pdf-scan] row 35: ticket 6906495685 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/18jun/6906495684/MR YANES MOSTAFA-9YOS5K.pdf
+[ticket-pdf-scan] row 40: ticket 6906495704 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/18jun/Prague Hotel & Ticket Reservation/MR MOHAMMED SALAH ALRESHIDAN-73I7HC.pdf
+[missing-evidence] row 42: no folder - allocation blanked
+[ticket-pdf-scan] row 43: ticket 6906495717 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/18jun/payment form for conference on July 1-2/MR EHAB ABU FARHANEH-74UPN9.pdf
+[ticket-pdf-scan] row 44: ticket 6906495718 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/18jun/payment form for conference on July 1-2/MR EHAB ABU FARHANEH-74UPN9.pdf
+[ticket-pdf-scan] row 45: ticket 6906495724 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/18jun/payment form for conference on July 1-2/MR ADEEB ELGHALAYINI-753UKL.pdf
+[ticket-pdf-scan] row 46: ticket 6906495725 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/18jun/payment form for conference on July 1-2/MR ADEEB ELGHALAYINI-753UKL.pdf
+[missing-evidence] row 47: no folder - allocation blanked
+[missing-evidence] row 48: no folder - allocation blanked
+[missing-evidence] row 49: no folder - allocation blanked
+[missing-evidence] row 50: no folder - allocation blanked
+[missing-evidence] row 51: no folder - allocation blanked
+[ticket-pdf-scan] row 52: ticket 6906529009 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MS SAMAR ALBUNAYAN-82EEDC.pdf
+[ticket-pdf-scan] row 53: ticket 6906529010 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MR HISHAM ALBANDAR-8289FR.pdf
+[ticket-pdf-scan] row 54: ticket 6906529011 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MS RAHAF ALMOWALLAD-82RKFQ.pdf
+[ticket-pdf-scan] row 55: ticket 6906529012 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MS RAHAF ALMOWALLAD-82RKFQ.pdf
+[ticket-pdf-scan] row 56: ticket 6906529013 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MR YASER ALATTAS-82KJGD.pdf
+[ticket-pdf-scan] row 57: ticket 6906529014 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MR HASHIM SINDI-82NKY3.pdf
+[ticket-pdf-scan] row 60: ticket 6906529018 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/24 June event in RDC crown plaza Riyadh/MS HANA TAHA-849SBZ.pdf
+[ticket-pdf-scan] row 61: ticket 6906529022 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/Re OPEX  Najran  EP-2026-18/MR MOHSEN AL MAHAID-86EV8M.pdf
+[ticket-pdf-scan] row 62: ticket 6906529023 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/Re OPEX  Najran  EP-2026-18/MR MOHSEN AL MAHAID-86EV8M.pdf
+[ticket-pdf-scan] row 63: ticket 6906529024 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/Re OPEX  Najran  EP-2026-18/MR MOHSEN AL MAHAID-86EV8M.pdf
+[ticket-pdf-scan] row 64: ticket 6906529025 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/Re OPEX  Najran  EP-2026-18/MR MOHSEN AL MAHAID-86EV8M.pdf
+[ticket-pdf-scan] row 65: ticket 6906529026 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/Re OPEX  Najran  EP-2026-18/MR MOHSEN AL MAHAID-86EV8M.pdf
+[ticket-pdf-scan] row 66: ticket 6906529027 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/20jun/Re OPEX  Najran  EP-2026-18/MR MOHSEN AL MAHAID-86EV8M.pdf
+[ticket-pdf-scan] row 67: ticket 4860132100 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/Re payment form for conference on July 1-2/MR ABDULLAH ALQIFARI-8JVA65.pdf
+[ticket-pdf-scan] row 68: ticket 4860132102 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/Re payment form for conference on July 1-2/MR ABDULLAH ALQIFARI-8JVA65.pdf
+[ticket-pdf-scan] row 69: ticket 4860132104 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/Re payment form for conference on July 1-2/MR ABDULLAH ALQIFARI-8JVA65.pdf
+[ticket-pdf-scan] row 71: ticket 4860132109 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/4860132108-09/MR EBAA ALHINDI-8NY9BO.pdf
+[ticket-pdf-scan] row 74: ticket 4860132118 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/4860132117/MR MAHMOUD MOFEED ELSHAMALY-8PX95W.pdf
+[ticket-pdf-scan] row 77: ticket 6906529048 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/6906529047/MR JAWDAT SHORAB-8IG2S8.pdf
+[ticket-pdf-scan] row 82: ticket 6906529078 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/Re OPEX  CSP  CRM-2026-39/MR MUSTAFA ZAITOUNI-8LYFY2.pdf
+[ticket-pdf-scan] row 83: ticket 6906529079 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/Re OPEX  CSP  CRM-2026-39/MR MUSTAFA ZAITOUNI-8LYFY2.pdf
+[ticket-pdf-scan] row 84: ticket 6906529080 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/21jun/Re OPEX  CSP  CRM-2026-39/MR MUSTAFA ZAITOUNI-8LYFY2.pdf
+[missing-evidence] row 86: no folder - allocation blanked
+[missing-evidence] row 87: no folder - allocation blanked
+[ticket-pdf-scan] row 92: ticket 4860132129 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/4860132127/MR MOAYAD BAGHLAF-8ZZQVD.pdf
+[ticket-pdf-scan] row 93: ticket 4860132130 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/560-48601321/MR MUSTAFA ALJAROUD-8ZYGNK.pdf
+[ticket-pdf-scan] row 95: ticket 4860132132 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/593-4860132131/MR AHMED ALEM-92282U.pdf
+[ticket-pdf-scan] row 97: ticket 4860132134 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/4860132133/MR MOHAMED ADOLAY-92BRRV.pdf
+[ticket-pdf-scan] row 103: ticket 4860132150 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/593-4860132149/MR AHMED ALEM-93JVIO.pdf
+[ticket-pdf-scan] row 109: ticket 4860132174 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/4860132173 family/MRS RIHAM HAZIMEH-937G9V.pdf
+[ticket-pdf-scan] row 110: ticket 4860132175 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/4860132173 family/MRS RIHAM HAZIMEH-937G9V.pdf
+[ticket-pdf-scan] row 111: ticket 4860132176 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/22jun/4860132173 family/MRS RIHAM HAZIMEH-937G9V.pdf
+[missing-evidence] row 112: no folder - allocation blanked
+[ticket-pdf-scan] row 114: ticket 4860165153 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 115: ticket 4860165154 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 116: ticket 4860165155 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 117: ticket 4860165156 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 118: ticket 4860165157 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 119: ticket 4860165158 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 120: ticket 4860165159 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165152 family/MRS HEBAH BAZRBASHI-96679E.pdf
+[ticket-pdf-scan] row 126: ticket 4860165177 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/4860165176-77/MR AHMED AL KHUDHAYR-9JWPKW.pdf
+[missing-evidence] row 128: no folder - allocation blanked
+[missing-evidence] row 129: no folder - allocation blanked
+[ticket-pdf-scan] row 131: ticket 4860165193 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/Hafer Albatin Ticket Reservarion/MR FAHMI ALKAF-9MTRUC.pdf
+[ticket-pdf-scan] row 132: ticket 4860165204 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/OPEX  Abha  EP-2026-17/MR BANDAR ALGHAMDI-9NLVZ9.pdf
+[ticket-pdf-scan] row 134: ticket 4860165223 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/DBE - Training for Qassim/MR NAWAF ALMUTAIRI-957C2O (1).pdf
+[missing-evidence] row 135: no folder - allocation blanked
+[ticket-pdf-scan] row 136: ticket 4860165225 bundled in /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-954/raw/23jun/DBE - Training for Qassim/MR NAWAF ALMUTAIRI-957C2O (1).pdf
+[missing-evidence] row 137: no folder - allocation blanked
+[missing-evidence] row 138: no folder - allocation blanked
+[missing-evidence] 22 NO_FOLDER row(s) gated; 17 routed row(s) removed before LLM
+[route] 63 rows → LLM  /  76 stay cascade
+[llm] cache FORCED DISABLED — all LLM calls will be fresh
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 11 0 (offset 0)
+[v30-shared-opex] row 6 (ABO NOUFAL/OMAR MR): no per-ticket folder; using shared OPEX folder 'Hafer Albatin Ticket Reservarion' (requesting emp 1002483)
+[v30-shared-opex] row 4 (ALEM/AHMED MR): no per-ticket folder; using shared OPEX folder 'Hafer Albatin Ticket Reservarion' (requesting emp 1002483)
+[v30-shared-opex] row 10 (AYYASH/MOHAMMAD ENG): no per-ticket folder; using shared OPEX folder 'Dr.Ali Shehata  EHRA Event  OPEX CRM-2026-35' (requesting emp 1002558)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[v30-shared-opex] row 13 (ALBALBESI/NASSER MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[salesman-extract] OPEX-HF-2026-26-J-2026-132.pdf → ['1002483'] (model=gemini-2.5-pro)
+[  1/63] row   6 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t= 74.9s  cost~=$0.009
+[v30-shared-opex] row 16 (ABUWAAR/ABDULLAH MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 16: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[  2/63] row  16 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t= 82.6s  cost~=$0.018
+[salesman-extract] OPEX-CRM-2026-35-J-2026-117.pdf → ['1002558'] (model=gemini-2.5-pro)
+[  3/63] row  10 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t= 86.2s  cost~=$0.056
+[  4/63] row  21 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t= 87.3s  cost~=$0.068
+[salesman-extract] OPEX-HF-2026-26-J-2026-132.pdf → ['1002483'] (model=gemini-2.5-pro)
+[  5/63] row   4 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t= 88.7s  cost~=$0.110
+[  6/63] row  23 (NOT_RESOLVED → employee)  method=v16_master_shortcut  t= 92.1s  cost~=$0.122
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-flash)
+[  7/63] row  13 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t= 96.0s  cost~=$0.160
+[v30-shared-opex] row 24 (ALHAJALI/RANIA MS): no per-ticket folder; using shared OPEX folder 'OPEX  CSP  CRM-2026-39' (requesting emp 1002317)
+[v30-shared-opex] row 26 (BIN RAJAB/FERAS MR): no per-ticket folder; using shared OPEX folder 'Dr.Ali Shehata  EHRA Event  OPEX CRM-2026-35' (requesting emp 1002558)
+[salesman-extract] OPEX-CRM-2026-39-J-2026-121.pdf → ['1002317', '1001959', '1002119'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 24: 3 salesmen in OPEX-CRM-2026-39-J-2026-121.pdf → 1002317,1001959,1002119
+[  8/63] row  24 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t= 98.5s  cost~=$0.176
+[  9/63] row  22 (NOT_RESOLVED → employee)  method=v16_llm_agent  t= 99.6s  cost~=$0.215
+[v30-shared-opex] row 40 (ALRESHIDAN/MOHAMMED SALAH MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[v30-shared-opex] row 43 (ABU FARHANEH/EHAB MR): no per-ticket folder; using shared OPEX folder 'payment form for conference on July 1-2' (requesting emp 1001422)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 40: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 10/63] row  40 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=122.8s  cost~=$0.224
+[salesman-extract] OPEX-CRM-2026-35-J-2026-117.pdf → ['1002558'] (model=gemini-2.5-pro)
+[ 11/63] row  26 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t=129.0s  cost~=$0.259
+[salesman-extract] OPEX-SIS-15-2026-J-2026-122.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 43: 3 salesmen in OPEX-SIS-15-2026-J-2026-122.pdf → 1001422,1002169,1001530
+[ 12/63] row  43 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=134.5s  cost~=$0.259
+[v30-shared-opex] row 46 (ELGHALAYINI/ADEEB MR): no per-ticket folder; using shared OPEX folder 'payment form for conference on July 1-2' (requesting emp 1001422)
+[v30-shared-opex] row 45 (ELGHALAYINI/ADEEB MR): no per-ticket folder; using shared OPEX folder 'payment form for conference on July 1-2' (requesting emp 1001422)
+[v30-shared-opex] row 44 (ABU FARHANEH/EHAB MR): no per-ticket folder; using shared OPEX folder 'payment form for conference on July 1-2' (requesting emp 1001422)
+[salesman-extract] OPEX-SIS-15-2026-J-2026-122.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 46: 3 salesmen in OPEX-SIS-15-2026-J-2026-122.pdf → 1001422,1002169,1001530
+[ 13/63] row  46 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=141.4s  cost~=$0.269
+[salesman-extract] OPEX-SIS-15-2026-J-2026-122.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 45: 3 salesmen in OPEX-SIS-15-2026-J-2026-122.pdf → 1001422,1002169,1001530
+[ 14/63] row  45 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=141.7s  cost~=$0.279
+[salesman-extract] OPEX-SIS-15-2026-J-2026-122.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 44: 3 salesmen in OPEX-SIS-15-2026-J-2026-122.pdf → 1001422,1002169,1001530
+[ 15/63] row  44 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=142.1s  cost~=$0.295
+[ 16/63] row  41 (NOT_RESOLVED → unclear)  method=v16_hybrid_overlay  t=145.6s  cost~=$0.311
+[v30-shared-opex] row 54 (ALMOWALLAD/RAHAF MS): no per-ticket folder; using shared OPEX folder 'Re 24 June event in RDC crown plaza Riyadh'
+[v30-shared-opex] row 52 (ALBUNAYAN/SAMAR MS): no per-ticket folder; using shared OPEX folder '24 June event in RDC crown plaza Riyadh'
+[v30-shared-opex] row 55 (ALMOWALLAD/RAHAF MS): no per-ticket folder; using shared OPEX folder 'Re 24 June event in RDC crown plaza Riyadh'
+[v30-shared-opex] row 53 (ALBANDAR/HISHAM MR): no per-ticket folder; using shared OPEX folder 'Re 24 June event in RDC crown plaza Riyadh'
+[ 17/63] row  55 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_hybrid_overlay  t=169.0s  cost~=$0.348
+[salesman-extract] OPEX-LAB-16-2026J-2026-126.pdf → [] (model=gemini-2.5-flash)
+[ 18/63] row  53 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_llm_agent  t=169.1s  cost~=$0.392
+[ 19/63] row  52 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_hybrid_overlay  t=183.2s  cost~=$0.466
+[v30-shared-opex] row 57 (SINDI/HASHIM MR): no per-ticket folder; using shared OPEX folder '24 June event in RDC crown plaza Riyadh'
+[v30-shared-opex] row 56 (ALATTAS/YASER MR): no per-ticket folder; using shared OPEX folder '24 June event in RDC crown plaza Riyadh'
+[v30-shared-opex] row 60 (TAHA/HANA MS): no per-ticket folder; using shared OPEX folder '24 June event in RDC crown plaza Riyadh'
+[ 20/63] row  54 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_hybrid_overlay  t=200.4s  cost~=$0.516
+[salesman-extract] OPEX-LAB-16-2026J-2026-126.pdf → [] (model=gemini-2.5-flash)
+[ 21/63] row  57 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_hybrid_overlay  t=209.2s  cost~=$0.560
+[v30-shared-opex] row 61 (AL MAHAID/MOHSEN MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-flash)
+[ 22/63] row  61 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=211.8s  cost~=$0.574
+[v30-shared-opex] row 62 (ALSOLAIA/NASSER MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-flash)
+[ 23/63] row  62 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=215.9s  cost~=$0.585
+[v30-shared-opex] row 63 (NOMAN/ABDULHAKIM MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-flash)
+[ 24/63] row  63 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=218.4s  cost~=$0.595
+[v30-shared-opex] row 64 (AL MAHAID/MOHSEN MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[ 25/63] row  56 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_hybrid_overlay  t=226.4s  cost~=$0.676
+[ 26/63] row  60 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_hybrid_overlay  t=228.4s  cost~=$0.748
+[v30-shared-opex] row 65 (ALSOLAIA/NASSER MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[v30-shared-opex] row 66 (NOMAN/ABDULHAKIM MR): no per-ticket folder; using shared OPEX folder 'Re OPEX  Najran  EP-2026-18' (requesting emp 1002484)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[v30-shared-opex] row 67 (ALQIFARI/ABDULLAH MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-pro)
+[ 27/63] row  64 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=241.9s  cost~=$0.758
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-pro)
+[ 28/63] row  65 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=251.6s  cost~=$0.758
+[v30-shared-opex] row 68 (ALQIFARI/ABDULLAH MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 68: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 29/63] row  68 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=254.0s  cost~=$0.776
+[salesman-extract] OPEX-EP-2026-18-J-2026-124.pdf → ['1002484'] (model=gemini-2.5-pro)
+[ 30/63] row  66 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=257.6s  cost~=$0.776
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 67: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 31/63] row  67 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=263.3s  cost~=$0.776
+[v30-shared-opex] row 69 (ALQIFARI/ABDULLAH MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[v30-shared-opex] row 74 (ELSHAMALY/MAHMOUD MOFEED MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[ 32/63] row  71 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t=271.6s  cost~=$0.788
+[v30-shared-opex] row 82 (ZAITOUNI/MUSTAFA MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 82: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 33/63] row  82 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=278.8s  cost~=$0.798
+[v30-shared-opex] row 83 (ZAITOUNI/MUSTAFA MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[ 34/63] row  70 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_llm_agent  t=284.8s  cost~=$0.839
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 69: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 35/63] row  69 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=286.5s  cost~=$0.839
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[v30-shared-opex] row 93 (ALJAROUD/MUSTAFA MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[v30-shared-opex] row 84 (ZAITOUNI/MUSTAFA MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 83: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 36/63] row  83 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=303.7s  cost~=$0.849
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 93: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 37/63] row  93 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t=317.1s  cost~=$0.883
+[ 38/63] row  94 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t=317.9s  cost~=$0.895
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 84: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 39/63] row  84 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=320.6s  cost~=$0.895
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 74: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 40/63] row  74 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t=323.1s  cost~=$0.953
+[v30-shared-opex] row 95 (ALEM/AHMED MR): no per-ticket folder; using shared OPEX folder 'Hafer Albatin Ticket Reservarion' (requesting emp 1002483)
+[v30-shared-opex] row 103 (ALEM/AHMED MR): no per-ticket folder; using shared OPEX folder 'Hafer Albatin Ticket Reservarion' (requesting emp 1002483)
+[v30-shared-opex] row 97 (ADOLAY/MOHAMED MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[ 41/63] row 102 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t=335.8s  cost~=$0.965
+[salesman-extract] OPEX-HF-2026-26-J-2026-132.pdf → ['1002483'] (model=gemini-2.5-flash)
+[ 42/63] row  95 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t=345.3s  cost~=$1.008
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[gemini/gemini-2.5-flash] HTTP 503 Service Unavailable — skipping remaining retries
+[salesman-extract] gemini-2.5-flash failed: HTTPError: HTTP Error 503: Service Unavailable
+[salesman-extract] gemini-2.5-flash returned 503 — waiting 15s before trying next model...
+[ 43/63] row 106 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_llm_agent  t=363.2s  cost~=$1.039
+[ 44/63] row 108 (NOT_RESOLVED → unclear)  method=v16_llm_agent  t=365.2s  cost~=$1.071
+[salesman-extract] OPEX-HF-2026-26-J-2026-132.pdf → ['1002483'] (model=gemini-2.5-pro)
+[ 45/63] row 103 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t=365.7s  cost~=$1.117
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-pro)
+[v30-multi-salesman] row 97: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 46/63] row  97 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_llm_agent  t=378.5s  cost~=$1.186
+[ 47/63] row 109 (NOT_RESOLVED → unclear)  method=v16_llm_agent  t=384.5s  cost~=$1.218
+[ 48/63] row 110 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_hybrid_overlay  t=388.5s  cost~=$1.250
+[ 49/63] row 115 (NOT_RESOLVED → employee)  method=v16_master_shortcut  t=395.5s  cost~=$1.264
+[ 50/63] row 113 (NOT_RESOLVED → unclear)  method=v16_llm_agent  t=398.8s  cost~=$1.301
+[ 51/63] row 116 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t=402.2s  cost~=$1.316
+[ 52/63] row 114 (NOT_RESOLVED → unclear)  method=v16_llm_agent  t=402.6s  cost~=$1.353
+[v30-fix-ab] row 119 (SDEK/KARAM MR(CHD)): folder corrected (none) → 4860165152 family
+[ 53/63] row 118 (NOT_RESOLVED → employee)  method=v16_master_shortcut  t=409.4s  cost~=$1.363
+[v30-fix-ab] row 120 (SDEK/YAZAN MR(CHD)): folder corrected (none) → 4860165152 family
+[ 54/63] row 111 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_hybrid_overlay  t=412.8s  cost~=$1.395
+[ 55/63] row 120 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_hybrid_overlay  t=420.0s  cost~=$1.429
+[ 56/63] row 119 (NOT_RESOLVED → employee)  method=v16_llm_agent  t=421.1s  cost~=$1.457
+[ 57/63] row 126 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t=426.9s  cost~=$1.468
+[ 58/63] row 125 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_master_shortcut  t=428.0s  cost~=$1.495
+[v30-shared-opex] row 131 (ALKAF/FAHMI MR): no per-ticket folder; using shared OPEX folder 'Hafer Albatin Ticket Reservarion' (requesting emp 1002483)
+[salesman-extract] OPEX-HF-2026-26-J-2026-132.pdf → ['1002483'] (model=gemini-2.5-flash)
+[ 59/63] row 131 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=429.7s  cost~=$1.510
+[v30-shared-opex] row 132 (ALGHAMDI/BANDAR MR): no per-ticket folder; using shared OPEX folder 'Re 24 June event in RDC crown plaza Riyadh'
+[v30-shared-opex] row 134 (ALMUTAIRI/NAWAF MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[v30-shared-opex] row 136 (ALMUTAIRI/NAWAF MR): no per-ticket folder; using shared OPEX folder 'DBE - Training for Qassim' (requesting emp 1001422)
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 134: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 60/63] row 134 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=435.5s  cost~=$1.522
+[ 61/63] row 127 (SPONSORING_EMPNO_REVIEW → unclear)  method=v16_llm_agent  t=435.6s  cost~=$1.554
+[salesman-extract] OPEX-SIS-14-2026-J-2026-123.pdf → ['1001422', '1002169', '1001530'] (model=gemini-2.5-flash)
+[v30-multi-salesman] row 136: 3 salesmen in OPEX-SIS-14-2026-J-2026-123.pdf → 1001422,1002169,1001530
+[ 62/63] row 136 (SPONSORING_EMPNO_REVIEW → sponsorship)  method=v16_sponsorship_master  t=435.9s  cost~=$1.563
+[ 63/63] row 132 (SPONSORING_EMPNO_REVIEW → employee)  method=v16_hybrid_overlay  t=461.8s  cost~=$1.619
+[cluster] 0 rows emp_no-unified within family clusters
+[v30-fix-c] 0 PC-family dependent rows → emp_no blanked
+[v30-nts-pc] 0 hotel/NTS rows -> account=21070229
+[v30-emp-reg] 0 employee registration rows → account=60308009
+  [v30-overlay] row 53: ALBUNAYAN/SAMAR MS -> 60307021 via 20jun/24 June event in RDC crown plaza Riyadh
+  [v30-overlay] row 57: ALATTAS/YASER MR -> 60307021 via 20jun/24 June event in RDC crown plaza Riyadh
+[v30-overlay] 2 rows -> 60307021 via OPEX event folder match
+[family-folder] '4860132173 family' → owner ticket 4860132173 → emp_no 1000378 (invoice Ref. No. via Resolution Trace)
+[family-folder] '4860165152 family' → owner ticket 4860165152 → emp_no 1001105 (invoice Ref. No. via Resolution Trace)
+[family-folder] 2 family folder(s) → 0 rows emp_no stamped (EMP_FROM_FAMILY_FOLDER)
+[family-annual] row 108 (HAZIMEH/RIHAM MRS - RUH BEY RUH (4860132173)): already 21070229 — segments stamped + locked (family_folder:4860132173)
+[family-annual] row 110 (KHADOUJ AWADA/DANIEL MR(CHD) - RUH BEY RUH (4860132175)): already 21070229 — segments stamped + locked (chd_empno_group:1000378)
+[family-annual] row 111 (KHADOUJ AWADA/ISSA MR(CHD) - RUH BEY RUH (4860132176)): already 21070229 — segments stamped + locked (chd_empno_group:1000378)
+[family-annual] row 113 (BAZRBASHI/HEBAH MRS - DMM AMM DAM (4860165152)): already 21070229 — segments stamped + locked (family_folder:4860165152)
+[family-annual] row 115 (SDEK/KARAM MR(CHD) - DMM AMM DAM (4860165154)): account 60301003 → 21070229 (chd_empno_group:1001105)
+[family-annual] row 117 (BAZRBASHI/HEBAH MRS - DAM DMM (4860165156)): account 60301003 → 21070229 (chd_empno_group:1001105)
+[family-annual] row 119 (SDEK/KARAM MR(CHD) - DAM DMM (4860165158)): already 21070229 — segments stamped + locked (chd_empno_group:1001105)
+[family-annual] row 120 (SDEK/YAZAN MR(CHD) - DAM DMM (4860165159)): already 21070229 — segments stamped + locked (chd_empno_group:1001105)
+[family-annual] 2 rows → account=21070229; RULE 5 evaluated for 8 family rows
+  [v30-trip-ovr] row 117: account 60301003 → 21070229 (Trip Purpose=PERSONAL, conf=0.9)
+[v30-trip-ovr] 1 rows → Trip Account Override re-applied
+[bundled-trip-inherit] 0 bundled ticket row(s) inherited host trip purpose/account
+  [cc-override] row 11: CC=140020 → account 60301003 → 60301004
+  [cc-override] row 19: CC=140020 → account 60301003 → 60301004
+  [cc-override] row 22: CC=140020 → account 60301003 → 60301004
+  [cc-override] row 55: CC=120020 → account 60301003 → 60301004
+  [cc-override] row 56: CC=120020 → account 60301003 → 60301004
+  [cc-override] row 106: CC=140020 → account 60301003 → 60301004
+  [cc-override] row 133: CC=120020 → account 60301003 → 60301004
+[cc-override] 7 rows → cost-center account override applied
+[verified-lock] 0 cascade_fallback row(s) wrote locked account/emp_no/segments from hybrid_rows (0 combo(s) rebuilt)
+[missing-evidence] 22 output row(s) hard-stamped RED/blank allocation
+[bundled-trip-inherit] 0 inherited trip-purpose row(s) stamped into output
+[out] Spreadsheet-J26-954-FILLED-v30.xlsx (v30 pass complete)
+[v30-serial] 15 serials written to OPEX Serial column
+[v30-flags] 106 rows → flags stamped into Agent Flags
+[family-annual] RULE 5 statuses stamped on 8 rows
+[v30-loc] Cascade locations explicitly rewritten from Manpower
+
+[booking-groups] scanning for family groups...
+[booking-groups] 13 groups detected  (7 family, 6 colleague-skip)
+  [skip-colleagues] ALHINDI/EBAA MR - RUH ELQ RUH (486013210 | ALLUWAIMI/OMAR MR - RUH ELQ RUH (4860132
+  [propagation] KHADOUJ AWADA/SALEEM MR - RUH BEY RUH (4860132174)
+              combo: 03-10100-21070229-000000-000-00000-00000-00000-00-000000 → 03-10100-21070229-160011-196-00000-10081-00000-00-000000
+              emp:   1000378 → 1000378
+  [lock-skip] family-annual locked, not propagating onto: KHADOUJ AWADA/DANIEL MR(CHD) - RUH BEY R
+  [lock-skip] family-annual locked, not propagating onto: KHADOUJ AWADA/ISSA MR(CHD) - RUH BEY RUH
+  [pc-wins] PC account 21070229 elected as family anchor — travel entries overridden
+  [propagation] SDEK/MUHANAD MR - DMM AMM DAM (4860165153)
+              combo: 03-30100-21070229-000000-000-00000-00000-00000-00-000000 → 03-30100-21070229-160013-192-00000-10202-00000-00-000000
+              emp:   1001105 → 1001105
+  [lock-skip] family-annual locked, not propagating onto: SDEK/KARAM MR(CHD) - DMM AMM DAM (486016
+  [dep_fix] SDEK/YAZAN MR(CHD) - DMM AMM DAM (4860165155)
+              combo: 03-40100-21070229-160013-192-00000-10202-00000-00-000000 → 03-30100-21070229-160013-192-00000-10202-00000-00-000000
+              emp:    → 1001105
+  [propagation] SDEK/MUHANAD MR - DAM DMM (4860165157)
+              combo: 03-30100-21070229-000000-000-00000-00000-00000-00-000000 → 03-30100-21070229-160013-192-00000-10202-00000-00-000000
+              emp:   1001105 → 1001105
+  [lock-skip] family-annual locked, not propagating onto: SDEK/KARAM MR(CHD) - DAM DMM (4860165158
+  [lock-skip] family-annual locked, not propagating onto: SDEK/YAZAN MR(CHD) - DAM DMM (4860165159
+  [skip-colleagues] AL KHUDHAYR/AHMED MR - DMM RUH AQI RUH D | HINAIDI/ABDULLAH MR - DMM RUH AQI RUH DM
+  [skip-colleagues] AL ABDULGADER/ABDULRAHMAN MR - RUH JED M | ALGHASHMARI/KHALED MR - RUH JED MUC JED 
+  [skip-colleagues] BIN MUDHIAN/FAISAL MR - RUH HAS RUH (690 | ALJAMAL/MOHAMMED ABDULMAJEED MR - RUH HA
+  [skip-colleagues] BIN RAJAB/FERAS MR - JED RUH JED (690649 | JAMAL/ABDULMALIK MR - JED RUH JED (69064
+  [skip-colleagues] ALBUNAYAN/SAMAR MS - DMM RUH DMM (690652 | ALBANDAR/HISHAM MR - DMM RUH DMM (690652
+[booking-groups] 1 rows patched in Spreadsheet-J26-954-FILLED-v30.xlsx
+[v30-gl-sync] refreshed Block-2 name columns on 117 row(s); 49 GL Description cell(s) re-derived from final combo
+[v30-desc-serial] 9 sponsorship Description(s) prefixed with OPEX serial
+
+[fraud] running cross-batch detection on 139 rows...
+[fraud] 1 catches
+  PASSENGER_AMOUNT_PATTERN: 1
+[fraud] cross-batch history updated (1021 tickets tracked)
+[fraud] fraud-watch-v24.json written
+[trace] 63 routed rows → step-trace-v30.jsonl
+[score] N/A  → score-v30.md
+
+=================================================================
+  v30 done — J26-954
+  Rows:              139  (63 routed to LLM)
+  Methods:           {'cascade': 51, 'v16_llm_agent': 16, 'v16_sponsorship_master': 23, 'hybrid_overlay': 2, 'missing_evidence_gate': 22, 'v16_master_shortcut': 9, 'v16_hybrid_overlay': 6, 'v26_opex_event_overlay': 2, 'v25_family_annual': 8}
+  Cluster unif.:     0
+  PC applied:        0
+  PC-family blanked: 0
+  Booking groups:    4 propagated  0 conflicts ✅
+  GL synced:         117
+  Fraud catches:     1  {'PASSENGER_AMOUNT_PATTERN': 1}
+  LLM cost (est):    $1.6185  (380,134 in / 114,336 out)
+  Runtime:           479.9s
+  Score (auto):      N/A
+  Step trace:        63 rows → step-trace-v30.jsonl
+  Output:            Spreadsheet-J26-954-FILLED-v30.xlsx
+=================================================================

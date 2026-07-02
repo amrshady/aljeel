@@ -1,0 +1,1398 @@
+#!/usr/bin/env python3
+"""
+AlJeel AP Pipeline v16 — Employee-First Decision Tree
+
+TWO-CALL ARCHITECTURE
+─────────────────────
+For every uncertain/routed row:
+
+  CALL 1 — Classification (cheap, Gemini Flash, ~500 tok):
+    Reads: description + folder name + EMAIL TAIL (last 1500 chars where
+           approval footers live: "Requested by: X (1001234)")
+    Returns: {"row_type": "employee"|"sponsorship"|"unclear",
+              "employee_no_in_doc": "1001234",   # 7-digit if found
+              "requesting_emp_no": "1000820",    # from OPEX form if sponsorship
+              "opex_code": "HF-2026-15"}
+
+  Then branch:
+    employee + emp_no_in_doc in master  →  resolve from master directly (NO Call 2)
+    employee + emp_no unknown           →  CALL 2: full evidence resolve
+    sponsorship                         →  CALL 2: OPEX-focused prompt
+    unclear                             →  CALL 2: full evidence resolve
+
+KEY FIXES OVER v15.12
+─────────────────────
+  1. Sponsorship rows → emp_no always "" (blank), no matter what LLM says
+  2. NOT_RESOLVED rows → classification call first, often avoids full LLM
+  3. Agency (biggest gap, 41 mismatches on J26-593): sponsorship rows use
+     requesting_emp_no → master lookup → real agency, not OPEX prefix table
+  4. Cascade agency/solution overlays kept for clearly-resolved cascade rows
+
+Usage:
+    python3 scripts/run_v16.py J26-640
+    python3 scripts/run_v16.py J26-593
+    python3 scripts/run_v16.py J26-593 --limit 10
+"""
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import json
+import os
+import re
+import shutil
+import sys
+import time
+import traceback
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+import openpyxl
+
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import full_evidence_agent as fea   # Gemini cascade, master loaders, evidence collect
+import run_hybrid_v15_12 as v15     # reuse read_cascade_xlsx, write_v15_12_xlsx, overlays
+
+VERSION = "v16"
+COST_CEILING = 4.0   # slightly higher than v15.12 — two calls per row
+
+# ─── reverse folder-scan index ───────────────────────────────────────────────
+# For batches where evidence folders are named after events ("EHRA Congress 2026")
+# rather than ticket numbers, find_ticket_folder() fails.
+# Pre-build a cross-reference at batch start by scanning .msg subject lines
+# and OPEX PDF filenames across ALL folders for 26-NNN ticket refs.
+# No AlJeel allocation data is read — only evidence folder contents.
+
+_TICKET_26_RE = re.compile(r"\b(26-\d{3})\b")
+_TICKET_10_RE = re.compile(r"\b(\d{10})\b")
+
+
+# Jawal ticket PDF names: "MR FIRSTNAME LASTNAME-BOOKINGREF.pdf"
+_JAWAL_PDF_RE = re.compile(
+    r"^(?:MR|MS|ENG|DR)\s+([A-Z][A-Z\s]+?)-[A-Z0-9]{6,}\.pdf$",
+    re.IGNORECASE
+)
+# Companion suffix like "+1" or "+ 1"
+_COMPANION_RE = re.compile(r"\s*\+\s*\d+\s*$")
+
+
+def _clean_passenger(passenger: str) -> str:
+    """Strip trailing companion suffixes (+1, +2) from passenger names."""
+    return _COMPANION_RE.sub("", passenger).strip()
+
+
+# ── personal contribution index ───────────────────────────────────────────────
+# Personal contribution approval emails have subject/filename like:
+#   "RE_ Approved_ Personal Contribution Approval Requested for
+#    Yasir Mohamed Hussein (1000160) on 2026-03-25 by Yasir Mohamed Hussein.msg"
+# Body is always empty — filename IS the full signal.
+_PC_EMP_RE = re.compile(r"\(\s*(\d{6,7})\s*\)")
+_PC_SIGNAL  = "personal contribution"
+
+
+def build_personal_contribution_index(all_folders: list[Path]) -> dict[str, dict]:
+    """
+    Return {folder_path_str: {"emp_no": "1000160", "name": "Yasir Mohamed Hussein"}}
+    by scanning every .msg filename across all evidence folders.
+    Pure file-system scan — no body reading, no API calls.
+    """
+    index: dict[str, dict] = {}
+    for folder in all_folders:
+        if not folder.exists():
+            continue
+        try:
+            for child in folder.iterdir():
+                if child.suffix.lower() != ".msg":
+                    continue
+                fname = child.name
+                if _PC_SIGNAL not in fname.lower():
+                    continue
+                # Extract emp_no: "... for Full Name (1000160) on ..."
+                m = _PC_EMP_RE.search(fname)
+                emp_no = m.group(1).strip() if m else ""
+                # Extract name: between "for " and " (EMP_NO)"
+                name = ""
+                fm = re.search(r"for\s+(.+?)\s*\(", fname)
+                if fm:
+                    name = fm.group(1).strip()
+                if folder_str := str(folder):
+                    # One folder can have multiple personal contribution forms;
+                    # keep the first one found (they're all for the same trip).
+                    if folder_str not in index:
+                        index[folder_str] = {"emp_no": emp_no, "name": name,
+                                             "filename": fname}
+        except PermissionError:
+            pass
+    return index
+
+
+def build_reverse_folder_index(all_folders: list[Path]) -> dict[str, Path]:
+    """
+    Return two indices:
+      ticket_index  {26-NNN | 10-digit: folder} — from msg subjects/filenames
+      name_index    {SURNAME: folder}            — from Jawal ticket PDF filenames
+
+    Both are pure evidence-folder scans. No AlJeel truth data touched.
+    """
+    ticket_index: dict[str, Path] = {}
+    name_index: dict[str, Path] = {}
+
+    for folder in all_folders:
+        if not folder.exists():
+            continue
+        try:
+            for child in folder.iterdir():
+                cname = child.name
+                # ── 1. Ticket refs in filenames ────────────────────────────
+                for m in _TICKET_26_RE.finditer(cname):
+                    ticket_index.setdefault(m.group(1), folder)
+                for m in _TICKET_10_RE.finditer(cname):
+                    ticket_index.setdefault(m.group(1), folder)
+
+                # ── 2. Passenger names from Jawal ticket PDF filenames ─────
+                # Format: "MR FIRSTNAME LASTNAME-BOOKINGREF.pdf"
+                if child.suffix.lower() == ".pdf":
+                    pm = _JAWAL_PDF_RE.match(cname)
+                    if pm:
+                        full_name = pm.group(1).strip().upper()
+                        # Index every word ≥ 4 chars (avoids MR/MS noise)
+                        for word in full_name.split():
+                            if len(word) >= 4:
+                                name_index.setdefault(word, folder)
+
+                # OPEX PDF text scanning removed: it indexes approver/manager names
+                # (e.g., "Approved by: Mahmoud X") which causes false-positive matches
+                # on unrelated passenger rows. Jawal ticket PDF filenames (2 above) are
+                # the safe source for passenger→folder mapping.
+
+                # ── 3. Ticket refs in .msg subject lines ──────────────────
+                if child.suffix.lower() == ".msg":
+                    try:
+                        raw = child.read_bytes()[:4096].decode("utf-8", errors="replace")
+                        for line in raw.splitlines()[:40]:
+                            if "subject" in line.lower()[:20]:
+                                for m in _TICKET_26_RE.finditer(line):
+                                    ticket_index.setdefault(m.group(1), folder)
+                                break
+                    except Exception:
+                        pass
+        except PermissionError:
+            pass
+
+    # Combine into one dict (ticket refs take priority)
+    combined = dict(name_index)  # names first (lower priority)
+    combined.update(ticket_index)  # ticket refs override
+    return combined
+
+
+def find_folder_with_index(
+    ticket_no: str,
+    passenger: str,
+    notes: str,
+    all_folders: list[Path],
+    reverse_index: dict[str, Path],
+) -> Path | None:
+    """
+    Try find_ticket_folder first (with cleaned passenger name), then fall back
+    to the reverse index keyed by ticket ref or passenger name words.
+    No AlJeel truth data involved — only evidence folder content.
+    """
+    # Clean passenger: strip "+N" companion suffixes that break surname matching
+    clean_pax = _clean_passenger(passenger)
+
+    # Primary: existing multi-strategy lookup with cleaned passenger
+    folder = fea.find_ticket_folder(ticket_no, clean_pax, notes, all_folders)
+    if folder:
+        return folder
+
+    # Fallback 1: ticket ref in combined index (ticket refs + PDF name words)
+    if ticket_no in reverse_index:
+        return reverse_index[ticket_no]
+
+    # Fallback 2: any 26-NNN in notes
+    for m in _TICKET_26_RE.finditer(notes or ""):
+        if m.group(1) in reverse_index:
+            return reverse_index[m.group(1)]
+
+    # Fallback 3: passenger name words in reverse index (PDF name-based / OPEX text).
+    # Try longest words first (surnames ≥ 5 chars are more distinctive than
+    # first names), and prefer folders that contain an OPEX PDF over plain folders.
+    candidate_folders: list[tuple[int, Path]] = []  # (has_opex_score, folder)
+    for word in clean_pax.upper().split():
+        if len(word) >= 5 and word in reverse_index:
+            f = reverse_index[word]
+            score = 10 if _folder_has_opex(f) else len(word)
+            candidate_folders.append((score, f))
+    if candidate_folders:
+        # Highest score first (OPEX folders win; then longer word match)
+        candidate_folders.sort(key=lambda x: -x[0])
+        return candidate_folders[0][1]
+
+    return None
+
+# ─── classification routing triggers ──────────────────────────────────────────
+
+def _needs_classification(row: dict, all_folders: list[Path],
+                          reverse_index: dict[str, Path] | None = None) -> tuple[bool, str]:
+    """Return (should_classify, reason). Rows that are clearly resolved by cascade stay put."""
+    account = str(row.get("Account", "") or "").strip()
+    cc      = str(row.get("Cost Center", "") or "").strip()
+    agency  = str(row.get("Agency", "") or "").strip()
+    emp_no  = str(row.get("Employee No", "") or "").strip()
+    flags   = str(row.get("Agent Flags", "") or "")
+    desc    = str(row.get("Description", "") or "")
+    notes   = str(row.get("Notes", "") or "")
+    text    = desc + " " + notes
+
+    # NOT_RESOLVED → always classify
+    if cc in ("", "000000", "999999"):
+        return True, "NOT_RESOLVED"
+
+    # Sponsorship account with missing agency → classify to fix agency
+    if account == "60307021" and agency in ("", "00000", "0"):
+        return True, "SPONSORSHIP_NO_AGENCY"
+
+    # Employee not in master → classify; call 1 may find emp_no from email
+    if "EMPLOYEE_NOT_IN_MASTER" in flags:
+        return True, "EMPLOYEE_NOT_IN_MASTER"
+
+    # Folder has OPEX PDF but cascade gave travel account → could be misclassified
+    # Use reverse_index as fallback when folder name doesn't match ticket
+    m = re.search(r"\b(\d{10,})\b", text)
+    ticket_no = m.group(1) if m else ""
+    # Also check for 26-NNN pattern
+    if not ticket_no:
+        m2 = re.search(r"\b(26-\d{3})\b", text)
+        ticket_no = m2.group(1) if m2 else ""
+    passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+    folder = find_folder_with_index(ticket_no, passenger, notes, all_folders,
+                                    reverse_index or {})
+    if folder and _folder_has_opex(folder) and account != "60307021":
+        return True, "OPEX_PDF_TRAVEL_ACCOUNT"
+
+    # Sponsorship text signal in travel account row
+    if account in ("60301003", "60301004") and v15.SPONSORSHIP_TEXT_REGEX.search(text):
+        return True, "SPONSORSHIP_SIGNAL"
+
+    # ── v24: CHD/INF with PC email in evidence → route to LLM ──────────────────
+    # When a child/infant passenger's evidence folder contains a Personal Contribution
+    # approval email, the cascade skips routing because the CC is already resolved.
+    # But the correct account is 21070229 (PC). Route these rows so the LLM can read
+    # the PC email and set account=21070229 with the responsible employee's allocation.
+    # Key insight: TALIA (CHD) has the correct Mahmoud Elkilany Hussein PC email in her
+    # folder — but is never routed because cascade resolves her CC from master data.
+    if re.search(r"\b(CHD|INF|INFANT)\b", desc, re.IGNORECASE):
+        m_t = re.search(r"\b(\d{10,})\b", text)
+        ticket_chd = m_t.group(1) if m_t else ""
+        if not ticket_chd:
+            m_t2 = re.search(r"\b(26-\d{3})\b", text)
+            ticket_chd = m_t2.group(1) if m_t2 else ""
+        passenger_chd = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+        folder_chd = find_folder_with_index(ticket_chd, passenger_chd, notes,
+                                            all_folders, reverse_index or {})
+        if folder_chd and _folder_has_pc_email(folder_chd):
+            return True, "CHD_PC_EVIDENCE"
+
+    # ── v19 Fix 2a: 26-NNN hotel / accommodation / transfer → likely sponsorship ──
+    # 26-NNN rows are non-ticket items (hotels, transfers, registrations, visas).
+    # When the description contains hospitality keywords, these are almost always
+    # sponsorship charges that should be account=60307021 — not travel.
+    # Route them so the LLM can confirm and assign the correct OPEX allocation.
+    if re.search(r"\b26-\d{3}\b", text) and account in ("60301003", "60301004"):
+        HOSP_KEYWORDS = ("NTS", "HOTEL", "TRANSFER", "REGISTRATION", "VISA",
+                         "AIRLINE TICKET", "ACCOMMODATION", "PICKUP", "DROP")
+        if any(kw in desc.upper() for kw in HOSP_KEYWORDS):
+            return True, "26NNN_LIKELY_SPONSORSHIP"
+
+    return False, ""
+
+
+def _folder_has_pc_email(folder: Path | None) -> bool:
+    """True if the folder contains a Personal Contribution approval .msg file."""
+    if not folder or not folder.exists():
+        return False
+    try:
+        return any(
+            child.suffix.lower() == ".msg" and "personal contribution" in child.name.lower()
+            for child in folder.iterdir()
+        )
+    except PermissionError:
+        return False
+
+
+def _folder_has_opex(folder: Path | None) -> bool:
+    if not folder or not folder.exists():
+        return False
+    # Match OPEX-*.pdf and common truncations/variants (OPE-*, OPEX_*)
+    for child in folder.rglob("*.pdf"):
+        upper = child.name.upper()
+        if upper.startswith("OPEX") or upper.startswith("OPE-") or upper.startswith("OPEX_"):
+            return True
+    # Also match msg subjects that mention OPEX
+    for child in folder.rglob("*.msg"):
+        if "OPEX" in child.name.upper() or "OPE" in child.name.upper():
+            return True
+    return False
+
+
+# ─── CALL 1: classification ───────────────────────────────────────────────────
+
+# Use a writable cache dir (full-evidence-agent-cache may be root-owned from prior runs)
+_V16_CACHE_BASE = ROOT / "extracted" / "v16-cache"
+_CLASSIFY_CACHE_DIR = _V16_CACHE_BASE / "classify"
+_CLASSIFY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+CLASSIFY_PROMPT_TMPL = """\
+You are an AP classification agent for Al Jeel Medical.
+Read the invoice row details and the email/document tail below.
+Return STRICT JSON — nothing else.
+
+INVOICE ROW:
+  Description : {description}
+  Amount (SAR): {amount}
+  Date        : {date}
+
+FOLDER NAME (the evidence folder for this ticket): {folder_name}
+
+EMAIL TAIL (last part of approval email, where employee details usually appear):
+---
+{email_tail}
+---
+
+OPEX PDF text (first 800 chars, if present):
+---
+{opex_text}
+---
+
+CLASSIFICATION TASK:
+Decide: Is this row about (A) an Aljeel employee's business trip, (B) a sponsorship
+payment for an external guest/doctor, or (C) unclear?
+
+Rules:
+- SPONSORSHIP signals: OPEX-*.pdf exists in folder; OR description/notes contain
+  OPEX/HF/CRM/EP/SIS/AATS/ISHLT/KFMC/DDW/IEPC; OR passenger is clearly an external
+  doctor (not an Aljeel employee name format like "LASTNAME/FIRSTNAME MR").
+- EMPLOYEE signals: Outlook approval email with "Personal Contribution" or
+  "Requested by: [Name] ([emp_no])"; OR ticket PDF in "MR/MS/ENG LASTNAME-XXXXX.pdf"
+  format (Aljeel booking reference).
+
+Also check the email tail for lines like:
+  "Requested by: John Smith (1001234)" or "Requester Employee ID: 1001234"
+  "Line Manager: Jane Doe" or "Approved by:"
+These confirm an Aljeel employee exists for this row.
+
+For sponsorships, find the REQUESTING Aljeel employee from the OPEX form.
+The OPEX PDF usually has a table like:
+  Employee No | Name | Designation | Amount
+Look for the 6-7 digit number there.
+
+OUTPUT (strict JSON, no markdown):
+{{
+  "row_type": "employee" | "sponsorship" | "unclear",
+  "employee_no_in_doc": "<7-digit Aljeel emp_no if found in email/approval, else empty string>",
+  "employee_name_in_doc": "<passenger/employee name as it appears in docs, else empty>",
+  "requesting_emp_no": "<6-7 digit emp_no of Aljeel requestor from OPEX form, else empty>",
+  "opex_code": "<OPEX code like HF-2026-15 or J-2026-83, else empty>",
+  "classification_basis": "<one sentence: which file/phrase drove the decision>"
+}}
+"""
+
+
+def _get_email_tail(evidence: dict, chars: int = 1500) -> str:
+    """Extract the last `chars` of the first email body. Approval footers live at the bottom."""
+    for msg in evidence.get("msgs", []):
+        body = msg.get("body", "") or ""
+        if body:
+            return body[-chars:].strip()
+    return ""
+
+
+def _get_opex_text(evidence: dict, chars: int = 800) -> str:
+    """First chars of the first OPEX-*.pdf found in evidence pdfs."""
+    for pdf in evidence.get("pdfs", []):
+        if "OPEX-" in pdf.get("filename", "").upper():
+            return (pdf.get("text", "") or "")[:chars].strip()
+    return ""
+
+
+def classify_row(
+    row_idx: int,
+    cascade_row: dict,
+    batch_id: str,
+    raw_root: Path,
+    all_folders: list[Path],
+    reverse_index: dict[str, Path] | None = None,
+    no_cache: bool = False,
+) -> dict:
+    """CALL 1 — cheap classification (Gemini Flash). no_cache=True forces fresh LLM call."""
+    desc    = str(cascade_row.get("Description", "") or "")
+    notes   = str(cascade_row.get("Notes", "") or "")
+    amount  = cascade_row.get("*Amount", "")
+    date_v  = str(cascade_row.get("*Invoice Date", "") or "")
+    m       = re.search(r"\b(\d{10,})\b", desc + " " + notes)
+    ticket  = m.group(1) if m else ""
+    if not ticket:
+        m2 = re.search(r"\b(26-\d{3})\b", desc + " " + notes)
+        ticket = m2.group(1) if m2 else ""
+    passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+
+    folder = find_folder_with_index(ticket, passenger, notes, all_folders,
+                                    reverse_index or {})
+    evidence = fea.collect_evidence(folder) if folder else {"msgs": [], "pdfs": [], "files": [], "total_chars": 0}
+
+    email_tail = _get_email_tail(evidence)
+    opex_text  = _get_opex_text(evidence)
+    folder_name = folder.name if folder else "(no folder found)"
+
+    cache_key = f"{batch_id}-row{row_idx:03d}-{ticket or 'noticket'}.json"
+    cache_path = _CLASSIFY_CACHE_DIR / cache_key
+    if not no_cache and cache_path.exists():
+        try:
+            c = json.loads(cache_path.read_text())
+            c["_from_cache"] = True
+            c["_folder"] = str(folder) if folder else ""
+            c["_evidence"] = evidence
+            return c
+        except Exception:
+            pass
+
+    prompt = CLASSIFY_PROMPT_TMPL.format(
+        description=desc[:300],
+        amount=amount,
+        date=date_v,
+        folder_name=folder_name,
+        email_tail=email_tail or "(no email found)",
+        opex_text=opex_text or "(no OPEX PDF found)",
+    )
+
+    # Use Flash for classification — it's cheap and fast
+    res = fea.call_gemini(prompt, model="gemini-2.5-flash")
+    j   = res.get("json", {}) or {}
+
+    out = {
+        "row_type":             j.get("row_type", "unclear"),
+        "employee_no_in_doc":   str(j.get("employee_no_in_doc", "") or "").strip(),
+        "employee_name_in_doc": str(j.get("employee_name_in_doc", "") or "").strip(),
+        "requesting_emp_no":    str(j.get("requesting_emp_no", "") or "").strip(),
+        "opex_code":            str(j.get("opex_code", "") or "").strip(),
+        "classification_basis": str(j.get("classification_basis", "") or "").strip(),
+        "_llm_model":     res.get("model", ""),
+        "_llm_in_tokens": res.get("in_tokens", 0),
+        "_llm_out_tokens":res.get("out_tokens", 0),
+        "_llm_error":     res.get("error", ""),
+        "_from_cache":    False,
+    }
+    try:
+        saveable = {k: v for k, v in out.items() if k != "_evidence"}
+        cache_path.write_text(json.dumps(saveable, ensure_ascii=False, indent=2, default=str))
+    except Exception:
+        pass
+
+    out["_folder"]   = str(folder) if folder else ""
+    out["_evidence"] = evidence
+    return out
+
+
+# ─── master-data shortcut (no Call 2 needed) ─────────────────────────────────
+
+def _norm_master_code(val: str, lookup_key: str) -> str:
+    """If val is a text label (e.g. 'EP'), resolve to its numeric code."""
+    if not val or val.isdigit():
+        return val
+    mapped = _resolve_text_code(val, lookup_key)
+    return mapped if mapped else val
+
+
+def resolve_from_master(emp_no: str, manpower: dict) -> dict | None:
+    """If emp_no is in manpower master, return the full allocation dict."""
+    rec = manpower.get(emp_no)
+    if not rec:
+        return None
+    return {
+        "emp_no":      "",               # blank per truth convention for regular travel
+        "account":     "60301003",
+        "cost_center": rec["cost_center"],
+        "div":         _norm_master_code(rec["div_code"], "div"),
+        "solution":    _norm_master_code(rec["solution"], "solution"),
+        "agency":      _norm_master_code(rec["agency_code"], "agency"),
+        "confidence":  "high",
+        "reasoning":   f"emp_no {emp_no} found in master; used home CC/div/agency directly.",
+    }
+
+
+def resolve_sponsorship_from_master(requesting_emp_no: str, manpower: dict, lookups: dict) -> dict | None:
+    """Resolve sponsorship row from requesting employee's master record."""
+    rec = manpower.get(requesting_emp_no)
+    if not rec:
+        return None
+    return {
+        "emp_no":      "",               # sponsorship — always blank
+        "account":     "60307021",
+        "cost_center": rec["cost_center"],
+        "div":         _norm_master_code(rec["div_code"], "div"),
+        "solution":    _norm_master_code(rec["solution"], "solution"),
+        "agency":      _norm_master_code(rec["agency_code"], "agency"),
+        "confidence":  "high",
+        "reasoning":   f"Sponsorship; requesting emp {requesting_emp_no} in master → used home CC/div/agency.",
+    }
+
+
+# ─── CALL 2: full resolution ──────────────────────────────────────────────────
+
+_RESOLVE_CACHE_DIR = _V16_CACHE_BASE / "resolve"
+_RESOLVE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def full_resolve_row(
+    row_idx: int,
+    cascade_row: dict,
+    classify: dict,
+    batch_id: str,
+    raw_root: Path,
+    all_folders: list[Path],
+    manpower: dict,
+    lookups: dict,
+    reverse_index: dict[str, Path] | None = None,
+    no_cache: bool = False,
+    route_reason: str = "",
+) -> dict:
+    """CALL 2 — full evidence resolution (Gemini Pro). no_cache=True forces fresh LLM call."""
+    desc    = str(cascade_row.get("Description", "") or "")
+    notes   = str(cascade_row.get("Notes", "") or "")
+    amount  = cascade_row.get("*Amount", "")
+    date_v  = str(cascade_row.get("*Invoice Date", "") or "")
+    m       = re.search(r"\b(\d{10,})\b", desc + " " + notes)
+    ticket  = m.group(1) if m else ""
+    if not ticket:
+        m2 = re.search(r"\b(26-\d{3})\b", desc + " " + notes)
+        ticket = m2.group(1) if m2 else ""
+    passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+
+    evidence = classify.get("_evidence") or {}
+    if not evidence:
+        folder = find_folder_with_index(ticket, passenger, notes, all_folders,
+                                        reverse_index or {})
+        evidence = fea.collect_evidence(folder) if folder else {"msgs": [], "pdfs": [], "files": [], "total_chars": 0}
+
+    folder_path = Path(classify.get("_folder", "")) if classify.get("_folder") else None
+
+    pseudo_row = {
+        "row_idx":     row_idx,
+        "ticket_no":   ticket,
+        "passenger":   passenger,
+        "route":       desc.split(" - ", 1)[1] if " - " in desc else "",
+        "amount":      amount,
+        "date":        date_v,
+        "notes":       notes,
+        "description": desc,
+        # Pass classification hints so the prompt can leverage them
+        "_classify_row_type":          classify.get("row_type", ""),
+        "_classify_emp_no":            classify.get("employee_no_in_doc", ""),
+        "_classify_requesting_emp_no": classify.get("requesting_emp_no", ""),
+        "_classify_opex_code":         classify.get("opex_code", ""),
+    }
+
+    snapshot = fea.build_master_snapshot(manpower, lookups, evidence, pseudo_row)
+    base_prompt = fea.build_prompt(pseudo_row, evidence, snapshot)
+
+    # Inject classification context at the top of the prompt
+    classify_hint = _build_classify_hint(classify)
+
+    # v24: CHD/INF row with PC email in evidence → strong hint for STEP2
+    if route_reason == "CHD_PC_EVIDENCE":
+        chd_pc_hint = (
+            "\n[ROUTING CONTEXT v24 — CHILD/INFANT PERSONAL CONTRIBUTION]\n"
+            "This is a CHD (child) or INF (infant) passenger. Their evidence folder contains "
+            "a Personal Contribution approval email for the responsible adult employee.\n"
+            "• Set account=21070229 (Personal Contribution) — NOT 60301003 (travel).\n"
+            "• Find the responsible employee's emp_no from the PC email subject/body.\n"
+            "• Use that employee's GL allocation (CC, DIV, Agency) from master data.\n"
+            "• The child/infant shares the same booking as the responsible adult employee.\n"
+        )
+        classify_hint = chd_pc_hint + classify_hint
+
+    # v20 Fix A: for 26-NNN hotel/transfer rows, tell STEP2 to default to sponsorship
+    # These rows were routed because description contains hotel/transfer/registration keywords.
+    # Without this hint, STEP2 defaults to travel account when no evidence is found.
+    if route_reason == "26NNN_LIKELY_SPONSORSHIP":
+        sponsorship_hint = (
+            "\n[ROUTING CONTEXT v20]\n"
+            "This row was pre-flagged as a likely SPONSORSHIP expense "
+            "(hotel stay, accommodation, airport transfer, conference registration, or visa) "
+            "for an external conference attendee sponsored by AlJeel.\n"
+            "• If no evidence contradicts this, set account=60307021 (not 60301003/60301004).\n"
+            "• Look for the AlJeel OPEX requester in any available evidence to determine CC/Agency.\n"
+            "• If no requester found, use the CC/Agency of the most likely sponsoring department "
+            "based on conference name in the description (HF → J&J 10072/160014, "
+            "CRM → J&J 10072/160014, EP → J&J 10072/160014, etc).\n"
+        )
+        classify_hint = sponsorship_hint + classify_hint
+
+    prompt = classify_hint + "\n\n" + base_prompt
+
+    cache_key = f"{batch_id}-row{row_idx:03d}-{ticket or 'noticket'}.json"
+    cache_path = _RESOLVE_CACHE_DIR / cache_key
+    if not no_cache and cache_path.exists():
+        try:
+            cached = json.loads(cache_path.read_text())
+            cached["_from_cache"] = True
+            return cached
+        except Exception:
+            pass
+
+    t0  = time.time()
+    res = fea.call_gemini_with_cascade(prompt)
+    j   = res.get("json", {}) or {}
+
+    out = {
+        "emp_no":      str(j.get("emp_no", "") or "").strip(),
+        "account":     str(j.get("account", "") or "").strip(),
+        "cost_center": str(j.get("cost_center", "") or "").strip(),
+        "div":         str(j.get("div", "") or "").strip(),
+        "solution":    str(j.get("solution", "") or "").strip(),
+        "agency":      str(j.get("agency", "") or "").strip(),
+        "confidence":  str(j.get("confidence", "") or "").strip(),
+        "reasoning":   str(j.get("reasoning", "") or "").strip(),
+        "_llm_model":     res.get("model", ""),
+        "_llm_in_tokens": res.get("in_tokens", 0),
+        "_llm_out_tokens":res.get("out_tokens", 0),
+        "_llm_error":     res.get("error", ""),
+        "_elapsed_sec":   round(time.time() - t0, 2),
+        "_from_cache":    False,
+    }
+    try:
+        cache_path.write_text(json.dumps(out, ensure_ascii=False, indent=2, default=str))
+    except Exception:
+        pass
+    return out
+
+
+def _build_classify_hint(classify: dict) -> str:
+    """Prepend to the full-evidence prompt so the model has the classification context."""
+    rt  = classify.get("row_type", "unclear")
+    en  = classify.get("employee_no_in_doc", "")
+    rn  = classify.get("requesting_emp_no", "")
+    opc = classify.get("opex_code", "")
+    basis = classify.get("classification_basis", "")
+
+    lines = ["## PRE-CLASSIFICATION (from Call 1 — use this as strong prior):"]
+    lines.append(f"  row_type            : {rt}")
+    if en:
+        lines.append(f"  employee_no_in_doc  : {en}  ← look this up in the master below first")
+    if rn:
+        lines.append(f"  requesting_emp_no   : {rn}  ← OPEX requestor; use their CC/div/agency for sponsorship")
+    if opc:
+        lines.append(f"  opex_code           : {opc}")
+    if basis:
+        lines.append(f"  basis               : {basis}")
+    if rt == "sponsorship":
+        lines.append("  MANDATORY: account=60307021, emp_no=\"\" (blank — no employee number on sponsorship rows)")
+    elif rt == "employee":
+        if en:
+            lines.append(f"  MANDATORY: first look up emp_no {en} in the master. If found, use home CC/div/agency directly.")
+        lines.append("  emp_no = \"\" for routine travel (truth convention) UNLESS it's a personal-contribution ticket")
+    return "\n".join(lines)
+
+
+# ─── post-resolution: enforce sponsorship blank emp_no ───────────────────────
+
+def enforce_sponsorship_rules(final: dict, classify: dict, cascade_row: dict) -> dict:
+    """
+    Hard rule: if sponsorship → emp_no must be blank.
+    Also: if cascade account is 60307021, force blank regardless of classify.
+    """
+    account = str(final.get("account", "") or "").strip()
+    cascade_account = str(cascade_row.get("Account", "") or "").strip()
+    is_sponsorship = (
+        account == "60307021"
+        or cascade_account == "60307021"
+        or classify.get("row_type") == "sponsorship"
+    )
+    if is_sponsorship:
+        final = dict(final)
+        final["emp_no"] = ""
+    return final
+
+
+# ─── overlays (same logic as v15.12, applied after resolution) ───────────────
+
+def apply_overlays_v16(llm_out: dict, cascade_row: dict, classify: dict) -> tuple[dict, str]:
+    """v15.12 overlays, adjusted for v16 (sponsorship agency now comes from master, not cascade prefix table)."""
+    method = "llm_agent"
+    final  = dict(llm_out)
+
+    cascade_account  = str(cascade_row.get("Account", "") or "").strip()
+    cascade_solution = str(cascade_row.get("Solution", "") or "").strip()
+    cascade_div      = str(cascade_row.get("DIV", "") or "").strip()
+    cascade_agency   = str(cascade_row.get("Agency", "") or "").strip()
+    llm_account      = str(llm_out.get("account", "") or "").strip()
+    llm_solution     = str(llm_out.get("solution", "") or "").strip()
+    llm_agency       = str(llm_out.get("agency", "") or "").strip()
+
+    # Overlay 0 (NEW): classify="employee" → account can never be sponsorship.
+    # Employee rows are 60301003 (travel) or 60301004 (G&A travel).
+    # This blocks LLM from returning 60307021 when the classifier already confirmed
+    # this is an Aljeel employee trip, not a sponsored external visit.
+    if classify.get("row_type") == "employee" and llm_account == "60307021":
+        # Keep cascade if it's a valid travel code; otherwise default to standard travel.
+        if cascade_account in ("60301003", "60301004"):
+            final["account"] = cascade_account
+        else:
+            final["account"] = "60301003"
+        method = "hybrid_overlay"
+
+    # Overlay 1: DIV=888 G&A travel → cascade account wins
+    if cascade_account == "60301004" and llm_account == "60301003":
+        final["account"] = cascade_account
+        if cascade_div == "888":
+            method = "hybrid_overlay"
+
+    # Overlay 2: cascade has deterministic solution, LLM blanked it → keep cascade
+    if cascade_solution and cascade_solution not in ("00000", "0", "") and not llm_solution:
+        final["solution"] = cascade_solution
+        method = "hybrid_overlay"
+
+    # Overlay 3: travel rows — cascade solution-from-route beats LLM guess
+    if (cascade_solution and llm_solution and cascade_solution != llm_solution
+            and cascade_account == "60301003"):
+        if llm_solution in ("00000", "0", ""):
+            final["solution"] = cascade_solution
+            method = "hybrid_overlay"
+
+    # Overlay 4 (MODIFIED vs v15.12): sponsorship agency from master (via requesting_emp_no)
+    # Only fall back to cascade agency prefix table if master gave nothing.
+    # If classify found requesting_emp_no and resolution already got agency from master — do NOT override.
+    # Only override if LLM gave blank/00000 AND cascade has something.
+    requesting_resolved = bool(classify.get("requesting_emp_no")) and llm_agency not in ("", "00000", "0")
+    if (cascade_account == "60307021"
+            and not requesting_resolved
+            and cascade_agency and cascade_agency not in ("", "00000", "0")
+            and llm_agency in ("", "00000", "0")):
+        final["agency"] = cascade_agency
+        method = "hybrid_overlay"
+
+    # Overlay 5: sponsorship solution cascade wins if LLM blanked
+    if (cascade_account == "60307021"
+            and cascade_solution and cascade_solution not in ("00000", "0", "")
+            and llm_solution in ("00000", "0", "")):
+        final["solution"] = cascade_solution
+        method = "hybrid_overlay"
+
+    # Overlay 6: per-field fallback — cascade had real value, LLM blanked
+    PER_FIELD = [
+        ("cost_center", "Cost Center", ("", "000000", "0")),
+        ("div", "DIV", ("", "000", "0")),
+        ("agency", "Agency", ("", "00000", "0")),
+        ("solution", "Solution", ("", "00000", "0")),
+    ]
+    for key, hdr, blank_vals in PER_FIELD:
+        cv = str(cascade_row.get(hdr, "") or "").strip()
+        lv = str(final.get(key, "") or "").strip()
+        if cv and cv not in blank_vals and lv in blank_vals:
+            final[key] = cv
+            method = "hybrid_overlay"
+
+    # Overlay 7 (NEW): Normalise text solution/agency/div labels → numeric codes.
+    # The LLM sometimes returns abbreviations like 'EP', 'HF', 'CRM' instead of
+    # the 5-digit code. Look them up in the canonical lookup table and replace.
+    # Build lookup lazily (module-level singleton after first call).
+    for seg_key, lookup_key in [("solution", "solution"), ("agency", "agency"), ("div", "div")]:
+        raw = str(final.get(seg_key, "") or "").strip()
+        if raw and not raw.isdigit():
+            # Try direct match by code name in lookups
+            mapped = _resolve_text_code(raw, lookup_key)
+            if mapped:
+                final[seg_key] = mapped
+                method = "hybrid_overlay"
+
+    return final, method
+
+
+# ── text-code resolver (built from fea lookups on first use) ──────────────────
+_TEXT_CODE_CACHE: dict = {}
+
+def _resolve_text_code(text: str, lookup_key: str) -> str:
+    """Map a text label like 'EP' → '10064' using the canonical lookup table.
+    Returns empty string if not found.
+    """
+    global _TEXT_CODE_CACHE
+    if not _TEXT_CODE_CACHE:
+        try:
+            import full_evidence_agent as _fea
+            lk = _fea.load_lookups()
+            for lk_name in ("solution", "agency", "div", "cc"):
+                # Build: name.upper() → code
+                _TEXT_CODE_CACHE[lk_name] = {
+                    name.strip().upper(): code
+                    for code, name in lk[lk_name].items()
+                    if name and code
+                }
+        except Exception:
+            _TEXT_CODE_CACHE = {"_err": True}
+    lk_map = _TEXT_CODE_CACHE.get(lookup_key, {})
+    return lk_map.get(text.upper().strip(), "")
+
+
+# ─── per-row orchestrator ─────────────────────────────────────────────────────
+
+def process_row(
+    idx: int,
+    cascade_row: dict,
+    route_reason: str,
+    batch_id: str,
+    raw_root: Path,
+    all_folders: list[Path],
+    manpower: dict,
+    lookups: dict,
+    reverse_index: dict | None = None,
+    no_cache: bool = False,
+) -> dict:
+    """Full v16 two-call pipeline for one routed row. Returns resolution dict + _step_trace."""
+    import time as _t
+
+    # Per-row step trace — records every decision so callers can audit/tune
+    trace: dict = {
+        "row_idx":      idx,
+        "description":  str(cascade_row.get("Description", "") or "")[:80],
+        "route_reason": route_reason,
+        "call1":        None,
+        "call2":        None,
+        "shortcut":     None,
+        "final":        None,
+    }
+
+    # ── CALL 1: classify ──────────────────────────────────────────────────
+    t1 = _t.time()
+    classify = classify_row(idx, cascade_row, batch_id, raw_root, all_folders,
+                            reverse_index=reverse_index, no_cache=no_cache)
+    trace["call1"] = {
+        "model":              classify.get("_llm_model", ""),
+        "from_cache":         classify.get("_from_cache", False),
+        "elapsed_sec":        round(_t.time() - t1, 2),
+        "row_type":           classify.get("row_type", ""),
+        "employee_no_in_doc": classify.get("employee_no_in_doc", ""),
+        "requesting_emp_no":  classify.get("requesting_emp_no", ""),
+        "opex_code":          classify.get("opex_code", ""),
+        "classification_basis": str(classify.get("classification_basis", "") or "")[:200],
+        "evidence_folder":    classify.get("_folder", ""),
+        "evidence_files":     list((classify.get("_evidence") or {}).get("files", [])),
+        "evidence_chars":     int((classify.get("_evidence") or {}).get("total_chars", 0)),
+        "in_tokens":          classify.get("_llm_in_tokens", 0),
+        "out_tokens":         classify.get("_llm_out_tokens", 0),
+        "error":              classify.get("_llm_error", ""),
+    }
+
+    row_type = classify.get("row_type", "unclear")
+    emp_no_hint = classify.get("employee_no_in_doc", "").strip()
+    requesting_no = classify.get("requesting_emp_no", "").strip()
+
+    # ── v19 Fix 2b: No evidence + not in master → prefer unclear over employee ──
+    # Gemini Flash defaults to "employee" for LASTNAME/FIRSTNAME MR format even when
+    # there are no files and the passenger doesn't exist in master. These are usually
+    # external attendees (sponsorship). Downgrade to unclear so STEP2 gets a fair look.
+    if row_type == "employee" and not emp_no_hint:
+        ev_files = list((classify.get("_evidence") or {}).get("files", []))
+        if not ev_files:
+            # Check if passenger surname matches anything in master
+            desc_for_chk = str(cascade_row.get("Description", "") or "")
+            pax_part = desc_for_chk.split(" - ", 1)[0].strip().upper()
+            surname = pax_part.split("/")[0].strip() if "/" in pax_part else ""
+            surname_in_master = surname and any(
+                surname in str(v.get("name", "") or "").upper()
+                for v in manpower.values()
+            )
+            if not surname_in_master:
+                row_type = "unclear"
+                classify["row_type"] = "unclear"
+                classify["classification_basis"] = (
+                    str(classify.get("classification_basis", "") or "") +
+                    " [v19: overridden unclear — no evidence files + surname not in master]"
+                )
+                trace["call1"]["row_type"] = "unclear"
+
+    # ── Master shortcut: employee found in doc AND in master? Skip Call 2 ──
+    if row_type == "employee" and emp_no_hint and emp_no_hint in manpower:
+        rec = resolve_from_master(emp_no_hint, manpower)
+        if rec:
+            final = enforce_sponsorship_rules(rec, classify, cascade_row)
+            final["_agent_method"]  = "v16_master_shortcut"
+            final["_classify"]      = row_type
+            final["_classify_emp"]  = emp_no_hint
+            final["_route_reason"]  = route_reason
+            final["_llm_in_tokens"] = classify.get("_llm_in_tokens", 0)
+            final["_llm_out_tokens"]= classify.get("_llm_out_tokens", 0)
+            final["_from_cache"]    = classify.get("_from_cache", False)
+            trace["shortcut"] = {"type": "master_shortcut_employee", "emp_no": emp_no_hint}
+            trace["final"] = {k: v for k, v in final.items() if not k.startswith("_")}
+            final["_step_trace"] = trace
+            return final
+
+    # ── Master shortcut: sponsorship with requesting emp in master? ──────
+    if row_type == "sponsorship" and requesting_no and requesting_no in manpower:
+        rec = resolve_sponsorship_from_master(requesting_no, manpower, lookups)
+        if rec:
+            final = enforce_sponsorship_rules(rec, classify, cascade_row)
+            final["_agent_method"]  = "v16_sponsorship_master"
+            final["_classify"]      = row_type
+            final["_classify_req"]  = requesting_no
+            final["_route_reason"]  = route_reason
+            final["_llm_in_tokens"] = classify.get("_llm_in_tokens", 0)
+            final["_llm_out_tokens"]= classify.get("_llm_out_tokens", 0)
+            final["_from_cache"]    = classify.get("_from_cache", False)
+            trace["shortcut"] = {"type": "master_shortcut_sponsorship", "requesting_emp_no": requesting_no}
+            trace["final"] = {k: v for k, v in final.items() if not k.startswith("_")}
+            final["_step_trace"] = trace
+            return final
+
+    # ── CALL 2: full evidence resolve ─────────────────────────────────────
+    t2 = _t.time()
+    llm = full_resolve_row(idx, cascade_row, classify, batch_id, raw_root, all_folders, manpower, lookups,
+                        reverse_index=reverse_index, no_cache=no_cache, route_reason=route_reason)
+    trace["call2"] = {
+        "model":       llm.get("_llm_model", ""),
+        "from_cache":  llm.get("_from_cache", False),
+        "elapsed_sec": round(_t.time() - t2, 2),
+        "emp_no":      llm.get("emp_no", ""),
+        "account":     llm.get("account", ""),
+        "cost_center": llm.get("cost_center", ""),
+        "agency":      llm.get("agency", ""),
+        "confidence":  llm.get("confidence", ""),
+        "reasoning":   str(llm.get("reasoning", "") or "")[:400],
+        "in_tokens":   llm.get("_llm_in_tokens", 0),
+        "out_tokens":  llm.get("_llm_out_tokens", 0),
+        "error":       llm.get("_llm_error", ""),
+    }
+    if llm.get("_llm_error"):
+        trace["final"] = {"error": llm.get("_llm_error", "")}
+        return {
+            "_agent_method":  "cascade_fallback",
+            "_route_reason":  route_reason,
+            "_llm_error":     llm.get("_llm_error", ""),
+            "_classify":      row_type,
+            "_llm_in_tokens": classify.get("_llm_in_tokens", 0) + llm.get("_llm_in_tokens", 0),
+            "_llm_out_tokens":classify.get("_llm_out_tokens", 0) + llm.get("_llm_out_tokens", 0),
+            "_step_trace":    trace,
+        }
+
+    final, method = apply_overlays_v16(llm, cascade_row, classify)
+    final = enforce_sponsorship_rules(final, classify, cascade_row)
+
+    # ── v20 Fix B: PC / family-of-employee reasoning override ────────────────
+    # Trigger account=21070229 when STEP2 reasoning explicitly identifies:
+    #   - personal contribution (existing)
+    #   - family of employee / dependent of employee (new)
+    # Guard: do NOT apply if route_reason is 26NNN_LIKELY_SPONSORSHIP — those are
+    #   conference sponsorship rows where a PC email in the folder is coincidental.
+    llm_reasoning = str(llm.get("reasoning", "") or "").lower()
+    # v21 Fix 1: broadened PC signals (plural forms + natural language variations)
+    PC_SIGNALS = (
+        "personal contribution",
+        "family of employee",
+        "family member of employee",
+        "family members of employee",   # plural — was missing, caused ABUIRSHEID miss
+        "dependent of employee",
+        "dependents of employee",
+        "employee's family",
+        "employee's dependent",
+        "is a family",
+        "are family of",
+    )
+    is_pc_signal   = any(sig in llm_reasoning for sig in PC_SIGNALS)
+    is_26nnn_route = (route_reason == "26NNN_LIKELY_SPONSORSHIP")
+
+    # v21 Fix 3: name-match exception — if STEP2 found a PC email whose name
+    # matches the description passenger, allow PC override even on 26-NNN routes.
+    # (guards against the blanket 26-NNN block eating genuine PC rows like WAHEED)
+    if is_26nnn_route and is_pc_signal:
+        desc_for_nm = str(cascade_row.get("Description", "") or "").upper()
+        # v23 Fix: check if any DESCRIPTION word (>5 chars) appears in the PC email name.
+        # Direction: description → PC name (not PC name → description).
+        # This correctly matches "WAHEED" found in "Abdul Waheed Amjad"
+        # but NOT "ALMADDAH" found in "Abdullah Majed Almusayfir".
+        import re as _re
+        nm_match = _re.search(r"for ([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\s*\(\d", str(llm.get("reasoning","") or ""))
+        if nm_match:
+            pc_name_upper = nm_match.group(1).upper()
+            # Require BOTH first AND last name of the passenger to appear in the
+            # PC email name as tokens. A single common name (e.g. ABDULLAH) is
+            # never sufficient — the passenger's full first+last combo must match.
+            pax_part = desc_for_nm.split(" - ", 1)[0].strip() if " - " in desc_for_nm else desc_for_nm
+            TITLE_SKIP = {"MRS","MR","MS","CHD","INF","INFANT"}
+            pax_tokens = [t for t in _re.findall(r"[A-Z]{3,}", pax_part) if t not in TITLE_SKIP]
+            pc_tokens   = set(_re.findall(r"[A-Z]{3,}", pc_name_upper))
+            if len(pax_tokens) >= 2:
+                # Both first (pax_tokens[0]) AND last (pax_tokens[-1]) must be in PC name
+                name_match_found = (pax_tokens[0] in pc_tokens) and (pax_tokens[-1] in pc_tokens)
+            elif len(pax_tokens) == 1:
+                name_match_found = pax_tokens[0] in pc_tokens
+            else:
+                name_match_found = False
+            is_26nnn_route = not name_match_found
+
+    if is_pc_signal and not is_26nnn_route and final.get("account") != "21070229":
+        final["account"] = "21070229"
+        # Re-resolve CC/agency from master using STEP2's emp_no
+        pc_emp = final.get("emp_no") or llm.get("emp_no") or ""
+        if pc_emp and pc_emp in manpower:
+            rec = resolve_from_master(pc_emp, manpower)
+            if rec:
+                for k in ("cost_center", "div", "solution", "agency"):
+                    if rec.get(k):
+                        final[k] = rec[k]
+        method = "llm_agent_pc_override"
+
+    final["_agent_method"]  = f"v16_{method}"
+
+    # ── v21 Fix 2: deterministic 26-NNN sponsorship override ─────────────────
+    # When the LLM was routed as 26NNN_LIKELY_SPONSORSHIP (hotel/transfer/
+    # registration) and still returned a travel account, force to sponsorship.
+    # This covers cases where no OPEX evidence was found but the description
+    # keyword alone is sufficient evidence (Belfast hotel, airport transfer, etc.)
+    # Safety: only applies when PC override did NOT already fire (account≠21070229)
+    # and the account is still a travel code.
+    if (route_reason == "26NNN_LIKELY_SPONSORSHIP"
+            and final.get("account") in ("60301003", "60301004")
+            and final.get("account") != "21070229"):
+        final["account"] = "60307021"
+        final["_agent_method"] = "v16_26nnn_forced_sponsorship"
+        method = "26nnn_forced_sponsorship"
+
+    final["_classify"]      = row_type
+    final["_route_reason"]  = route_reason
+    final["_llm_in_tokens"] = classify.get("_llm_in_tokens", 0) + llm.get("_llm_in_tokens", 0)
+    final["_llm_out_tokens"]= classify.get("_llm_out_tokens", 0) + llm.get("_llm_out_tokens", 0)
+    final["_from_cache"]    = classify.get("_from_cache", False) and llm.get("_from_cache", False)
+    trace["final"] = {k: v for k, v in final.items() if not k.startswith("_")}
+    final["_step_trace"]    = trace
+    return final
+
+
+# ─── family-cluster unification (same as v15.12) ─────────────────────────────
+
+def apply_family_cluster_unification(hybrid_rows: list[dict], cascade_rows: list[dict]) -> int:
+    by_cluster: dict[str, list[int]] = {}
+    for i, c in enumerate(cascade_rows):
+        desc = str(c.get("Description", "") or "")
+        passenger = desc.split(" - ", 1)[0].strip().upper() if " - " in desc else ""
+        surname   = passenger.split()[-1] if passenger else ""
+        date      = str(c.get("*Invoice Date", "") or "")[:7]
+        route     = desc.split(" - ", 1)[1] if " - " in desc else ""
+        key       = f"{surname}|{route}|{date}"
+        if surname:
+            by_cluster.setdefault(key, []).append(i)
+
+    unified = 0
+    for key, idxs in by_cluster.items():
+        if len(idxs) < 2:
+            continue
+        emp_pool = [str(cascade_rows[i].get("Employee No", "") or "").strip() for i in idxs]
+        emp_pool = [e for e in emp_pool if e and e != "0"]
+        if not emp_pool:
+            continue
+        winner, n = Counter(emp_pool).most_common(1)[0]
+        if n >= 2:
+            for i in idxs:
+                m = hybrid_rows[i].get("_agent_method", "cascade")
+                if "v16_" in m or m in ("llm_agent", "hybrid_overlay"):
+                    if str(hybrid_rows[i].get("emp_no", "")).strip() != winner:
+                        hybrid_rows[i]["emp_no"] = winner
+                        hybrid_rows[i]["_agent_method"] = "v16_cluster_unified"
+                        unified += 1
+    return unified
+
+
+# ─── main ─────────────────────────────────────────────────────────────────────
+
+def utc_ts() -> str:
+    return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+
+
+def main():
+    ap = argparse.ArgumentParser(description="AlJeel AP Pipeline v16")
+    ap.add_argument("batch_id")
+    ap.add_argument("--invoice-id", default=None)
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--cost-ceiling", type=float, default=COST_CEILING)
+    ap.add_argument("--input-suffix", default="v15.11", help="Cascade input version prefix")
+    args = ap.parse_args()
+
+    batch_id  = args.batch_id
+    batch_dir = ROOT / "batches" / f"jawal-{batch_id}"
+    raw_root  = batch_dir / "raw"
+    if not batch_dir.exists():
+        print(f"[fatal] batch dir not found: {batch_dir}", file=sys.stderr)
+        sys.exit(2)
+
+    invoice_id = args.invoice_id or batch_id
+    pattern    = f"Spreadsheet-{invoice_id}-FILLED-{args.input_suffix}*.xlsx"
+    candidates = sorted((batch_dir / "output").glob(pattern),
+                        key=lambda p: p.stat().st_mtime, reverse=True)
+    if not candidates:
+        print(f"[fatal] cascade output missing: {batch_dir}/output/{pattern}", file=sys.stderr)
+        sys.exit(3)
+    cascade_xlsx = candidates[0]
+    print(f"[load] cascade: {cascade_xlsx.name}", flush=True)
+
+    out_dir  = batch_dir / "output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_xlsx = out_dir / f"Spreadsheet-{invoice_id}-FILLED-{VERSION}.xlsx"
+    # Backup existing output
+    if out_xlsx.exists():
+        bak = out_xlsx.with_suffix(out_xlsx.suffix + f".bak-pre-v16-{utc_ts()}")
+        shutil.copy2(out_xlsx, bak)
+        print(f"[backup] {bak.name}", flush=True)
+
+    cascade_rows, headers, hdr_row = v15.read_cascade_xlsx(cascade_xlsx)
+    print(f"[load] {len(cascade_rows)} cascade rows", flush=True)
+    if args.limit > 0:
+        cascade_rows = cascade_rows[:args.limit]
+
+    print("[load] master data...", flush=True)
+    manpower = fea.load_manpower()
+    lookups  = fea.load_lookups()
+    all_folders = fea.collect_all_folders(raw_root)
+    print(f"[scan] {len(all_folders)} evidence folders in {raw_root}", flush=True)
+    print("[scan] building reverse folder index (msg subjects + filenames)...", flush=True)
+    reverse_index = build_reverse_folder_index(all_folders)
+    print(f"[scan] reverse index: {len(reverse_index)} ticket→folder mappings", flush=True)
+    pc_index = build_personal_contribution_index(all_folders)
+    print(f"[scan] personal contribution index: {len(pc_index)} folders with PC forms", flush=True)
+
+    # ── routing pass ──────────────────────────────────────────────────────
+    routed: list[tuple[int, str]] = []
+    for i, row in enumerate(cascade_rows):
+        should, reason = _needs_classification(row, all_folders, reverse_index)
+        if should:
+            routed.append((i, reason))
+
+    reason_counts: dict[str, int] = {}
+    for _, r in routed:
+        reason_counts[r] = reason_counts.get(r, 0) + 1
+    print(f"[route] {len(routed)} rows → v16 two-call / {len(cascade_rows) - len(routed)} stay cascade", flush=True)
+    for r, n in reason_counts.items():
+        print(f"        {r}: {n}", flush=True)
+
+    # ── initialize hybrid_rows from cascade ───────────────────────────────
+    hybrid_rows: list[dict] = []
+    for c in cascade_rows:
+        hybrid_rows.append({
+            "_row_idx":     c["_row_idx"],
+            "_agent_method":"cascade",
+            "emp_no":       c.get("Employee No", "") or "",
+            "account":      c.get("Account", "") or "",
+            "cost_center":  c.get("Cost Center", "") or "",
+            "div":          c.get("DIV", "") or "",
+            "solution":     c.get("Solution", "") or "",
+            "agency":       c.get("Agency", "") or "",
+            "location":     c.get("Location", "") or "",
+        })
+
+    # ── enforce blank emp_no on cascade sponsorship rows right now ────────
+    blanked_cascade = 0
+    for i, c in enumerate(cascade_rows):
+        if str(c.get("Account", "") or "").strip() == "60307021":
+            if str(hybrid_rows[i]["emp_no"]).strip() not in ("", "0", "-"):
+                hybrid_rows[i]["emp_no"] = ""
+                blanked_cascade += 1
+    if blanked_cascade:
+        print(f"[blank] {blanked_cascade} cascade sponsorship rows → emp_no cleared", flush=True)
+
+
+    # ── LLM worker ────────────────────────────────────────────────────────
+    total_in = total_out = llm_errors = 0
+    pricing_pro = fea.GEMINI_PRICING["gemini-2.5-pro"]
+
+    def worker(idx_reason):
+        idx, reason = idx_reason
+        try:
+            res = process_row(
+                idx, cascade_rows[idx], reason,
+                batch_id, raw_root, all_folders, manpower, lookups,
+                reverse_index=reverse_index,
+            )
+            return idx, reason, res
+        except Exception as e:
+            return idx, reason, {
+                "_agent_method": "cascade_fallback",
+                "_llm_error": f"{type(e).__name__}: {e}",
+                "_tb": traceback.format_exc()[-500:],
+            }
+
+    t_start = time.time()
+    done = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = [ex.submit(worker, ir) for ir in routed]
+        try:
+            for fut in concurrent.futures.as_completed(futs):
+                idx, reason, res = fut.result()
+                done += 1
+                tok_in  = res.get("_llm_in_tokens", 0) or 0
+                tok_out = res.get("_llm_out_tokens", 0) or 0
+                total_in  += tok_in
+                total_out += tok_out
+                cost_est = (total_in * pricing_pro["in"]) + (total_out * pricing_pro["out"])
+                err_marker = f" ERR={res.get('_llm_error','')[:60]}" if res.get("_llm_error") else ""
+                cached     = " [C]" if res.get("_from_cache") else ""
+                classify_t = res.get("_classify", "?")
+                elapsed    = time.time() - t_start
+                print(
+                    f"[{done:3d}/{len(routed)}] row {idx:3d} ({reason} → {classify_t})"
+                    f"  method={res.get('_agent_method','?')}"
+                    f"  t={elapsed:5.1f}s  cost~=${cost_est:.3f}{cached}{err_marker}",
+                    flush=True,
+                )
+                if res.get("_llm_error"):
+                    llm_errors += 1
+
+                # Apply to hybrid_rows
+                method = res.get("_agent_method", "cascade_fallback")
+                hybrid_rows[idx]["_agent_method"] = method
+                if "cascade_fallback" not in method:
+                    for key in ("emp_no", "account", "cost_center", "div", "solution", "agency"):
+                        v = res.get(key)
+                        if v is not None:
+                            hybrid_rows[idx][key] = v
+                hybrid_rows[idx]["_route_reason"] = reason
+                hybrid_rows[idx]["_classify"]      = classify_t
+
+                if cost_est > args.cost_ceiling:
+                    print(f"[fatal] cost ceiling ${args.cost_ceiling:.2f} hit; saving partial.", file=sys.stderr)
+                    for f in futs:
+                        f.cancel()
+                    break
+        except KeyboardInterrupt:
+            print("\n[interrupt] saving partial...", flush=True)
+
+    # ── family cluster unification ────────────────────────────────────────
+    unified = apply_family_cluster_unification(hybrid_rows, cascade_rows)
+    print(f"[cluster] {unified} rows emp_no-unified within family clusters", flush=True)
+
+
+    # ── personal contribution overlay (deterministic, no LLM) ─────────────
+    # Any row whose evidence folder contains a "Personal Contribution" .msg:
+    #   account = 21070229, emp_no = from the form, segments = from master.
+    pc_applied = 0
+    for i, c in enumerate(cascade_rows):
+        desc  = str(c.get("Description", "") or "")
+        notes = str(c.get("Notes", "") or "")
+        text  = desc + " " + notes
+        # Extract ticket and find folder — STRICT match only (no name-word fallback).
+        # Using strict matching avoids false-positive PC detection on unrelated rows.
+        tm = re.search(r"\b(\d{10,})\b", text)
+        ticket = tm.group(1) if tm else ""
+        if not ticket:
+            tm2 = re.search(r"\b(26-\d{3})\b", text)
+            ticket = tm2.group(1) if tm2 else ""
+        passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+        clean_pax = _clean_passenger(passenger)
+        # Strict: only exact ticket match or Jawal PDF surname match — no reverse_index word fallback
+        folder = fea.find_ticket_folder(ticket, clean_pax, notes, all_folders)
+        if not folder:
+            # Allow ticket-ref-only lookup in reverse_index (exact ticket match, not word match)
+            f2 = reverse_index.get(ticket)
+            if f2 and f2.exists():
+                folder = f2
+        if not folder:
+            continue
+        pc_rec = pc_index.get(str(folder))
+        if not pc_rec:
+            continue
+        # Personal contribution form found — override account to 21070229
+        cascade_account = str(c.get("Account", "") or "").strip()
+        if cascade_account == "21070229":
+            continue  # already correct, skip
+        if cascade_account == "60307021":
+            continue  # sponsorship row — skip
+        # Only override when cascade FAILED to resolve the employee (not_resolved layer).
+        # If cascade successfully resolved via L1/L4/L8 etc., its account is correct — trust it.
+        res_layer = str(c.get("Resolution Layer", "") or "").strip().lower()
+        if "not_resolved" not in res_layer and "not resolved" not in res_layer:
+            continue  # cascade resolved → trust its account, don't override
+        # Must also have EMPLOYEE_NOT_IN_MASTER or CC still unresolved (000000/999999)
+        flags = str(c.get("Agent Flags", "") or "")
+        cascade_cc = str(c.get("Cost Center", "") or "").strip()
+        if "EMPLOYEE_NOT_IN_MASTER" not in flags and cascade_cc not in ("", "000000", "999999"):
+            continue  # cascade found employee and CC — trust it
+        emp_no = pc_rec.get("emp_no", "")
+        rec = manpower.get(emp_no, {})
+        hybrid_rows[i]["account"]     = "21070229"
+        hybrid_rows[i]["emp_no"]      = emp_no
+        if rec:
+            hybrid_rows[i]["cost_center"] = _norm_master_code(rec.get("cost_center",""), "cc")
+            hybrid_rows[i]["div"]         = _norm_master_code(rec.get("div_code",""), "div")
+            hybrid_rows[i]["solution"]    = _norm_master_code(rec.get("solution",""), "solution")
+            hybrid_rows[i]["agency"]      = _norm_master_code(rec.get("agency_code",""), "agency")
+        hybrid_rows[i]["_agent_method"] = "v16_personal_contribution"
+        pc_applied += 1
+    if pc_applied:
+        print(f"[pc] {pc_applied} rows → account=21070229 (personal contribution)", flush=True)
+
+    # ── write output xlsx ─────────────────────────────────────────────────
+    # Remap _agent_method for write_v15_12_xlsx (it checks for "llm_agent"/"hybrid_overlay"/"cluster_unified")
+    # We tag v16 methods to trigger the rewrite path.
+    WRITE_METHODS = {"llm_agent", "hybrid_overlay", "cluster_unified"}
+    for h in hybrid_rows:
+        m = h.get("_agent_method", "")
+        if m.startswith("v16_") or m in ("v16_master_shortcut", "v16_sponsorship_master"):
+            # Make write function pick this up
+            h["_agent_method_orig"] = m
+            # Map to a method the writer understands
+            if "cluster" in m:
+                h["_agent_method"] = "cluster_unified"
+            else:
+                h["_agent_method"] = "llm_agent"
+
+    v15.write_v15_12_xlsx(cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row)
+    # Restore original method names in summary
+    for h in hybrid_rows:
+        if "_agent_method_orig" in h:
+            h["_agent_method"] = h.pop("_agent_method_orig")
+
+    print(f"[out] {out_xlsx}", flush=True)
+
+    # ── summary ───────────────────────────────────────────────────────────
+    cost_usd = (total_in * pricing_pro["in"]) + (total_out * pricing_pro["out"])
+    method_counts: dict[str, int] = {}
+    for h in hybrid_rows:
+        method_counts[h["_agent_method"]] = method_counts.get(h["_agent_method"], 0) + 1
+
+    summary = {
+        "batch_id":            batch_id,
+        "version":             VERSION,
+        "timestamp_utc":       utc_ts(),
+        "total_rows":          len(cascade_rows),
+        "routed_to_v16":       len(routed),
+        "routing_reasons":     reason_counts,
+        "method_counts":       method_counts,
+        "cascade_blanked_sponsorship": blanked_cascade,
+        "cluster_unified":     unified,
+        "llm_errors":          llm_errors,
+        "llm_in_tokens":       total_in,
+        "llm_out_tokens":      total_out,
+        "cost_usd_est":        round(cost_usd, 4),
+        "cost_ceiling":        args.cost_ceiling,
+        "runtime_sec":         round(time.time() - t_start, 1),
+        "cascade_input":       str(cascade_xlsx),
+        "output":              str(out_xlsx),
+    }
+    (out_dir / f"summary-{VERSION}.json").write_text(json.dumps(summary, indent=2, default=str))
+
+    print()
+    print("=" * 65)
+    print(f"  v16 done — {batch_id}")
+    print(f"  Rows:          {summary['total_rows']}  ({len(routed)} routed)")
+    print(f"  Blanked (spon):{blanked_cascade}")
+    print(f"  Methods:       {method_counts}")
+    print(f"  Cluster unif.: {unified}")
+    print(f"  Cost (est):    ${cost_usd:.4f}  ({total_in:,} in / {total_out:,} out)")
+    print(f"  Runtime:       {summary['runtime_sec']:.1f}s")
+    print(f"  Output:        {out_xlsx}")
+    print("=" * 65)
+
+
+if __name__ == "__main__":
+    main()

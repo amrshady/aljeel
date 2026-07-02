@@ -1,0 +1,28 @@
+[
+  {
+    "sl_no": 39,
+    "passenger": "ALI/HOSNY MR",
+    "description": "ALI/HOSNY MR - RUH HMB RUH (6905341979)",
+    "amount": 3660.0,
+    "combo": "03-20100-21070229-000000-000-00000-00000-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 40,
+    "passenger": "SOBHI/ALAAELDIN MR",
+    "description": "SOBHI/ALAAELDIN MR - RUH HMB RUH (6905341980)",
+    "amount": 3660.0,
+    "combo": "03-20100-21070229-000000-000-00000-00000-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  }
+]

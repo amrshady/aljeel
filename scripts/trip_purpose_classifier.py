@@ -1,0 +1,521 @@
+#!/usr/bin/env python3
+"""
+Trip Purpose Classifier v10 — FORM-BODY-FIRST classification.
+
+v10 fixes the systemic misread in v9 where "Personal Contribution Approval
+Requested" in the subject line was treated as a personal/vacation indicator.
+"Personal Contribution" is the Oracle Workday HCM MODULE name for paying out
+employee per-diem and travel allowances — it is the MECHANISM, not the purpose.
+
+Classification priority:
+  Rule 1 — Form body Award name + Trip Goal (AUTHORITATIVE)
+  Rule 2 — Subject-line signals for NON-Personal-Contribution emails
+  Rule 3 — Invoice-line markers (CHD, sponsorship codes)
+  Rule 4 — No signal → UNKNOWN (conservative, keeps resolver default)
+
+v10 changes vs v9:
+  - Subject "Personal Contribution" is now IGNORED for classification
+  - Form body Award name is the primary signal
+  - "Business Trip" award (95% of cases) → BUSINESS_TRIP
+  - "Expat Annual Travel" / "Annual Leave" / "Annual Ticket" → ANNUAL_LEAVE_TICKET
+  - PERSONAL requires EXPLICIT form signal: Trip Goal = "Personal Vacation" etc.
+  - Family cluster requires BOTH cluster detection AND (CHD) markers
+  - Default bias: BUSINESS_TRIP (matches Laith's golden)
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Optional
+
+# Account code per trip purpose
+# v15.11 (Amr May 25): drop GL 11034013 (personal) entirely. Personal rows
+# route to 21070229 (Accrued Employee Annual Tickets) with General segments,
+# applied post-resolve in process_batch.py.
+ACCOUNT_MAP = {
+    "PERSONAL":            "21070229",   # v15.11: was 11034013
+    "BUSINESS_TRIP":       "60301003",
+    "SPONSORSHIP":         "60307021",
+    "RECRUITMENT":         "60308007",
+    "TRAINING":            "60308009",   # ends in 009 — Munich training override case
+    "ANNUAL_LEAVE_TICKET": "21070229",
+    "WARRANTY_GE":         "21070227",
+}
+
+# Trip Goals that are unambiguously BUSINESS
+BUSINESS_TRIP_GOALS = {
+    "area visit", "customer visit", "customer meeting", "partner meeting",
+    "technical support", "technical support (periodic & preventative maintenance)",
+    "tender", "project", "installation", "service call", "inspection",
+    "meeting", "delivery", "provide training", "site visit", "commissioning",
+    "providing training", "deliver training", "delivering training",
+    "handover", "warranty", "after sales", "demo", "presentation",
+    "attending conferences & exhibitions",
+}
+
+BUSINESS_TRAINING_GOALS = {
+    "provide training", "providing training", "deliver training", "delivering training",
+}
+
+# Trip Goals that are unambiguously PERSONAL/VACATION
+PERSONAL_TRIP_GOALS = {
+    "personal vacation", "personal", "vacation", "leisure",
+    "annual leave", "annual vacation",
+}
+
+# Award names that indicate annual leave/expat ticket
+ANNUAL_LEAVE_AWARDS = {
+    "annual leave", "annual ticket", "expat annual travel",
+    "annual leave ticket", "الإجازة السنوية",
+}
+
+# Award names that indicate business trip
+BUSINESS_TRIP_AWARDS = {
+    "business trip", "مهمة عمل", "رحلة عمل",
+}
+
+
+def _matches_business_trip_goal(text: str) -> bool:
+    """Return True when text matches a known business-trip goal phrase."""
+    text_lower = (text or "").lower()
+    return bool(text_lower) and any(bg in text_lower or text_lower in bg for bg in BUSINESS_TRIP_GOALS)
+
+
+def _matches_business_training_goal(text: str) -> bool:
+    """Return True when training means providing it to a customer."""
+    text_lower = (text or "").lower()
+    return bool(text_lower) and any(bg in text_lower or text_lower in bg for bg in BUSINESS_TRAINING_GOALS)
+
+
+@dataclass
+class TripClassification:
+    trip_purpose: str             # PERSONAL, BUSINESS_TRIP, SPONSORSHIP, etc.
+    account_override: Optional[str]  # Account code to use, or None = keep default
+    confidence: float             # 0.0 - 1.0
+    signals_used: list[str] = field(default_factory=list)
+    trace: str = ""
+
+
+def classify_trip(
+    subject: str,
+    body: str,
+    form_data: Optional[dict],
+    description: str = "",
+    passenger_name: str = "",
+) -> TripClassification:
+    """Classify a trip based on form body, subject, and invoice line.
+
+    v10: Form body is AUTHORITATIVE. Subject line "Personal Contribution"
+    is explicitly ignored — it's a Workday module name, not a purpose signal.
+    """
+    signals = []
+    purpose = "UNKNOWN"
+    confidence = 0.0
+    trace_parts = []
+
+    subj_lower = (subject or "").lower()
+    subj_clean = subject or ""
+
+    # =========================================================================
+    # RULE 1 — Form body signals (AUTHORITATIVE — highest priority)
+    # =========================================================================
+    if form_data:
+        award_name = (form_data.get("award_name") or "").strip()
+        award_subtype = (form_data.get("award_subtype") or "").strip()
+        trip_goal = (form_data.get("trip_goal") or "").strip()
+        award_lower = award_name.lower()
+        trip_goal_lower = trip_goal.lower()
+
+        # 1a. Award = Annual Leave / Expat Annual Travel → ANNUAL_LEAVE_TICKET
+        if award_lower in ANNUAL_LEAVE_AWARDS:
+            signals.append("form_award_annual_leave")
+            purpose = "ANNUAL_LEAVE_TICKET"
+            confidence = 0.95
+            trace_parts.append(f"award_name='{award_name}' → ANNUAL_LEAVE_TICKET")
+
+        # 1b. Trip Goal explicitly personal/vacation → PERSONAL
+        elif trip_goal_lower in PERSONAL_TRIP_GOALS:
+            signals.append("form_trip_goal_personal")
+            purpose = "PERSONAL"
+            confidence = 0.9
+            trace_parts.append(f"trip_goal='{trip_goal}' → PERSONAL")
+
+        # 1c. Award = Business Trip → BUSINESS_TRIP
+        elif award_lower in BUSINESS_TRIP_AWARDS:
+            signals.append("form_award_business_trip")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.95
+            trace_parts.append(f"award_name='{award_name}' → BUSINESS_TRIP")
+
+            # If trip goal explicitly says training, override award to TRAINING
+            if (
+                any(kw in trip_goal_lower for kw in ("training", "attend training"))
+                and not _matches_business_training_goal(trip_goal_lower)
+            ):
+                signals.append("form_trip_goal_training_override")
+                purpose = "TRAINING"
+                confidence = 0.92
+                trace_parts.append(f"trip_goal='{trip_goal}' overrides award_name='{award_name}' -> TRAINING")
+            else:
+                # Reinforce with trip goal if available
+                if trip_goal_lower:
+                    # Check if trip goal is a known business goal
+                    if _matches_business_trip_goal(trip_goal_lower):
+                        signals.append(f"form_trip_goal_business:{trip_goal_lower[:40]}")
+                        confidence = 1.0
+                        trace_parts.append(f"trip_goal='{trip_goal}' reinforces BUSINESS_TRIP")
+
+        # 1d. Award = Recruitment → RECRUITMENT
+        elif "recruitment" in award_lower or "candidate" in award_lower:
+            signals.append("form_award_recruitment")
+            purpose = "RECRUITMENT"
+            confidence = 0.9
+            trace_parts.append(f"award_name='{award_name}' → RECRUITMENT")
+
+        # 1e. Award means providing training to a customer → BUSINESS_TRIP
+        elif _matches_business_training_goal(award_lower):
+            signals.append(f"form_award_business_goal:{award_lower[:40]}")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.85
+            trace_parts.append(f"award_name='{award_name}' → BUSINESS_TRIP")
+
+        # 1f. Award = Training → TRAINING
+        elif "training" in award_lower or "course" in award_lower:
+            signals.append("form_award_training")
+            purpose = "TRAINING"
+            confidence = 0.9
+            trace_parts.append(f"award_name='{award_name}' → TRAINING")
+
+        # 1g. Award = Vacation/Leisure (explicit) → PERSONAL
+        elif any(kw in award_lower for kw in ("vacation", "leisure", "personal vacation")):
+            signals.append("form_award_personal_vacation")
+            purpose = "PERSONAL"
+            confidence = 0.9
+            trace_parts.append(f"award_name='{award_name}' → PERSONAL")
+
+        # 1h. Trip Goal means providing training to a customer
+        elif trip_goal_lower and _matches_business_training_goal(trip_goal_lower):
+            signals.append(f"form_trip_goal_business:{trip_goal_lower[:40]}")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.85
+            trace_parts.append(f"trip_goal='{trip_goal}' → BUSINESS_TRIP")
+
+        # 1i. Trip Goal = Training and no award classification yet
+        elif trip_goal_lower and any(kw in trip_goal_lower for kw in ("training", "attend training")):
+            signals.append("form_trip_goal_training")
+            purpose = "TRAINING"
+            confidence = 0.85
+            trace_parts.append(f"trip_goal='{trip_goal}' → TRAINING")
+
+        # 1j. Award name exists but not in known categories — still use trip goal
+        elif award_name and trip_goal_lower:
+            if _matches_business_trip_goal(trip_goal_lower):
+                signals.append(f"form_trip_goal_business_fallback:{trip_goal_lower[:40]}")
+                purpose = "BUSINESS_TRIP"
+                confidence = 0.8
+                trace_parts.append(f"unknown award '{award_name}' but trip_goal='{trip_goal}' is business")
+
+        # 1k. Form exists but no award_name extracted — check form_type fallback
+        if purpose == "UNKNOWN" and not award_name:
+            form_type = form_data.get("form_type", "")
+            if form_type == "business_trip":
+                signals.append("form_type_business_trip")
+                purpose = "BUSINESS_TRIP"
+                confidence = 0.7
+                trace_parts.append(f"form_type=business_trip (no award_name) → BUSINESS_TRIP")
+            elif form_type == "personal_contribution":
+                # "personal_contribution" form_type = Workday module, NOT personal trip
+                # Default to BUSINESS_TRIP if no stronger signal
+                signals.append("form_type_personal_contribution_module")
+                purpose = "BUSINESS_TRIP"
+                confidence = 0.6
+                trace_parts.append("form_type=personal_contribution (module name, not purpose) → BUSINESS_TRIP default")
+
+    # =========================================================================
+    # RULE 2 — Subject-line signals (for NON-Personal-Contribution emails only)
+    # =========================================================================
+    # CRITICAL v10 FIX: "Personal Contribution Approval Requested" is IGNORED
+    # It's the Workday module name, not a trip purpose indicator.
+
+    if purpose == "UNKNOWN":
+        # 2a. Business Trip in subject
+        if re.search(r"Business\s+Trip\s+Approval\s+Requested", subj_clean, re.IGNORECASE):
+            signals.append("subject_business_trip_en")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.9
+            trace_parts.append(f"subject='{subj_clean[:80]}' → BUSINESS_TRIP")
+
+        elif re.search(r"business\s+trip", subj_lower):
+            signals.append("subject_business_trip_keyword")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.85
+            trace_parts.append("subject has 'business trip' keyword → BUSINESS_TRIP")
+
+        # 2b. Arabic business trip
+        elif re.search(r"(مهمة\s+عمل|رحلة\s+عمل)", subj_clean):
+            signals.append("subject_business_trip_ar")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.85
+            trace_parts.append("subject has Arabic business trip → BUSINESS_TRIP")
+
+        # 2c. Annual Ticket / Annual Leave
+        elif re.search(r"annual\s+(ticket|leave)", subj_lower):
+            signals.append("subject_annual_leave")
+            purpose = "ANNUAL_LEAVE_TICKET"
+            confidence = 0.9
+            trace_parts.append("subject has 'annual ticket/leave' → ANNUAL_LEAVE_TICKET")
+
+        # 2d. Recruitment
+        elif re.search(r"(recruitment|candidate\s+travel)", subj_lower):
+            signals.append("subject_recruitment")
+            purpose = "RECRUITMENT"
+            confidence = 0.9
+            trace_parts.append("subject has recruitment marker → RECRUITMENT")
+
+        # 2e. Providing training to a customer
+        elif re.search(r"training", subj_lower) and _matches_business_training_goal(subj_lower):
+            signals.append("subject_business_training")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.85
+            trace_parts.append("subject has providing-training marker → BUSINESS_TRIP")
+
+        # 2f. Training
+        elif re.search(r"(training|course|certification)", subj_lower) and not _matches_business_training_goal(subj_lower):
+            signals.append("subject_training")
+            purpose = "TRAINING"
+            confidence = 0.85
+            trace_parts.append("subject has training marker → TRAINING")
+
+        # 2g. OPEX + event codes → SPONSORSHIP
+        elif re.search(r"opex", subj_lower) and re.search(r"(CRM-\d|IEPC|EP-\d|HF-\d)", subj_clean, re.IGNORECASE):
+            signals.append("subject_opex_with_code")
+            purpose = "SPONSORSHIP"
+            confidence = 0.95
+            trace_parts.append("subject has OPEX + event code → SPONSORSHIP")
+
+        # 2h. OPEX alone
+        elif re.search(r"opex", subj_lower):
+            signals.append("subject_opex")
+            purpose = "SPONSORSHIP"
+            confidence = 0.85
+            trace_parts.append("subject has OPEX → SPONSORSHIP")
+
+        # 2i. Sponsorship keywords
+        elif re.search(r"sponsor", subj_lower):
+            signals.append("subject_sponsor")
+            purpose = "SPONSORSHIP"
+            confidence = 0.9
+            trace_parts.append("subject has 'sponsor' → SPONSORSHIP")
+
+        # 2j. Event codes (CRM-XXXX, EP-XXXX, HF-XXXX, IEPC)
+        elif re.search(r"(CRM-\d{4}|EP-\d{4}|HF-\d{4}|IEPC)", subj_clean, re.IGNORECASE):
+            signals.append("subject_event_code")
+            purpose = "SPONSORSHIP"
+            confidence = 0.9
+            trace_parts.append("subject has event code → SPONSORSHIP")
+
+        # 2k. Sakura Forum
+        elif re.search(r"sakura\s+forum", subj_lower):
+            signals.append("subject_sakura_forum")
+            purpose = "SPONSORSHIP"
+            confidence = 0.9
+            trace_parts.append("subject has 'Sakura Forum' → SPONSORSHIP")
+
+        # 2l. ISHLT congress
+        elif re.search(r"ishlt", subj_lower):
+            signals.append("subject_ishlt")
+            purpose = "SPONSORSHIP"
+            confidence = 0.9
+            trace_parts.append("subject has 'ISHLT' → SPONSORSHIP")
+
+        # 2m. Vienna Ticket (conference/sponsorship)
+        elif re.search(r"vienna\s+ticket", subj_lower):
+            signals.append("subject_vienna_ticket")
+            purpose = "SPONSORSHIP"
+            confidence = 0.8
+            trace_parts.append("subject has 'Vienna Ticket' → SPONSORSHIP")
+
+        # 2n. Barcelona Reservation (conference/sponsorship)
+        elif re.search(r"barcelona\s+reservation", subj_lower):
+            signals.append("subject_barcelona_reservation")
+            purpose = "SPONSORSHIP"
+            confidence = 0.8
+            trace_parts.append("subject has 'Barcelona Reservation' → SPONSORSHIP")
+
+        # 2o. Congress/symposium keywords
+        elif re.search(r"(congress|symposium|forum|conference)", subj_lower) and not re.search(r"conference\s+room", subj_lower):
+            signals.append("subject_congress")
+            purpose = "SPONSORSHIP"
+            confidence = 0.8
+            trace_parts.append("subject has congress/symposium → SPONSORSHIP")
+
+        # 2p. "Personal Contribution" in subject WITHOUT a form → default BUSINESS_TRIP
+        # This is the Workday module name. Without form data we can't read award_name,
+        # but 95% of these are Business Trip so we default conservatively.
+        elif re.search(r"Personal\s+Contribution", subj_clean, re.IGNORECASE):
+            signals.append("subject_personal_contribution_module_no_form")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.6
+            trace_parts.append("subject='Personal Contribution' (module, no form parsed) → BUSINESS_TRIP default")
+
+        # 2q. Arabic Personal Contribution (also module name, same treatment)
+        elif re.search(r"(اعتماد\s+المساهمة\s+الشخصية|الإسهام\s+الشخصي)", subj_clean):
+            signals.append("subject_personal_contribution_ar_module_no_form")
+            purpose = "BUSINESS_TRIP"
+            confidence = 0.6
+            trace_parts.append("subject has Arabic Personal Contribution (module) → BUSINESS_TRIP default")
+
+    # =========================================================================
+    # RULE 3 — Invoice-line markers (only if still UNKNOWN)
+    # =========================================================================
+    if purpose == "UNKNOWN" and description:
+        desc_upper = description.upper()
+
+        # 3a. Sponsorship event codes in description
+        if re.search(r"(CRM-\d{4}|EP-\d{4}|HF-\d{4}|IEPC|ISHLT)", description, re.IGNORECASE):
+            signals.append("desc_event_code")
+            purpose = "SPONSORSHIP"
+            confidence = 0.85
+            trace_parts.append("description has event code → SPONSORSHIP")
+
+        # 3b. CHD marker alone is NOT enough for PERSONAL in v10
+        # CHD is only used in family cluster detection (Rule 4 in process_batch)
+        # Standalone (CHD) on an invoice line just means a child is traveling;
+        # could be employee benefit, annual leave, or actual personal.
+        # Flag it but don't auto-classify.
+        elif "(CHD)" in desc_upper:
+            signals.append("pax_child_marker")
+            # Don't set purpose — let family cluster logic handle it
+            trace_parts.append("description has (CHD) → flagged for family cluster analysis")
+
+    # =========================================================================
+    # RULE 4 — No signal → UNKNOWN (conservative default)
+    # =========================================================================
+    if purpose == "UNKNOWN":
+        trace_parts.append("no classification signal → UNKNOWN (leave resolver default)")
+
+    # Build account override
+    account_override = ACCOUNT_MAP.get(purpose)
+    # For BUSINESS_TRIP and UNKNOWN, don't override — leave the resolver's default
+    if purpose in ("BUSINESS_TRIP", "UNKNOWN"):
+        account_override = None
+
+    trace = " | ".join(trace_parts)
+
+    return TripClassification(
+        trip_purpose=purpose,
+        account_override=account_override,
+        confidence=confidence,
+        signals_used=signals,
+        trace=trace,
+    )
+
+
+def detect_family_clusters(
+    batch_lines: list[dict],
+) -> dict[int, dict]:
+    """Detect family clusters across batch lines.
+
+    v10 change: clusters only promote to PERSONAL when CHD markers are present.
+    Without CHD, clusters are flagged but NOT auto-flipped.
+
+    Args:
+        batch_lines: List of dicts with keys:
+            - sl_no: int
+            - passenger_name: str (GDS format: SURNAME/FIRSTNAME TITLE)
+            - description: str (full description including route)
+            - route: str (e.g. "RUH AMM RUH")
+            - trip_purpose: str (from classify_trip)
+
+    Returns:
+        dict mapping sl_no -> cluster info dict:
+            - cluster_id: str
+            - cluster_members: list[int] (sl_nos)
+            - is_family: bool
+            - has_chd: bool (v10: whether any member has CHD marker)
+            - should_flip_personal: bool (v10: only True if has_chd)
+            - mixed: bool
+    """
+    parsed = []
+    for line in batch_lines:
+        pax = line.get("passenger_name", "")
+        surname = ""
+        if "/" in pax:
+            surname = pax.split("/")[0].strip().upper()
+
+        desc = line.get("description", "")
+        route = line.get("route", "")
+        if not route and desc:
+            m = re.search(r" - ([A-Z]{3}(?:\s+[A-Z]{3})+)", desc)
+            if m:
+                route = m.group(1)
+
+        route_cities = set(route.split()) if route else set()
+        has_chd = "(CHD)" in desc.upper()
+
+        parsed.append({
+            "sl_no": line["sl_no"],
+            "surname": surname,
+            "route_cities": route_cities,
+            "route": route,
+            "trip_purpose": line.get("trip_purpose", "UNKNOWN"),
+            "has_chd": has_chd,
+            "description": desc,
+        })
+
+    # Find clusters: same surname + overlapping route corridor
+    clusters = {}
+    assigned = {}
+
+    for i, p1 in enumerate(parsed):
+        if not p1["surname"] or p1["sl_no"] in assigned:
+            continue
+
+        cluster_members = [p1["sl_no"]]
+        cluster_has_chd = p1["has_chd"]
+
+        for j, p2 in enumerate(parsed):
+            if j == i or not p2["surname"] or p2["sl_no"] in assigned:
+                continue
+
+            if p1["surname"] != p2["surname"]:
+                continue
+
+            # Overlapping route corridor (share at least 2 cities)
+            route_overlap = len(p1["route_cities"] & p2["route_cities"]) >= 2
+            # Or: same surname and one has CHD marker
+            either_chd = p1["has_chd"] or p2["has_chd"]
+
+            if route_overlap or either_chd:
+                cluster_members.append(p2["sl_no"])
+                if p2["has_chd"]:
+                    cluster_has_chd = True
+
+        if len(cluster_members) >= 2:
+            cluster_id = f"family_{p1['surname']}_{min(cluster_members)}"
+            purposes_in_cluster = set()
+            for sl in cluster_members:
+                assigned[sl] = cluster_id
+                for p in parsed:
+                    if p["sl_no"] == sl:
+                        purposes_in_cluster.add(p["trip_purpose"])
+
+            is_mixed = len(purposes_in_cluster) > 1
+            # v10: only flip to PERSONAL if CHD markers are present
+            should_flip = cluster_has_chd
+
+            clusters[cluster_id] = {
+                "cluster_id": cluster_id,
+                "cluster_members": cluster_members,
+                "is_family": True,
+                "has_chd": cluster_has_chd,
+                "should_flip_personal": should_flip,
+                "mixed": is_mixed,
+                "purposes": list(purposes_in_cluster),
+            }
+
+    result = {}
+    for sl_no, cluster_id in assigned.items():
+        result[sl_no] = clusters[cluster_id]
+
+    return result

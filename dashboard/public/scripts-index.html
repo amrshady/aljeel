@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Accord OS — AlJeel AP Pipeline Status</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --brand-primary: #1E40AF;
+            --brand-action: #2563EB;
+            --brand-ink: #111827;
+            --brand-muted: #6B7280;
+            --brand-border: #E5E7EB;
+            --brand-bg: #F9FAFB;
+            --brand-success: #10B981;
+            --brand-error: #EF4444;
+            --brand-warning: #F59E0B;
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--brand-bg);
+            color: var(--brand-ink);
+            line-height: 1.5;
+            padding-bottom: 40px;
+        }
+
+        header {
+            background-color: white;
+            border-bottom: 1px solid var(--brand-border);
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--brand-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span {
+            color: var(--brand-action);
+            font-weight: 300;
+        }
+
+        .badge-live {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--brand-success);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-live::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background-color: var(--brand-success);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        main {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .intro {
+            margin-bottom: 24px;
+        }
+
+        .intro h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--brand-ink);
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+
+        .intro p {
+            font-size: 14px;
+            color: var(--brand-muted);
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--brand-muted);
+            margin: 24px 0 12px 0;
+        }
+
+        .script-card {
+            background-color: white;
+            border: 1px solid var(--brand-border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .script-info {
+            flex-grow: 1;
+        }
+
+        .script-path {
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--brand-primary);
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .script-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--brand-ink);
+            margin-top: 2px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .status-active {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--brand-success);
+        }
+
+        .status-inactive {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--brand-error);
+        }
+
+        .status-helper {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: var(--brand-action);
+        }
+
+        .script-desc {
+            font-size: 13px;
+            color: #4B5563;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--brand-border);
+            padding-bottom: 12px;
+        }
+
+        .data-flow {
+            background-color: var(--brand-bg);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .flow-item {
+            margin-bottom: 10px;
+        }
+
+        .flow-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .flow-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--brand-muted);
+            margin-bottom: 4px;
+        }
+
+        .flow-file {
+            font-family: monospace;
+            color: #1F2937;
+            word-break: break-all;
+            background: rgba(0,0,0,0.03);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+
+        .flow-dir {
+            font-family: monospace;
+            color: #4B5563;
+            word-break: break-all;
+            background: rgba(37, 99, 235, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 19H22L12 2Z" stroke="#1E40AF" stroke-width="2.5" stroke-linejoin="round"/>
+                    <path d="M7 14H17" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <div class="logo-text">Accord <span>OS</span></div>
+            </div>
+            <div class="badge-live">Live</div>
+        </div>
+    </header>
+
+    <main>
+        <div class="intro">
+            <h1>AlJeel Pipeline Registry</h1>
+            <p>Mobile-optimized index of all scripts on the server, detailing live operational status, strict data boundaries, and file locations for v30.</p>
+        </div>
+
+        <div class="section-title">Core Active Pipeline Engine</div>
+
+        <!-- run_v30.py -->
+        <div class="script-card" style="border-left: 4px solid var(--brand-success);">
+            <div class="script-header">
+                <div class="script-info">
+                    <div class="script-path">scripts/run_v30.py</div>
+                    <div class="script-name">Core Batch Execution Driver</div>
+                </div>
+                <span class="status-badge status-active">Active</span>
+            </div>
+            <p class="script-desc">The primary entry point that manages the J26-788 run. It compiles a blank Oracle template from raw Jawwal billing records on-the-fly and orchestrates parallel LLM validations for unmapped exceptions.</p>
+            <div class="data-flow">
+                <div class="flow-item">
+                    <div class="flow-label">Loads Input Files (Authoritative Only)</div>
+                    <span class="flow-file">/aljeel/batches/jawal-J26-788/J26-788.xlsx</span>
+                    <span class="flow-file">/aljeel/qc/master-data/Aljeel_Lookups-v2.xlsx</span>
+                </div>
+                <div class="flow-item" style="margin-top: 8px;">
+                    <div class="flow-label">Scans Directories</div>
+                    <span class="flow-dir">/aljeel/batches/jawal-J26-788/raw/</span>
+                </div>
+                <div class="flow-item" style="margin-top: 8px;">
+                    <div class="flow-label">Generates Output File</div>
+                    <span class="flow-file">/aljeel/batches/jawal-J26-788/output/Spreadsheet-J26-788-FILLED-v30.xlsx</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- full_evidence_agent_v30.py -->
+        <div class="script-card" style="border-left: 4px solid var(--brand-success);">
+            <div class="script-header">
+                <div class="script-info">
+                    <div class="script-path">scripts/full_evidence_agent_v30.py</div>
+                    <div class="script-name">LLM Evidence Ingestor & Resolver</div>
+                </div>
+                <span class="status-badge status-active">Active</span>
+            </div>
+            <p class="script-desc">Scans individual folder directories for unmapped transactions. Reads PDFs and emails, extracts actual requester metadata, and calls Gemini Pro concurrently inside a parallel thread pool.</p>
+            <div class="data-flow">
+                <div class="flow-item">
+                    <div class="flow-label">Loads Master Data Files</div>
+                    <span class="flow-file">/aljeel/qc/master-data/Aljeel_Lookups-v2.xlsx</span>
+                    <span class="flow-file">/aljeel/qc/master-data/Employee_Emails_2026-05-26.xlsx</span>
+                </div>
+                <div class="flow-item" style="margin-top: 8px;">
+                    <div class="flow-label">Processes Sub-Directories</div>
+                    <span class="flow-dir">/aljeel/batches/jawal-J26-788/raw/&lt;date-folder&gt;/&lt;event-folder&gt;/</span>
+                </div>
+                <div class="flow-item" style="margin-top: 8px;">
+                    <div class="flow-label">Outputs Cache files</div>
+                    <span class="flow-file">/aljeel/batches/jawal-J26-788/output/step-trace-v30.jsonl</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- code_name_lookup.py -->
+        <div class="script-card" style="border-left: 4px solid var(--brand-success);">
+            <div class="script-header">
+                <div class="script-info">
+                    <div class="script-path">scripts/code_name_lookup.py</div>
+                    <div class="script-name">Dynamic Metadata Translator</div>
+                </div>
+                <span class="status-badge status-active">Active</span>
+            </div>
+            <p class="script-desc">Translates numeric Oracle segment combinations back into readable, audited descriptions. Resolves Division 194 ➔ IVD Solutions natively from Lookups-v2.</p>
+            <div class="data-flow">
+                <div class="flow-item">
+                    <div class="flow-label">Loads Master Lookups File</div>
+                    <span class="flow-file">/aljeel/qc/master-data/Aljeel_Lookups-v2.xlsx</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">Helper & Formatting Scripts</div>
+
+        
+                <span class="status-badge status-helper">Helper</span>
+            </div>
+            <p class="script-desc">This script is <strong>not executed directly</strong>. Its Excel cells formatting, styling, and combination assembly functions are imported as module helpers by run_v30.py.</p>
+            <div class="data-flow">
+                <div class="flow-item">
+                    <div class="flow-label">Loads Layout Template (Formatting Only)</div>
+                    <span class="flow-file">/aljeel/batches/jawal-J26-788/output/Spreadsheet-J26-788-FILLED-v15.11.2.xlsx</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">Inactive / Purged Legacy Scripts</div>
+
+        <!-- process_batch.py -->
+        <div class="script-card" style="border-left: 4px solid var(--brand-error); opacity: 0.85;">
+            <div class="script-header">
+                <div class="script-info">
+                    <div class="script-path" style="text-decoration: line-through; color: var(--brand-muted);">scripts/process_batch.py</div>
+                    <div class="script-name">Legacy Cascade Batch Processor</div>
+                </div>
+                <span class="status-badge status-inactive">Inactive</span>
+            </div>
+            <p class="script-desc">The previous rule-based cascade loader. This script is <strong>fully disabled and never runs</strong> in our v30 AP workflow, preventing old pre-processed guesses from being written.</p>
+            <div class="data-flow">
+                <div class="flow-item">
+                    <div class="flow-label" style="color: var(--brand-error);">Required Obsolete Files (DELETED ❌)</div>
+                    <span class="flow-file" style="text-decoration: line-through; color: var(--brand-muted);">/aljeel/qc/master-data/master-data-003.xlsx</span>
+                    <span class="flow-file" style="text-decoration: line-through; color: var(--brand-muted);">/aljeel/qc/master-data/Employee_Email_Master_2026-05-25.xlsx</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>

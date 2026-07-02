@@ -1,0 +1,27 @@
+--- /home/clawdbot/.openclaw/workspace/aljeel/scripts/full_evidence_agent_v30.py
++++ /home/clawdbot/.openclaw/workspace/aljeel/scripts/full_evidence_agent_v30.py
+@@ -10,6 +10,7 @@
+ from pathlib import Path
+ import openpyxl
+ import fitz  # PyMuPDF
++from extract_pdf import extract_pdf_text_safe
+ 
+ # ---------- config ----------
+ TRUTH_XLSX = Path("/home/clawdbot/.openclaw/workspace/aljeel/raw/J26-640.xlsx")
+@@ -190,13 +191,15 @@
+ 
+ # ---------- evidence collection ----------
+ def extract_pdf_text(path: Path) -> str:
+     try:
+         doc = fitz.open(str(path))
+         parts = []
+         for page in doc:
+             parts.append(page.get_text())
+         doc.close()
+-        return "\n".join(parts)
++        text = "\n".join(parts)
++        if not text.strip():
++            text = extract_pdf_text_safe(path)
++        return text
+     except Exception as e:
+         return f"[PDF_ERROR: {e}]"

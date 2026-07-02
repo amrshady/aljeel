@@ -1,0 +1,457 @@
+#!/usr/bin/env python3
+"""
+Allocation Resolver - resolves "Need to allocate" employees to their
+subordinate targets using:
+
+Tier 1: Deterministic regex/keyword extraction from .msg email bodies
+Tier 2: LLM fallback (Gemini 2.5 Flash) when deterministic finds 0 or >1 candidate
+Tier 3: Hierarchy-based fallback using Manpower organizational tree
+
+The .msg bodies in the J26-788 batch consistently contain only approval stamps
+with NO subordinate-allocation language. Tier 1 and Tier 2 will therefore produce
+no results on this batch. Tier 3 (hierarchy-based) is the primary resolver
+until AlJeel starts including allocation targets in approval emails.
+
+Guardrails:
+- Never allocate to another "Need to allocate" row (loop prevention)
+- Never allocate outside the requester's subordinate tree
+- Multi-candidate: MULTI_ALLOCATION_PENDING_REVIEW
+- No confident answer: keep ALLOCATION_TARGET_MISSING (no regression)
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+from cost_center_resolver import Employee, MasterData
+
+ALLOC_CACHE_DIR = Path("/home/clawdbot/.openclaw/workspace/aljeel/extracted/allocation-llm-cache")
+
+# -------------------------------------------------------------------------
+# Tier 1: Deterministic regex extraction from .msg body
+# -------------------------------------------------------------------------
+EN_PATTERNS = [
+    re.compile(r"charge\s+to\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+    re.compile(r"allocate\s+to\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+    re.compile(r"on\s+behalf\s+of\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+    re.compile(r"booked\s+for\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+    re.compile(r"in\s+the\s+name\s+of\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+    re.compile(r"on\s+account\s+of\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+    re.compile(r"for\s+employee\s+(.+?)(?:\.|$|\n)", re.IGNORECASE),
+]
+
+AR_PATTERNS = [
+    re.compile(r"يتسجل\s+على\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"تحت\s+اسم\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"لصالح\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"للموظف\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"بالنيابة\s+عن\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"يتحمل\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"يسجل\s+على\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"تسجل\s+على\s+(.+?)(?:\.|$|\n)"),
+    re.compile(r"على\s+حساب\s+(.+?)(?:\.|$|\n)"),
+]
+
+EMPNO_PATTERN = re.compile(r"\((\d{7,8})\)")
+
+
+@dataclass
+class AllocationResult:
+    """Result of allocation resolution."""
+    resolved: bool
+    method: str  # "deterministic", "llm", "hierarchy_single", "hierarchy_multi", "none"
+    subordinate_emp_no: Optional[int] = None
+    subordinate_name: Optional[str] = None
+    candidates: list = field(default_factory=list)
+    confidence: float = 0.0
+    reasoning: str = ""
+    flag_code: str = "ALLOCATION_TARGET_MISSING"
+
+
+def _get_subordinates(manager_emp_no, md):
+    """Get direct subordinates of a manager from Manpower."""
+    subs = []
+    for emp in md.employees.values():
+        if emp.manager_no == manager_emp_no:
+            subs.append(emp)
+    return subs
+
+
+def _get_usable_subordinates(manager_emp_no, md):
+    """Get subordinates with 'Can Be used' flag (safe allocation targets)."""
+    subs = _get_subordinates(manager_emp_no, md)
+    return [s for s in subs if s.sol_flag == "Can Be used"]
+
+
+def _fuzzy_name_match_employees(candidate_name, employees, threshold=0.85):
+    """Fuzzy match a candidate name against a list of employees."""
+    if not candidate_name:
+        return []
+
+    name_up = candidate_name.upper().strip()
+    for title in ["MR", "MS", "MRS", "DR", "ENG"]:
+        name_up = name_up.replace(title, "")
+    tokens = [t.strip() for t in re.split(r"[/\s,]+", name_up) if len(t.strip()) >= 2]
+    if not tokens:
+        return []
+
+    matches = []
+    for emp in employees:
+        for name_field in [emp.name, emp.arabic_name]:
+            if not name_field:
+                continue
+            emp_tokens = [t.strip() for t in re.split(r"[\s]+", name_field.upper()) if len(t.strip()) >= 2]
+            if not emp_tokens:
+                continue
+            hit = 0
+            for pt in tokens:
+                for et in emp_tokens:
+                    if pt in et or et in pt:
+                        hit += 1
+                        break
+            score = hit / max(len(tokens), len(emp_tokens))
+            if score >= threshold:
+                matches.append((emp, score))
+                break
+
+    matches.sort(key=lambda x: -x[1])
+    return matches
+
+
+def _tier1_deterministic(msg_body, subordinates):
+    """Tier 1: Extract subordinate name from .msg body using regex patterns."""
+    if not msg_body or not subordinates:
+        return None
+
+    candidate_names = []
+
+    for pat in EN_PATTERNS:
+        m = pat.search(msg_body)
+        if m:
+            candidate_names.append(m.group(1).strip())
+
+    for pat in AR_PATTERNS:
+        m = pat.search(msg_body)
+        if m:
+            candidate_names.append(m.group(1).strip())
+
+    # Check for emp_no references in the body
+    for m in EMPNO_PATTERN.finditer(msg_body):
+        emp_no = int(m.group(1))
+        for sub in subordinates:
+            if sub.emp_no == emp_no and sub.sol_flag == "Can Be used":
+                return AllocationResult(
+                    resolved=True,
+                    method="deterministic",
+                    subordinate_emp_no=sub.emp_no,
+                    subordinate_name=sub.name,
+                    confidence=0.95,
+                    reasoning=f"Emp_no {emp_no} found in .msg body, matches subordinate {sub.name}",
+                    flag_code="ALLOCATION_RESOLVED_DETERMINISTIC",
+                )
+
+    if not candidate_names:
+        return None
+
+    for cand in candidate_names:
+        matches = _fuzzy_name_match_employees(cand, subordinates, threshold=0.80)
+        usable = [(emp, score) for emp, score in matches if emp.sol_flag == "Can Be used"]
+        if len(usable) == 1:
+            emp, score = usable[0]
+            return AllocationResult(
+                resolved=True,
+                method="deterministic",
+                subordinate_emp_no=emp.emp_no,
+                subordinate_name=emp.name,
+                confidence=score,
+                reasoning=f"Name '{cand}' matched subordinate {emp.name} (score={score:.2f})",
+                flag_code="ALLOCATION_RESOLVED_DETERMINISTIC",
+            )
+        elif len(usable) > 1:
+            return AllocationResult(
+                resolved=False,
+                method="deterministic",
+                candidates=[{"emp_no": e.emp_no, "name": e.name, "score": s} for e, s in usable],
+                reasoning=f"Name '{cand}' matched multiple subordinates",
+                flag_code="MULTI_ALLOCATION_PENDING_REVIEW",
+            )
+
+    return None
+
+
+def _tier2_llm(msg_body, manager, subordinates):
+    """Tier 2: LLM fallback using Gemini 2.5 Flash."""
+    if not msg_body or not subordinates:
+        return None
+
+    body_clean = re.sub(r"https?://\S+", "", msg_body)
+    body_clean = re.sub(r"\s+", " ", body_clean).strip()
+
+    # Skip LLM if the body is just approval stamp + forwarded headers
+    stop_words = {
+        "From:", "Sent:", "Subject:", "This", "email", "originated", "from",
+        "EXTERNAL", "sender", "Kindly", "CAUTIOUS", "especially", "with",
+        "attachments", "links",
+        "JAWWAL", "TRAVEL", "Itinerary", "Details",
+    }
+    meaningful_words = [w for w in body_clean.split() if len(w) > 3 and w not in stop_words]
+
+    if len(meaningful_words) < 5:
+        return None
+
+    sub_list = "\n".join([
+        f"  - EmpNo:{s.emp_no} Name:{s.name} ArabicName:{s.arabic_name} Agency:{s.agency_code}"
+        for s in subordinates
+    ])
+
+    prompt = f"""You are analyzing an approval email for a travel expense in a Saudi company.
+The traveler is a manager whose costs should be allocated to a subordinate.
+
+Manager: {manager.name} (EmpNo: {manager.emp_no})
+Manager's subordinates (only those eligible for allocation):
+{sub_list}
+
+Email body:
+---
+{body_clean}
+---
+
+Task: Identify which subordinate (if any) the travel cost should be allocated to.
+Look for explicit mentions of a subordinate's name, employee number, or allocation language.
+
+Return JSON only:
+{{"subordinate_name": "..." or null, "manpower_emp_no": "..." or null, "confidence": 0.0-1.0, "reasoning": "..."}}
+"""
+
+    cache_key = hashlib.sha256(prompt.encode()).hexdigest()
+    ALLOC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_file = ALLOC_CACHE_DIR / f"{cache_key}.json"
+    if cache_file.exists():
+        with open(cache_file) as f:
+            cached = json.load(f)
+        if cached.get("subordinate_name") and cached.get("confidence", 0) >= 0.75:
+            emp_no = int(cached["manpower_emp_no"]) if cached.get("manpower_emp_no") else None
+            if emp_no and any(s.emp_no == emp_no and s.sol_flag == "Can Be used" for s in subordinates):
+                return AllocationResult(
+                    resolved=True,
+                    method="llm",
+                    subordinate_emp_no=emp_no,
+                    subordinate_name=cached["subordinate_name"],
+                    confidence=cached["confidence"],
+                    reasoning=cached.get("reasoning", "LLM cached"),
+                    flag_code="ALLOCATION_RESOLVED_LLM",
+                )
+        return None
+
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+        if not api_key:
+            env_path = Path("/home/clawdbot/.openclaw/.env")
+            if env_path.exists():
+                for line in env_path.read_text().splitlines():
+                    if line.startswith("GEMINI_API_KEY="):
+                        api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        break
+
+        if not api_key:
+            return None
+
+        import urllib.request
+        # Fix 5 v15: cascade — try gemini-3-pro first, fallback to gemini-2.5-pro
+        _arc_cascade = ["gemini-3-pro", "gemini-2.5-pro"]
+        text = ""
+        for _arc_model in _arc_cascade:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{_arc_model}:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},  # bumped from 500 v15
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode(),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    resp_data = json.loads(resp.read())
+                text = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+                print(f"[allocation_resolver] Gemini model used: {_arc_model}")
+                break
+            except Exception as _arc_exc:
+                import urllib.error as _arc_ue
+                _is_transient = (
+                    isinstance(_arc_exc, _arc_ue.HTTPError) and _arc_exc.code in (429, 500, 502, 503, 504)
+                    or "503" in str(_arc_exc) or "429" in str(_arc_exc)
+                )
+                if _is_transient:
+                    print(f"[allocation_resolver] {_arc_model}: {_arc_exc} -- trying next")
+                    continue
+                break  # hard error
+        if not text:
+            raise RuntimeError(f"All Gemini models failed in allocation_resolver cascade")
+        json_match = re.search(r"\{.*\}", text, re.DOTALL)
+        if json_match:
+            llm_result = json.loads(json_match.group())
+        else:
+            llm_result = {"subordinate_name": None, "reasoning": "LLM returned no JSON"}
+
+        with open(cache_file, "w") as f:
+            json.dump(llm_result, f, indent=2, ensure_ascii=False)
+
+        if (
+            llm_result.get("subordinate_name")
+            and llm_result.get("confidence", 0) >= 0.75
+            and llm_result.get("manpower_emp_no")
+        ):
+            emp_no = int(llm_result["manpower_emp_no"])
+            target = next((s for s in subordinates if s.emp_no == emp_no), None)
+            if target and target.sol_flag == "Can Be used":
+                return AllocationResult(
+                    resolved=True,
+                    method="llm",
+                    subordinate_emp_no=emp_no,
+                    subordinate_name=llm_result["subordinate_name"],
+                    confidence=llm_result["confidence"],
+                    reasoning=llm_result.get("reasoning", ""),
+                    flag_code="ALLOCATION_RESOLVED_LLM",
+                )
+
+    except Exception:
+        pass
+
+    return None
+
+
+def _tier3_hierarchy(manager, md):
+    """Tier 3: Hierarchy-based fallback using Manpower org tree (v12 team pool).
+
+    Strategy:
+    - If exactly 1 usable direct subordinate: allocate to them
+    - If multiple usable direct subordinates: use the TEAM POOL approach -
+      pick the most common (CC, DIV, Agency) tuple from the usable reports.
+      The subordinate used for remaining segments (Solution, Location) is
+      the first one matching the majority tuple.
+    - If 0 usable direct subordinates: recurse up to depth 3 through
+      Need-to-allocate sub-managers
+    - If 0 usable at any depth: ALLOCATION_TARGET_MISSING
+    """
+    from collections import Counter
+
+    def _collect_usable(mgr_emp_no, depth=0, max_depth=3, visited=None):
+        """Collect usable subordinates, recursing through Need-to-allocate sub-managers."""
+        if visited is None:
+            visited = set()
+        if mgr_emp_no in visited or depth > max_depth:
+            return []
+        visited.add(mgr_emp_no)
+
+        subs = _get_subordinates(mgr_emp_no, md)
+        usable = [s for s in subs if s.sol_flag == "Can Be used"]
+        # Recurse through Need-to-allocate sub-managers
+        for s in subs:
+            if s.sol_flag == "Need to allocate":
+                usable.extend(_collect_usable(s.emp_no, depth + 1, max_depth, visited))
+        return usable
+
+    usable = _collect_usable(manager.emp_no)
+
+    if len(usable) == 0:
+        return AllocationResult(
+            resolved=False,
+            method="none",
+            reasoning=f"No usable subordinates found for manager {manager.name} ({manager.emp_no}) at any depth",
+            flag_code="ALLOCATION_TARGET_MISSING",
+        )
+
+    if len(usable) == 1:
+        sub = usable[0]
+        return AllocationResult(
+            resolved=True,
+            method="hierarchy_single",
+            subordinate_emp_no=sub.emp_no,
+            subordinate_name=sub.name,
+            confidence=0.75,
+            reasoning=f"Single usable subordinate: {sub.name} ({sub.emp_no})",
+            flag_code="ALLOCATION_RESOLVED_HIERARCHY",
+        )
+
+    # v14: TEAM POOL approach DELETED per Amr Shady's instruction.
+    # 'No pool. You should search in the email.' — 2026-05-22
+    # Multiple candidates without explicit email allocation -> flag for review
+    return AllocationResult(
+        resolved=False,
+        method="none",
+        candidates=[{"emp_no": u.emp_no, "name": u.name} for u in usable],
+        reasoning=f"Multiple subordinates ({len(usable)}) for {manager.name}; pool deleted v14",
+        flag_code="ALLOCATION_TARGET_MISSING",
+    )
+
+
+def resolve_allocation(msg_bodies, requester_emp_no, md):
+    """Main entry point: resolve allocation for a 'Need to allocate' employee.
+
+    Tries Tier 1 -> Tier 2 -> Tier 3 in order.
+
+    Args:
+        msg_bodies: List of .msg body texts associated with this ticket.
+        requester_emp_no: The emp_no of the "Need to allocate" manager.
+        md: MasterData with Manpower and reference tables.
+
+    Returns:
+        AllocationResult with resolution status and target info.
+    """
+    manager = md.employees.get(requester_emp_no)
+    if not manager:
+        return AllocationResult(
+            resolved=False,
+            method="none",
+            reasoning=f"Manager emp_no {requester_emp_no} not in Manpower",
+            flag_code="ALLOCATION_TARGET_MISSING",
+        )
+
+    if manager.sol_flag != "Need to allocate":
+        return AllocationResult(
+            resolved=False,
+            method="none",
+            reasoning=f"Employee {requester_emp_no} flag is '{manager.sol_flag}', not 'Need to allocate'",
+            flag_code="ALLOCATION_TARGET_MISSING",
+        )
+
+    all_subs = _get_subordinates(manager.emp_no, md)
+    usable_subs = [s for s in all_subs if s.sol_flag == "Can Be used"]
+
+    # Tier 1: Deterministic extraction from msg bodies
+    for body in msg_bodies:
+        result = _tier1_deterministic(body, usable_subs)
+        if result and result.resolved:
+            target = md.employees.get(result.subordinate_emp_no)
+            if target and target.sol_flag == "Need to allocate":
+                result = AllocationResult(
+                    resolved=False,
+                    method="deterministic",
+                    reasoning=f"Allocation loop: target {target.name} ({target.emp_no}) also 'Need to allocate'",
+                    flag_code="ALLOCATION_LOOP_DETECTED",
+                )
+            return result
+
+    # Tier 2: LLM fallback
+    for body in msg_bodies:
+        result = _tier2_llm(body, manager, usable_subs)
+        if result and result.resolved:
+            target = md.employees.get(result.subordinate_emp_no)
+            if target and target.sol_flag == "Need to allocate":
+                result = AllocationResult(
+                    resolved=False,
+                    method="llm",
+                    reasoning=f"Allocation loop: LLM target {target.name} also 'Need to allocate'",
+                    flag_code="ALLOCATION_LOOP_DETECTED",
+                )
+            return result
+
+    # Tier 3: Hierarchy-based
+    return _tier3_hierarchy(manager, md)

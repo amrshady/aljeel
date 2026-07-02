@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlJeel AP — J26-788 Review · v30</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #1E40AF;
+      --action: #2563EB;
+      --sage:   #F0F4F3;
+      --bg:     #F8FAFC;
+      --surface:#FFFFFF;
+      --border: #E2E8F0;
+      --text:   #0F172A;
+      --muted:  #64748B;
+      --green:  #16A34A;
+      --yellow: #CA8A04;
+      --red:    #DC2626;
+      --orange: #EA580C;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    /* ── NAV ── */
+    nav { position: sticky; top: 0; z-index: 100; background: var(--navy); color: #fff; height: 52px; display: flex; align-items: center; padding: 0 24px; gap: 16px; box-shadow: var(--shadow-md); }
+    nav .brand { font-weight: 700; font-size: 15px; letter-spacing: -.01em; white-space: nowrap; }
+    nav .divider { opacity: .35; }
+    nav .subtitle { font-size: 13px; font-weight: 400; opacity: .85; white-space: nowrap; }
+    nav .spacer { flex: 1; }
+    nav a.back { color: rgba(255,255,255,.75); text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 4px; transition: color .15s; }
+    nav a.back:hover { color: #fff; }
+
+    /* ── PAGE TABS ── */
+    .page-tabs { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 0; }
+    .page-tab { display: flex; align-items: center; gap: 6px; padding: 14px 18px; font-size: 13px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; transition: all .15s; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+    .page-tab:hover { color: var(--action); }
+    .page-tab.active { color: var(--navy); border-bottom-color: var(--action); font-weight: 600; }
+    .page-tab .ptab-badge { display: inline-flex; align-items: center; justify-content: center; background: #FEE2E2; color: var(--red); border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: 700; min-width: 20px; }
+    .page-tab.active .ptab-badge { background: rgba(37,99,235,.12); color: var(--action); }
+
+    /* ── MAIN ── */
+    main { max-width: 1400px; margin: 0 auto; padding: 24px 24px 48px; }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* ── STATS BAR ── */
+    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+    .stat-card .label { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+    .stat-card .value { font-size: 26px; font-weight: 700; color: var(--navy); letter-spacing: -.02em; }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.red   { color: var(--red); }
+    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; box-shadow: var(--shadow); flex-wrap: wrap; }
+    .search-box { position: relative; flex: 1; min-width: 200px; max-width: 320px; }
+    .search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search-box input { width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px 0 34px; font-family: inherit; font-size: 13px; color: var(--text); outline: none; transition: border-color .15s; background: var(--bg); }
+    .search-box input:focus { border-color: var(--action); }
+    .search-box input::placeholder { color: var(--muted); }
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tab-btn { height: 32px; padding: 0 14px; border: 1px solid var(--border); border-radius: 20px; background: transparent; font-family: inherit; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .tab-btn:hover { border-color: var(--action); color: var(--action); }
+    .tab-btn.active { background: var(--action); border-color: var(--action); color: #fff; }
+    .tab-btn .count { display: inline-flex; align-items: center; justify-content: center; background: rgba(0,0,0,.1); border-radius: 10px; padding: 0 5px; font-size: 10px; margin-left: 4px; min-width: 18px; height: 16px; }
+    .tab-btn.active .count { background: rgba(255,255,255,.25); }
+
+    /* ── TABLE WRAPPER ── */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+    .table-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--sage); }
+    .table-header .table-title { font-weight: 600; font-size: 14px; color: var(--navy); }
+    .row-count { font-size: 12px; color: var(--muted); }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    thead th { background: var(--sage); padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    thead th.right { text-align: right; }
+    thead th.center { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #F8FAFC; }
+    tbody tr.hidden { display: none; }
+    td { padding: 9px 12px; vertical-align: top; }
+    td.right { text-align: right; }
+    td.center { text-align: center; }
+
+    .ticket-no { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .desc-cell { max-width: 260px; }
+    .desc-text { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; }
+    .amount-cell { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; white-space: nowrap; }
+    .amount-cell.neg { color: var(--red); }
+    .gl-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .cc-cell { font-size: 12px; white-space: nowrap; }
+    .cc-name { color: var(--text); font-weight: 500; }
+    .cc-div { color: var(--muted); font-size: 11px; }
+    .emp-no { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .status-badge::before { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; }
+    .status-badge.GREEN { background: #F0FDF4; color: var(--green); border: 1px solid #BBF7D0; }
+    .status-badge.GREEN::before { background: var(--green); }
+    .status-badge.YELLOW { background: #FFFBEB; color: var(--yellow); border: 1px solid #FDE68A; }
+    .status-badge.YELLOW::before { background: var(--yellow); }
+    .status-badge.RED { background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; }
+    .status-badge.RED::before { background: var(--red); }
+
+    .catch-badge { display: inline-flex; align-items: center; gap: 3px; background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+    .catch-badge.MEDIUM { background: #FFFBEB; color: var(--yellow); border-color: #FDE68A; }
+    .catch-badge.LOW { background: #F0F9FF; color: #0369A1; border-color: #BAE6FD; }
+    .catches-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .llm-badge { display: inline-flex; align-items: center; gap: 3px; background: #EFF6FF; color: var(--action); border: 1px solid #BFDBFE; border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 600; margin-left: 6px; vertical-align: middle; }
+
+    .ev-btn { display: inline-flex; align-items: center; gap: 5px; background: var(--navy); color: #fff; border: none; border-radius: 6px; padding: 5px 10px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; white-space: nowrap; }
+    .ev-btn:hover { background: var(--action); }
+    .ev-btn .ev-count { background: rgba(255,255,255,.25); border-radius: 10px; padding: 0 5px; font-size: 10px; min-width: 16px; height: 14px; display: inline-flex; align-items: center; justify-content: center; }
+    .no-ev { font-size: 11px; color: var(--muted); }
+
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .empty-state p { font-size: 14px; margin-top: 12px; }
+
+    /* ── DISCREPANCY TABLE ── */
+    .disc-meta { font-size: 12px; color: var(--muted); }
+    .disc-row-header { background: #FFF7ED; border-bottom: 1px solid #FED7AA; }
+    .disc-row-header td { padding: 10px 12px 6px; }
+    .disc-ticket { font-family: 'SF Mono','Consolas',monospace; font-size: 13px; font-weight: 700; color: var(--orange); }
+    .disc-desc { font-size: 13px; font-weight: 600; color: var(--text); }
+    .disc-amount { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+    .disc-label-row td { padding: 4px 12px 2px; background: #FAFAFA; border-bottom: 1px solid var(--border); }
+    .disc-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .disc-fields-row td { padding: 6px 12px 10px; background: var(--surface); border-bottom: 2px solid var(--border); }
+    .disc-fields { display: flex; gap: 8px; flex-wrap: wrap; }
+    .disc-field { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; min-width: 120px; background: var(--surface); }
+    .disc-field.mismatch { border-color: #FCA5A5; background: #FEF2F2; }
+    .disc-field.match { border-color: #BBF7D0; background: #F0FDF4; }
+    .disc-field-name { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    .disc-field-source { font-size: 9px; color: var(--muted); margin-bottom: 4px; }
+    .source-tag { display: inline-block; padding: 0 4px; border-radius: 3px; background: #EFF6FF; color: var(--action); font-size: 9px; font-weight: 600; }
+    .source-tag.labadi { background: #FFF7ED; color: var(--orange); }
+    .disc-val-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+    .disc-val-label { font-size: 9px; color: var(--muted); width: 32px; flex-shrink: 0; }
+    .disc-val { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; font-weight: 600; }
+    .disc-val.ours { color: var(--text); }
+    .disc-val.truth { color: var(--green); }
+    .disc-val.wrong { color: var(--red); }
+    .disc-match-icon { font-size: 12px; margin-left: auto; }
+    .disc-reasoning-row td { padding: 6px 12px 10px; background: #F8FAFC; border-bottom: 2px solid #E2E8F0; }
+    .disc-reasoning-wrap { display: flex; gap: 12px; align-items: flex-start; }
+    .disc-reasoning-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .disc-reasoning-body { flex: 1; min-width: 0; }
+    .disc-reasoning-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+    .disc-reasoning-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+    .disc-ev-btn { display: inline-flex; align-items: center; gap: 5px; background: var(--navy); color: #fff; border: none; border-radius: 6px; padding: 5px 12px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; margin-top: 8px; }
+    .disc-ev-btn:hover { background: var(--action); }
+    .disc-no-ev { font-size: 11px; color: var(--muted); margin-top: 6px; display: block; }
+    .disc-route { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; }
+    .disc-route-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #EFF6FF; color: var(--action); border: 1px solid #BFDBFE; }
+    .disc-conf-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+    .disc-conf-tag.high { background: #F0FDF4; color: var(--green); }
+    .disc-conf-tag.medium { background: #FFFBEB; color: var(--yellow); }
+    .disc-conf-tag.low { background: #FEF2F2; color: var(--red); }
+    .labadi-row-badge { display: inline-flex; align-items: center; gap: 3px; background: #FFF7ED; color: var(--orange); border: 1px solid #FED7AA; border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 700; margin-left: 8px; }
+    .ok-row-strip { background: #F0FDF4 !important; }
+    .ok-row-strip td { color: var(--green) !important; font-size: 12px; padding: 8px 12px; }
+
+    /* Score bar */
+    .score-bar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .score-bar-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .score-pct { font-size: 32px; font-weight: 700; color: var(--navy); letter-spacing: -.02em; }
+    .score-label { font-size: 13px; color: var(--muted); }
+    .score-label strong { color: var(--text); }
+    .score-track { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; }
+    .score-fill { height: 100%; background: linear-gradient(90deg, var(--action), var(--green)); border-radius: 4px; transition: width .6s ease; }
+    .score-detail { display: flex; gap: 24px; margin-top: 10px; flex-wrap: wrap; }
+    .score-detail-item { font-size: 12px; color: var(--muted); }
+    .score-detail-item strong { color: var(--text); }
+
+    /* ── EVIDENCE DRAWER ── */
+    .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; backdrop-filter: blur(2px); }
+    .drawer-overlay.open { display: block; }
+    .drawer { position: fixed; top: 0; right: -560px; bottom: 0; width: 560px; background: var(--surface); box-shadow: var(--shadow-lg); z-index: 201; display: flex; flex-direction: column; transition: right .25s cubic-bezier(.4,0,.2,1); }
+    .drawer.open { right: 0; }
+    .drawer-header { background: var(--navy); color: #fff; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0; }
+    .drawer-header .dh-info { flex: 1; min-width: 0; }
+    .drawer-header .dh-ticket { font-size: 11px; font-family: 'SF Mono','Consolas',monospace; opacity: .7; margin-bottom: 2px; }
+    .drawer-header .dh-desc { font-size: 14px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .drawer-close { background: rgba(255,255,255,.15); border: none; color: #fff; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; transition: background .15s; }
+    .drawer-close:hover { background: rgba(255,255,255,.3); }
+    .drawer-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    .file-list { width: 210px; flex-shrink: 0; border-right: 1px solid var(--border); overflow-y: auto; background: var(--sage); }
+    .file-list-title { padding: 10px 12px 6px; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .file-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; cursor: pointer; border-left: 3px solid transparent; transition: all .1s; }
+    .file-item:hover { background: rgba(30,64,175,.06); }
+    .file-item.active { background: rgba(37,99,235,.08); border-left-color: var(--action); }
+    .file-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .file-info { min-width: 0; }
+    .file-name { font-size: 11px; font-weight: 500; color: var(--text); word-break: break-all; line-height: 1.3; }
+    .file-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .llm-section { border-top: 1px solid var(--border); padding: 10px 12px; }
+    .llm-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--action); background: none; border: none; padding: 0; font-family: inherit; width: 100%; text-align: left; }
+    .llm-toggle svg { flex-shrink: 0; transition: transform .2s; }
+    .llm-toggle.expanded svg { transform: rotate(90deg); }
+    .llm-content { display: none; margin-top: 8px; }
+    .llm-content.show { display: block; }
+    .llm-field { margin-bottom: 6px; font-size: 11px; }
+    .llm-field-label { font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 9px; letter-spacing: .06em; }
+    .llm-field-value { color: var(--text); line-height: 1.4; }
+    .conf-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+    .conf-badge.high { background: #F0FDF4; color: var(--green); }
+    .conf-badge.medium { background: #FFFBEB; color: var(--yellow); }
+    .conf-badge.low { background: #FEF2F2; color: var(--red); }
+    .preview-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .preview-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); flex-direction: column; gap: 12px; font-size: 13px; }
+    .preview-placeholder svg { opacity: .3; }
+    .pdf-frame { flex: 1; border: none; width: 100%; height: 100%; display: block; }
+    .email-preview { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .email-header { padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--sage); }
+    .email-header .eh-row { display: flex; gap: 6px; font-size: 12px; margin-bottom: 3px; }
+    .email-header .eh-label { font-weight: 700; color: var(--muted); min-width: 50px; flex-shrink: 0; }
+    .email-header .eh-val { color: var(--text); }
+    .email-subject { font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--navy); }
+    .email-body-wrap { flex: 1; overflow: hidden; }
+    .email-iframe { width: 100%; height: 100%; border: none; display: block; }
+    .email-text-body { padding: 12px 16px; font-size: 12px; line-height: 1.6; color: var(--text); overflow-y: auto; height: 100%; white-space: pre-wrap; font-family: 'SF Mono','Consolas',monospace; }
+    .loading-state { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--muted); font-size: 13px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--action); border-radius: 50%; animation: spin .7s linear infinite; }
+    .no-evidence-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); padding: 24px; text-align: center; }
+    .no-evidence-panel p { font-size: 13px; }
+    .no-evidence-panel .hint { font-size: 11px; max-width: 280px; line-height: 1.5; }
+
+    @media (max-width: 900px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .drawer { width: 100%; right: -100%; }
+      .drawer.open { right: 0; }
+    }
+    @media (max-width: 600px) {
+      .stats-bar { grid-template-columns: 1fr; }
+      main { padding: 16px 12px 48px; }
+      .page-tabs { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="brand">Accord Partners</span>
+  <span class="divider">|</span>
+  <span class="subtitle">AlJeel AP — J26-788 Review · v30</span>
+  <span class="spacer"></span>
+  <a href="/" class="back">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    Dashboard
+  </a>
+</nav>
+
+<!-- PAGE TABS -->
+<div class="page-tabs">
+  <button class="page-tab active" data-section="all-rows">📋 All Rows</button>
+  <button class="page-tab" data-section="discrepancies">
+    ⚖️ Discrepancies vs Ground Truth
+    <span class="ptab-badge" id="discBadge">4</span>
+  </button>
+</div>
+
+<main>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION: ALL ROWS                                  -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <div class="page-section active" id="section-all-rows">
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="label">Total Rows</div>
+        <div class="value" id="statTotal">—</div>
+        <div class="sub">Invoice line items</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Evidence Coverage</div>
+        <div class="value" id="statEvidence">—</div>
+        <div class="sub">Rows with attached files</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">LLM-Routed</div>
+        <div class="value" id="statLlm">—</div>
+        <div class="sub">AI-resolved rows</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Net Payable</div>
+        <div class="value" id="statNet">—</div>
+        <div class="sub">SAR</div>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Search ticket, description, employee…" />
+      </div>
+      <div class="tabs" id="tabBar">
+        <button class="tab-btn active" data-tab="all">All <span class="count" id="cnt-all">0</span></button>
+        <button class="tab-btn" data-tab="travel">Travel <span class="count" id="cnt-travel">0</span></button>
+        <button class="tab-btn" data-tab="sponsoring">Sponsoring <span class="count" id="cnt-sponsoring">0</span></button>
+        <button class="tab-btn" data-tab="pc">Personal Contribution <span class="count" id="cnt-pc">0</span></button>
+        <button class="tab-btn" data-tab="flagged">Flagged <span class="count" id="cnt-flagged">0</span></button>
+        <button class="tab-btn" data-tab="llm">LLM <span class="count" id="cnt-llm">0</span></button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Invoice Lines</span>
+        <span class="row-count" id="rowCountLabel">Loading…</span>
+      </div>
+      <div class="table-scroll">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th style="width:42px">#</th>
+              <th style="width:108px">Ticket</th>
+              <th>Description</th>
+              <th class="right" style="width:110px">SAR</th>
+              <th style="width:120px">Account</th>
+              <th style="width:150px">CC / Div</th>
+              <th class="center" style="width:76px">Emp #</th>
+              <th class="center" style="width:86px">Status</th>
+              <th class="center" style="width:80px">Evidence</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none">
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+          <p>No rows match your current filters.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section-all-rows -->
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION: DISCREPANCIES                              -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <div class="page-section" id="section-discrepancies">
+
+    <!-- SCORE BAR -->
+    <div class="score-bar-wrap">
+      <div class="score-bar-top">
+        <div class="score-pct" id="discScorePct">—</div>
+        <div class="score-label">
+          <strong id="discScoreLabel">— / — rows exact</strong><br>
+          vs composite ground truth (v26 baseline + Labadi corrections)
+        </div>
+      </div>
+      <div class="score-track">
+        <div class="score-fill" id="discScoreFill" style="width:0%"></div>
+      </div>
+      <div class="score-detail">
+        <span class="score-detail-item">Labadi-reviewed: <strong id="discLabadiTotal">—</strong> rows</span>
+        <span class="score-detail-item">Labadi exact: <strong id="discLabadiMatched">—</strong></span>
+        <span class="score-detail-item">Remaining mismatches: <strong id="discMismatchCount" style="color:var(--red)">—</strong></span>
+      </div>
+    </div>
+
+    <!-- FILTER BAR for discrepancy section -->
+    <div class="filter-bar">
+      <div class="tabs" id="discTabBar">
+        <button class="tab-btn active" data-disctab="all">All Labadi rows <span class="count" id="dcnt-all">0</span></button>
+        <button class="tab-btn" data-disctab="mismatch">Mismatches only <span class="count" id="dcnt-mismatch">0</span></button>
+        <button class="tab-btn" data-disctab="ok">Resolved correctly <span class="count" id="dcnt-ok">0</span></button>
+      </div>
+    </div>
+
+    <!-- DISCREPANCY TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Ground Truth Comparison — Labadi-Reviewed Rows</span>
+        <span class="row-count" id="discRowCount">Loading…</span>
+      </div>
+      <div class="table-scroll">
+        <table id="discTable" style="min-width:700px">
+          <tbody id="discTableBody"></tbody>
+        </table>
+        <div class="empty-state" id="discEmptyState" style="display:none">
+          <p>No rows match the current filter.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section-discrepancies -->
+
+</main>
+
+<!-- EVIDENCE DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="evidenceDrawer">
+  <div class="drawer-header">
+    <div class="dh-info">
+      <div class="dh-ticket" id="drawerTicket"></div>
+      <div class="dh-desc" id="drawerDesc"></div>
+    </div>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="file-list" id="fileList">
+      <div class="file-list-title">Files</div>
+      <div id="fileItems"></div>
+      <div id="llmSection" class="llm-section" style="display:none">
+        <button class="llm-toggle" id="llmToggle">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          🤖 AI Reasoning
+        </button>
+        <div class="llm-content" id="llmContent"></div>
+      </div>
+    </div>
+    <div class="preview-panel" id="previewPanel">
+      <div class="preview-placeholder" id="previewPlaceholder">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 1 0 2.828 2.828l6.414-6.586a4 4 0 0 0-5.656-5.656l-6.415 6.585a6 6 0 1 0 8.486 8.486L20.5 13"/></svg>
+        <span>Select a file to preview</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ═══ STATE ═══ */
+  let allRows = [];       // from j788-rows-v30.json
+  let discData = null;    // from j788-discrepancy-v30.json
+  let activeTab = 'all';
+  let activeDiscTab = 'all';
+  let searchQuery = '';
+  let drawerSource = null; // {ticket, description, evidence, llm_trace}
+
+  /* ═══ HELPERS ═══ */
+  function fmtSAR(n) {
+    const abs = Math.abs(n);
+    const s = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? '−' : '') + s;
+  }
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function fmt_size(b) {
+    if (!b) return '';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(0) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+  function fmt_date(d) { return d ? d.replace('T',' ').slice(0,16) : ''; }
+  function fileIcon(k) { return k === 'pdf' ? '📄' : '✉️'; }
+  function catchSev(s) {
+    if (!s) return 'LOW';
+    if (s.includes('HIGH')) return 'HIGH';
+    if (s.includes('MEDIUM')) return 'MEDIUM';
+    return 'LOW';
+  }
+  function glLabel(r) { return r.gl_label || r.gl || r.account || '—'; }
+
+  /* ═══ ALL-ROWS TABLE ═══ */
+  function tabFilter(row) {
+    switch (activeTab) {
+      case 'all': return true;
+      case 'travel': return (row.account||'').startsWith('603010');
+      case 'sponsoring': return row.account === '60307021';
+      case 'pc': return row.account === '21070229';
+      case 'flagged': return !!(row.qc_catches && row.qc_catches.trim());
+      case 'llm': return !!row.llm_routed;
+      default: return true;
+    }
+  }
+  function searchFilter(row) {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return ['ticket_no','description','emp_no','cost_name','gl_label','agency_name']
+      .some(k => (row[k]||'').toLowerCase().includes(q));
+  }
+
+  function buildAllRowsTable() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    allRows.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      tr.dataset.idx = idx;
+      const catches = (row.qc_catches||'').trim();
+      const catchParts = catches ? catches.split(';').map(s=>s.trim()).filter(Boolean) : [];
+      let catchHTML = '';
+      if (catchParts.length) {
+        catchHTML = '<div class="catches-list">' +
+          catchParts.map(c => `<span class="catch-badge ${catchSev(c)==='HIGH'?'':catchSev(c)}">${escHtml(c)}</span>`).join('') +
+          '</div>';
+      }
+      const llmBadge = row.llm_routed ? '<span class="llm-badge">🤖 LLM</span>' : '';
+      const evCount = (row.evidence||[]).length;
+      const evHTML = evCount > 0
+        ? `<button class="ev-btn" data-rowidx="${idx}">📎 <span class="ev-count">${evCount}</span></button>`
+        : '<span class="no-ev">—</span>';
+      tr.innerHTML = `
+        <td style="color:var(--muted);font-size:12px">${row.row_idx||idx+1}</td>
+        <td><span class="ticket-no">${escHtml(row.ticket_no||'—')}</span></td>
+        <td class="desc-cell">
+          <div><span class="desc-text">${escHtml(row.description||'—')}</span>${llmBadge}</div>
+          ${catchHTML}
+        </td>
+        <td class="right"><span class="amount-cell ${row.amount<0?'neg':''}">${fmtSAR(row.amount||0)}</span></td>
+        <td><span class="gl-label">${escHtml(glLabel(row))}</span></td>
+        <td class="cc-cell">
+          <div class="cc-name">${escHtml(row.cost_name||'—')}</div>
+          <div class="cc-div">Div ${escHtml(row.div||'—')} · ${escHtml(row.cost_center||'—')}</div>
+        </td>
+        <td class="center"><span class="emp-no">${escHtml(row.emp_no||'—')}</span></td>
+        <td class="center"><span class="status-badge ${row.row_status||'YELLOW'}">${row.row_status||'—'}</span></td>
+        <td class="center">${evHTML}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.ev-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.rowidx, 10);
+        const row = allRows[idx];
+        openDrawer({ ticket: row.ticket_no, description: row.description, evidence: row.evidence||[], llm_trace: row.llm_trace });
+      });
+    });
+  }
+
+  function renderAllRowsTable() {
+    const trs = document.getElementById('tableBody').querySelectorAll('tr');
+    let visible = 0;
+    trs.forEach(tr => {
+      const row = allRows[parseInt(tr.dataset.idx, 10)];
+      const show = tabFilter(row) && searchFilter(row);
+      tr.classList.toggle('hidden', !show);
+      if (show) visible++;
+    });
+    document.getElementById('emptyState').style.display = visible===0 ? 'block' : 'none';
+    document.getElementById('rowCountLabel').textContent = visible + ' row' + (visible!==1?'s':'') + ' shown';
+  }
+
+  function updateTabCounts() {
+    ['all','travel','sponsoring','pc','flagged','llm'].forEach(tab => {
+      const savedTab = activeTab, savedQ = searchQuery;
+      activeTab = tab; searchQuery = '';
+      const c = allRows.filter(tabFilter).length;
+      const el = document.getElementById('cnt-'+tab);
+      if (el) el.textContent = c;
+      activeTab = savedTab; searchQuery = savedQ;
+    });
+  }
+
+  function updateStats() {
+    const evRows = allRows.filter(r => (r.evidence||[]).length > 0).length;
+    const llmRows = allRows.filter(r => r.llm_routed).length;
+    const net = allRows.reduce((a,r) => a+(r.amount||0), 0);
+    document.getElementById('statTotal').textContent = allRows.length;
+    document.getElementById('statEvidence').textContent = evRows+'/'+allRows.length;
+    document.getElementById('statLlm').textContent = llmRows;
+    document.getElementById('statNet').textContent = fmtSAR(net);
+  }
+
+  /* ═══ DISCREPANCY TABLE ═══ */
+  function discTabFilter(row) {
+    if (!row.is_labadi) return false;
+    if (activeDiscTab === 'mismatch') return row.discrepancy;
+    if (activeDiscTab === 'ok') return !row.discrepancy;
+    return true; // 'all' = all labadi rows
+  }
+
+  function buildDiscTable() {
+    if (!discData) return;
+    const tbody = document.getElementById('discTableBody');
+    tbody.innerHTML = '';
+    const fields = discData.fields;
+    const rows = discData.rows.filter(r => r.is_labadi);
+
+    let visible = 0;
+    rows.forEach(row => {
+      const show = discTabFilter(row);
+      if (!show) return;
+      visible++;
+
+      if (!row.discrepancy) {
+        // Compact OK row
+        const tr = document.createElement('tr');
+        tr.className = 'ok-row-strip';
+        tr.innerHTML = `
+          <td colspan="100" style="padding:10px 16px">
+            ✅ <strong style="font-family:monospace;color:var(--text)">${escHtml(row.ticket_no)}</strong>
+            &nbsp;<span style="color:var(--muted);font-size:12px">${escHtml(row.description.slice(0,70))}</span>
+            &nbsp;— <span style="color:var(--green);font-weight:600">All fields match ground truth</span>
+            ${row.evidence_count > 0 ? `<button class="disc-ev-btn" style="padding:3px 8px;font-size:11px;margin-left:12px" data-ticket="${escHtml(row.ticket_no)}">📎 ${row.evidence_count} file${row.evidence_count!==1?'s':''}</button>` : ''}
+          </td>
+        `;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      // Header row
+      const trHeader = document.createElement('tr');
+      trHeader.className = 'disc-row-header';
+      trHeader.innerHTML = `
+        <td colspan="100">
+          <span class="disc-ticket">${escHtml(row.ticket_no)}</span>
+          <span class="labadi-row-badge">📋 Labadi-reviewed</span>
+          &nbsp;&nbsp;<span class="disc-desc">${escHtml(row.description.slice(0,80))}</span>
+          &nbsp;&nbsp;<span class="disc-amount">${fmtSAR(row.amount)} SAR</span>
+        </td>
+      `;
+      tbody.appendChild(trHeader);
+
+      // Fields row
+      const trFields = document.createElement('tr');
+      trFields.className = 'disc-fields-row';
+      let fieldsHTML = '<td colspan="100"><div class="disc-fields">';
+      fields.forEach(f => {
+        const fd = row.fields[f];
+        if (!fd) return;
+        const isMatch = fd.match;
+        const srcTag = fd.source === 'labadi'
+          ? '<span class="source-tag labadi">Labadi</span>'
+          : '<span class="source-tag">v26</span>';
+        const oursClass = isMatch ? '' : 'wrong';
+        fieldsHTML += `
+          <div class="disc-field ${isMatch?'match':'mismatch'}">
+            <div class="disc-field-name">${escHtml(f)}</div>
+            <div class="disc-field-source">${srcTag}</div>
+            <div class="disc-val-row">
+              <span class="disc-val-label">Ours</span>
+              <span class="disc-val ours ${oursClass}">${escHtml(fd.ours||'—')}</span>
+              <span class="disc-match-icon">${isMatch?'✅':'❌'}</span>
+            </div>
+            <div class="disc-val-row">
+              <span class="disc-val-label">Truth</span>
+              <span class="disc-val truth">${escHtml(fd.truth||'—')}</span>
+            </div>
+          </div>
+        `;
+      });
+      fieldsHTML += '</div></td>';
+      trFields.innerHTML = fieldsHTML;
+      tbody.appendChild(trFields);
+
+      // Reasoning row
+      const trReason = document.createElement('tr');
+      trReason.className = 'disc-reasoning-row';
+      const confClass = (row.llm_confidence||'').toLowerCase() || 'medium';
+      const reasoning = row.llm_reasoning || '(No LLM reasoning — cascade resolved)';
+      const evBtnHTML = row.evidence_count > 0
+        ? `<button class="disc-ev-btn" data-ticket="${escHtml(row.ticket_no)}">📎 Review evidence (${row.evidence_count} file${row.evidence_count!==1?'s':''})</button>`
+        : `<span class="disc-no-ev">⚠️ No evidence files found in batch folder for this ticket</span>`;
+
+      trReason.innerHTML = `
+        <td colspan="100">
+          <div class="disc-reasoning-wrap">
+            <span class="disc-reasoning-icon">🤖</span>
+            <div class="disc-reasoning-body">
+              <div class="disc-reasoning-label">
+                LLM Reasoning
+                ${row.llm_route_reason ? `<span class="disc-route"><span class="disc-route-tag">${escHtml(row.llm_route_reason)}</span></span>` : ''}
+                ${row.llm_confidence ? `<span class="disc-conf-tag ${confClass}" style="margin-left:6px">${escHtml(row.llm_confidence)}</span>` : ''}
+              </div>
+              <div class="disc-reasoning-text">${escHtml(reasoning)}</div>
+              <div style="margin-top:8px">${evBtnHTML}</div>
+            </div>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(trReason);
+    });
+
+    document.getElementById('discEmptyState').style.display = visible===0?'block':'none';
+    document.getElementById('discRowCount').textContent = visible + ' row' + (visible!==1?'s':'') + ' shown';
+
+    // Wire up evidence buttons in disc table
+    tbody.querySelectorAll('[data-ticket]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ticket = btn.dataset.ticket;
+        const drow = discData.rows.find(r => r.ticket_no === ticket);
+        if (drow) openDrawer({ ticket: drow.ticket_no, description: drow.description, evidence: drow.evidence||[], llm_trace: drow.llm_routed ? { route_reason: drow.llm_route_reason, reasoning: drow.llm_reasoning, confidence: drow.llm_confidence } : null });
+      });
+    });
+  }
+
+  function updateDiscCounts() {
+    if (!discData) return;
+    const labadiRows = discData.rows.filter(r => r.is_labadi);
+    document.getElementById('dcnt-all').textContent = labadiRows.length;
+    document.getElementById('dcnt-mismatch').textContent = labadiRows.filter(r => r.discrepancy).length;
+    document.getElementById('dcnt-ok').textContent = labadiRows.filter(r => !r.discrepancy).length;
+  }
+
+  function updateDiscScore() {
+    if (!discData) return;
+    const s = discData.score;
+    document.getElementById('discScorePct').textContent = s.pct + '%';
+    document.getElementById('discScoreLabel').textContent = `${s.exact} / ${s.total} rows exact`;
+    document.getElementById('discScoreFill').style.width = s.pct + '%';
+    document.getElementById('discLabadiTotal').textContent = s.labadi_total;
+    document.getElementById('discLabadiMatched').textContent = s.labadi_matched + '/' + s.labadi_total;
+    document.getElementById('discMismatchCount').textContent = (s.total - s.exact);
+    document.getElementById('discBadge').textContent = (s.total - s.exact);
+  }
+
+  /* ═══ EVIDENCE DRAWER ═══ */
+  let _drawerEvidence = [];
+  let _drawerLlmTrace = null;
+  let _activeFileIdx = 0;
+
+  function openDrawer(src) {
+    drawerSource = src;
+    _drawerEvidence = src.evidence || [];
+    _drawerLlmTrace = src.llm_trace || null;
+    _activeFileIdx = 0;
+
+    document.getElementById('drawerTicket').textContent = src.ticket || '';
+    document.getElementById('drawerDesc').textContent = src.description || '';
+
+    buildFileList();
+
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.getElementById('evidenceDrawer').classList.add('open');
+
+    if (_drawerEvidence.length > 0) {
+      selectFile(0);
+    } else {
+      showNoEvidence();
+    }
+  }
+
+  function showNoEvidence() {
+    const panel = document.getElementById('previewPanel');
+    panel.innerHTML = `
+      <div class="no-evidence-panel">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:.3"><path d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        <p>No evidence files</p>
+        <p class="hint">No booking PDFs or approval emails were found in the batch folder for this ticket. The LLM had no supporting documents when resolving this row.</p>
+      </div>
+    `;
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.getElementById('evidenceDrawer').classList.remove('open');
+    drawerSource = null;
+  }
+
+  function buildFileList() {
+    const container = document.getElementById('fileItems');
+    container.innerHTML = '';
+
+    if (_drawerEvidence.length === 0) {
+      container.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--muted)">No files available</div>';
+    }
+
+    _drawerEvidence.forEach((ev, i) => {
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.dataset.fileidx = i;
+      let meta = ev.kind === 'pdf' && ev.size ? fmt_size(ev.size) : (ev.kind === 'email' && ev.date ? fmt_date(ev.date) : '');
+      div.innerHTML = `
+        <span class="file-icon">${fileIcon(ev.kind)}</span>
+        <div class="file-info">
+          <div class="file-name">${escHtml(ev.name||ev.url||'File')}</div>
+          ${meta ? `<div class="file-meta">${escHtml(meta)}</div>` : ''}
+        </div>
+      `;
+      div.addEventListener('click', () => selectFile(i));
+      container.appendChild(div);
+    });
+
+    // LLM section
+    const llmSec = document.getElementById('llmSection');
+    const llmContent = document.getElementById('llmContent');
+    const trace = _drawerLlmTrace;
+    if (trace) {
+      llmSec.style.display = 'block';
+      const confClass = (trace.confidence||'').toLowerCase() || 'medium';
+      llmContent.innerHTML = `
+        <div class="llm-field"><div class="llm-field-label">Route Reason</div><div class="llm-field-value">${escHtml(trace.route_reason||'—')}</div></div>
+        <div class="llm-field"><div class="llm-field-label">Reasoning</div><div class="llm-field-value">${escHtml(trace.reasoning||'—')}</div></div>
+        <div class="llm-field"><div class="llm-field-label">Confidence</div><div class="llm-field-value"><span class="conf-badge ${confClass}">${escHtml(trace.confidence||'—')}</span></div></div>
+        ${trace.model ? `<div class="llm-field"><div class="llm-field-label">Model</div><div class="llm-field-value">${escHtml(trace.model)}</div></div>` : ''}
+      `;
+      const toggle = document.getElementById('llmToggle');
+      toggle.onclick = () => {
+        toggle.classList.toggle('expanded');
+        document.getElementById('llmContent').classList.toggle('show');
+      };
+    } else {
+      llmSec.style.display = 'none';
+    }
+  }
+
+  function selectFile(idx) {
+    _activeFileIdx = idx;
+    document.querySelectorAll('#fileItems .file-item').forEach((el, i) => el.classList.toggle('active', i===idx));
+    const ev = _drawerEvidence[idx];
+    if (!ev) return;
+    if (ev.kind === 'pdf') renderPDF(ev);
+    else renderEmail(ev);
+  }
+
+  function renderPDF(ev) {
+    document.getElementById('previewPanel').innerHTML = `<embed class="pdf-frame" src="${encodeURI(ev.url)}" type="application/pdf" />`;
+  }
+
+  function renderEmail(ev) {
+    if (ev.body_text !== undefined || ev.body_html !== undefined) { _renderEmailData(ev); return; }
+    const panel = document.getElementById('previewPanel');
+    panel.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>';
+    fetch(ev.url).then(r => { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(data => {
+        Object.assign(ev, { body_text: data.body_text, body_html: data.body_html, subject: ev.subject||data.subject, from: ev.from||data.from, date: ev.date||data.date });
+        _renderEmailData(ev);
+      })
+      .catch(err => {
+        panel.innerHTML = `<div class="preview-placeholder"><span style="color:var(--red)">Could not load: ${escHtml(err.message)}</span></div>`;
+      });
+  }
+
+  function _renderEmailData(ev) {
+    const panel = document.getElementById('previewPanel');
+    const hasHtml = !!(ev.body_html && ev.body_html.trim());
+    const hasText = !!(ev.body_text && ev.body_text.trim());
+    let bodyHTML = hasHtml
+      ? `<div class="email-body-wrap"><iframe class="email-iframe" src="data:text/html;charset=utf-8,${encodeURIComponent(ev.body_html)}" sandbox="allow-same-origin"></iframe></div>`
+      : hasText
+        ? `<div class="email-body-wrap"><div class="email-text-body">${escHtml(ev.body_text)}</div></div>`
+        : `<div class="email-body-wrap"><div class="email-text-body" style="color:var(--muted);padding:16px">(No email body)</div></div>`;
+    panel.innerHTML = `
+      <div class="email-preview">
+        <div class="email-header">
+          <div class="email-subject">${escHtml(ev.subject||'—')}</div>
+          <div class="eh-row"><span class="eh-label">From</span><span class="eh-val">${escHtml(ev.from||'—')}</span></div>
+          <div class="eh-row"><span class="eh-label">Date</span><span class="eh-val">${escHtml(fmt_date(ev.date)||'—')}</span></div>
+        </div>
+        ${bodyHTML}
+      </div>
+    `;
+  }
+
+  /* ═══ PAGE TAB SWITCHING ═══ */
+  document.querySelectorAll('.page-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      const sec = tab.dataset.section;
+      document.getElementById('section-'+sec).classList.add('active');
+      if (sec === 'discrepancies' && discData) {
+        buildDiscTable();
+      }
+    });
+  });
+
+  /* ═══ EVENT HANDLERS ═══ */
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchQuery = e.target.value.trim();
+    renderAllRowsTable();
+  });
+
+  document.getElementById('tabBar').addEventListener('click', e => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('#tabBar .tab-btn').forEach(b => b.classList.toggle('active', b===btn));
+    renderAllRowsTable();
+  });
+
+  document.getElementById('discTabBar').addEventListener('click', e => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn || !btn.dataset.disctab) return;
+    activeDiscTab = btn.dataset.disctab;
+    document.querySelectorAll('#discTabBar .tab-btn').forEach(b => b.classList.toggle('active', b===btn));
+    buildDiscTable();
+  });
+
+  /* ═══ INIT ═══ */
+  Promise.all([
+    fetch('/data/j788-rows-v30.json').then(r => r.json()),
+    fetch('/data/j788-discrepancy-v30.json').then(r => r.json()),
+  ]).then(([rowsData, disc]) => {
+    allRows = rowsData.rows || rowsData;
+    discData = disc;
+
+    updateStats();
+    updateTabCounts();
+    buildAllRowsTable();
+    renderAllRowsTable();
+
+    updateDiscScore();
+    updateDiscCounts();
+  }).catch(err => {
+    document.getElementById('tableBody').innerHTML =
+      `<tr><td colspan="9" style="padding:32px;text-align:center;color:var(--red)">Failed to load: ${escHtml(err.message)}</td></tr>`;
+    document.getElementById('rowCountLabel').textContent = 'Error';
+  });
+
+})();
+</script>
+</body>
+</html>

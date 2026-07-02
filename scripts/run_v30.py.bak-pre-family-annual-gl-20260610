@@ -1,0 +1,2193 @@
+#!/usr/bin/env python3
+"""
+AlJeel AP Pipeline v30 — Strict both-token name matching
+
+Fix: name matching now requires BOTH first AND last name tokens to appear in
+the candidate employee's name. A match on a single token (e.g. "ABEER" matching
+"Abeer Saleh Thabet Hajer", or "AMMAR" matching "Jawdat Ammar Shorab") is now
+rejected.
+
+Changes in v30:
+  1. L0 validation (26-NNN rows): the Jawwal invoice supplies emp_no directly,
+     but sometimes gets it wrong via single-token name matching. We now validate
+     the L0 emp_no against the passenger name (both tokens required) for 26-NNN
+     rows. If validation fails, L0 emp_no is cleared and the LLM resolver runs.
+  2. Employee registration matching: removed Pass 2 single-token fallback. Only two-token
+     matches are accepted.
+  3. full_evidence_agent.py PRIORITY 2: changed to require ≥2 passenger name
+     tokens to appear in an employee's name before including them in the snapshot.
+
+Additional v30 fix:
+
+  FIX D — Sponsoring-row emp_no review (new LLM routing condition)
+    Root cause: cascade rows with account=60307021 and a non-empty emp_no were never
+    routed to the LLM because the existing routing conditions only trigger for:
+      - NOT_RESOLVED (empty CC)
+      - SPONSORSHIP_NO_AGENCY
+      - EMPLOYEE_NOT_IN_MASTER
+      - OPEX_PDF_TRAVEL_ACCOUNT (non-sponsoring only)
+    This left three classes of errors undetected:
+      1. v4_preserved rows where the v4 CC is wrong (e.g. ALBASIRI: used requestor's
+         home CC 160013/DMS/Ansell instead of event CC 160014/Contribution/EP/Abbott)
+      2. v4_preserved rows where the v4 account is wrong (hotel rows 26-731/732/733/734:
+         should be 21070229 Personal Contribution, not 60307021 Sponsoring)
+      3. L1_sponsor_override rows for AlJeel employees doing conference registrations
+         (AMMAR CHAUDHARY 26-743: should be 60308009 Training, not 60307021 Sponsoring)
+
+    New routing condition SPONSORING_EMPNO_REVIEW:
+      If account=60307021 AND emp_no is non-empty in the cascade input → route to LLM.
+      The LLM reads evidence and assigns correct account + CC, or confirms 60307021 with
+      proper event-CC. emp_no is then handled by existing blanking rules.
+
+Root causes fixed (J26-788 — Mohammed Labadi flags, 2026-06-03):
+  ALBASIRI/SALEH MR         6905428831 — v4_preserved wrong CC → Fix D (IEPC/EP/Abbott)
+  MOSTAFA AMER hotel        26-731/732 — v4_preserved 60307021, PC evidence → Fix D (21070229)
+  SULTAN ABU DOGHMEH hotel  26-733/734 — v4_preserved 60307021, PC evidence → Fix D (21070229)
+  AMMAR CHAUDHARY reg       26-743     — L1_sponsor HF override on employee → Fix D (60308009)
+
+Includes all current v30 fixes (A, B, C, D).
+
+Usage:
+    python3 scripts/run_v30.py J26-788 --input-suffix v15.11.2  # primary fix target
+    python3 scripts/run_v30.py J26-640                          # golden regression check
+    python3 scripts/run_v30.py J26-593                          # blind regression check
+    python3 scripts/run_v30.py J26-589
+    python3 scripts/run_v30.py J26-550
+    python3 scripts/run_v30.py J26-788 --limit 15 --skip-fraud  # smoke test rows 1-15
+"""
+from __future__ import annotations
+import re
+import traceback
+
+import argparse
+import concurrent.futures
+import json
+import os
+import re
+import shutil
+import sys
+import time
+import traceback
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+import openpyxl
+
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+# DigitalOcean volume root — covers portal-uploaded batches (J26-815+)
+VOLUME_BASE = Path("/mnt/aljeel_ap_kb/current")
+sys.path.insert(0, str(ROOT / "scripts"))
+
+LOOKUP_REFERENCE_BATCH = os.environ.get("ALJEEL_LOOKUP_REFERENCE_BATCH", "J26-640")
+
+# v30: use patched evidence agent with both-token name matching
+try:
+    import full_evidence_agent_v30 as fea
+except ImportError:
+    import full_evidence_agent as fea
+import run_hybrid_v15_12 as v15
+from code_name_lookup import get_lookup
+from cost_center_resolver import build_gl_description
+
+# Import everything from v16 (origin: v16 core logic)
+from run_v16 import (
+    _clean_passenger,
+    build_personal_contribution_index,
+    build_reverse_folder_index,
+    find_folder_with_index,
+    _needs_classification,
+    _folder_has_opex,
+    _folder_has_pc_email,
+    _get_email_tail,
+    _get_opex_text,
+    classify_row,
+    _norm_master_code,
+    resolve_from_master,
+    resolve_sponsorship_from_master,
+    full_resolve_row,
+    _build_classify_hint,
+    enforce_sponsorship_rules,
+    apply_overlays_v16,
+    _resolve_text_code,
+    process_row,
+    apply_family_cluster_unification,
+    _PC_SIGNAL,
+    _PC_EMP_RE,
+)
+# Import v17.1 booking-group detection (origin: v17)
+from run_v17 import (
+    build_booking_groups,
+    _is_family_group,
+    _pick_anchor,
+    apply_booking_group_propagation,
+    collect_patches,
+    write_xlsx_patches,
+    read_xlsx_rows,
+    ALL_GL_BREAKDOWN_COLS,
+    COMBO_SEGMENT_COLS,
+    COMBO_LOOKUP_COLS,
+    parse_combo_segments,
+)
+# Import fraud detection
+from cross_batch_fraud import (
+    run_cross_batch_fraud,
+    update_cross_batch_history,
+    load_history as load_cross_batch_history,
+    save_history as save_cross_batch_history,
+)
+# Import find_folder_with_index to call as fallback from v30 override (origin: v16)
+from run_v16 import find_folder_with_index as _find_folder_v16
+
+# Import helper functions kept from the v24 implementation (origin: v24)
+from run_v24 import (
+    apply_booking_groups_inline,
+    run_fraud_detection,
+    _build_fraud_lines,
+    _extract_ticket_no,
+    _parse_route_corridor,
+    utc_ts,
+)
+
+VERSION      = "v30"
+COST_CEILING = 4.0
+
+_TICKET_10_RE_V25 = re.compile(r"^(\d{10})")
+
+# ─── OPEX serial extraction from folder names (shortcut-row fix) ─────────────
+# Sponsorship rows resolved via the v16_sponsorship_master shortcut skip the
+# full LLM evidence call, so opex_serial is never extracted for them — yet the
+# shared OPEX folder name often contains it directly (e.g. "OPEX Avier
+# Combined training CRM-2026-30"). Number order differs by department
+# (CRM-2026-30 is YEAR-SEQ, CE-18-2026 is SEQ-YEAR), so the serial is kept
+# EXACTLY as written in the source — no reordering.
+_SERIAL_PAT = re.compile(
+    r"\b(CE|CRM|HF|EP|AATS)-\d+-\d+\b",
+    re.IGNORECASE,
+)
+
+def _extract_serial_from_text(text: str) -> str:
+    """Extract an OPEX serial exactly as it appears in the text. No normalisation."""
+    if not text:
+        return ""
+    m = _SERIAL_PAT.search(text)
+    if m:
+        return m.group(0).upper()
+    return ""
+
+# ─── FIX A-part-2: ticket-first lookup (prevents bad surname match) ──────────
+
+def find_folder_v25(
+    ticket_no: str,
+    passenger: str,
+    notes: str,
+    all_folders: list[Path],
+    reverse_index: dict[str, Path],
+) -> Path | None:
+    """
+    v25 override of find_folder_with_index.
+
+    KEY CHANGE: check the reverse_index for the exact ticket number BEFORE
+    calling find_ticket_folder's surname-based matching.  The reverse index
+    now contains adjacent-ticket entries for family/PC folders, so ticket
+    6904732430 resolves to '6904732429 family' — not to an unrelated folder
+    found by surname ('HUSSEIN' -> 6904687314, 'SALEM' -> train ticket 2).
+
+    Exact/substring/range folder discovery runs first (deterministic, zero false
+    positives).  Then reverse_index ticket match.  Surname fallback is last.
+    """
+    # Step 1: exact / substring / range — identical to fea.find_ticket_folder steps 1-2
+    for f in all_folders:
+        if f.name.strip() == ticket_no:
+            return f
+    for f in all_folders:
+        fname = f.name.strip()
+        m = re.match(r"^(\d{10,})", fname)
+        if m and m.group(1).startswith(ticket_no):
+            return f
+        m2 = re.match(r"^(\d{10})-(\d{1,3})", fname)
+        if m2:
+            base, end = m2.group(1), m2.group(2)
+            if ticket_no == base:
+                return f
+            if len(end) < 10:
+                candidate = base[:10 - len(end)] + end
+                if ticket_no == candidate:
+                    return f
+        if ticket_no in fname:
+            return f
+
+    # Step 2: reverse_index exact ticket match (includes adjacent-ticket entries)
+    if ticket_no in reverse_index:
+        return reverse_index[ticket_no]
+
+    # Step 3: 26-NNN in notes
+    for m in re.finditer(r"\b(26-\d{3})\b", notes or ""):
+        if m.group(1) in reverse_index:
+            return reverse_index[m.group(1)]
+
+    # GLOBAL CACHE FOR FILE TEXT TO PREVENT O(N*M) HANG
+    if not hasattr(find_folder_v25, "_file_text_cache"):
+        find_folder_v25._file_text_cache = {}
+        find_folder_v25._scanned = False
+
+    # Step 4: Strict Scanner with Cache
+    if ticket_no:
+        if not find_folder_v25._scanned:
+            import pypdf
+            for f in all_folders:
+                if not f.is_dir(): continue
+                for child in f.iterdir():
+                    cn = child.name.upper()
+                    if cn.endswith(".PDF"):
+                        try:
+                            reader = pypdf.PdfReader(str(child))
+                            full_text = []
+                            for i in range(min(2, len(reader.pages))):
+                                extracted = reader.pages[i].extract_text()
+                                if extracted:
+                                    full_text.append(extracted)
+                            find_folder_v25._file_text_cache[child] = (" ".join(full_text), f)
+                        except Exception: pass
+                    elif cn.endswith(".MSG"):
+                        try:
+                            with open(child, "rb") as msg_f:
+                                txt = msg_f.read().decode("utf-8", errors="ignore")
+                                find_folder_v25._file_text_cache[child] = (txt, f)
+                        except Exception: pass
+            find_folder_v25._scanned = True
+            
+        for path, (text, f) in find_folder_v25._file_text_cache.items():
+            if ticket_no in text:
+                return f
+
+    return None
+
+
+# ─── FIX A: adjacent-ticket reverse index expansion ──────────────────────────
+
+def build_reverse_folder_index_v25(
+    all_folders: list[Path],
+    adj_radius: int = 5,
+) -> dict[str, Path]:
+    """
+    Build the standard reverse folder index, then expand it with adjacent-ticket
+    entries for:
+      (a) Folders named  "<10-digit> family[...]"  (explicit family booking folder)
+      (b) Folders that contain a Personal Contribution approval .msg file
+
+    Adjacent tickets ±1..adj_radius are added with setdefault so that dedicated
+    single-ticket folders (exact name match, already indexed first) take priority.
+    """
+    # Build the standard index
+    index = build_reverse_folder_index(all_folders)
+
+    # Expand for family/PC folders
+    expanded = 0
+    for folder in all_folders:
+        if not folder.exists():
+            continue
+        fname = folder.name.strip()
+        m_base = _TICKET_10_RE_V25.match(fname)
+        if not m_base:
+            continue   # folder not named by a ticket number
+
+        base_ticket = int(m_base.group(1))
+        # v30 conservative: only expand for folders EXPLICITLY named "family"
+        # (e.g. "6904732429 family").  PC-email alone is NOT sufficient — individual
+        # employee tickets also have PC emails, and adjacent-ticket expansion based
+        # on them causes false-positive folder corrections for unrelated rows.
+        is_family_folder = "family" in fname.lower()
+
+        if not is_family_folder:
+            continue
+
+        for delta in range(-adj_radius, adj_radius + 1):
+            if delta == 0:
+                continue
+            adj_ticket = str(base_ticket + delta)
+            if adj_ticket not in index:           # don't override dedicated folders
+                index[adj_ticket] = folder
+                expanded += 1
+
+    if expanded:
+        print(
+            f"[v30-fix-a] {expanded} adjacent-ticket entries added "
+            f"(family/PC folder expansion ±{adj_radius})",
+            flush=True,
+        )
+    return index
+
+
+# ─── FIX B: inject PC-email emp_no hint into classify context ─────────────────
+
+def _build_pc_hint(pc_rec: dict | None) -> str:
+    """
+    Build a LLM routing context block from a PC index record.
+    pc_rec = {"emp_no": "1002466", "name": "Mahmoud Elkilany Hussein", "filename": "..."}
+    """
+    if not pc_rec:
+        return ""
+    emp_no = pc_rec.get("emp_no", "").strip()
+    name   = pc_rec.get("name", "").strip()
+    fname  = pc_rec.get("filename", "").strip()
+    if not emp_no:
+        return ""
+    lines = [
+        "\n[ROUTING CONTEXT v30 — PERSONAL CONTRIBUTION EMAIL DETECTED]",
+        f"The evidence folder contains a Personal Contribution approval .msg file.",
+        f"• Responsible employee (from filename): {name} ({emp_no})",
+        f"• Set account=21070229 (Personal Contribution).",
+        f"• Use employee {emp_no}'s GL allocation (CC, DIV, Agency) from master data.",
+        f"• If the passenger IS {name}, set emp_no={emp_no}.",
+        # Labadi RULE 1 (2026-06-09): emp_no is ALWAYS populated. Family
+        # members / dependents carry the responsible employee's emp_no — never blank.
+        f"• If the passenger is a FAMILY MEMBER / DEPENDENT of {name}, set emp_no={emp_no} (the responsible employee).",
+        f"  (Children CHD/INF and spouses traveling on a family PC booking are billed under employee {emp_no}.)",
+        f"• Filename for reference: {fname}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+
+_OPEX_EMP_NO_RE = re.compile(r"Employee No Name Amount\n(\d{5,7})", re.IGNORECASE)
+_OPEX_EMP_NO_RE2 = re.compile(r"Employee No:\s*(\d{5,7})", re.IGNORECASE)
+
+def _extract_opex_emp_no(folder_path):
+    if not folder_path or not folder_path.exists():
+        return ""
+    from pypdf import PdfReader
+    for pdf_path in folder_path.rglob("*.pdf"):
+        try:
+            reader = PdfReader(pdf_path)
+            text = ""
+            for p in reader.pages:
+                text += p.extract_text() + "\n"
+            m = _OPEX_EMP_NO_RE.search(text)
+            if m:
+                return m.group(1).strip()
+            m2 = _OPEX_EMP_NO_RE2.search(text)
+            if m2:
+                return m2.group(1).strip()
+        except:
+            pass
+    return ""
+
+
+def _extract_salesmen_from_opex_pdf(pdf_path, employee_directory=None):
+    """Use Gemini to read the SALESMAN / AMOUNT TO ALLOCATE table in an OPEX PDF.
+
+    A bare 1\\d{6} pattern scan false-positives on invoice numbers, amounts and
+    page refs, so the table is read by the LLM instead. Returns a list of
+    7-digit emp_no strings; [] on failure or when no salesman table is found.
+    """
+    try:
+        import fitz  # pymupdf — primary in this pipeline (see full_evidence_agent)
+        doc = fitz.open(str(pdf_path))
+        pdf_text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+    except Exception as e:
+        print(f"[salesman-extract] PDF read failed for {pdf_path.name}: {e}", flush=True)
+        return []
+
+    if not pdf_text.strip():
+        return []
+
+    emp_dir_hint = ""
+    if employee_directory:
+        emp_dir_hint = f"\n\nKnown AlJeel employees (subset):\n{employee_directory}"
+
+    prompt = f"""You are reading an AlJeel Medical OPEX approval form.
+Your task: extract the AlJeel employee number(s) from the SALESMAN / AMOUNT TO ALLOCATE table.
+
+Rules:
+- Only return employee numbers from the salesman allocation table (NOT client names, NOT approvers)
+- AlJeel employee numbers are 7 digits starting with 1 (e.g. 1000477, 1002037)
+- If multiple salesmen share the allocation, return all of them
+- Return ONLY a JSON object, no explanation: {{"salesmen": ["1000477", "1002037"]}}
+- If no salesman table found or no valid employee numbers, return: {{"salesmen": []}}
+{emp_dir_hint}
+
+OPEX FORM TEXT:
+{pdf_text[:4000]}
+"""
+
+    for model_name in ("gemini-2.5-flash", "gemini-2.5-pro"):
+        res = fea.call_gemini(prompt, model_name)
+        if res.get("error") or not isinstance(res.get("json"), dict):
+            print(f"[salesman-extract] {model_name} failed: {res.get('error', 'bad response')}", flush=True)
+            continue
+        candidates = res["json"].get("salesmen", [])
+        if not isinstance(candidates, list):
+            candidates = []
+        valid = [str(e).strip() for e in candidates if re.match(r"^1\d{6}$", str(e).strip())]
+        print(f"[salesman-extract] {pdf_path.name} → {valid} (model={model_name})", flush=True)
+        return valid
+
+    return []
+
+
+def _find_opex_pdfs(folder_path):
+    """OPEX-*.pdf files directly inside an evidence folder, sorted by name."""
+    try:
+        return sorted(
+            f for f in folder_path.iterdir()
+            if f.is_file() and f.suffix.lower() == ".pdf"
+            and re.search(r"opex", f.name, re.IGNORECASE)
+        )
+    except OSError:
+        return []
+
+
+def _apply_multi_salesman_from_opex(final, classify, row_idx):
+    """Labadi RULE 1 (2026-06-09) multi-salesman: a sponsorship OPEX form can
+    allocate the amount across SEVERAL salesmen. The shortcut / metadata paths
+    only see the single requesting emp_no, so re-read the OPEX PDF's salesman
+    table and stamp ALL employee numbers (comma-separated) on the row.
+    Also backfills opex_serial from the OPEX PDF filename when still missing.
+    """
+    folder_str = str(classify.get("_folder", "") or "")
+    if not folder_str:
+        return
+    opex_pdfs = _find_opex_pdfs(Path(folder_str))
+    if not opex_pdfs:
+        return
+    salesmen = _extract_salesmen_from_opex_pdf(opex_pdfs[0])
+    if len(salesmen) >= 2:
+        final["emp_no"] = ",".join(salesmen)
+        print(
+            f"[v30-multi-salesman] row {row_idx}: {len(salesmen)} salesmen "
+            f"in {opex_pdfs[0].name} → {final['emp_no']}",
+            flush=True,
+        )
+    elif len(salesmen) == 1 and str(final.get("emp_no", "") or "").strip() in ("", "0", "-"):
+        final["emp_no"] = salesmen[0]
+
+    # OPEX serial is often right in the PDF filename (e.g.
+    # "OPEX-CE-18-2026-J-2026-108 (1).pdf").
+    if str(final.get("opex_serial", "") or "").strip() in ("", "MISSING", "N/A"):
+        for opex_pdf in opex_pdfs:
+            serial_from_name = _extract_serial_from_text(opex_pdf.name)
+            if serial_from_name:
+                final["opex_serial"] = serial_from_name
+                break
+
+
+def process_row_v25(
+    row_idx: int,
+    cascade_row: dict,
+    route_reason: str,
+    batch_id: str,
+    raw_root: Path,
+    all_folders: list[Path],
+    manpower: dict,
+    lookups: dict,
+    reverse_index: dict[str, Path] | None = None,
+    pc_index: dict[str, dict] | None = None,
+    no_cache: bool = False,
+) -> dict:
+    """
+    v25 process_row with folder-correction (Fix A+B).
+
+    classify_row is called first (it may find the wrong folder for family bookings
+    via surname matching).  We then check if find_folder_v25 returns a BETTER folder
+    (one that is in the reverse_index via adjacent-ticket expansion).  If the better
+    folder has a PC email, we override classify's cached _folder / _evidence before
+    calling full_resolve_row, and we reuse route_reason="CHD_PC_EVIDENCE" so that
+    the prompt hint fires for family members just as it does for CHD/INF passengers.
+    """
+    import time as _t
+    # Local imports kept from v16 helper flow (origin: v16).
+    from run_v16 import (
+        classify_row, full_resolve_row,
+        resolve_from_master, resolve_sponsorship_from_master,
+        apply_overlays_v16, enforce_sponsorship_rules,
+        _clean_passenger, _norm_master_code,
+    )
+
+    desc  = str(cascade_row.get("Description", "") or "")
+    notes = str(cascade_row.get("Notes", "") or "")
+    text  = desc + " " + notes
+    m     = re.search(r"\b(\d{10,})\b", text)
+    ticket = m.group(1) if m else ""
+    if not ticket:
+        m2 = re.search(r"\b(26-\d{3})\b", text)
+        ticket = m2.group(1) if m2 else ""
+    passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+
+    trace: dict = {
+        "row_idx":      row_idx,
+        "description":  desc[:80],
+        "route_reason": route_reason,
+        "call1": None, "call2": None, "shortcut": None, "final": None,
+    }
+
+    # ── CALL 1: classify ─────────────────────────────────────────────────
+    t1 = _t.time()
+    classify = classify_row(row_idx, cascade_row, batch_id, raw_root, all_folders,
+                            reverse_index=reverse_index, no_cache=no_cache)
+
+    # ── FIX A+B: correct folder if classify found wrong one ──────────────
+    # find_folder_v25 prioritises reverse_index (adjacent-ticket entries) over
+    # surname matching.  If it finds a DIFFERENT folder with a PC email,
+    # override classify's evidence so Call 2 sees the right documents.
+    correct_folder = find_folder_v25(ticket, passenger, notes, all_folders, reverse_index or {})
+    classify_folder_str = classify.get("_folder", "")
+    folder_corrected = False
+
+    if correct_folder and str(correct_folder) != classify_folder_str:
+        # v30 conservative: only correct if the better folder is an explicit family
+        # folder (folder name contains 'family') AND has a PC email.  Pure PC-email
+        # folders without 'family' in the name are individual employee tickets and
+        # should not override a classify result that already found a valid folder.
+        is_family_folder = "family" in correct_folder.name.lower()
+        if is_family_folder and _folder_has_pc_email(correct_folder):
+            correct_evidence = fea.collect_evidence(correct_folder)
+            classify["_folder"]   = str(correct_folder)
+            classify["_evidence"] = correct_evidence
+            folder_corrected = True
+            # Escalate route_reason so Call 2 gets the CHD_PC_EVIDENCE hint
+            if route_reason not in ("CHD_PC_EVIDENCE", "FAMILY_PC_EVIDENCE"):
+                route_reason = "FAMILY_PC_EVIDENCE"
+            print(
+                f"[v30-fix-ab] row {row_idx} ({passenger}): folder corrected "
+                f"{Path(classify_folder_str).name if classify_folder_str else '(none)'} "
+                f"→ {correct_folder.name}",
+                flush=True,
+            )
+
+    # ── v30 FIX: shared-OPEX event-folder fallback (no per-ticket folder) ──
+    # Some sponsored-attendee tickets have NO folder named by ticket number —
+    # their approval evidence lives in a shared event folder (e.g.
+    # "CRM-2026-27 Approvals") alongside an OPEX-*.pdf.  find_folder_v25 (ticket /
+    # reverse-index / 26-NNN based) returns None for these, so classify_row
+    # collects zero evidence and Call 2 defaults to 60301003 (travel) at low
+    # confidence.  Reuse the _find_shared_opex_folder logic from
+    # qc_catches_within_batch.py: scan sibling dirs in the same date-dir for a
+    # non-ticket folder that holds an OPEX-*.pdf and a file referencing the
+    # passenger name or ticket number.  If found, adopt it as the evidence folder
+    # and prepend the OPEX requesting/sponsoring employee number to the evidence
+    # text so Call 2 (and the sponsorship master shortcut) can see it.
+    if (not folder_corrected) and not classify.get("_folder"):
+        from qc_catches_within_batch import _find_shared_opex_folder_in_batch
+        _shared_date_dir, shared_folder = _find_shared_opex_folder_in_batch(
+            raw_root, ticket, passenger
+        )
+        if shared_folder:
+            shared_evidence = fea.collect_evidence(shared_folder)
+            opex_emp = _extract_opex_emp_no(shared_folder)
+            if opex_emp:
+                # Prepend an explicit hint as a synthetic PDF so both the raw
+                # evidence text (Call 2) and downstream snapshot see the emp_no.
+                hint = {
+                    "filename": "[v30-shared-opex-hint]",
+                    "text": (
+                        f"SHARED OPEX SPONSORSHIP EVIDENCE — ticket {ticket} "
+                        f"({passenger}) has no dedicated per-ticket folder; its "
+                        f"approval evidence is the shared event folder "
+                        f"'{shared_folder.name}'. The AlJeel OPEX requesting / "
+                        f"sponsoring employee number is {opex_emp}. This is a "
+                        f"sponsored external attendee (account 60307021), funded "
+                        f"by employee {opex_emp}'s department."
+                    ),
+                }
+                shared_evidence.setdefault("pdfs", []).insert(0, hint)
+                shared_evidence["total_chars"] = (
+                    shared_evidence.get("total_chars", 0) + len(hint["text"])
+                )
+                # Feed the sponsoring emp_no into classify so the sponsorship
+                # master shortcut / Call 2 can resolve the event CC.
+                classify["requesting_emp_no"] = opex_emp
+                classify["row_type"] = "sponsorship"
+            classify["_folder"]   = str(shared_folder)
+            classify["_evidence"] = shared_evidence
+            folder_corrected = True
+            route_reason = "SHARED_OPEX_SPONSORSHIP"
+            print(
+                f"[v30-shared-opex] row {row_idx} ({passenger}): no per-ticket "
+                f"folder; using shared OPEX folder '{shared_folder.name}'"
+                + (f" (requesting emp {opex_emp})" if opex_emp else ""),
+                flush=True,
+            )
+
+    trace["call1"] = {
+        "model":                classify.get("_llm_model", ""),
+        "from_cache":           classify.get("_from_cache", False),
+        "elapsed_sec":          round(_t.time() - t1, 2),
+        "row_type":             classify.get("row_type", ""),
+        "employee_no_in_doc":   classify.get("employee_no_in_doc", ""),
+        "requesting_emp_no":    classify.get("requesting_emp_no", ""),
+        "opex_code":            classify.get("opex_code", ""),
+        "classification_basis": str(classify.get("classification_basis", "") or "")[:200],
+        "evidence_folder":      classify.get("_folder", ""),
+        "evidence_files":       list((classify.get("_evidence") or {}).get("files", [])),
+        "evidence_chars":       int((classify.get("_evidence") or {}).get("total_chars", 0)),
+        "in_tokens":            classify.get("_llm_in_tokens", 0),
+        "out_tokens":           classify.get("_llm_out_tokens", 0),
+        "error":                classify.get("_llm_error", ""),
+        "folder_corrected":     folder_corrected,
+    }
+
+    row_type       = classify.get("row_type", "unclear")
+    emp_no_hint    = classify.get("employee_no_in_doc", "").strip()
+    requesting_no  = classify.get("requesting_emp_no", "").strip()
+
+    # v19 Fix 2b: downgrade "employee" with no evidence files + surname not in master
+    if row_type == "employee" and not emp_no_hint:
+        ev_files = list((classify.get("_evidence") or {}).get("files", []))
+        if not ev_files:
+            desc_for_chk = desc.upper()
+            pax_part = desc_for_chk.split(" - ", 1)[0].strip().upper()
+            surname = pax_part.split("/")[0].strip() if "/" in pax_part else ""
+            surname_in_master = surname and any(
+                surname in str(v.get("name", "") or "").upper()
+                for v in manpower.values()
+            )
+            if not surname_in_master:
+                row_type = "unclear"
+                classify["row_type"] = "unclear"
+                classify["classification_basis"] = (
+                    str(classify.get("classification_basis", "") or "") +
+                    " [v19: overridden unclear — no evidence files + surname not in master]"
+                )
+                trace["call1"]["row_type"] = "unclear"
+
+    # ── Master shortcut: employee found in doc AND in master? Skip Call 2 ──
+    if row_type == "employee" and emp_no_hint and emp_no_hint in manpower:
+        rec = resolve_from_master(emp_no_hint, manpower)
+        if rec:
+            final = enforce_sponsorship_rules(rec, classify, cascade_row)
+            final["_agent_method"]  = "v16_master_shortcut"
+            final["_classify"]      = row_type
+            final["_classify_emp"]  = emp_no_hint
+            final["_route_reason"]  = route_reason
+            final["_llm_in_tokens"] = classify.get("_llm_in_tokens", 0)
+            final["_llm_out_tokens"]= classify.get("_llm_out_tokens", 0)
+            final["_from_cache"]    = classify.get("_from_cache", False)
+            trace["shortcut"] = {"type": "master_shortcut_employee", "emp_no": emp_no_hint}
+            trace["final"] = {k: v for k, v in final.items() if not k.startswith("_")}
+            final["_step_trace"] = trace
+            return final
+
+    # ── Master shortcut: sponsorship with requesting emp in master? ──────
+    if row_type == "sponsorship" and requesting_no and requesting_no in manpower:
+        rec = resolve_sponsorship_from_master(requesting_no, manpower, lookups)
+        if rec:
+            final = enforce_sponsorship_rules(rec, classify, cascade_row)
+            final["_agent_method"]  = "v16_sponsorship_master"
+            # Stamp requestor emp_no on shortcut rows (Labadi Rule 1 — always populated)
+            if str(final.get("emp_no", "") or "").strip() in ("", "0", "0000000"):
+                final["emp_no"] = str(requesting_no)
+            final["_classify"]      = row_type
+            final["_classify_req"]  = requesting_no
+            final["_route_reason"]  = route_reason
+            final["_llm_in_tokens"] = classify.get("_llm_in_tokens", 0)
+            final["_llm_out_tokens"]= classify.get("_llm_out_tokens", 0)
+            final["_from_cache"]    = classify.get("_from_cache", False)
+            # Labadi RULE 4 follow-up: the shortcut bypasses Call 2, so
+            # opex_serial was never LLM-extracted. Pull it from the evidence
+            # folder name when possible (e.g. "OPEX ... CRM-2026-30").
+            if str(final.get("opex_serial", "") or "").strip() in ("", "MISSING", "N/A"):
+                _serial = _extract_serial_from_text(
+                    Path(classify.get("_folder", "") or "").name
+                )
+                if _serial:
+                    final["opex_serial"] = _serial
+            # Labadi RULE 1: pick up ALL salesmen from the OPEX PDF's allocation
+            # table (the shortcut only saw the single requesting emp_no), and
+            # backfill opex_serial from the PDF filename if still missing.
+            _apply_multi_salesman_from_opex(final, classify, row_idx)
+            trace["shortcut"] = {"type": "master_shortcut_sponsorship", "requesting_emp_no": requesting_no}
+            trace["final"] = {k: v for k, v in final.items() if not k.startswith("_")}
+            final["_step_trace"] = trace
+            return final
+
+    # ── CALL 2: full evidence resolve ─────────────────────────────────────
+    # For FAMILY_PC_EVIDENCE, reuse the CHD_PC_EVIDENCE route_reason so the
+    # existing prompt-hint in full_resolve_row fires correctly.
+    effective_reason = "CHD_PC_EVIDENCE" if route_reason == "FAMILY_PC_EVIDENCE" else route_reason
+
+
+    # ── FIX: PDF OPEX Emp No Extraction Overlay ───────────────────
+    extracted_opex_emp = ""
+    folder_str = classify.get("folder") if classify and isinstance(classify, dict) else None
+    if folder_str:
+        import pathlib
+        folder_to_check = pathlib.Path(folder_str)
+        extracted_opex_emp = _extract_opex_emp_no(folder_to_check)
+    
+    if extracted_opex_emp:
+        print(f"[v30-opex-override] Found explicit emp_no {extracted_opex_emp} in OPEX PDF for {ticket}. Forcing into classification hint.", flush=True)
+        classify["requesting_emp_no"] = extracted_opex_emp
+        classify["row_type"] = "sponsorship"
+        route_reason = "SPONSORING_EMPNO_REVIEW"
+
+    t2 = _t.time()
+    llm = full_resolve_row(
+        row_idx, cascade_row, classify, batch_id, raw_root, all_folders,
+        manpower, lookups, reverse_index=reverse_index,
+        no_cache=no_cache, route_reason=effective_reason,
+    )
+    trace["call2"] = {
+        "model":       llm.get("_llm_model", ""),
+        "from_cache":  llm.get("_from_cache", False),
+        "elapsed_sec": round(_t.time() - t2, 2),
+        "emp_no":      llm.get("emp_no", ""),
+        "account":     llm.get("account", ""),
+        "cost_center": llm.get("cost_center", ""),
+        "agency":      llm.get("agency", ""),
+        "confidence":  llm.get("confidence", ""),
+        "reasoning":   str(llm.get("reasoning", "") or "")[:400],
+        "in_tokens":   llm.get("_llm_in_tokens", 0),
+        "out_tokens":  llm.get("_llm_out_tokens", 0),
+        "error":       llm.get("_llm_error", ""),
+    }
+
+    if llm.get("_llm_error"):
+        trace["final"] = {"error": llm.get("_llm_error", "")}
+        result = {
+            "_agent_method":  "cascade_fallback",
+            "_route_reason":  route_reason,
+            "_llm_error":     llm.get("_llm_error", ""),
+            "_classify":      row_type,
+            "_llm_in_tokens": classify.get("_llm_in_tokens", 0) + llm.get("_llm_in_tokens", 0),
+            "_llm_out_tokens":classify.get("_llm_out_tokens", 0) + llm.get("_llm_out_tokens", 0),
+            "_step_trace":    trace,
+        }
+        return result
+
+    final, method = apply_overlays_v16(llm, cascade_row, classify)
+    final = enforce_sponsorship_rules(final, classify, cascade_row)
+
+    # Labadi RULE 4 (2026-06-09): carry the LLM-extracted OPEX serial through the
+    # result so the worker can stamp it on the row. apply_overlays_v16 only copies
+    # the 6 GL segments, so read opex_serial straight off the raw LLM output.
+    final["opex_serial"] = str(llm.get("opex_serial", "") or "").strip()
+
+    # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor / AlJeel
+    # employee who submitted the OPEX form — never blank. If the LLM/overlay path
+    # left emp_no blank but a requesting employee was identified, populate it.
+    if (str(final.get("account", "") or "").strip() == "60307021"
+            and str(final.get("emp_no", "") or "").strip() in ("", "0", "-")
+            and requesting_no):
+        final["emp_no"] = requesting_no
+
+    # Labadi RULE 1 multi-salesman catch-all: sponsorship rows resolved via the
+    # LLM also carry only one emp_no even when the OPEX PDF's salesman table
+    # allocates across several. Re-read the OPEX PDF and stamp them all.
+    if str(final.get("account", "") or "").strip() == "60307021":
+        _apply_multi_salesman_from_opex(final, classify, row_idx)
+
+    # v20 Fix B: PC / family-of-employee reasoning override
+    llm_reasoning = str(llm.get("reasoning", "") or "").lower()
+    PC_SIGNALS = (
+        "personal contribution", "family of employee", "family member of employee",
+        "family members of employee", "dependent of employee", "dependents of employee",
+        "employee's family", "employee's dependent", "is a family", "are family of",
+    )
+    is_pc_signal   = False  # Disabled PC reasoning override to prevent overfitting and preserve dynamic LLM accounts
+    is_26nnn_route = (route_reason == "26NNN_LIKELY_SPONSORSHIP")
+
+    if is_26nnn_route and is_pc_signal:
+        desc_for_nm = str(cascade_row.get("Description", "") or "").upper()
+        nm_match = re.search(r"for ([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\s*\(\d",
+                             str(llm.get("reasoning", "") or ""))
+        if nm_match:
+            pc_name_upper = nm_match.group(1).upper()
+            # Require BOTH first AND last name of the passenger to appear in the
+            # PC email name. A single common name is never a sufficient match.
+            pax_part = desc_for_nm.split(" - ", 1)[0].strip() if " - " in desc_for_nm else desc_for_nm
+            TITLE_SKIP = {"MRS","MR","MS","CHD","INF","INFANT"}
+            pax_tokens = [t for t in re.findall(r"[A-Z]{3,}", pax_part) if t not in TITLE_SKIP]
+            pc_tokens   = set(re.findall(r"[A-Z]{3,}", pc_name_upper))
+            if len(pax_tokens) >= 2:
+                name_match_found = (pax_tokens[0] in pc_tokens) and (pax_tokens[-1] in pc_tokens)
+            elif len(pax_tokens) == 1:
+                name_match_found = pax_tokens[0] in pc_tokens
+            else:
+                name_match_found = False
+            is_26nnn_route = not name_match_found
+
+    if is_pc_signal and not is_26nnn_route and final.get("account") != "21070229":
+        final["account"] = "21070229"
+        pc_emp = final.get("emp_no") or llm.get("emp_no") or ""
+        if pc_emp and pc_emp in manpower:
+            rec = resolve_from_master(pc_emp, manpower)
+            if rec:
+                for k in ("cost_center", "div", "solution", "agency"):
+                    if rec.get(k):
+                        final[k] = rec[k]
+        method = "llm_agent_pc_override"
+
+    final["_agent_method"]  = f"v16_{method}"
+
+    # v21 Fix 2: 26-NNN sponsorship override
+    # Guard: if Call 2 resolved a real AlJeel employee, keep 60301003/60301004.
+    # Hotel/accommodation for an employee is still travel expense, not sponsoring.
+    _final_emp = str(final.get("emp_no") or "").strip()
+    if (route_reason == "26NNN_LIKELY_SPONSORSHIP"
+            and final.get("account") in ("60301003", "60301004")
+            and final.get("account") != "21070229"
+            and _final_emp not in manpower):
+        final["account"] = "60307021"
+        final["_agent_method"] = "v16_26nnn_forced_sponsorship"
+    elif (route_reason == "26NNN_LIKELY_SPONSORSHIP"
+            and _final_emp in manpower):
+        # Employee confirmed — preserve travel account, note the guard fired
+        final["_agent_method"] = final.get("_agent_method", "") + "+26nnn_employee_guard"
+
+    final["_classify"]      = row_type
+    final["_route_reason"]  = route_reason
+    final["_llm_in_tokens"] = classify.get("_llm_in_tokens", 0) + llm.get("_llm_in_tokens", 0)
+    final["_llm_out_tokens"]= classify.get("_llm_out_tokens", 0) + llm.get("_llm_out_tokens", 0)
+    final["_from_cache"]    = classify.get("_from_cache", False) and llm.get("_from_cache", False)
+    trace["final"] = {k: v for k, v in final.items() if not k.startswith("_")}
+    final["_step_trace"]    = trace
+    return final
+
+
+# ─── FIX C: PC-family dependent emp_no blanking ──────────────────────────────
+
+def apply_pc_family_emp_no_rule(
+    hybrid_rows: list[dict],
+    cascade_rows: list[dict],
+    manpower: dict,
+    pc_index: dict[str, dict],
+    all_folders: list[Path],
+    reverse_index: dict[str, Path],
+) -> int:
+    """
+    For rows where account=21070229 (personal contribution), blank emp_no when
+    the passenger is a family dependent rather than the responsible employee.
+
+    Detection rule:
+      1. Look up the responsible employee from the PC index for that ticket's folder.
+      2. Extract the passenger's first name from "LASTNAME/FIRSTNAME" format.
+      3. If the passenger's first name does NOT appear in the responsible employee's
+         full name → the passenger is a family member → emp_no = "".
+
+    This safely preserves emp_no for the actual employee's own PC ticket while
+    clearing it for CHD/INF and spouse passengers.
+
+    Returns count of rows where emp_no was blanked.
+
+    Labadi RULE 1 (2026-06-09): emp_no is now ALWAYS populated — dependents/CHD
+    rows carry the responsible employee's emp_no (the one already on the row),
+    never blank. This blanking pass is therefore DISABLED end-to-end; it is kept
+    as a no-op so the pipeline's stage call sites and return-count plumbing stay
+    intact.
+    """
+    return 0
+    blanked = 0
+    for i, hr in enumerate(hybrid_rows):
+        account = str(hr.get("account", "") or "").strip()
+        if account != "21070229":
+            continue
+        emp_no = str(hr.get("emp_no", "") or "").strip()
+        if not emp_no:
+            continue  # already blank — nothing to do
+
+        # Find the evidence folder for this row
+        cr    = cascade_rows[i]
+        desc  = str(cr.get("Description", "") or "")
+        notes = str(cr.get("Notes", "") or "")
+        text  = desc + " " + notes
+        m     = re.search(r"\b(\d{10,})\b", text)
+        ticket = m.group(1) if m else ""
+        if not ticket:
+            m2 = re.search(r"\b(26-\d{3})\b", text)
+            ticket = m2.group(1) if m2 else ""
+
+        passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+        # Use find_folder_v25 (adj-ticket aware) instead of fea.find_ticket_folder
+        folder    = find_folder_v25(ticket, passenger, notes, all_folders, reverse_index)
+
+        # Get PC record
+        pc_rec = pc_index.get(str(folder)) if folder else None
+
+        if pc_rec:
+            # Use the employee name from the PC email filename
+            pc_emp_name = (pc_rec.get("name", "") or "").upper()
+        else:
+            # Fall back: use the employee's name from master data
+            rec = manpower.get(emp_no, {})
+            pc_emp_name = (rec.get("emp_name", "") or "").upper()
+
+        if not pc_emp_name:
+            continue   # can't determine — leave as-is
+
+        # Extract passenger's first name: "HUSSEIN/TALIA MS(CHD)" → "TALIA"
+        pax_first = ""
+        m_slash = re.search(r"[/\\]([A-Z]+)", passenger.upper())
+        if m_slash:
+            pax_first = m_slash.group(1).strip()
+        if not pax_first:
+            continue   # can't parse — leave as-is
+
+        # If passenger first name is NOT a token in the responsible employee's name
+        # → this is a family dependent → blank emp_no
+        emp_name_tokens = set(pc_emp_name.split())
+        if pax_first not in emp_name_tokens:
+            hybrid_rows[i]["emp_no"] = ""
+            blanked += 1
+            print(
+                f"[v25-fix-c] row {i} ({passenger}): emp_no blanked "
+                f"('{pax_first}' not in PC employee '{pc_emp_name}')",
+                flush=True,
+            )
+
+    return blanked
+
+
+# ─── family-folder emp_no rule (2026-06-09) ──────────────────────────────────
+# Evidence folders named "<ticket> family" / "<ticket>_family" are an
+# authoritative, deterministic family signal: every ticket in (or numerically
+# adjacent ±5 to) the owner ticket belongs to the family of the employee who
+# owns that ticket. The owner's emp_no comes straight from the owner row's
+# Employee No column (the invoice Ref. No., emp_no_direct) — no LLM needed.
+# Note: a family booking does NOT require CHD rows; spouse-only bookings are
+# covered the same way.
+
+_FAMILY_FOLDER_OWNER_RE = re.compile(r"^(\d{10})[ _]+family\b", re.IGNORECASE)
+
+# process_batch stamps the trusted invoice Ref. No. into the Resolution Trace
+# ("EMP_FROM_REF_NO: invoice Ref. No. emp_no=NNNNNNN trusted"). The Employee No
+# CELL is mutable — later overlays (shared-OPEX, fuzzy manpower) may overwrite
+# it with an unrelated requesting emp — so the trace is the authoritative source.
+_REF_NO_TRACE_RE = re.compile(
+    r"EMP_FROM_REF_NO:\s*invoice Ref\. No\. emp_no=(\d+)\s+trusted"
+)
+
+FAMILY_FOLDER_ADJ_RADIUS = 5
+
+
+def _row_ref_no_emp(cascade_row: dict) -> str:
+    m = _REF_NO_TRACE_RE.search(str(cascade_row.get("Resolution Trace", "") or ""))
+    return m.group(1) if m else ""
+
+
+def _row_ticket_no(cascade_row: dict) -> str:
+    text = (str(cascade_row.get("Description", "") or "") + " "
+            + str(cascade_row.get("Notes", "") or ""))
+    m = re.search(r"\b(\d{10})\b", text)
+    return m.group(1) if m else ""
+
+
+def build_family_folder_emp_map(
+    all_folders: list[Path],
+    cascade_rows: list[dict],
+    manpower: dict,
+) -> dict[str, str]:
+    """
+    Scan folder NAMES (no content scanning) for the "<ticket> family" pattern
+    and resolve each owner ticket to its employee via the owner row's
+    Employee No column, validated against master.
+
+    Returns {owner_ticket: emp_no}.
+    """
+    owners: dict[str, str] = {}
+    for folder in all_folders:
+        m = _FAMILY_FOLDER_OWNER_RE.match(folder.name.strip())
+        if not m:
+            continue
+        owner_ticket = m.group(1)
+        for c in cascade_rows:
+            if _row_ticket_no(c) != owner_ticket:
+                continue
+            # Prefer the invoice Ref. No. preserved in the Resolution Trace —
+            # the Employee No cell may have been overwritten by a later overlay
+            # (e.g. shared-OPEX stamping a nearby event's requesting emp).
+            ref_emp = _row_ref_no_emp(c)
+            cell_emp = str(c.get("Employee No", "") or "").strip()
+            emp, source = (ref_emp, "invoice Ref. No. via Resolution Trace") \
+                if ref_emp and ref_emp in manpower else (cell_emp, "emp_no_direct from invoice")
+            if ref_emp and cell_emp and ref_emp != cell_emp:
+                print(f"[family-folder] WARNING owner ticket {owner_ticket}: "
+                      f"Employee No cell={cell_emp} disagrees with Ref. No. "
+                      f"trace={ref_emp} — trusting Ref. No.", flush=True)
+            if emp and emp not in ("0", "-") and emp in manpower:
+                owners[owner_ticket] = emp
+                print(f"[family-folder] '{folder.name}' → owner ticket {owner_ticket} "
+                      f"→ emp_no {emp} ({source})", flush=True)
+            break
+    return owners
+
+
+def apply_family_folder_emp_rule(
+    hybrid_rows: list[dict],
+    cascade_rows: list[dict],
+    family_owner_map: dict[str, str],
+    adj_radius: int = FAMILY_FOLDER_ADJ_RADIUS,
+) -> int:
+    """
+    Stamp the family-folder owner's emp_no on every row whose ticket number is
+    the owner ticket or within ±adj_radius of it. Deterministic — runs after
+    the LLM / cluster stages and has final authority on emp_no for these rows.
+    Flags each row EMP_FROM_FAMILY_FOLDER. Returns count of rows changed.
+    """
+    if not family_owner_map:
+        return 0
+    owner_ints = {t: int(t) for t in family_owner_map}
+    stamped = 0
+    for i, c in enumerate(cascade_rows):
+        ticket = _row_ticket_no(c)
+        if not ticket:
+            continue
+        tno = int(ticket)
+        owner = next((t for t, tn in owner_ints.items() if abs(tno - tn) <= adj_radius), None)
+        if owner is None:
+            continue
+        emp = family_owner_map[owner]
+        if "EMP_FROM_FAMILY_FOLDER" not in str(hybrid_rows[i].get("_flags", "")):
+            hybrid_rows[i]["_flags"] = str(
+                hybrid_rows[i].get("_flags", "") + " EMP_FROM_FAMILY_FOLDER"
+            ).strip()
+        if str(hybrid_rows[i].get("emp_no", "") or "").strip() != emp:
+            desc = str(c.get("Description", "") or "")[:60]
+            print(f"[family-folder] row {i} ({desc}): emp_no "
+                  f"{hybrid_rows[i].get('emp_no', '')!r} → {emp} "
+                  f"(family folder of ticket {owner})", flush=True)
+            hybrid_rows[i]["emp_no"] = emp
+            # v25_-prefixed so the stage-4 rename maps it to llm_agent and the
+            # writer persists the emp_no override to the output xlsx.
+            hybrid_rows[i]["_agent_method"] = "v25_family_folder"
+            hybrid_rows[i]["_route_reason"] = "FAMILY_FOLDER_EMP"
+            stamped += 1
+    return stamped
+
+
+# ─── booking-group inline (origin: v24) ──────────────────────────────────────
+
+def apply_booking_groups_inline_v25(out_xlsx: Path) -> tuple[int, int]:
+    """
+    Thin wrapper around v24's apply_booking_groups_inline with VERSION=v30.
+    (We can't call v24's function directly because it uses v24's VERSION constant.)
+    """
+    import copy
+    print(f"\n[booking-groups] scanning for family groups...", flush=True)
+    headers, rows, hdr_row = read_xlsx_rows(out_xlsx)
+
+    combo_hdr = next((h for h in headers if h and "distribution combination" in str(h).lower()), None)
+    acct_hdr  = next((h for h in headers if h and str(h).strip().lower() == "account"), None)
+    cc_hdr    = next((h for h in headers if h and "cost center" in str(h).lower()), None)
+    div_hdr   = next((h for h in headers if h and str(h).strip().lower() == "div"), None)
+    sol_hdr   = next((h for h in headers if h and str(h).strip().lower() == "solution"), None)
+    ag_hdr    = next((h for h in headers if h and str(h).strip().lower() == "agency"), None)
+    loc_hdr   = next((h for h in headers if h and str(h).strip().lower() == "location"), None)
+    co_hdr    = next((h for h in headers if h and str(h).strip().lower() == "company"), None)
+
+    def _pad(v, w):
+        s = str(v or "").strip()
+        return s.zfill(w) if s.isdigit() else (s or "0"*w)
+
+    combos_fixed = 0
+    if combo_hdr and acct_hdr:
+        for row in rows:
+            existing_combo = str(row.get(combo_hdr, "") or "")
+            acct = str(row.get(acct_hdr, "") or "").strip()
+            if not acct or not existing_combo:
+                continue
+            parts = existing_combo.split("-")
+            combo_acct = (parts[2].strip() if len(parts) > 2 else "").lstrip("0") or "0"
+            clean_acct = acct.lstrip("0") or "0"
+            if combo_acct != clean_acct:
+                co  = str(row.get(co_hdr, "03") or "03").strip() or "03"
+                loc = str(row.get(loc_hdr, "") or "").strip() or (parts[1] if len(parts) > 1 else "20100")
+                cc  = str(row.get(cc_hdr, "") or "").strip() or (parts[3] if len(parts) > 3 else "000000")
+                div = str(row.get(div_hdr, "") or "").strip() or (parts[4] if len(parts) > 4 else "000")
+                sol = str(row.get(sol_hdr, "") or "").strip() or (parts[5] if len(parts) > 5 else "00000")
+                ag  = str(row.get(ag_hdr, "") or "").strip() or (parts[6] if len(parts) > 6 else "00000")
+                proj = parts[7] if len(parts) > 7 else "00000"
+                ic   = parts[8] if len(parts) > 8 else "00"
+                f1   = parts[9] if len(parts) > 9 else "000000"
+                row[combo_hdr] = (
+                    f"{_pad(co,2)}-{_pad(loc,5)}-{_pad(acct,8)}-{_pad(cc,6)}-{_pad(div,3)}"
+                    f"-{_pad(sol,5)}-{_pad(ag,5)}-{_pad(proj,5)}-{_pad(ic,2)}-{_pad(f1,6)}"
+                )
+                # Flag as high-confidence PC anchor when account=21070229
+                if acct.lstrip("0") == "21070229".lstrip("0") or acct == "21070229":
+                    row["_pc_resynced"] = True
+                combos_fixed += 1
+    if combos_fixed:
+        print(f"[booking-groups] {combos_fixed} combo(s) synced from Account column (PC override fix)", flush=True)
+
+    orig_rows = copy.deepcopy(rows)
+    groups = build_booking_groups(rows)
+    family_groups = [g for g in groups if _is_family_group(g, rows)]
+    skipped       = len(groups) - len(family_groups)
+    print(f"[booking-groups] {len(groups)} groups detected  ({len(family_groups)} family, {skipped} colleague-skip)", flush=True)
+
+    propagated, conflicts, conflict_descs = apply_booking_group_propagation(rows, verbose=True)
+    patches = collect_patches(rows, orig_rows)
+    if patches:
+        tmp = out_xlsx.with_name(out_xlsx.stem + ".__patch__.xlsx")
+        write_xlsx_patches(out_xlsx, tmp, patches)
+        tmp.replace(out_xlsx)
+        print(f"[booking-groups] {len(patches)} rows patched in {out_xlsx.name}", flush=True)
+    else:
+        print(f"[booking-groups] no changes needed", flush=True)
+
+    if conflicts:
+        print(f"[booking-groups] ⚠️  {conflicts} FAMILY_CONFLICT groups — review catches JSON", flush=True)
+
+    catches_out = out_xlsx.parent / f"catches-booking-groups-{VERSION}.json"
+    catches_out.write_text(json.dumps({
+        "batch_id":    out_xlsx.parent.parent.name,
+        "version":     VERSION,
+        "propagated":  propagated,
+        "conflicts":   conflicts,
+        "conflict_details": conflict_descs,
+        "groups_found": len(groups),
+        "family_groups": len(family_groups),
+    }, indent=2))
+
+    return propagated, conflicts
+
+
+def sync_final_gl_descriptions(out_xlsx: Path, cascade_xlsx: Path, header_row: int) -> int:
+    """Refresh GL Description AND all Block-2 name columns from the final combo.
+
+    process_batch writes the Block-2 name columns (GL, Cost Name, Contribution,
+    Solution Name, Agency Name, GL Description) before run_v30 rewrites combos
+    (PC-override fix + booking-group propagation). Any row whose combo changed
+    afterwards keeps stale / #N/A name labels. This pass re-expands every row's
+    final combo and re-derives the human-readable name columns so they always
+    agree with the combo actually shipped. Combo values are never modified.
+    """
+    lookup = get_lookup()
+    out_wb = openpyxl.load_workbook(out_xlsx)
+    out_ws = out_wb.active
+    in_wb = openpyxl.load_workbook(cascade_xlsx, data_only=True)
+    in_ws = in_wb.active
+
+    out_headers = {
+        str(c.value).strip(): i + 1
+        for i, c in enumerate(out_ws[header_row])
+        if c.value
+    }
+    in_headers = {
+        str(c.value).strip(): i + 1
+        for i, c in enumerate(in_ws[header_row])
+        if c.value
+    }
+
+    out_combo_col = next((v for k, v in out_headers.items() if "distribution combination" in k.lower()), None)
+    in_combo_col = next((v for k, v in in_headers.items() if "distribution combination" in k.lower()), None)
+    gl_desc_col = out_headers.get("GL Description")
+    if not out_combo_col or not in_combo_col or not gl_desc_col:
+        print("[v30-gl-sync] WARNING: required columns missing; skipping GL Description sync", flush=True)
+        in_wb.close()
+        out_wb.close()
+        return 0
+
+    # Block-2 name columns to re-derive from expand_combo(). Map each output
+    # header (if present in the sheet) to the expansion key that feeds it:
+    #   GL (col 20) - Cost Name (22) - Contribution (24) - Solution Name (26)
+    #   - Agency Name (28). GL Description (col 32) is handled separately below.
+    NAME_COL_KEYS = {
+        "GL": "GL",
+        "Cost Name": "Cost Name",
+        "Contribution": "Contribution",
+        "Solution Name": "Solution Name",
+        "Agency Name": "Agency Name",
+    }
+    name_cols = {
+        out_headers[hdr]: key
+        for hdr, key in NAME_COL_KEYS.items()
+        if hdr in out_headers
+    }
+
+    updated = 0       # rows whose name columns were refreshed
+    desc_updated = 0  # GL Description cells re-derived
+    for row_idx in range(header_row + 1, out_ws.max_row + 1):
+        final_combo = str(out_ws.cell(row=row_idx, column=out_combo_col).value or "").strip()
+        # Only touch rows with a non-empty, structurally valid (10-segment) combo.
+        if not final_combo or len(final_combo.split("-")) < 10:
+            continue
+
+        cascade_combo = str(in_ws.cell(row=row_idx, column=in_combo_col).value or "").strip()
+        if final_combo != cascade_combo:
+            out_ws.cell(row=row_idx, column=gl_desc_col, value=build_gl_description(final_combo, lookup))
+            desc_updated += 1
+
+        # Re-expand the final combo and refresh the human-readable name columns
+        # so they can never disagree with the shipped combo (fixes #N/A Cost
+        # Name on rows whose combo was rewritten after process_batch).
+        expansion = lookup.expand_combo(final_combo)
+        if not expansion.get("Account"):
+            continue  # combo did not expand cleanly; leave existing labels alone
+        for col, key in name_cols.items():
+            out_ws.cell(row=row_idx, column=col, value=expansion.get(key, ""))
+        updated += 1
+
+    out_wb.save(str(out_xlsx))
+    in_wb.close()
+    out_wb.close()
+    print(
+        f"[v30-gl-sync] refreshed Block-2 name columns on {updated} row(s); "
+        f"{desc_updated} GL Description cell(s) re-derived from final combo",
+        flush=True,
+    )
+    return updated
+
+
+# ─── main ─────────────────────────────────────────────────────────────────────
+
+def _collect_evidence_folders(batch_id: str, batch_dir: Path) -> list[Path]:
+    """Collect evidence folders across live batch roots and archive fallback.
+
+    Historical batches use raw/day/ticket folders. J26-788 and portal-driven
+    batches may have direct folders under gdrive-evidence, while the complete
+    J26-788 evidence currently lives under archive/raw-J26-788.
+    """
+    candidate_roots = [
+        batch_dir / "raw",
+        batch_dir / "gdrive-evidence",
+        batch_dir / "gdrive-evidence2",
+        ROOT / "archive" / f"raw-{batch_id}",
+    ]
+
+    folders: list[Path] = []
+    for root in candidate_roots:
+        if not root.exists():
+            continue
+
+        try:
+            folders.extend(fea.collect_all_folders(root))
+        except Exception as exc:
+            print(f"[scan] warning: legacy folder scan failed for {root}: {exc}", flush=True)
+
+        for child in sorted(root.rglob("*")):
+            if not child.is_dir():
+                continue
+            try:
+                has_evidence = any(
+                    p.is_file() and p.suffix.lower() in {".msg", ".pdf", ".eml"}
+                    for p in child.iterdir()
+                )
+            except OSError:
+                continue
+            if has_evidence:
+                folders.append(child)
+
+    # Volume root (DigitalOcean volume — covers portal-uploaded batches J26-815+)
+    volume_batch_dir = VOLUME_BASE / batch_id
+    if volume_batch_dir.is_dir():
+        # Walk up to 3 levels deep to find the dir that directly contains date/ticket subfolders
+        import re as _re
+        ticket_pat = _re.compile(r"^\d{6,}$")
+        date_pat = _re.compile(r"^\d{2}[a-z]{3}$", _re.IGNORECASE)
+        from collections import deque as _deque
+        _queue = _deque([(volume_batch_dir, 0)])
+        while _queue:
+            _cur, _depth = _queue.popleft()
+            try:
+                _subdirs = [p for p in _cur.iterdir() if p.is_dir()]
+            except PermissionError:
+                continue
+            if any(ticket_pat.match(p.name) or date_pat.match(p.name.lower()) for p in _subdirs):
+                try:
+                    folders.extend(fea.collect_all_folders(_cur))
+                except Exception as exc:
+                    print(f"[scan] WARNING: failed to scan volume root {_cur}: {exc}", flush=True)
+                break
+            if _depth < 3:
+                for _sub in _subdirs:
+                    _queue.append((_sub, _depth + 1))
+
+    seen_paths = set()
+    unique_folders: list[Path] = []
+    for folder in folders:
+        resolved = folder.resolve(strict=False)
+        if resolved in seen_paths:
+            continue
+        seen_paths.add(resolved)
+        unique_folders.append(folder)
+    return unique_folders
+
+
+def main():
+    ap = argparse.ArgumentParser(description=f"AlJeel AP Pipeline {VERSION}")
+    ap.add_argument("batch_id")
+    ap.add_argument("--invoice-id", default=None)
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--cost-ceiling", type=float, default=COST_CEILING)
+    ap.add_argument("--input-suffix", default="v15.11",
+                    help="Cascade input version (default: v15.11)")
+    ap.add_argument("--skip-fraud", action="store_true")
+    ap.add_argument("--use-cache", action="store_true")
+    ap.add_argument("--no-cache", action="store_true")
+    args = ap.parse_args()
+
+    batch_id   = args.batch_id
+    batch_dir  = ROOT / "batches" / f"jawal-{batch_id}"
+    raw_root   = batch_dir / "raw"
+    # Fallback to volume evidence root for portal-uploaded batches (J26-815+)
+    if not raw_root.exists():
+        _vol_batch = VOLUME_BASE / batch_id
+        if _vol_batch.is_dir():
+            import re as _re2
+            _tp = _re2.compile(r"^\d{6,}$")
+            _dp = _re2.compile(r"^\d{2}[a-z]{3}$", _re2.IGNORECASE)
+            from collections import deque as _dq2
+            _q2 = _dq2([(_vol_batch, 0)])
+            while _q2:
+                _c2, _d2 = _q2.popleft()
+                try:
+                    _s2 = [p for p in _c2.iterdir() if p.is_dir()]
+                except PermissionError:
+                    continue
+                if any(_tp.match(p.name) or _dp.match(p.name.lower()) for p in _s2):
+                    raw_root = _c2
+                    print(f"[info] raw_root resolved from volume: {raw_root}", flush=True)
+                    break
+                if _d2 < 3:
+                    for _sb2 in _s2:
+                        _q2.append((_sb2, _d2 + 1))
+    gdrive_root = batch_dir / "gdrive-evidence"
+    invoice_id = args.invoice_id or batch_id
+
+    if not batch_dir.exists():
+        print(f"[fatal] batch dir not found: {batch_dir}", file=sys.stderr)
+        sys.exit(2)
+
+    # ── find cascade input ─────────────────────────────────────────────────
+    out_dir = batch_dir / "output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    exact_cascade = out_dir / f"Spreadsheet-{invoice_id}-FILLED-{args.input_suffix}.xlsx"
+    if exact_cascade.exists():
+        cascade_xlsx = exact_cascade
+    else:
+        pattern    = f"Spreadsheet-{invoice_id}-FILLED-{args.input_suffix}*.xlsx"
+        candidates = sorted(out_dir.glob(pattern),
+                            key=lambda p: p.stat().st_mtime, reverse=True)
+        candidates = [c for c in candidates if not re.search(r"v1[78]", c.name)]
+        if not candidates:
+            print(f"[fatal] cascade input not found: {out_dir}/{pattern}", file=sys.stderr)
+            sys.exit(3)
+        cascade_xlsx = candidates[0]
+    print(f"[load] cascade: {cascade_xlsx.name}", flush=True)
+
+    # ── output path ────────────────────────────────────────────────────────
+    out_xlsx = out_dir / f"Spreadsheet-{invoice_id}-FILLED-{VERSION}.xlsx"
+    if out_xlsx.exists():
+        bak = out_xlsx.with_suffix(out_xlsx.suffix + f".bak-pre-{VERSION}-{utc_ts()}")
+        shutil.copy2(out_xlsx, bak)
+        print(f"[backup] {bak.name}", flush=True)
+
+    # ── load inputs ────────────────────────────────────────────────────────
+    cascade_rows, headers, hdr_row = v15.read_cascade_xlsx(cascade_xlsx)
+    print(f"[load] {len(cascade_rows)} cascade rows", flush=True)
+    if args.limit > 0:
+        cascade_rows = cascade_rows[:args.limit]
+
+    print("[load] master data...", flush=True)
+    manpower    = fea.load_manpower()
+    lookups     = fea.load_lookups()
+    
+    all_folders = _collect_evidence_folders(batch_id, batch_dir)
+
+    print(f"[scan] {len(all_folders)} evidence folders scanned across roots", flush=True)
+
+    # ── FIX A: build expanded reverse index with adjacent-ticket entries ───
+    print("[scan] building reverse folder + PC index (v30 — adj-ticket expansion)...", flush=True)
+    reverse_index = build_reverse_folder_index_v25(all_folders)
+    pc_index      = build_personal_contribution_index(all_folders)
+    print(f"[scan] reverse={len(reverse_index)} mappings  pc={len(pc_index)} PC folders", flush=True)
+
+    # ── stage 1: routing ───────────────────────────────────────────────────
+    # ── v30 Fix D: routing override for sponsoring rows with non-empty emp_no ─
+    def _needs_classification_v26(
+        row: dict, all_folders_: list[Path], rev_idx: dict | None
+    ) -> tuple[bool, str]:
+        """v26 adds SPONSORING_EMPNO_REVIEW before falling back to v16 logic.
+
+        Catches rows where account=60307021 already set (via v4_preserved or
+        L1_sponsor_override) but emp_no is non-empty in cascade output.
+        This indicates the CC/account may be wrong (requestor CC used instead
+        of event CC, or employee misclassified as sponsored external party).
+        """
+        # General sponsoring-row emp_no review now covers rows that previously
+        # needed row-specific route forcing.
+        account = str(row.get("Account", "") or "").strip()
+        emp_no  = str(row.get("Employee No", "") or "").strip()
+        if account == "60307021":
+            return True, "SPONSORING_EMPNO_REVIEW"
+        return _needs_classification(row, all_folders_, rev_idx)
+
+    routed: list[tuple[int, str]] = []
+    for i, row in enumerate(cascade_rows):
+        should, reason = _needs_classification_v26(row, all_folders, reverse_index)
+        if should:
+            routed.append((i, reason))
+
+    reason_counts: dict[str, int] = Counter(r for _, r in routed)
+    print(f"[route] {len(routed)} rows → LLM  /  {len(cascade_rows) - len(routed)} stay cascade",
+          flush=True)
+
+    # ── stage 2: init hybrid_rows from cascade ────────────────────────────
+    hybrid_rows: list[dict] = []
+    for c in cascade_rows:
+        hybrid_rows.append({
+            "_row_idx":      c["_row_idx"],
+            "_agent_method": "cascade",
+            "emp_no":        c.get("Employee No", "") or "",
+            "account":       c.get("Account", "") or "",
+            "cost_center":   c.get("Cost Center", "") or "",
+            "div":           c.get("DIV", "") or "",
+            "solution":      c.get("Solution", "") or "",
+            "agency":        c.get("Agency", "") or "",
+            "location":      c.get("Location", "") or "",
+        })
+
+    # v30 NOTE: L0 validation was trialled but reverted — the Jawwal source system's
+    # direct emp_no assignment (L0) must be trusted. Applying a both-token name
+    # check on L0 inadvertently cleared correct assignments (e.g. YOUSEF AL DIGHRIR
+    # whose tribal name differs between Jawwal and Oracle). The both-token rule
+    # is applied inside the RESOLVERS (full_evidence_agent_v30 PRIORITY 2, and
+    # v30 employee registration Pass-2 removal below) which is where false-positive
+    # name-based matches should be blocked.
+
+    # Labadi RULE 1 (2026-06-09): sponsorship rows KEEP an emp_no — the requestor /
+    # AlJeel employee who submitted the OPEX form — and must NEVER be blanked. The
+    # cascade [blank] pass that cleared emp_no on account=60307021 rows is REMOVED.
+    # The requestor emp_no is resolved downstream (stage 3 LLM resolution / OPEX
+    # folder extraction).
+
+    # ── stage 3: LLM two-call resolution (v30 wrapper — Fix B) ───────────
+    no_cache = True
+    print("[llm] cache FORCED DISABLED — all LLM calls will be fresh", flush=True)
+
+    total_in = total_out = llm_errors = 0
+    pricing_pro = fea.GEMINI_PRICING["gemini-2.5-pro"]
+    step_traces: list[dict] = []
+
+    def worker(idx_reason):
+        idx, reason = idx_reason
+        try:
+            return idx, reason, process_row_v25(
+                idx, cascade_rows[idx], reason,
+                batch_id, raw_root, all_folders, manpower, lookups,
+                reverse_index=reverse_index,
+                pc_index=pc_index,
+                no_cache=no_cache,
+            )
+        except Exception as e:
+            return idx, reason, {
+                "_agent_method": "cascade_fallback",
+                "_llm_error":    f"{type(e).__name__}: {e}",
+                "_tb":           traceback.format_exc()[-500:],
+            }
+
+    t_start = time.time()
+    done = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = [ex.submit(worker, ir) for ir in routed]
+        try:
+            for fut in concurrent.futures.as_completed(futs):
+                idx, reason, res = fut.result()
+                done += 1
+                tok_in  = res.get("_llm_in_tokens", 0) or 0
+                tok_out = res.get("_llm_out_tokens", 0) or 0
+                total_in  += tok_in
+                total_out += tok_out
+                cost_est = (total_in * pricing_pro["in"]) + (total_out * pricing_pro["out"])
+                elapsed  = time.time() - t_start
+                print(
+                    f"[{done:3d}/{len(routed)}] row {idx:3d} "
+                    f"({reason} → {res.get('_classify','?')})  "
+                    f"method={res.get('_agent_method','?')}"
+                    f"  t={elapsed:5.1f}s  cost~=${cost_est:.3f}"
+                    f"{' [C]' if res.get('_from_cache') else ''}"
+                    f"{' ERR=' + res.get('_llm_error','')[:60] if res.get('_llm_error') else ''}",
+                    flush=True,
+                )
+                if res.get("_llm_error"):
+                    llm_errors += 1
+                method = res.get("_agent_method", "cascade_fallback")
+                hybrid_rows[idx]["_agent_method"] = method
+                if "cascade_fallback" not in method:
+                    for key in ("emp_no", "account", "cost_center", "div", "solution", "agency"):
+                        v = res.get(key)
+                        if v is not None:
+                            hybrid_rows[idx][key] = v
+                    # Labadi RULE 4 (2026-06-09): stamp the LLM-extracted OPEX serial
+                    # on the row. process_batch prefers this over its regex fallback.
+                    # Do NOT override if process_batch already set a non-MISSING value
+                    # via regex (handled downstream — we only set when LLM found one).
+                    opex_serial = res.get("opex_serial", "")
+                    if opex_serial:
+                        hybrid_rows[idx]["_opex_serial"] = opex_serial
+                hybrid_rows[idx]["_route_reason"] = reason
+                hybrid_rows[idx]["_classify"]      = res.get("_classify", "?")
+                # Remember the evidence folder so the pre-write serial
+                # catch-all can try folder-name extraction for rows that
+                # still have no opex_serial.
+                _ev_folder = ((res.get("_step_trace") or {}).get("call1") or {}).get("evidence_folder", "")
+                if _ev_folder:
+                    hybrid_rows[idx]["_evidence_folder"] = _ev_folder
+
+                if res.get("_step_trace"):
+                    step_traces.append(res["_step_trace"])
+
+                if cost_est > args.cost_ceiling:
+                    print(f"[fatal] cost ceiling ${args.cost_ceiling:.2f} hit — saving partial.",
+                          file=sys.stderr)
+                    for f in futs:
+                        f.cancel()
+                    break
+        except KeyboardInterrupt:
+            print("\n[interrupt] saving partial...", flush=True)
+
+    # ── stage 3b: family cluster unification ──────────────────────────────
+    unified = apply_family_cluster_unification(hybrid_rows, cascade_rows)
+    print(f"[cluster] {unified} rows emp_no-unified within family clusters", flush=True)
+
+    # ── stage 3c: personal contribution overlay (v30 — uses find_folder_v25) ──
+    # Two v30 changes carried forward:
+    #   1. Use find_folder_v25 for folder lookup (correct adjacent-ticket routing)
+    #   2. Skip rows where the LLM already resolved to account=21070229 with a
+    #      valid CC — avoids overwriting a correct LLM result with a wrong PC folder.
+    pc_applied = 0
+    for i, c in enumerate(cascade_rows):
+        desc  = str(c.get("Description", "") or "")
+        notes = str(c.get("Notes", "") or "")
+        text  = desc + " " + notes
+        tm    = re.search(r"\b(\d{10,})\b", text)
+        ticket = tm.group(1) if tm else ""
+        if not ticket:
+            tm2 = re.search(r"\b(26-\d{3})\b", text)
+            ticket = tm2.group(1) if tm2 else ""
+        passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+
+        # v30: skip rows already correctly resolved by LLM to PC with valid CC
+        # Also skip rows resolved to sponsorship (60307021) — PC overlay must not
+        # overwrite a correctly-resolved sponsorship account even when the evidence
+        # folder contains a contaminating PC email.
+        hybrid_acct = str(hybrid_rows[i].get("account", "") or "").strip()
+        hybrid_cc   = str(hybrid_rows[i].get("cost_center", "") or "").strip()
+        if hybrid_acct == "21070229" and hybrid_cc not in ("", "000000", "999999"):
+            continue   # LLM already nailed it — don't overwrite
+        if hybrid_acct == "60307021":
+            continue   # already resolved to sponsorship — PC overlay must not overwrite
+
+        # v30: use find_folder_v25 (not fea.find_ticket_folder) to avoid surname mismatch
+        folder = find_folder_v25(ticket, passenger, notes, all_folders, reverse_index)
+        if not folder:
+            continue
+        pc_rec = pc_index.get(str(folder))
+        if not pc_rec:
+            continue
+        cascade_account = str(c.get("Account", "") or "").strip()
+        if cascade_account in ("21070229", "60307021"):
+            continue
+        res_layer = str(c.get("Resolution Layer", "") or "").strip().lower()
+        if "not_resolved" not in res_layer and "not resolved" not in res_layer:
+            continue
+        flags     = str(c.get("Agent Flags", "") or "")
+        cascade_cc = str(c.get("Cost Center", "") or "").strip()
+        if "EMPLOYEE_NOT_IN_MASTER" not in flags and cascade_cc not in ("", "000000", "999999"):
+            continue
+        emp_no = pc_rec.get("emp_no", "")
+        rec    = manpower.get(emp_no, {})
+        hybrid_rows[i]["account"]  = "21070229"
+        hybrid_rows[i]["emp_no"]   = emp_no
+        if rec:
+            hybrid_rows[i]["cost_center"] = _norm_master_code(rec.get("cost_center", ""), "cc")
+            hybrid_rows[i]["div"]         = _norm_master_code(rec.get("div_code", ""), "div")
+            hybrid_rows[i]["solution"]    = _norm_master_code(rec.get("solution", ""), "solution")
+            hybrid_rows[i]["agency"]      = _norm_master_code(rec.get("agency_code", ""), "agency")
+        hybrid_rows[i]["_agent_method"] = "v25_personal_contribution"
+        pc_applied += 1
+    if pc_applied:
+        print(f"[pc] {pc_applied} rows → account=21070229 (personal contribution)", flush=True)
+
+    # ── stage 3d: FIX C — PC-family dependent emp_no blanking ─────────────
+    pc_family_blanked = apply_pc_family_emp_no_rule(
+        hybrid_rows, cascade_rows, manpower, pc_index, all_folders, reverse_index,
+    )
+    print(f"[v30-fix-c] {pc_family_blanked} PC-family dependent rows → emp_no blanked", flush=True)
+
+    # ── stage 3e: v30 — NTS hotel rows with PC email (folder-by-empno lookup) ─────
+    # Problem: hotel rows like "26-731 / MOSTAFA AMER - Kimpton Vividora Barcelona - 1 NTS"
+    # use "26-NNN" ticket keys. The evidence folder is named "hotel amer + sultan" (not a
+    # ticket-number folder) so find_folder_v25 misses it. Stage 3c PC overlay also misses
+    # it. Fix: build a secondary index emp_no→folder from pc_index, then match by passenger
+    # name via manpower. If a PC email exists for the passenger → apply 21070229 + master CC.
+    pc_by_empno: dict[str, Path] = {}
+    for _fp, _prec in pc_index.items():
+        _eno = _prec.get("emp_no", "").strip()
+        if _eno:
+            pc_by_empno[_eno] = Path(_fp)
+
+    nts_pc_count = 0
+    for i, c in []:  # Disabled v26_nts_pc_overlay to prevent overfitting and let the clean LLM classification decide
+        acct = str(hybrid_rows[i].get("account") or "").strip()
+        if acct not in ("60301003", "60301004", "60307021"):
+            continue
+        desc = str(c.get("Description", "") or "")
+        # Target: 26-NNN rows with NTS (hotel nights) in description
+        if not re.search(r"26-[0-9]{3}", desc) or "NTS" not in desc.upper():
+            continue
+        passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+        if not passenger:
+            continue
+
+        # Resolve passenger to emp_no via manpower name lookup.
+        # Passenger may be "LASTNAME/FIRSTNAME" (IATA) or "FIRSTNAME LASTNAME" (non-IATA).
+        tokens = [t for t in re.split(r"[/\s]+", passenger.upper()) if len(t) >= 4]
+        matched_eno = None
+        # Pass 1: two-token match (preferred)
+        for eno, mrec in manpower.items():
+            name_en = (mrec.get("name") or "").upper()
+            if sum(1 for tok in tokens if re.search(r"\b" + re.escape(tok) + r"\b", name_en)) >= 2:
+                matched_eno = eno
+                break
+        # Pass 2: single long-token match (fallback)
+        if not matched_eno:
+            for eno, mrec in manpower.items():
+                name_en = (mrec.get("name") or "").upper()
+                if any(re.search(r"\b" + re.escape(tok) + r"\b", name_en) for tok in tokens if len(tok) >= 5):
+                    matched_eno = eno
+                    break
+
+        if not matched_eno:
+            continue
+
+        # Find PC folder — check pc_by_empno first, then scan all PC folder files.
+        pc_folder_nts: "Path | None" = pc_by_empno.get(matched_eno)
+        if not pc_folder_nts:
+            last_token = tokens[-1] if tokens else ""
+            for _fp, _prec in pc_index.items():
+                try:
+                    _fdir = Path(_fp)
+                    for _msg_f in _fdir.glob("*.msg"):
+                        if "personal contribution" in _msg_f.name.lower() and last_token in _msg_f.name.upper():
+                            pc_folder_nts = _fdir
+                            break
+                    if pc_folder_nts:
+                        break
+                except Exception:
+                    pass
+
+        if not pc_folder_nts or not pc_folder_nts.exists():
+            continue
+        has_pc = any(
+            "personal contribution" in f.name.lower()
+            for f in pc_folder_nts.iterdir()
+            if f.suffix.lower() == ".msg"
+        )
+        if not has_pc:
+            continue
+        # Apply PC account + master CC
+        mrec_nts = manpower.get(matched_eno, {})
+        hybrid_rows[i]["account"]  = "21070229"
+        hybrid_rows[i]["emp_no"]   = matched_eno
+        if mrec_nts:
+            hybrid_rows[i]["cost_center"] = _norm_master_code(mrec_nts.get("cost_center", ""), "cc")
+            hybrid_rows[i]["div"]         = _norm_master_code(mrec_nts.get("div_code", ""), "div")
+            hybrid_rows[i]["solution"]    = _norm_master_code(mrec_nts.get("solution", ""), "solution")
+            hybrid_rows[i]["agency"]      = _norm_master_code(mrec_nts.get("agency_code", ""), "agency")
+        hybrid_rows[i]["_agent_method"] = "v26_nts_pc_overlay"
+        hybrid_rows[i]["_route_reason"] = "NTS_PC_FOLDER"
+        nts_pc_count += 1
+        print(f"  [v30-nts-pc] row {i+1}: {passenger} -> 21070229 via {pc_folder_nts.name}", flush=True)
+    print(f"[v30-nts-pc] {nts_pc_count} hotel/NTS rows -> account=21070229", flush=True)
+
+    # ── stage 3f: v30 — employee conference registration rows (26-NNN) ────────────
+    # Problem: rows like "AMMAR CHAUDHARY - Heart Failure 2026, Barcelona Registrati (26-743)"
+    # trigger L1_sponsor_override (HF keyword) setting account=60307021. But the passenger
+    # IS an AlJeel employee (in manpower). Conference registrations by employees = 60308009
+    # (Training Expenses), not 60307021 (Sponsoring).
+    # Rule: 26-NNN row with "Registration" in description, account=60307021, passenger in
+    # manpower → account=60308009, emp_no=employee, CC from master.
+    emp_reg_count = 0
+    for i, c in enumerate(cascade_rows):
+        if str(hybrid_rows[i].get("account") or "").strip() != "60307021":
+            continue
+        desc = str(c.get("Description", "") or "")
+        if not re.search(r"26-\d{3}", desc) or "REGISTRAT" not in desc.upper():
+            continue
+        passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+        if not passenger:
+            continue
+        # Resolve passenger → emp_no via manpower (non-IATA format: "FIRSTNAME LASTNAME")
+        # Note: passenger name on Jawal ticket may not match Oracle master exactly.
+        # Strategy: require 2 token matches (preferred) or 1 long-token match (fallback).
+        name_parts = [t for t in passenger.upper().split() if len(t) >= 4]
+        if not name_parts:
+            continue
+        matched_eno = None
+        # v30: two-token match ONLY — both first AND last name required.
+        # Pass 2 (single-token fallback) removed: accepting a match on just
+        # one name token (e.g. "AMMAR" matching "Jawdat Ammar Shorab") produces
+        # wrong employee assignments. Better to leave unresolved than guess wrong.
+        for eno, mrec in manpower.items():
+            name_en = (mrec.get("name") or "").upper()
+            if sum(1 for p in name_parts if re.search(r"\b" + re.escape(p) + r"\b", name_en)) >= 2:
+                matched_eno = eno
+                break
+        if not matched_eno:
+            continue
+        # Apply Training account + master CC
+        mrec = manpower.get(matched_eno, {})
+        hybrid_rows[i]["account"]  = "60308009"
+        hybrid_rows[i]["emp_no"]   = matched_eno
+        if mrec:
+            hybrid_rows[i]["cost_center"] = _norm_master_code(mrec.get("cost_center", ""), "cc")
+            hybrid_rows[i]["div"]         = _norm_master_code(mrec.get("div_code", ""), "div")
+            hybrid_rows[i]["solution"]    = _norm_master_code(mrec.get("solution", ""), "solution")
+            hybrid_rows[i]["agency"]      = _norm_master_code(mrec.get("agency_code", ""), "agency")
+        hybrid_rows[i]["_agent_method"] = "v26_emp_registration"
+        hybrid_rows[i]["_route_reason"] = "EMP_REGISTRATION_TRAINING"
+        emp_reg_count += 1
+        print(f"  [v30-emp-reg] row {i+1}: {passenger} → 60308009 (Training) via master", flush=True)
+    print(f"[v30-emp-reg] {emp_reg_count} employee registration rows → account=60308009", flush=True)
+
+        # ── stage 3d: OPEX event-folder sponsorship overlay (v30) ──────────────
+    # POST-PROCESSING — no LLM call. Deterministic overlay.
+    # For tickets with account 60301003/60301004, no individual folder, whose
+    # passenger surname appears in a conference/event folder .msg that also
+    # contains an OPEX-*.pdf AND sponsorship language near the name.
+    # => account=60307021, emp_no=blank, all other segments unchanged.
+    opex_event_overlay_count = 0
+    try:
+        import extract_msg as _emsg_v26
+        SPONSOR_SIGNALS = (
+            "NON-MEMBER", "NON MEMBER", "HCP", "SPONSORSHIP", "SPONSORED",
+            "EXTERNAL", "PHYSICIAN", "DOCTOR", "SPECIALIST", "PROFESSOR",
+            "NOMINATION", "ATTENDEE", "\u0637\u0628\u064a\u0628", "\u0645\u062e\u062a\u0635",
+        )
+
+        def _is_aljeel_employee(surname: str, passenger: str, manpower: dict) -> bool:
+            """
+            Return True only if the passenger is clearly an AlJeel employee.
+            Requires either:
+            1. surname is >= 6 chars AND is a whole-word match in the employee name
+            2. OR the full passenger name has 2+ tokens that all appear in one employee name
+
+            A short surname (< 6 chars) like AHMED, OMAR, or ALI is never sufficient alone.
+            """
+            surname = surname.strip().upper()
+            passenger_tokens = set(
+                t.strip().upper() for t in re.split(r"[/\s]+", passenger)
+                if len(t.strip()) >= 4 and t.strip().upper() not in ("MR", "MRS", "MS", "DR", "ENG", "CHD")
+            )
+            for emp in manpower.values():
+                emp_name = ((emp.get("name_en", "") or emp.get("name", "") or "")).strip().upper()
+                if not emp_name:
+                    continue
+                emp_tokens = set(emp_name.split())
+                if len(surname) >= 6 and surname in emp_tokens:
+                    return True
+                if len(passenger_tokens) >= 2 and passenger_tokens.issubset(emp_tokens):
+                    return True
+            return False
+
+        for idx, h in enumerate(hybrid_rows):
+            acct = str(h.get("account", h.get("Account", "")) or "").strip()
+            if acct not in ("60301003", "60301004"):
+                continue
+            desc  = str(cascade_rows[idx].get("Description", "") or "")
+            notes = str(cascade_rows[idx].get("Notes", "") or "")
+            tm    = re.search(r"\b(\d{10,})\b", desc + " " + notes)
+            ticket_no = tm.group(1) if tm else ""
+            if not ticket_no:
+                continue
+            passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
+            surname = passenger.split("/")[0].strip().upper() if "/" in passenger else passenger.strip().upper()
+            if len(surname) < 3:
+                continue
+            # Skip only if passenger is likely an AlJeel employee; sponsored parties are external.
+            if _is_aljeel_employee(surname, passenger, manpower):
+                continue
+            import os as _os26
+            import pathlib
+
+            # Pre-check: does this ticket already have its own per-ticket folder anywhere in raw_root?
+            ticket_has_own_folder = any(
+                ticket_no in dir_name
+                for _root26, _dirs26, _files26 in _os26.walk(raw_root)
+                for dir_name in _dirs26
+            )
+            if ticket_has_own_folder:
+                continue
+            # Full walk: find any non-ticket dir containing OPEX-*.pdf
+            found_folder = None
+            for _dirpath26, _subdirs26, _filenames26 in _os26.walk(raw_root):
+                _dirpath26 = pathlib.Path(_dirpath26)
+                # Skip if this directory IS a ticket folder
+                if re.match(r"^\d{10}", _dirpath26.name):
+                    _subdirs26.clear()
+                    continue
+                opex_pdfs = [f for f in _filenames26 if re.match(r"OPEX-.*\.pdf", f, re.IGNORECASE)]
+                if not opex_pdfs:
+                    continue
+                # Search .msg files in this dir for surname + SPONSOR_SIGNALS
+                for fname in _filenames26:
+                    if not fname.lower().endswith(".msg"):
+                        continue
+                    msg_path = _dirpath26 / fname
+                    try:
+                        msg_obj = _emsg_v26.Message(str(msg_path))
+                        body = (msg_obj.body or "").upper()
+                        subj = (msg_obj.subject or "").upper()
+                        if surname not in body and surname not in subj:
+                            continue
+                        if any(sig in body or sig in subj for sig in SPONSOR_SIGNALS):
+                            found_folder = _dirpath26
+                            break
+                    except Exception:
+                        continue
+                if found_folder:
+                    break
+            if found_folder:
+                # Look up requesting employee from OPEX folder name for agency/cc
+                opex_emp_no = None
+                opex_emp_rec = None
+                for opex_f in (found_folder.glob("OPEX-*.pdf") or []):
+                    # OPEX filename encodes the J-code; requesting emp is in the .msg body
+                    pass
+                # Try to find requesting emp from the .msg body (look for emp_no in "Emp No: XXXXXXX")
+                for msg_p in found_folder.glob("*.msg"):
+                    try:
+                        _msg2 = _emsg_v26.Message(str(msg_p))
+                        import re as _re26
+                        _m = _re26.search(r"(?:emp(?:loyee)?[\s#:]*no[.\s:]*|employee\s+id\s*:?\s*)(\d{7})", (_msg2.body or "").lower())
+                        if _m:
+                            opex_emp_no = _m.group(1)
+                            opex_emp_rec = manpower.get(opex_emp_no)
+                            break
+                    except Exception:
+                        pass
+                h["account"]        = "60307021"
+                # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor
+                # emp_no (AlJeel employee who submitted the OPEX form), never blank.
+                # Use the emp_no extracted from the OPEX folder .msg body when found;
+                # otherwise keep the existing emp_no on the row rather than clearing.
+                if opex_emp_no:
+                    h["emp_no"]     = opex_emp_no
+                h["gl_name"]        = "Sponsoring Expenses"
+                # If requesting emp found in master, use their agency/cc/div/solution
+                if opex_emp_rec:
+                    try:
+                        h["cost_center"] = str(opex_emp_rec.cost_center or h.get("cost_center", "")).zfill(6)
+                        h["div"]         = str(opex_emp_rec.div_code or h.get("div", "")).zfill(3)
+                        h["agency"]      = str(opex_emp_rec.agency_code or h.get("agency", "")).zfill(5)
+                        h["solution"]    = str(opex_emp_rec.solution or h.get("solution", "00000")).zfill(5)
+                    except Exception:
+                        pass
+                h["_agent_method"]  = "v26_opex_event_overlay"
+                h["_route_reason"]  = "OPEX_EVENT_FOLDER_MATCH"
+                h["_v2_trace"]      = f"v26 overlay: {surname} found in {found_folder.name} (OPEX sponsorship confirmed)"
+                h["_evidence_folder"] = str(found_folder)
+                opex_event_overlay_count += 1
+                try:
+                    _rel = found_folder.relative_to(raw_root)
+                except Exception:
+                    _rel = found_folder.name
+                print(f"  [v30-overlay] row {idx+1}: {passenger} -> 60307021 via {_rel}", flush=True)
+    except Exception as _v26_err:
+        print(f"[v30-overlay] error: {_v26_err}", flush=True)
+    print(f"[v30-overlay] {opex_event_overlay_count} rows -> 60307021 via OPEX event folder match", flush=True)
+
+
+    # ── stage 3g: OPEX serial catch-all from folder name ──────────────────
+    # Any row that still has no opex_serial (shortcut rows, overlay rows,
+    # LLM rows where extraction failed) gets one more chance: the evidence
+    # folder name itself often carries the serial (e.g. "CRM-2026-27 Approvals").
+    serial_from_folder = 0
+    for h in hybrid_rows:
+        cur = str(h.get("_opex_serial", "") or "").strip()
+        if cur and cur not in ("MISSING", "N/A"):
+            continue
+        folder_text = str(h.get("_evidence_folder", "") or "")
+        if not folder_text:
+            continue
+        extracted = _extract_serial_from_text(Path(folder_text).name)
+        if not extracted:
+            # Folder name has no serial — but the OPEX PDF filename inside it
+            # often does (e.g. "OPEX-CE-18-2026-J-2026-108 (1).pdf").
+            for opex_pdf in _find_opex_pdfs(Path(folder_text)):
+                extracted = _extract_serial_from_text(opex_pdf.name)
+                if extracted:
+                    break
+        if extracted:
+            h["_opex_serial"] = extracted
+            serial_from_folder += 1
+    if serial_from_folder:
+        print(f"[v30-serial] {serial_from_folder} rows → OPEX serial from folder name", flush=True)
+
+    # ── stage 3h: deterministic family-folder emp_no rule (2026-06-09) ─────
+    # Runs LAST among emp_no-mutating stages so the folder-name signal is
+    # authoritative — "<ticket> family" folders pin the responsible employee's
+    # emp_no (from the owner row's invoice Ref. No.) onto every family row.
+    family_owner_map = build_family_folder_emp_map(all_folders, cascade_rows, manpower)
+    family_stamped = apply_family_folder_emp_rule(hybrid_rows, cascade_rows, family_owner_map)
+    print(f"[family-folder] {len(family_owner_map)} family folder(s) → "
+          f"{family_stamped} rows emp_no stamped (EMP_FROM_FAMILY_FOLDER)", flush=True)
+
+    # ── stage 4: write XLSX ────────────────────────────────────────────────
+    for h in hybrid_rows:
+        m = h.get("_agent_method", "")
+        if m.startswith("v26_") or m.startswith("v25_") or m.startswith("v18_") or m.startswith("v16_") or m in (
+            "v16_master_shortcut", "v16_sponsorship_master"
+        ):
+            h["_agent_method_orig"] = m
+            h["_agent_method"] = "cluster_unified" if "cluster" in m else "llm_agent"
+
+    v15.write_v15_12_xlsx(cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row)
+
+    for h in hybrid_rows:
+        if "_agent_method_orig" in h:
+            h["_agent_method"] = h.pop("_agent_method_orig")
+
+    print(f"[out] {out_xlsx.name} (v30 pass complete)", flush=True)
+
+    # ── stage 4.2: write OPEX Serial column (Labadi RULE 4) ────────────────
+    # write_v15_12_xlsx copies the cascade xlsx, whose "OPEX Serial" column was
+    # filled by process_batch in an earlier run — before run_v30's serial
+    # extraction (LLM pass, multi-salesman backfill, stage 3g folder catch-all)
+    # existed. The serials collected on hybrid_rows["_opex_serial"] were never
+    # written to any column, so they must be stamped here, after all extraction
+    # passes complete and the output workbook exists.
+    try:
+        from copy import copy as _copy_style
+        _wb_ser = openpyxl.load_workbook(out_xlsx)
+        _ws_ser = _wb_ser.active
+        _col_serial = None
+        for _ci in range(1, _ws_ser.max_column + 1):
+            if str(_ws_ser.cell(hdr_row, _ci).value or "").strip() == "OPEX Serial":
+                _col_serial = _ci
+                break
+        if _col_serial is None:
+            print("[v30-serial] 'OPEX Serial' column not found — skipping write", flush=True)
+        else:
+            # Same event keywords as process_batch._labadi_is_opex_context —
+            # used only when the cell is blank and context must be re-derived.
+            _event_kw = (
+                "sponsor", "opex", "forum", "registration", "conference",
+                "congress", "exhibition", "summit", "symposium", "iepc",
+            )
+            _serials_written = 0
+            for _i, _h in enumerate(hybrid_rows):
+                _cell = _ws_ser.cell(_h["_row_idx"], _col_serial)
+                _serial = str(_h.get("_opex_serial", "") or "").strip()
+                _existing = str(_cell.value or "").strip()
+                if _serial and _serial not in ("MISSING", "N/A"):
+                    if _existing != _serial:
+                        if _existing.upper() == "MISSING" and _col_serial > 1:
+                            # Cell carried the red MISSING fill — inherit the
+                            # plain row fill from the neighbouring cell.
+                            _cell.fill = _copy_style(
+                                _ws_ser.cell(_h["_row_idx"], _col_serial - 1).fill
+                            )
+                        _cell.value = _serial
+                        _serials_written += 1
+                elif _existing in ("", "None"):
+                    # No serial from any pass and no value from process_batch:
+                    # MISSING for OPEX-context rows, N/A for pure employee travel.
+                    _acct = str(_h.get("account", "") or "").strip()
+                    _blob = " ".join(
+                        str(x or "") for x in (
+                            _h.get("_evidence_folder", ""),
+                            cascade_rows[_i].get("Description", ""),
+                            cascade_rows[_i].get("Notes", ""),
+                        )
+                    ).lower()
+                    _cell.value = (
+                        "MISSING"
+                        if _acct == "60307021" or any(k in _blob for k in _event_kw)
+                        else "N/A"
+                    )
+            _wb_ser.save(str(out_xlsx))
+            print(f"[v30-serial] {_serials_written} serials written to OPEX Serial column", flush=True)
+    except Exception as _ser_err:
+        print(f"[v30-serial] error writing OPEX Serial column: {_ser_err}", flush=True)
+
+    # ── stage 4.3: stamp hybrid-row flags into the Agent Flags column ──────
+    # Flags accumulated on hybrid_rows["_flags"] (EMP_FROM_FAMILY_FOLDER,
+    # FAMILY_CLUSTER_CHD_USES_SPONSOR_EMP) are appended to the existing
+    # Agent Flags cell so the emp_no provenance is traceable in the output.
+    try:
+        _wb_fl = openpyxl.load_workbook(out_xlsx)
+        _ws_fl = _wb_fl.active
+        _col_flags = None
+        for _ci in range(1, _ws_fl.max_column + 1):
+            if str(_ws_fl.cell(hdr_row, _ci).value or "").strip() == "Agent Flags":
+                _col_flags = _ci
+                break
+        if _col_flags is None:
+            print("[v30-flags] 'Agent Flags' column not found — skipping flag stamp", flush=True)
+        else:
+            _flags_written = 0
+            for _h in hybrid_rows:
+                _new_flags = [f for f in str(_h.get("_flags", "") or "").split() if f]
+                if not _new_flags:
+                    continue
+                _cell = _ws_fl.cell(_h["_row_idx"], _col_flags)
+                _existing = str(_cell.value or "").strip()
+                _missing = [f for f in _new_flags if f not in _existing]
+                if not _missing:
+                    continue
+                if _existing and _existing.upper() != "CLEAN":
+                    _cell.value = _existing + " | " + " | ".join(_missing)
+                else:
+                    _cell.value = " | ".join(_missing)
+                _flags_written += 1
+            _wb_fl.save(str(out_xlsx))
+            print(f"[v30-flags] {_flags_written} rows → flags stamped into Agent Flags", flush=True)
+    except Exception as _fl_err:
+        print(f"[v30-flags] error stamping flags: {_fl_err}", flush=True)
+
+    # ── stage 4.4: v30 — Force rewrite cascade locations from Manpower ───────────
+    try:
+        _wb_loc = openpyxl.load_workbook(out_xlsx)
+        _ws_loc = _wb_loc.active
+        
+        # Load manpower quickly
+        import pandas as pd
+        _df_m = pd.read_excel('/home/clawdbot/.openclaw/workspace/aljeel/qc/master-data/Aljeel_Lookups-v2.xlsx', sheet_name='Manpower')
+        _loc_map = {}
+        for _, _row in _df_m.iterrows():
+            _emp_raw = _row.iloc[0]
+            _loc_raw = _row.iloc[4]
+            if pd.notna(_emp_raw):
+                try:
+                    _loc_map[str(int(_emp_raw))] = str(int(_loc_raw)) if pd.notna(_loc_raw) else ""
+                except:
+                    pass
+                    
+        for _r in range(4, _ws_loc.max_row+1):
+            _combo = str(_ws_loc.cell(_r, 14).value)
+            _emp_no = str(_ws_loc.cell(_r, 16).value) if _ws_loc.cell(_r, 16).value else ""
+            if _combo and len(_combo.split('-')) == 10:
+                _parts = _combo.split('-')
+                _new_loc = _parts[1]
+                if _emp_no in _loc_map:
+                    _l = _loc_map[_emp_no]
+                    if _l:
+                        _new_loc = _l
+                    else:
+                        _new_loc = _parts[1]
+                else:
+                    _new_loc = _parts[1]
+                _parts[1] = _new_loc
+                _ws_loc.cell(_r, 14).value = "-".join(_parts)
+        _wb_loc.save(str(out_xlsx))
+        print("[v30-loc] Cascade locations explicitly rewritten from Manpower", flush=True)
+    except Exception as e:
+        print(f"[v30-loc] Error rewriting locations: {e}", flush=True)
+
+    # ── stage 5: booking-group detection ──────────────────────────────────
+    bg_propagated, bg_conflicts = apply_booking_groups_inline_v25(out_xlsx)
+
+    # ── stage 5.5: sync final derived descriptions after all combo mutations ──
+    gl_synced = sync_final_gl_descriptions(out_xlsx, cascade_xlsx, hdr_row)
+
+    # ── stage 6: fraud detection ───────────────────────────────────────────
+    fraud_catches: list[dict] = []
+    if not args.skip_fraud:
+        fraud_catches = run_fraud_detection(batch_id, cascade_rows, hybrid_rows, out_dir)
+        # Override fraud output filename to v30
+        fraud_out_v24 = out_dir / "fraud-watch-v24.json"
+        fraud_out_v25 = out_dir / f"fraud-watch-{VERSION}.json"
+        if fraud_out_v24.exists() and not fraud_out_v25.exists():
+            import shutil as _shutil
+            _shutil.copy2(fraud_out_v24, fraud_out_v25)
+    else:
+        print("[fraud] skipped (--skip-fraud)", flush=True)
+
+    # ── stage 7: step trace ────────────────────────────────────────────────
+    trace_path = out_dir / f"step-trace-{VERSION}.jsonl"
+    if step_traces:
+        with open(trace_path, "w") as tf:
+            for t in step_traces:
+                tf.write(json.dumps(t, default=str) + "\n")
+        print(f"[trace] {len(step_traces)} routed rows → {trace_path.name}", flush=True)
+
+    # ── stage 8: auto-score ────────────────────────────────────────────────
+    auto_score: str = "N/A"
+    truth_candidates = list(batch_dir.glob(f"{batch_id}.xlsx"))
+    if truth_candidates:
+        try:
+            import subprocess
+            qc_script = ROOT / "qc" / "score_against_truth.py"
+            score_out = out_dir / f"score-{VERSION}.md"
+            result = subprocess.run(
+                ["python3", str(qc_script), str(out_xlsx), str(truth_candidates[0])],
+                capture_output=True, text=True, timeout=120,
+            )
+            score_out.write_text(result.stdout)
+            for line in reversed(result.stdout.splitlines()):
+                m = re.search(r"All-5-segments exact.*?(\d+\.\d+)%", line)
+                if m:
+                    auto_score = f"{m.group(1)}%"
+                    break
+            print(f"[score] {auto_score}  → {score_out.name}", flush=True)
+        except Exception as e:
+            print(f"[score] auto-score failed: {e}", flush=True)
+    else:
+        print(f"[score] no truth file found (blind run)", flush=True)
+
+    # ── summary ───────────────────────────────────────────────────────────
+    cost_usd = (total_in * pricing_pro["in"]) + (total_out * pricing_pro["out"])
+    method_counts: dict[str, int] = Counter(h["_agent_method"] for h in hybrid_rows)
+    fraud_cats = Counter(c["category"] for c in fraud_catches)
+
+    summary = {
+        "batch_id":                   batch_id,
+        "version":                    VERSION,
+        "timestamp_utc":              utc_ts(),
+        "total_rows":                 len(cascade_rows),
+        "routed_to_llm":              len(routed),
+        "routing_reasons":            dict(reason_counts),
+        "method_counts":              dict(method_counts),
+        "cluster_unified":            unified,
+        "pc_applied":                 pc_applied,
+        "pc_family_blanked":          pc_family_blanked,
+        "booking_group_propagated":   bg_propagated,
+        "booking_group_conflicts":    bg_conflicts,
+        "gl_descriptions_synced":     gl_synced,
+        "llm_errors":                 llm_errors,
+        "no_cache":                   no_cache,
+        "auto_score_all5":            auto_score,
+        "fraud_catches":              len(fraud_catches),
+        "fraud_categories":           dict(fraud_cats),
+        "llm_in_tokens":              total_in,
+        "llm_out_tokens":             total_out,
+        "cost_usd_est":               round(cost_usd, 4),
+        "cost_ceiling":               args.cost_ceiling,
+        "runtime_sec":                round(time.time() - t_start, 1),
+        "cascade_input":              str(cascade_xlsx),
+        "output":                     str(out_xlsx),
+    }
+    (out_dir / f"summary-{VERSION}.json").write_text(
+        json.dumps(summary, indent=2, default=str)
+    )
+
+    print()
+    print("=" * 65)
+    print(f"  {VERSION} done — {batch_id}")
+    print(f"  Rows:              {summary['total_rows']}  ({len(routed)} routed to LLM)")
+    print(f"  Methods:           {dict(method_counts)}")
+    print(f"  Cluster unif.:     {unified}")
+    print(f"  PC applied:        {pc_applied}")
+    print(f"  PC-family blanked: {pc_family_blanked}")
+    print(f"  Booking groups:    {bg_propagated} propagated  "
+          f"{bg_conflicts} conflicts {'⚠️' if bg_conflicts else '✅'}")
+    print(f"  GL synced:         {gl_synced}")
+    print(f"  Fraud catches:     {len(fraud_catches)}"
+          f"  {dict(fraud_cats) if fraud_cats else '(none)'}")
+    print(f"  LLM cost (est):    ${cost_usd:.4f}  ({total_in:,} in / {total_out:,} out)")
+    print(f"  Runtime:           {summary['runtime_sec']:.1f}s")
+    print(f"  Score (auto):      {auto_score}")
+    print(f"  Step trace:        {len(step_traces)} rows → step-trace-{VERSION}.jsonl")
+    print(f"  Output:            {out_xlsx.name}")
+    print("=" * 65)
+
+
+if __name__ == "__main__":
+    main()

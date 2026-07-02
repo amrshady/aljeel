@@ -1,0 +1,1485 @@
+#!/usr/bin/env python3
+"""
+AI Fraud Detector POC — v16.1 Hardened Schema
+=============================================
+Upgrade from v16: enforces a standardized output schema via Pydantic v2 + Gemini responseSchema.
+
+Changes from v16:
+- Per-row verdict schema locked: primary_category enum, Evidence model, value_at_risk_sar
+- responseSchema + responseMimeType passed to Gemini generationConfig (structured output)
+- Post-call Pydantic validation: >5% row failures = fail loud
+- entity_key computed post-call (not by model)
+- Output files: j26-640-fraud-ai-v161.json, j26-788-fraud-ai-v161.json (v16 files preserved)
+- Comparison report: catches_by_category table + total SAR at risk per batch
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import sys
+import time
+import unicodedata
+import urllib.request
+import urllib.error
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, Literal
+
+# Pydantic v2
+from pydantic import BaseModel, Field, ValidationError
+
+# ---------------------------------------------------------------------------
+# Pydantic Models — v16.1 Schema
+# ---------------------------------------------------------------------------
+
+CATEGORY_LITERALS = Literal[
+    "APPROVAL_MISSING",
+    "APPROVAL_INVALID",
+    "AMOUNT_MISMATCH_EMAIL",
+    "AMOUNT_MISMATCH_MARKET",
+    "DUPLICATE_BILLING",
+    "REBOOKING_FRAUD",
+    "EXPENSE_MISCLASSIFICATION",
+    "UNAPPROVED_FAMILY",
+    "VAT_ANOMALY",
+    "POLICY_VIOLATION",
+    "OTHER",
+    "NONE",
+]
+
+CATEGORY_VALUES = [
+    "APPROVAL_MISSING", "APPROVAL_INVALID", "AMOUNT_MISMATCH_EMAIL",
+    "AMOUNT_MISMATCH_MARKET", "DUPLICATE_BILLING", "REBOOKING_FRAUD",
+    "EXPENSE_MISCLASSIFICATION", "UNAPPROVED_FAMILY", "VAT_ANOMALY",
+    "POLICY_VIOLATION", "OTHER", "NONE",
+]
+
+EVIDENCE_SOURCE_VALUES = [
+    "invoice_row", "approval_msg", "manpower_master",
+    "override_table", "cross_batch_history", "computed",
+]
+
+RECOMMENDED_ACTION_VALUES = [
+    "REJECT_INVOICE_ROW", "REQUEST_REFUND", "REQUEST_APPROVAL_RECONFIRMATION",
+    "FORWARD_TO_AUDIT", "FORWARD_TO_HR", "FINANCE_REVIEW", "ESCALATE_TO_CFO",
+]
+
+
+class Evidence(BaseModel):
+    source: Literal[
+        "invoice_row", "approval_msg", "manpower_master",
+        "override_table", "cross_batch_history", "computed"
+    ]
+    pointer: str
+    quote: str  # max 280 chars in prompt instruction
+
+
+class GeminiRowVerdict(BaseModel):
+    """Schema for what Gemini returns (no entity_key — computed post-call)."""
+    sl_no: int
+    verdict: Literal["RED", "YELLOW", "CLEAN"]
+    primary_category: CATEGORY_LITERALS
+    secondary_categories: list[CATEGORY_LITERALS] = Field(default_factory=list)
+    other_label: Optional[str] = None
+    value_at_risk_sar: float
+    evidence: list[Evidence]
+    reasoning: str
+    confidence: Literal["high", "medium", "low"]
+
+
+class TopCase(BaseModel):
+    rank: int
+    sl_nos: list[int]
+    headline: str
+    primary_category: CATEGORY_LITERALS
+    total_value_at_risk_sar: float
+    full_reasoning: str
+    evidence: list[Evidence]
+    recommended_action: Literal[
+        "REJECT_INVOICE_ROW", "REQUEST_REFUND", "REQUEST_APPROVAL_RECONFIRMATION",
+        "FORWARD_TO_AUDIT", "FORWARD_TO_HR", "FINANCE_REVIEW", "ESCALATE_TO_CFO"
+    ]
+
+
+class BatchSummary(BaseModel):
+    red_count: int
+    yellow_count: int
+    clean_count: int
+    total_rows: int
+    total_value_at_risk_sar: float
+    catches_by_category: dict[str, int]
+    key_themes: list[str]
+
+
+class GeminiFraudResponse(BaseModel):
+    per_row_verdicts: list[GeminiRowVerdict]
+    top_5_cases: list[TopCase]
+    batch_summary: BatchSummary
+
+
+# ---------------------------------------------------------------------------
+# Gemini responseSchema (OpenAPI-compatible, no $ref)
+# Manually built to avoid $ref/anyOf resolution issues with Gemini API
+# ---------------------------------------------------------------------------
+
+def _build_evidence_schema() -> dict:
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "source": {"type": "STRING", "enum": EVIDENCE_SOURCE_VALUES},
+            "pointer": {"type": "STRING"},
+            "quote": {"type": "STRING"},
+        },
+        "required": ["source", "pointer", "quote"],
+    }
+
+
+def _build_response_schema() -> dict:
+    ev = _build_evidence_schema()
+    row_verdict = {
+        "type": "OBJECT",
+        "properties": {
+            "sl_no": {"type": "INTEGER"},
+            "verdict": {"type": "STRING", "enum": ["RED", "YELLOW", "CLEAN"]},
+            "primary_category": {"type": "STRING", "enum": CATEGORY_VALUES},
+            "secondary_categories": {
+                "type": "ARRAY",
+                "items": {"type": "STRING", "enum": CATEGORY_VALUES},
+            },
+            "other_label": {"type": "STRING", "nullable": True},
+            "value_at_risk_sar": {"type": "NUMBER"},
+            "evidence": {"type": "ARRAY", "items": ev},
+            "reasoning": {"type": "STRING"},
+            "confidence": {"type": "STRING", "enum": ["high", "medium", "low"]},
+        },
+        "required": [
+            "sl_no", "verdict", "primary_category", "secondary_categories",
+            "value_at_risk_sar", "evidence", "reasoning", "confidence",
+        ],
+    }
+    top_case = {
+        "type": "OBJECT",
+        "properties": {
+            "rank": {"type": "INTEGER"},
+            "sl_nos": {"type": "ARRAY", "items": {"type": "INTEGER"}},
+            "headline": {"type": "STRING"},
+            "primary_category": {"type": "STRING", "enum": CATEGORY_VALUES},
+            "total_value_at_risk_sar": {"type": "NUMBER"},
+            "full_reasoning": {"type": "STRING"},
+            "evidence": {"type": "ARRAY", "items": ev},
+            "recommended_action": {"type": "STRING", "enum": RECOMMENDED_ACTION_VALUES},
+        },
+        "required": [
+            "rank", "sl_nos", "headline", "primary_category",
+            "total_value_at_risk_sar", "full_reasoning", "evidence", "recommended_action",
+        ],
+    }
+    batch_summary = {
+        "type": "OBJECT",
+        "properties": {
+            "red_count": {"type": "INTEGER"},
+            "yellow_count": {"type": "INTEGER"},
+            "clean_count": {"type": "INTEGER"},
+            "total_rows": {"type": "INTEGER"},
+            "total_value_at_risk_sar": {"type": "NUMBER"},
+            "catches_by_category": {"type": "STRING"},
+            "key_themes": {"type": "ARRAY", "items": {"type": "STRING"}},
+        },
+        "required": [
+            "red_count", "yellow_count", "clean_count", "total_rows",
+            "total_value_at_risk_sar", "catches_by_category", "key_themes",
+        ],
+    }
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "per_row_verdicts": {"type": "ARRAY", "items": row_verdict},
+            "top_5_cases": {"type": "ARRAY", "items": top_case},
+            "batch_summary": batch_summary,
+        },
+        "required": ["per_row_verdicts", "top_5_cases", "batch_summary"],
+    }
+
+
+GEMINI_RESPONSE_SCHEMA = _build_response_schema()
+
+
+# ---------------------------------------------------------------------------
+# entity_key computation (post-Gemini, not by model)
+# ---------------------------------------------------------------------------
+
+_HONORIFICS = re.compile(
+    r"\b(mr|mrs|ms|miss|dr|prof|eng|engr|sir|سيد|د|م|أ|ا|المهندس|الدكتور)\.?\b",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+_AMOUNT_BANDS = [500, 1000, 2000, 5000, 10000, 20000, 50000]
+
+
+def _normalize_passenger(name: str) -> str:
+    if not name:
+        return "UNKNOWN"
+    # Unicode normalize
+    name = unicodedata.normalize("NFKC", name)
+    # Remove honorifics
+    name = _HONORIFICS.sub("", name)
+    # Strip stray punctuation (e.g. "." left by "Dr."), normalize spaces
+    name = re.sub(r"[^\w\s]", " ", name)
+    name = re.sub(r"\s+", " ", name).strip().upper()
+    return name or "UNKNOWN"
+
+
+def _amount_band(amount: float) -> str:
+    for band in _AMOUNT_BANDS:
+        if amount <= band:
+            return f"lte{band}"
+    return "gt50000"
+
+
+def _route_corridor(route: str) -> str:
+    if not route:
+        return "UNKNOWN"
+    # Extract 3-letter codes, sort for normalization (JED-RUH == RUH-JED)
+    codes = re.findall(r"\b[A-Z]{3}\b", route.upper())
+    if len(codes) >= 2:
+        return "-".join(sorted(set(codes[:2])))
+    return route.upper()[:20]
+
+
+def compute_entity_key(row: dict) -> str:
+    """
+    Stable hash for cross-batch tracking.
+    Format: {passenger_normalized}|{route_corridor}|{amount_band}|{yyyy-mm}
+    """
+    passenger = _normalize_passenger(
+        row.get("passenger") or row.get("description") or ""
+    )
+    # Try various route fields
+    route = row.get("route") or row.get("sector") or ""
+    corridor = _route_corridor(route)
+
+    amount = 0.0
+    for fld in ("value_at_risk_sar", "total_amount", "taxable_amount", "amount"):
+        try:
+            v = row.get(fld)
+            if v is not None:
+                amount = float(v)
+                break
+        except (TypeError, ValueError):
+            pass
+    band = _amount_band(amount)
+
+    # Service date → yyyy-mm
+    date_str = row.get("service_date") or row.get("issue_date") or ""
+    ym = "0000-00"
+    m = re.search(r"(\d{4})-(\d{2})", str(date_str))
+    if m:
+        ym = f"{m.group(1)}-{m.group(2)}"
+
+    return f"{passenger}|{corridor}|{band}|{ym}"
+
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+AI_POC_DIR = ROOT / "qc" / "ai-poc"
+CACHE_DIR = AI_POC_DIR / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+MANPOWER_XLSX = ROOT / "qc" / "master-data" / "master-data-003.xlsx"
+LINE_MANAGER_OVERRIDES_XLSX = ROOT / "qc" / "master-data" / "LineManagerOverrides.xlsx"
+CROSS_BATCH_HISTORY = ROOT / "cache" / "cross_batch_history.json"
+
+VERSION_TAG = "v16.1"
+
+
+# ---------------------------------------------------------------------------
+# Env loader
+# ---------------------------------------------------------------------------
+def _load_env_key(name: str) -> str:
+    val = os.environ.get(name, "")
+    if not val:
+        env_path = Path("/home/clawdbot/.openclaw/.env")
+        if env_path.exists():
+            for line in env_path.read_text(errors="replace").splitlines():
+                if line.startswith(f"{name}="):
+                    val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+    return val
+
+
+# ---------------------------------------------------------------------------
+# LLM — Gemini 3.1 Pro direct API (no fallback per operator instruction)
+# ---------------------------------------------------------------------------
+GEMINI_PRIMARY_MODEL = "gemini-3.1-pro-preview"
+GEMINI_CTX_LIMIT = 2_000_000
+GEMINI_MAX_OUTPUT_TOKENS = 196608
+GEMINI_THINKING_BUDGET = 32768
+
+
+def _call_gemini_direct(
+    prompt_text: str,
+    api_key: str,
+    model: str,
+    max_output_tokens: int = GEMINI_MAX_OUTPUT_TOKENS,
+    response_schema: Optional[dict] = None,
+) -> dict:
+    """Call Gemini API directly with optional responseSchema for structured output."""
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/"
+        f"models/{model}:generateContent?key={api_key}"
+    )
+    generation_config: dict = {
+        "temperature": 0.1,
+        "maxOutputTokens": max_output_tokens,
+        "thinkingConfig": {
+            "thinkingBudget": GEMINI_THINKING_BUDGET,
+        },
+    }
+    if response_schema is not None:
+        generation_config["responseSchema"] = response_schema
+        generation_config["responseMimeType"] = "application/json"
+
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": prompt_text}]}],
+        "generationConfig": generation_config,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=900) as resp:
+        return json.loads(resp.read())
+
+
+def _gemini_to_openai_shape(gemini_resp: dict, model: str) -> dict:
+    candidates = gemini_resp.get("candidates", [])
+    content = ""
+    finish_reason = "stop"
+    if candidates:
+        cand = candidates[0]
+        finish_reason = cand.get("finishReason", "stop")
+        parts = cand.get("content", {}).get("parts", [])
+        content = " ".join(p.get("text", "") for p in parts if "text" in p).strip()
+    usage_meta = gemini_resp.get("usageMetadata", {})
+    usage = {
+        "prompt_tokens":     usage_meta.get("promptTokenCount", 0),
+        "completion_tokens": usage_meta.get("candidatesTokenCount",
+                                usage_meta.get("outputTokenCount", 0)),
+        "total_tokens":      usage_meta.get("totalTokenCount", 0),
+    }
+    return {
+        "choices": [{"message": {"role": "assistant", "content": content},
+                     "finish_reason": finish_reason}],
+        "usage": usage,
+        "model": gemini_resp.get("modelVersion", model),
+        "_raw_gemini": gemini_resp,
+    }
+
+
+def call_llm(prompt_text: str, max_output_tokens: int = 65536) -> tuple[dict, str, dict]:
+    """
+    Call gemini-3.1-pro-preview with responseSchema for structured output.
+    NO Flash fallback — if this fails, raises with full error body.
+    """
+    gemini_key = _load_env_key("GEMINI_API_KEY")
+    if not gemini_key:
+        raise RuntimeError("GEMINI_API_KEY not found in ~/.openclaw/.env")
+
+    input_estimate = len(prompt_text) // 4
+    print(f"  [llm] Input estimate: ~{input_estimate:,} tokens ({len(prompt_text):,} chars)")
+
+    if input_estimate > GEMINI_CTX_LIMIT * 0.9:
+        raise RuntimeError(
+            f"[ABORT] Prompt too large: ~{input_estimate:,} tokens > "
+            f"{GEMINI_CTX_LIMIT * 0.9:.0f} limit for {GEMINI_PRIMARY_MODEL}"
+        )
+
+    print(
+        f"  [llm] Calling {GEMINI_PRIMARY_MODEL} "
+        f"(maxOutputTokens={GEMINI_MAX_OUTPUT_TOKENS:,}, thinkingBudget={GEMINI_THINKING_BUDGET:,}, "
+        f"responseSchema=ENABLED, responseMimeType=application/json)...",
+        flush=True,
+    )
+    t0 = time.time()
+    try:
+        raw = _call_gemini_direct(
+            prompt_text, gemini_key, GEMINI_PRIMARY_MODEL,
+            GEMINI_MAX_OUTPUT_TOKENS,
+            response_schema=GEMINI_RESPONSE_SCHEMA,
+        )
+        latency = time.time() - t0
+        shaped = _gemini_to_openai_shape(raw, GEMINI_PRIMARY_MODEL)
+        usage = shaped["usage"]
+        finish = shaped["choices"][0].get("finish_reason", "?")
+        print(
+            f"  [llm] {GEMINI_PRIMARY_MODEL} OK in {latency:.1f}s | "
+            f"in={usage.get('prompt_tokens', '?')} out={usage.get('completion_tokens', '?')} "
+            f"finish={finish}"
+        )
+        return shaped, GEMINI_PRIMARY_MODEL, usage
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        raise RuntimeError(
+            f"{GEMINI_PRIMARY_MODEL} HTTP {e.code} — stopping as instructed. "
+            f"Full error body: {body[:2000]}"
+        ) from e
+    except Exception as e:
+        raise RuntimeError(
+            f"{GEMINI_PRIMARY_MODEL} failed: {type(e).__name__}: {e} — stopping as instructed."
+        ) from e
+
+
+# ---------------------------------------------------------------------------
+# Schema validation — Pydantic v2
+# ---------------------------------------------------------------------------
+MAX_VALIDATION_FAILURE_PCT = 5.0  # fail loud if >5% of rows fail
+
+
+def validate_fraud_response(data: dict, batch_id: str, version: str = VERSION_TAG) -> tuple[bool, list[str], Optional[GeminiFraudResponse]]:
+    """
+    Validate with Pydantic v2.
+    Returns (ok, errors, parsed_model).
+    If >5% of per_row_verdicts fail, writes failure dump and raises.
+    """
+    errors: list[str] = []
+
+    # Top-level structure
+    if not isinstance(data, dict):
+        return False, ["Response is not a dict"], None
+
+    pvs_raw = data.get("per_row_verdicts", [])
+    if not isinstance(pvs_raw, list):
+        errors.append("per_row_verdicts must be a list")
+        return False, errors, None
+
+    # Per-row Pydantic validation
+    row_errors: list[tuple[int, list]] = []
+    for i, row in enumerate(pvs_raw):
+        try:
+            GeminiRowVerdict.model_validate(row)
+        except ValidationError as ve:
+            row_errors.append((i, ve.errors()))
+
+    if pvs_raw and row_errors:
+        pct = len(row_errors) / len(pvs_raw) * 100
+        if pct > MAX_VALIDATION_FAILURE_PCT:
+            dump_path = Path(f"/tmp/v16.1-validation-failure-{batch_id}.json")
+            dump_path.write_text(
+                json.dumps(
+                    {"batch_id": batch_id, "row_errors": [
+                        {"index": i, "errors": errs} for i, errs in row_errors
+                    ], "raw_response": data},
+                    ensure_ascii=False, indent=2,
+                ),
+                encoding="utf-8",
+            )
+            raise RuntimeError(
+                f"[SCHEMA VALIDATION FAILED] {len(row_errors)}/{len(pvs_raw)} rows "
+                f"({pct:.1f}%) failed Pydantic validation — exceeds {MAX_VALIDATION_FAILURE_PCT}% threshold. "
+                f"Raw response dumped to {dump_path}. NOT retrying without fix."
+            )
+        else:
+            for i, errs in row_errors:
+                sl = pvs_raw[i].get("sl_no", f"idx_{i}")
+                errors.append(f"Row sl_no={sl}: {errs}")
+
+    # top_5_cases
+    top5_raw = data.get("top_5_cases", [])
+    if not isinstance(top5_raw, list):
+        errors.append("top_5_cases must be a list")
+    else:
+        for i, case in enumerate(top5_raw):
+            try:
+                TopCase.model_validate(case)
+            except ValidationError as ve:
+                errors.append(f"top_5_cases[{i}]: {ve.errors()}")
+
+    # batch_summary
+    bs_raw = data.get("batch_summary")
+    if not isinstance(bs_raw, dict):
+        errors.append("batch_summary must be a dict")
+    else:
+        try:
+            BatchSummary.model_validate(bs_raw)
+        except ValidationError as ve:
+            errors.append(f"batch_summary: {ve.errors()}")
+
+    # Try full model parse
+    parsed = None
+    if not errors:
+        try:
+            parsed = GeminiFraudResponse.model_validate(data)
+        except ValidationError as ve:
+            errors += [str(e) for e in ve.errors()]
+
+    return len(errors) == 0, errors, parsed
+
+
+# ---------------------------------------------------------------------------
+# Data Loaders (unchanged from v16)
+# ---------------------------------------------------------------------------
+def load_invoice_rows(batch_id: str) -> list[dict]:
+    parsed_file = AI_POC_DIR / "raw" / f"{batch_id.lower()}-ai-parsed.json"
+    if not parsed_file.exists():
+        raise FileNotFoundError(f"Phase 1 parser output not found: {parsed_file}")
+    data = json.load(open(parsed_file))
+    rows = data.get("rows", [])
+    print(f"  [data] Loaded {len(rows)} invoice rows from Phase 1 parser (model: {data.get('model_version')})")
+    return rows
+
+
+def load_v1511_resolved(batch_id: str) -> dict[int, dict]:
+    import openpyxl
+    batch_dir = ROOT / "batches" / f"jawal-{batch_id}"
+    xlsx = batch_dir / "output" / f"Spreadsheet-{batch_id}-FILLED-v15.11.xlsx"
+    if not xlsx.exists():
+        print(f"  [data] WARNING: v15.11 XLSX not found: {xlsx}")
+        return {}
+    wb = openpyxl.load_workbook(xlsx, read_only=True, data_only=True)
+    ws = wb.active
+    all_rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+    if len(all_rows) < 4:
+        print("  [data] WARNING: v15.11 XLSX has too few rows")
+        return {}
+    headers = [str(h).strip() if h is not None else f"col_{i}" for i, h in enumerate(all_rows[2])]
+    resolved = {}
+    for row in all_rows[3:]:
+        if not row or row[0] is None:
+            continue
+        try:
+            sl_no = int(row[0])
+        except (ValueError, TypeError):
+            continue
+        row_dict = dict(zip(headers, row))
+        resolved[sl_no] = {
+            "sl_no": sl_no,
+            "account_code": row_dict.get("Account"),
+            "employee_no": row_dict.get("Employee No"),
+            "location_code": row_dict.get("Location"),
+            "cost_center": row_dict.get("Cost Center"),
+            "div_code": row_dict.get("DIV"),
+            "row_status": row_dict.get("Row Status"),
+            "resolution_layer": row_dict.get("Resolution Layer"),
+            "agent_flags": row_dict.get("Agent Flags"),
+            "qc_catches": row_dict.get("QC Catches"),
+            "trip_purpose": row_dict.get("Trip Purpose"),
+            "passenger": row_dict.get("Description", ""),
+            "amount": row_dict.get("*Invoice Amount"),
+        }
+    print(f"  [data] Loaded {len(resolved)} v15.11 resolved rows from XLSX")
+    return resolved
+
+
+def load_approval_emails(batch_id: str) -> list[dict]:
+    try:
+        import extract_msg
+    except ImportError:
+        print("  [data] WARNING: extract_msg not available, skipping email load")
+        return []
+    batch_raw = ROOT / "batches" / f"jawal-{batch_id}" / "raw"
+    if not batch_raw.exists():
+        print(f"  [data] WARNING: raw dir not found: {batch_raw}")
+        return []
+    emails = []
+    errors = 0
+    for root_dir, dirs, files in os.walk(batch_raw):
+        for fname in files:
+            if not fname.endswith('.msg'):
+                continue
+            fpath = Path(root_dir) / fname
+            rel_path = str(fpath.relative_to(batch_raw))
+            try:
+                msg = extract_msg.openMsg(str(fpath))
+                body = msg.body or ""
+                subject = msg.subject or ""
+                sender = str(msg.sender) if msg.sender else ""
+                received_at = None
+                try:
+                    if msg.date:
+                        received_at = str(msg.date)
+                except Exception:
+                    pass
+                att_names = []
+                try:
+                    for att in msg.attachments:
+                        n = getattr(att, 'longFilename', None) or getattr(att, 'shortFilename', None)
+                        if n:
+                            att_names.append(str(n))
+                except Exception:
+                    pass
+                folder = Path(root_dir).name
+                ticket_hint = folder if folder.startswith('690') else None
+                emails.append({
+                    "filename": fname,
+                    "rel_path": rel_path,
+                    "ticket_hint": ticket_hint,
+                    "subject": subject,
+                    "sender": sender,
+                    "received_at": received_at,
+                    "body_text_full": body,
+                    "body_chars": len(body),
+                    "attachment_names": att_names,
+                })
+            except Exception as e:
+                errors += 1
+                if errors <= 3:
+                    print(f"  [data] WARNING: Failed to read {fname}: {e}")
+    total_chars = sum(e["body_chars"] for e in emails)
+    print(f"  [data] Loaded {len(emails)} emails ({total_chars:,} total body chars)")
+    if errors:
+        print(f"  [data] WARNING: {errors} emails failed to parse")
+    return emails
+
+
+def load_manpower() -> list[dict]:
+    import openpyxl
+    wb = openpyxl.load_workbook(MANPOWER_XLSX, read_only=True, data_only=True)
+    ws = wb['Manpower']
+    header_row_idx = None
+    headers = []
+    for row_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
+        if any(str(v).lower() == 'emp no' for v in row if v):
+            header_row_idx = row_idx
+            headers = [str(v).strip() if v else f"col_{i}" for i, v in enumerate(row)]
+            break
+    if not header_row_idx:
+        print("  [data] WARNING: manpower header not found")
+        return []
+    employees = []
+    for row in ws.iter_rows(min_row=header_row_idx + 1, values_only=True):
+        if row[0] is None:
+            continue
+        row_dict = dict(zip(headers, row))
+        emp = {
+            "emp_no": row_dict.get("Emp No"),
+            "name": row_dict.get("Name"),
+            "location": row_dict.get("Location"),
+            "manager_no": row_dict.get("Manager No"),
+            "line_manager": row_dict.get("Line Manager"),
+            "div_code": row_dict.get("col_7") or row_dict.get("Code"),
+            "agency_code": row_dict.get("New agency"),
+            "cost_center": row_dict.get("New cost center"),
+        }
+        if emp["emp_no"]:
+            employees.append(emp)
+    print(f"  [data] Loaded {len(employees)} manpower records")
+    return employees
+
+
+def load_overrides() -> tuple[list[dict], list[dict]]:
+    import openpyxl
+    wb = openpyxl.load_workbook(LINE_MANAGER_OVERRIDES_XLSX, read_only=True, data_only=True)
+    lm_overrides = []
+    pax_overrides = []
+    if 'LineManagerOverrides' in wb.sheetnames:
+        ws = wb['LineManagerOverrides']
+        headers = None
+        for row in ws.iter_rows(values_only=True):
+            if headers is None:
+                headers = [str(v).strip() if v else "" for v in row]
+            else:
+                if any(v is not None for v in row):
+                    lm_overrides.append(dict(zip(headers, row)))
+    if 'PaxOverrides' in wb.sheetnames:
+        ws = wb['PaxOverrides']
+        headers = None
+        for row in ws.iter_rows(values_only=True):
+            if headers is None:
+                headers = [str(v).strip() if v else "" for v in row]
+            else:
+                if any(v is not None for v in row):
+                    pax_overrides.append(dict(zip(headers, row)))
+    print(f"  [data] Loaded {len(lm_overrides)} LM overrides, {len(pax_overrides)} pax overrides")
+    return lm_overrides, pax_overrides
+
+
+def load_cross_batch_history() -> dict:
+    if not CROSS_BATCH_HISTORY.exists():
+        return {}
+    data = json.load(open(CROSS_BATCH_HISTORY))
+    pt = data.get("passenger_trips", {})
+    tk = data.get("tickets", {})
+    print(f"  [data] Loaded cross-batch history: {len(pt)} passenger trips, {len(tk)} tickets")
+    return data
+
+
+def load_v1511_catches(batch_id: str) -> dict:
+    batch_out = ROOT / "batches" / f"jawal-{batch_id}" / "output"
+    result = {
+        "within_batch": [],
+        "cross_batch": [],
+        "fraud_watch": {},
+        "summary_catches_by_category": {},
+    }
+    for fname, key in [
+        ("catches-within-batch.json", "within_batch"),
+        ("catches-cross-batch.json", "cross_batch"),
+        ("fraud-watch.json", "fraud_watch"),
+    ]:
+        f = batch_out / fname
+        if f.exists():
+            result[key] = json.load(open(f))
+    sum_file = batch_out / "summary-v15.11.json"
+    if sum_file.exists():
+        sumdata = json.load(open(sum_file))
+        result["summary_catches_by_category"] = sumdata.get("catches_by_category", {})
+    flagged_sl = set()
+    for c in result["within_batch"]:
+        for sl in c.get("sl_nos", [c.get("sl_no")]):
+            if sl:
+                flagged_sl.add(int(sl))
+    for c in result["cross_batch"]:
+        for sl in c.get("sl_nos", [c.get("sl_no")]):
+            if sl:
+                flagged_sl.add(int(sl))
+    result["flagged_sl_nos"] = sorted(flagged_sl)
+    print(
+        f"  [data] v15.11 catches: {len(result['within_batch'])} within-batch, "
+        f"{len(result['cross_batch'])} cross-batch, {len(flagged_sl)} distinct SL#s flagged"
+    )
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Payload Builder
+# ---------------------------------------------------------------------------
+def build_payload(batch_id: str) -> tuple[dict, str]:
+    print(f"\n[{batch_id}] Building payload...")
+    invoice_rows = load_invoice_rows(batch_id)
+    v1511_resolved = load_v1511_resolved(batch_id)
+    approval_emails = load_approval_emails(batch_id)
+    manpower = load_manpower()
+    lm_overrides, pax_overrides = load_overrides()
+    cross_batch = load_cross_batch_history()
+    merged_rows = []
+    for row in invoice_rows:
+        sl = row.get("sl_no")
+        resolved = v1511_resolved.get(sl, {})
+        merged = {**row}
+        if resolved:
+            merged["account_resolved_v1511"] = resolved.get("account_code")
+            merged["employee_resolved_v1511"] = resolved.get("employee_no")
+            merged["location_resolved_v1511"] = resolved.get("location_code")
+            merged["cost_center_v1511"] = resolved.get("cost_center")
+            merged["div_code_v1511"] = resolved.get("div_code")
+            merged["row_status_v1511"] = resolved.get("row_status")
+            merged["agent_flags_v1511"] = resolved.get("agent_flags")
+            merged["qc_catches_v1511"] = resolved.get("qc_catches")
+            merged["trip_purpose_v1511"] = resolved.get("trip_purpose")
+        merged_rows.append(merged)
+    payload = {
+        "batch_id": batch_id,
+        "invoice_rows": merged_rows,
+        "approval_emails": approval_emails,
+        "manpower": manpower,
+        "line_manager_overrides": lm_overrides,
+        "pax_overrides": pax_overrides,
+        "cross_batch_history": {
+            "passenger_trips": cross_batch.get("passenger_trips", {}),
+            "tickets": cross_batch.get("tickets", {}),
+            "batches_processed": cross_batch.get("batches_processed", []),
+        },
+    }
+    # Cache key includes version + model + config
+    config_tag = (
+        f"schema={VERSION_TAG}|{GEMINI_PRIMARY_MODEL}"
+        f"|maxOut={GEMINI_MAX_OUTPUT_TOKENS}|thinkBudget={GEMINI_THINKING_BUDGET}"
+    )
+    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    sha256 = hashlib.sha256((config_tag + payload_json).encode("utf-8")).hexdigest()
+    print(f"  [payload] {batch_id}: {len(merged_rows)} rows, {len(approval_emails)} emails, {len(manpower)} employees")
+    print(f"  [payload] JSON size: {len(payload_json):,} chars (~{len(payload_json) // 4:,} tokens est.)")
+    print(f"  [payload] SHA256 ({VERSION_TAG}): {sha256[:16]}...")
+    return payload, sha256
+
+
+# ---------------------------------------------------------------------------
+# Fraud Detection Prompt (v16.1 — uses named categories)
+# ---------------------------------------------------------------------------
+FRAUD_PROMPT_TEMPLATE = """You are an expense-audit fraud reviewer for AlJeel Medical (Saudi Arabia).
+You have a complete monthly batch of corporate travel/expense invoice rows from agency Jawal,
+along with the full set of approval emails, employee master data, manager overrides,
+and cross-batch ticket history.
+
+=== BATCH: {batch_id} ===
+Invoice rows: {row_count}
+Approval emails: {email_count}
+Employees in master: {emp_count}
+Cross-batch passenger history entries: {xb_count}
+
+=== INVOICE ROWS ===
+Each row includes: sl_no, issue_date, ref_no, ticket_no, passenger, route, service_date,
+taxable_amount, vat_pct, vat_amount, total_amount, notes,
+plus v15.11 resolved: account_resolved_v1511, employee_resolved_v1511, location_resolved_v1511,
+row_status_v1511, agent_flags_v1511, qc_catches_v1511, trip_purpose_v1511.
+
+{invoice_rows_json}
+
+=== APPROVAL EMAILS ===
+Each email includes: filename, ticket_hint (folder name = likely ticket number),
+subject, sender, received_at, body_text_full (full body, no truncation), attachment_names.
+
+{emails_json}
+
+=== EMPLOYEE MASTER DATA ===
+{manpower_json}
+
+=== LINE MANAGER OVERRIDES ===
+{lm_overrides_json}
+
+=== PAX OVERRIDES ===
+{pax_overrides_json}
+
+=== CROSS-BATCH HISTORY ===
+Passenger trips and tickets from prior batches for anomaly detection.
+{cross_batch_json}
+
+=== YOUR TASK ===
+For each invoice row, produce a fraud verdict. Then surface the top 5 most suspicious
+cases ranked by SAR value at risk with full reasoning and structured evidence.
+
+Evaluate each row against ALL of the following criteria:
+
+1. APPROVAL_MISSING — No approval email or يعتمد found for this ticket at all.
+2. APPROVAL_INVALID — Approval exists but: approver is the same person as traveler
+   (self-approval), OR approval date is AFTER travel date (backdated), OR approver is
+   not in the authorized approver list for this employee.
+3. AMOUNT_MISMATCH_EMAIL — Invoice amount differs from the amount stated in the approval email.
+4. AMOUNT_MISMATCH_MARKET — Amount is materially above market for the route/service (>3×
+   median for same corridor in this batch, or known inflated pattern).
+5. DUPLICATE_BILLING — Same passenger + same route + same or adjacent service date with
+   different ticket numbers. Note: genuine round-trip outbound+return on DIFFERENT dates
+   is NOT duplicate. Same-day same-route same-passenger = RED; within 3 days = YELLOW.
+6. REBOOKING_FRAUD — Multiple tickets for same passenger on same corridor within 72 hours
+   (especially if high + low amounts suggest refund arbitrage).
+7. EXPENSE_MISCLASSIFICATION — Hotel, registration, or event billed under a flight/ticket GL.
+8. UNAPPROVED_FAMILY — Family member traveling on company spend without documented approval.
+9. VAT_ANOMALY — VAT=0 on a domestic taxable route, or VAT applied where it should be exempt.
+10. POLICY_VIOLATION — Grade/class mismatch, weekend booking pattern, or other policy breach.
+11. OTHER — Use sparingly; provide other_label if used.
+12. NONE — Use ONLY for CLEAN verdicts.
+
+=== OUTPUT CONSTRAINTS ===
+- Return ALL {row_count} rows in per_row_verdicts, one per SL#, sorted ascending by sl_no.
+- primary_category MUST be exactly one of the 12 values listed above. Do NOT invent new categories.
+- secondary_categories is a list (possibly empty) of additional categories from the same 12.
+- For CLEAN rows: primary_category = "NONE", secondary_categories = [], evidence = [],
+  value_at_risk_sar = 0.0.
+- For RED/YELLOW rows: include at least 1 evidence item per verdict.
+- value_at_risk_sar is the SAR exposure for THIS row only (not batch total).
+- evidence.quote max 280 characters; pointer must reference a specific source item.
+- top_5_cases: exactly 5 cases ranked by total_value_at_risk_sar descending, each with at
+  least 2 evidence items. sl_nos is a list (even for single-row cases, e.g. [47]).
+- batch_summary.catches_by_category: serialize as a JSON string, e.g. '{{"APPROVAL_MISSING":3,"DUPLICATE_BILLING":1}}'. Count per primary_category for RED+YELLOW rows only.
+- Do NOT include any text outside the JSON. The response must be valid JSON only.
+"""
+
+
+def build_prompt(batch_id: str, payload: dict) -> str:
+    invoice_rows = payload["invoice_rows"]
+    emails = payload["approval_emails"]
+    manpower = payload["manpower"]
+    lm_overrides = payload["line_manager_overrides"]
+    pax_overrides = payload["pax_overrides"]
+    xb = payload["cross_batch_history"]
+    xb_count = len(xb.get("passenger_trips", {})) + len(xb.get("tickets", {}))
+    run_token = (
+        f"<!-- run:{int(time.time())} schema={VERSION_TAG} "
+        f"maxOut:{GEMINI_MAX_OUTPUT_TOKENS} thinkBudget:{GEMINI_THINKING_BUDGET} -->\n"
+    )
+    body = FRAUD_PROMPT_TEMPLATE.format(
+        batch_id=batch_id,
+        row_count=len(invoice_rows),
+        email_count=len(emails),
+        emp_count=len(manpower),
+        xb_count=xb_count,
+        invoice_rows_json=json.dumps(invoice_rows, ensure_ascii=False),
+        emails_json=json.dumps(emails, ensure_ascii=False),
+        manpower_json=json.dumps(manpower, ensure_ascii=False),
+        lm_overrides_json=json.dumps(lm_overrides, ensure_ascii=False),
+        pax_overrides_json=json.dumps(pax_overrides, ensure_ascii=False),
+        cross_batch_json=json.dumps(xb, ensure_ascii=False),
+    )
+    return run_token + body
+
+
+# ---------------------------------------------------------------------------
+# Response Parser
+# ---------------------------------------------------------------------------
+def parse_llm_response(resp: dict) -> dict:
+    choices = resp.get("choices", [])
+    if not choices:
+        raise ValueError(f"No choices in response: {json.dumps(resp)[:300]}")
+    text = choices[0].get("message", {}).get("content", "").strip()
+    if not text:
+        raise ValueError("Empty response content")
+    text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\s*```\s*$', '', text, flags=re.MULTILINE)
+    text = text.strip()
+    if text.startswith("{"):
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        return json.loads(match.group())
+    raise ValueError(f"Cannot extract JSON from response. First 500 chars: {text[:500]}")
+
+
+# ---------------------------------------------------------------------------
+# entity_key enrichment (post-Gemini)
+# ---------------------------------------------------------------------------
+def enrich_entity_keys(per_row_verdicts: list[dict], invoice_rows: list[dict]) -> list[dict]:
+    """Add entity_key to each verdict row using invoice row data."""
+    sl_to_row = {r.get("sl_no"): r for r in invoice_rows}
+    enriched = []
+    for verdict in per_row_verdicts:
+        sl = verdict.get("sl_no")
+        inv_row = sl_to_row.get(sl, {})
+        # Build a merged dict for entity_key computation: verdict.value_at_risk_sar + invoice data
+        merged = {
+            **inv_row,
+            "value_at_risk_sar": verdict.get("value_at_risk_sar", 0.0),
+        }
+        verdict_copy = dict(verdict)
+        verdict_copy["entity_key"] = compute_entity_key(merged)
+        enriched.append(verdict_copy)
+    return enriched
+
+
+# ---------------------------------------------------------------------------
+# Comparison Report Builder (v16.1 — adds catches_by_category + SAR at risk)
+# ---------------------------------------------------------------------------
+def build_comparison(
+    batch_id: str,
+    ai_result: dict,
+    v1511_catches: dict,
+    invoice_rows: list[dict],
+    schema_version: str = VERSION_TAG,
+) -> str:
+    pvs = ai_result.get("per_row_verdicts", [])
+    pv_map = {v["sl_no"]: v for v in pvs}
+    v1511_flagged = set(v1511_catches.get("flagged_sl_nos", []))
+    ai_flagged = {v["sl_no"] for v in pvs if v["verdict"] in ("YELLOW", "RED")}
+    ai_red = {v["sl_no"] for v in pvs if v["verdict"] == "RED"}
+    both_flagged = sorted(v1511_flagged & ai_flagged)
+    ai_only = sorted(ai_flagged - v1511_flagged)
+    v1511_only = sorted(v1511_flagged - ai_flagged)
+    neither = sorted(set(r["sl_no"] for r in invoice_rows) - v1511_flagged - ai_flagged)
+    summary = ai_result.get("batch_summary", {})
+    top5 = ai_result.get("top_5_cases", [])
+
+    total_sar = summary.get("total_value_at_risk_sar", 0.0)
+    catches_by_cat = summary.get("catches_by_category", {})
+
+    lines = [
+        f"# Fraud Detection Comparison — {batch_id} (Schema {schema_version})",
+        "",
+        f"**Generated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+        f"**Schema:** {schema_version} (hardened Pydantic + Gemini responseSchema)",
+        "",
+        "## Summary",
+        "",
+        "| Metric | v15.11 Deterministic | AI (Gemini 3.1 Pro) |",
+        "|--------|---------------------|----------------------|",
+        f"| Total rows | {len(invoice_rows)} | {summary.get('total_rows', len(pvs))} |",
+        f"| Flagged rows | {len(v1511_flagged)} | {len(ai_flagged)} |",
+        f"| RED (high severity) | — | {summary.get('red_count', len(ai_red))} |",
+        f"| YELLOW (medium severity) | — | {summary.get('yellow_count', '?')} |",
+        f"| CLEAN | — | {summary.get('clean_count', '?')} |",
+        f"| **Total SAR at risk** | — | **SAR {total_sar:,.2f}** |",
+        "",
+        "## Catches by Primary Category",
+        "",
+        "| Category | Count |",
+        "|----------|-------|",
+    ]
+    for cat, cnt in sorted(catches_by_cat.items(), key=lambda x: -x[1]):
+        lines.append(f"| {cat} | {cnt} |")
+    if not catches_by_cat:
+        lines.append("| _(none)_ | 0 |")
+
+    lines += [
+        "",
+        "## 4-Quadrant Analysis",
+        "",
+        f"### Q1: Both Flagged ({len(both_flagged)} rows)",
+        "_Agreement — both AI and rules found suspicious_",
+        "",
+    ]
+    if both_flagged:
+        lines.append("| SL# | AI Verdict | Primary Category | SAR at Risk | v15.11 Category | AI Reasoning |")
+        lines.append("|-----|-----------|-----------------|-------------|-----------------|-------------|")
+        for sl in both_flagged:
+            pv = pv_map.get(sl, {})
+            v_cat = _get_v1511_category(sl, v1511_catches)
+            reasoning = (pv.get("reasoning") or "")[:100]
+            sar = pv.get("value_at_risk_sar", 0.0)
+            lines.append(
+                f"| {sl} | {pv.get('verdict','?')} | {pv.get('primary_category','?')} "
+                f"| {sar:,.0f} | {v_cat} | {reasoning} |"
+            )
+    else:
+        lines.append("_No rows flagged by both._")
+
+    lines += [
+        "",
+        f"### Q2: AI Only ({len(ai_only)} rows)",
+        "_AI flagged, rules missed — potential new signals_",
+        "",
+    ]
+    if ai_only:
+        lines.append("| SL# | AI Verdict | Primary Category | SAR at Risk | AI Reasoning |")
+        lines.append("|-----|-----------|-----------------|-------------|-------------|")
+        for sl in ai_only:
+            pv = pv_map.get(sl, {})
+            sar = pv.get("value_at_risk_sar", 0.0)
+            reasoning = (pv.get("reasoning") or "")[:150]
+            lines.append(
+                f"| {sl} | {pv.get('verdict','?')} | {pv.get('primary_category','?')} "
+                f"| {sar:,.0f} | {reasoning} |"
+            )
+    else:
+        lines.append("_No AI-only catches._")
+
+    lines += [
+        "",
+        f"### Q3: Rules Only ({len(v1511_only)} rows)",
+        "_v15.11 flagged, AI cleared — potential false positives in rule engine_",
+        "",
+    ]
+    if v1511_only:
+        lines.append("| SL# | v15.11 Category | AI Verdict | AI Reasoning |")
+        lines.append("|-----|----------------|-----------|-------------|")
+        for sl in v1511_only:
+            pv = pv_map.get(sl, {})
+            v_cat = _get_v1511_category(sl, v1511_catches)
+            reasoning = (pv.get("reasoning") or "")[:150]
+            lines.append(f"| {sl} | {v_cat} | {pv.get('verdict','CLEAN')} | {reasoning} |")
+    else:
+        lines.append("_No rules-only catches._")
+
+    lines += [
+        "",
+        f"### Q4: Neither ({len(neither)} rows)",
+        "_Both agree: clean_",
+        f"_All {len(neither)} remaining rows consensus-clean._",
+        "",
+        "## Top 5 AI Cases",
+        "",
+    ]
+    for case in top5:
+        sl_nos = case.get("sl_nos", [case.get("sl_no")])
+        if not isinstance(sl_nos, list):
+            sl_nos = [sl_nos]
+        in_v1511 = "✅ Also in v15.11" if any(s in v1511_flagged for s in sl_nos) else "🆕 AI-only find"
+        ev_lines = []
+        for ev in case.get("evidence", []):
+            ev_lines.append(
+                f"  - [{ev.get('source')}] {ev.get('pointer')}: `{(ev.get('quote') or '')[:120]}`"
+            )
+        lines += [
+            f"### Rank {case.get('rank')}: {case.get('headline')} ({in_v1511})",
+            f"**SL#s:** {', '.join(str(s) for s in sl_nos)}",
+            f"**Category:** {case.get('primary_category')}",
+            f"**SAR at Risk:** {case.get('total_value_at_risk_sar', 0):,.2f}",
+            f"**Recommended Action:** {case.get('recommended_action')}",
+            f"**Reasoning:** {case.get('full_reasoning', '')}",
+            "**Evidence:**",
+        ] + ev_lines + [""]
+
+    lines += [
+        "## AI Key Themes",
+        "",
+        *[f"- {t}" for t in summary.get("key_themes", [])],
+        "",
+        "## v15.11 Catches Detail",
+        "",
+        f"Categories: {json.dumps(v1511_catches.get('summary_catches_by_category', {}), ensure_ascii=False)}",
+        "",
+    ]
+    fw = v1511_catches.get("fraud_watch", {})
+    if fw.get("high_signal_catches"):
+        lines.append("### v15.11 High Signal Catches")
+        lines.append("")
+        for c in fw.get("high_signal_catches", []):
+            lines.append(
+                f"- SL#{c.get('sl_nos')} | {c.get('passenger')} | "
+                f"{c.get('category')} | SAR {c.get('value_at_risk_sar')} | {(c.get('detail') or '')[:100]}"
+            )
+    lines += [
+        "",
+        f"### v15.11 Medium NO_APPROVAL",
+        f"Count: {fw.get('medium_no_approval_count', 0)}, Total: SAR {fw.get('medium_no_approval_total_sar', 0):,.2f}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _get_v1511_category(sl: int, v1511_catches: dict) -> str:
+    for c in v1511_catches.get("within_batch", []):
+        if sl in c.get("sl_nos", [c.get("sl_no")]):
+            return c.get("category", "?")
+    for c in v1511_catches.get("cross_batch", []):
+        if sl in c.get("sl_nos", [c.get("sl_no")]):
+            return c.get("category", "?") + " (XB)"
+    return "?"
+
+
+# ---------------------------------------------------------------------------
+# Main: Process One Batch
+# ---------------------------------------------------------------------------
+def process_batch(batch_id: str) -> dict:
+    print(f"\n{'=' * 60}")
+    print(f"PROCESSING BATCH: {batch_id} [{VERSION_TAG}]")
+    print(f"{'=' * 60}")
+    t_start = time.time()
+
+    # Output file uses v161 suffix (preserve v16 originals)
+    raw_output = AI_POC_DIR / f"{batch_id.lower()}-fraud-ai-v161.json"
+
+    payload, sha256 = build_payload(batch_id)
+
+    cache_file = CACHE_DIR / f"{sha256}.fraud.json"
+    llm_resp = None
+    model_used = None
+    usage = {}
+    cached = False
+
+    if cache_file.exists():
+        print(f"  [cache] HIT: {sha256[:16]}...")
+        cached_data = json.load(open(cache_file))
+        llm_resp = cached_data.get("raw_response")
+        model_used = cached_data.get("model_used")
+        usage = cached_data.get("usage", {})
+        cached = True
+    else:
+        print(f"\n[{batch_id}] Building prompt...")
+        prompt = build_prompt(batch_id, payload)
+        prompt_tokens_est = len(prompt) // 4
+        print(f"  [prompt] Estimated tokens: ~{prompt_tokens_est:,}")
+        MAX_TOKENS = 900_000
+        if prompt_tokens_est > MAX_TOKENS:
+            raise RuntimeError(
+                f"[ABORT] Payload too large: ~{prompt_tokens_est:,} tokens > {MAX_TOKENS:,} limit."
+            )
+        print(f"\n[{batch_id}] Calling LLM...")
+        t_llm_start = time.time()
+        llm_raw_resp, model_used, usage = call_llm(prompt)
+        llm_latency = time.time() - t_llm_start
+        llm_resp = llm_raw_resp
+        cache_data = {
+            "batch_id": batch_id,
+            "schema_version": VERSION_TAG,
+            "sha256": sha256,
+            "model_used": model_used,
+            "usage": usage,
+            "llm_latency_sec": llm_latency,
+            "raw_response": llm_raw_resp,
+        }
+        json.dump(cache_data, open(cache_file, "w"), ensure_ascii=False, indent=2)
+        print(f"  [cache] Saved to {cache_file.name}")
+
+    # Parse
+    print(f"\n[{batch_id}] Parsing response...")
+    parsed_result = parse_llm_response(llm_resp)
+
+    # Normalize catches_by_category: Gemini returns it as string (JSON), parse to dict
+    bs = parsed_result.get("batch_summary", {})
+    if isinstance(bs.get("catches_by_category"), str):
+        try:
+            bs["catches_by_category"] = json.loads(bs["catches_by_category"])
+            parsed_result["batch_summary"] = bs
+            print(f"  [parse] Parsed catches_by_category from JSON string OK")
+        except Exception as ex:
+            print(f"  [parse] WARNING: catches_by_category JSON parse failed: {ex}; using empty dict")
+            bs["catches_by_category"] = {}
+            parsed_result["batch_summary"] = bs
+
+    # Pydantic validation
+    print(f"\n[{batch_id}] Running Pydantic validation ({VERSION_TAG})...")
+    valid, validation_errors, parsed_model = validate_fraud_response(parsed_result, batch_id)
+    if not valid:
+        print(f"  [validation] PARTIAL — {len(validation_errors)} issue(s):")
+        for e in validation_errors[:10]:
+            print(f"    {e}")
+    else:
+        print(f"  [validation] OK — all rows pass Pydantic schema")
+
+    # Row count check
+    expected_rows = len(payload["invoice_rows"])
+    got_rows = len(parsed_result.get("per_row_verdicts", []))
+    if got_rows != expected_rows:
+        print(f"  [validation] WARNING: Expected {expected_rows} rows, got {got_rows}")
+    else:
+        print(f"  [validation] Row count OK: {got_rows}/{expected_rows}")
+
+    # Enrich with entity_key (post-call computation)
+    print(f"\n[{batch_id}] Computing entity_keys...")
+    parsed_result["per_row_verdicts"] = enrich_entity_keys(
+        parsed_result["per_row_verdicts"], payload["invoice_rows"]
+    )
+    print(f"  [entity_key] Added entity_key to {len(parsed_result['per_row_verdicts'])} rows")
+
+    # Load v15.11 catches
+    v1511_catches = load_v1511_catches(batch_id)
+
+    # Save output (v161 file, preserve v16)
+    output_data = {
+        "batch_id": batch_id,
+        "schema_version": VERSION_TAG,
+        "model_used": model_used,
+        "cache_hit": cached,
+        "sha256": sha256,
+        "usage": usage,
+        "validation_errors": validation_errors,
+        "pydantic_valid": valid,
+        "ai_result": parsed_result,
+        "v1511_summary_catches": v1511_catches.get("summary_catches_by_category"),
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+    }
+    json.dump(output_data, open(raw_output, "w"), ensure_ascii=False, indent=2)
+    print(f"  [output] Saved to {raw_output.name}")
+
+    # Build comparison
+    comparison_md = build_comparison(
+        batch_id, parsed_result, v1511_catches, payload["invoice_rows"]
+    )
+
+    # Cost estimate
+    in_tokens = usage.get("prompt_tokens", 0)
+    out_tokens = usage.get("completion_tokens", 0)
+    if "gemini-3.1-pro" in (model_used or "") or "3.1-pro" in (model_used or ""):
+        cost_usd = (in_tokens * 2.0 / 1_000_000) + (out_tokens * 12.0 / 1_000_000)
+    elif "gemini-2.5-flash" in (model_used or ""):
+        cost_usd = (in_tokens * 0.075 / 1_000_000) + (out_tokens * 0.30 / 1_000_000)
+    elif "sonnet" in (model_used or ""):
+        cost_usd = (in_tokens * 3.0 / 1_000_000) + (out_tokens * 15.0 / 1_000_000)
+    else:
+        cost_usd = 0.0
+
+    total_latency = time.time() - t_start
+    summary = parsed_result.get("batch_summary", {})
+    ai_flagged_count = len([v for v in parsed_result.get("per_row_verdicts", []) if v["verdict"] != "CLEAN"])
+    ai_red_count = len([v for v in parsed_result.get("per_row_verdicts", []) if v["verdict"] == "RED"])
+
+    telemetry = {
+        "batch_id": batch_id,
+        "schema_version": VERSION_TAG,
+        "model_used": model_used,
+        "cache_hit": cached,
+        "input_tokens": in_tokens,
+        "output_tokens": out_tokens,
+        "cost_usd": round(cost_usd, 4),
+        "total_latency_sec": round(total_latency, 1),
+        "rows_processed": len(payload["invoice_rows"]),
+        "ai_flagged": ai_flagged_count,
+        "ai_red": ai_red_count,
+        "ai_yellow": ai_flagged_count - ai_red_count,
+        "total_sar_at_risk": summary.get("total_value_at_risk_sar", 0.0),
+        "catches_by_category": summary.get("catches_by_category", {}),
+        "v1511_flagged": len(v1511_catches.get("flagged_sl_nos", [])),
+        "validation_errors": validation_errors,
+        "pydantic_valid": valid,
+        "batch_summary": summary,
+        "output_file": str(raw_output),
+        "comparison_md": comparison_md,
+    }
+
+    print(f"\n[{batch_id}] Done!")
+    print(f"  Model: {model_used} | {'CACHED' if cached else f'${cost_usd:.4f}'} | {total_latency:.1f}s")
+    print(f"  AI: {ai_red_count} RED + {ai_flagged_count - ai_red_count} YELLOW | v15.11: {telemetry['v1511_flagged']} flagged")
+    print(f"  Total SAR at risk: {summary.get('total_value_at_risk_sar', 0):,.2f}")
+    print(f"  Pydantic valid: {valid} | Validation errors: {len(validation_errors)}")
+    return telemetry
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+def main():
+    print("=" * 70)
+    print(f"AlJeel AP — AI Fraud Detector POC {VERSION_TAG}")
+    print(f"Run: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    print("=" * 70)
+    print()
+    print("Model: gemini-3.1-pro-preview via direct Gemini API")
+    print("Schema: hardened Pydantic v2 + Gemini responseSchema")
+    print("Output: *-fraud-ai-v161.json (v16 originals preserved)")
+    print()
+
+    results = {}
+    for batch_id in ["J26-640", "J26-788"]:
+        try:
+            results[batch_id] = process_batch(batch_id)
+        except Exception as e:
+            print(f"\n❌ {batch_id} FAILED: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+    # Combined report
+    print("\n\nBuilding combined comparison report...")
+    report_path = AI_POC_DIR / "fraud-comparison-report.md"
+
+    report_lines = [
+        f"# AlJeel AP — AI Fraud Detector vs v15.11 Deterministic Rules ({VERSION_TAG})",
+        "",
+        f"**Generated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+        f"**Schema:** {VERSION_TAG} — hardened Pydantic v2 + Gemini responseSchema",
+        "**Model:** gemini-3.1-pro-preview (direct API, 2M context)",
+        "",
+        "## Telemetry Summary",
+        "",
+        "| Batch | Model | Rows | RED | YELLOW | SAR at Risk | v15.11 Flagged | Cost | Latency | Pydantic |",
+        "|-------|-------|------|-----|--------|-------------|----------------|------|---------|----------|",
+    ]
+    for batch_id, tel in results.items():
+        cost_str = 'CACHED' if tel['cache_hit'] else f"${tel['cost_usd']:.4f}"
+        valid_str = "✅" if tel['pydantic_valid'] else f"⚠️ {len(tel['validation_errors'])} err"
+        report_lines.append(
+            f"| {batch_id} | {tel['model_used']} | {tel['rows_processed']} "
+            f"| {tel['ai_red']} | {tel['ai_yellow']} "
+            f"| SAR {tel['total_sar_at_risk']:,.0f} "
+            f"| {tel['v1511_flagged']} | {cost_str} | {tel['total_latency_sec']}s | {valid_str} |"
+        )
+
+    # Combined catches_by_category across both batches
+    all_cats: dict[str, int] = {}
+    for tel in results.values():
+        for cat, cnt in tel.get("catches_by_category", {}).items():
+            all_cats[cat] = all_cats.get(cat, 0) + cnt
+
+    report_lines += [
+        "",
+        "## Combined Catches by Category (Both Batches)",
+        "",
+        "| Category | Count |",
+        "|----------|-------|",
+    ]
+    for cat, cnt in sorted(all_cats.items(), key=lambda x: -x[1]):
+        report_lines.append(f"| {cat} | {cnt} |")
+
+    report_lines += ["", "---", ""]
+    for batch_id, tel in results.items():
+        report_lines.append(tel.get("comparison_md", f"(comparison for {batch_id} missing)"))
+        report_lines.append("\n---\n")
+
+    report_text = "\n".join(report_lines)
+    report_path.write_text(report_text, encoding="utf-8")
+    print(f"  Comparison report: {report_path}")
+
+    # POC summary
+    summary_path = AI_POC_DIR / "fraud-poc-summary.md"
+    _write_poc_summary(summary_path, results)
+    print(f"  POC summary: {summary_path}")
+
+    # Final output
+    print("\n" + "=" * 70)
+    print(f"DELIVERABLES [{VERSION_TAG}]")
+    print("=" * 70)
+    for batch_id, tel in results.items():
+        cost_display = 'CACHED' if tel['cache_hit'] else f"${tel['cost_usd']:.4f}"
+        print(f"\n{batch_id}:")
+        print(f"  Output: {tel['output_file']}")
+        print(f"  AI: {tel['ai_red']} RED, {tel['ai_yellow']} YELLOW, {tel['rows_processed'] - tel['ai_flagged']} CLEAN")
+        print(f"  Total SAR at risk: {tel['total_sar_at_risk']:,.2f}")
+        print(f"  v15.11: {tel['v1511_flagged']} flagged")
+        print(f"  Cost: {cost_display} | Latency: {tel['total_latency_sec']}s")
+        print(f"  Tokens: in={tel['input_tokens']:,} out={tel['output_tokens']:,}")
+        print(f"  Pydantic valid: {tel['pydantic_valid']}")
+        if tel['validation_errors']:
+            print(f"  Validation errors: {len(tel['validation_errors'])}")
+        print(f"  Catches by category: {json.dumps(tel['catches_by_category'], ensure_ascii=False)}")
+    print(f"\nComparison report: {report_path}")
+    print(f"POC summary: {summary_path}")
+    return results
+
+
+def _write_poc_summary(path: Path, results: dict):
+    j640 = results.get("J26-640", {})
+    j788 = results.get("J26-788", {})
+
+    def _q(batch_id: str, ai_result_file: Path, v1511_catches: dict):
+        if not ai_result_file.exists():
+            return {}
+        data = json.load(open(ai_result_file))
+        ai_r = data.get("ai_result", {})
+        pvs = ai_r.get("per_row_verdicts", [])
+        v15 = load_v1511_catches(batch_id)
+        v_set = set(v15.get("flagged_sl_nos", []))
+        a_set = {v["sl_no"] for v in pvs if v["verdict"] != "CLEAN"}
+        return {
+            "both": len(v_set & a_set),
+            "ai_only": len(a_set - v_set),
+            "v1511_only": len(v_set - a_set),
+            "neither": len(set(v["sl_no"] for v in pvs) - v_set - a_set),
+        }
+
+    q640 = _q("J26-640", AI_POC_DIR / "j26-640-fraud-ai-v161.json", j640)
+    q788 = _q("J26-788", AI_POC_DIR / "j26-788-fraud-ai-v161.json", j788)
+
+    def _fmt_cat(cats: dict) -> str:
+        if not cats:
+            return "_(none)_"
+        return ", ".join(f"{k}={v}" for k, v in sorted(cats.items(), key=lambda x: -x[1]))
+
+    lines = [
+        f"# AlJeel AP — AI Fraud Detector POC: Final Summary ({VERSION_TAG})",
+        "",
+        f"**Generated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+        f"**Schema:** {VERSION_TAG} — Pydantic v2 + Gemini responseSchema locked categories",
+        "**Model:** gemini-3.1-pro-preview (direct Gemini API, 2M context)",
+        "",
+        "## Headline Findings",
+        "",
+        "### J26-640",
+        f"- AI: **{j640.get('ai_red',0)} RED + {j640.get('ai_yellow',0)} YELLOW** / {j640.get('rows_processed','?')} rows",
+        f"- **Total SAR at risk: {j640.get('total_sar_at_risk',0):,.2f}**",
+        f"- v15.11 flagged: **{j640.get('v1511_flagged',0)} rows**",
+        f"- Agreement: **{q640.get('both','?')}** | AI-only: **{q640.get('ai_only','?')}** | Rules-only: **{q640.get('v1511_only','?')}**",
+        f"- Pydantic valid: {j640.get('pydantic_valid', '?')} | Errors: {len(j640.get('validation_errors', []))}",
+        f"- Categories: {_fmt_cat(j640.get('catches_by_category', {}))}",
+        f"- Cost: ${j640.get('cost_usd','?')} | Latency: {j640.get('total_latency_sec','?')}s",
+        "",
+        "### J26-788",
+        f"- AI: **{j788.get('ai_red',0)} RED + {j788.get('ai_yellow',0)} YELLOW** / {j788.get('rows_processed','?')} rows",
+        f"- **Total SAR at risk: {j788.get('total_sar_at_risk',0):,.2f}**",
+        f"- v15.11 flagged: **{j788.get('v1511_flagged',0)} rows**",
+        f"- Agreement: **{q788.get('both','?')}** | AI-only: **{q788.get('ai_only','?')}** | Rules-only: **{q788.get('v1511_only','?')}**",
+        f"- Pydantic valid: {j788.get('pydantic_valid', '?')} | Errors: {len(j788.get('validation_errors', []))}",
+        f"- Categories: {_fmt_cat(j788.get('catches_by_category', {}))}",
+        f"- Cost: ${j788.get('cost_usd','?')} | Latency: {j788.get('total_latency_sec','?')}s",
+        "",
+        "## Schema Judgment",
+        "",
+        "The v16.1 hardened schema enforces:",
+        "- 12 named primary_category values (no free-form invention)",
+        "- Structured Evidence (source enum + pointer + quote)",
+        "- value_at_risk_sar per row (enables SAR aggregation)",
+        "- entity_key for cross-batch tracking (computed post-call)",
+        "- top_5_cases with recommended_action enum",
+        "- Pydantic v2 validation gate: >5% row failures = hard stop",
+        "- Gemini responseSchema + responseMimeType enforcement (structural)",
+        "",
+        "## Token Budget Actuals",
+        "",
+        "| Batch | Input Tokens | Output Tokens | Total | Cost |",
+        "|-------|-------------|--------------|-------|------|",
+        f"| J26-640 | {j640.get('input_tokens',0):,} | {j640.get('output_tokens',0):,} | {j640.get('input_tokens',0)+j640.get('output_tokens',0):,} | ${j640.get('cost_usd','?')} |",
+        f"| J26-788 | {j788.get('input_tokens',0):,} | {j788.get('output_tokens',0):,} | {j788.get('input_tokens',0)+j788.get('output_tokens',0):,} | ${j788.get('cost_usd','?')} |",
+        "",
+        "_Pricing: $2/M input, $12/M output (Gemini 3.1 Pro, Google March 2026)._",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()

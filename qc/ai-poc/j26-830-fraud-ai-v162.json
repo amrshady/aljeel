@@ -1,0 +1,1524 @@
+{
+  "batch_id": "J26-830",
+  "schema_version": "v16.2",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "67a5525e7d58373fe3dedb00e8777dbae2df382cff5101ec9116e6586051fc5c",
+  "usage": {
+    "prompt_tokens": 813073,
+    "completion_tokens": 12018,
+    "total_tokens": 827747
+  },
+  "validation_errors": [],
+  "pydantic_valid": true,
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3015.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ABOELAMAIM/YASMIN MS(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3015.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ABOELAMAIM/YOUSSEF MR(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3720.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "YOUNES/HAGAR MRS"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 68,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 69,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 70,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1720.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "SHIHAB/ADAM(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte2000|0000-00"
+      },
+      {
+        "sl_no": 71,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1720.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "SHIHAB/OMAR(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte2000|0000-00"
+      },
+      {
+        "sl_no": 72,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2130.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "BAZRBASHI/HEBAH MRS"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 73,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 74,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2130.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "SDEK/KARAM MR(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 75,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2130.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "SDEK/YAZAN MR(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 76,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 77,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2550.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ARAR/RAYN NADEEM MS"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2550.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "GHARABLI/RANA NEMER MRS"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 79,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 460.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MOSA/BARAA MR(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 80,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 460.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MOSA/FATEMAH MS(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 81,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 82,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 490.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "YOUSSEF/HAMSA MRS"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 83,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1430.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MOSA/BARAA MR(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte2000|0000-00"
+      },
+      {
+        "sl_no": 84,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1430.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MOSA/FATEMAH MS(CHD)"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte2000|0000-00"
+      },
+      {
+        "sl_no": 85,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 86,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1460.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "YOUSSEF/HAMSA MRS"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte2000|0000-00"
+      },
+      {
+        "sl_no": 87,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 88,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 89,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 90,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 91,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 92,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 93,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 94,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2401.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "CHILD OMER MOHAMED ABDALLA"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 95,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2401.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "CHILD OMER MOHAMED ABDALLA"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 96,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2790.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MR. MOHAMED AHMED FAGEIR"
+          }
+        ],
+        "reasoning": "Family member traveling on company spend without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte5000|0000-00"
+      },
+      {
+        "sl_no": 97,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 98,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 99,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 100,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 101,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 102,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 103,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 104,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      },
+      {
+        "sl_no": 105,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Matches approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "UNKNOWN|UNKNOWN|lte500|0000-00"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_nos": [
+          57
+        ],
+        "headline": "Unapproved Family Member Travel",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "total_value_at_risk_sar": 3720.01,
+        "full_reasoning": "Family member traveling on company spend without documented approval.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "YOUNES/HAGAR MRS"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "body_text_full",
+            "quote": "No approval for family member."
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      },
+      {
+        "rank": 2,
+        "sl_nos": [
+          55
+        ],
+        "headline": "Unapproved Family Member Travel",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "total_value_at_risk_sar": 3015.01,
+        "full_reasoning": "Family member traveling on company spend without documented approval.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ABOELAMAIM/YASMIN MS(CHD)"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "body_text_full",
+            "quote": "No approval for family member."
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      },
+      {
+        "rank": 3,
+        "sl_nos": [
+          56
+        ],
+        "headline": "Unapproved Family Member Travel",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "total_value_at_risk_sar": 3015.01,
+        "full_reasoning": "Family member traveling on company spend without documented approval.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ABOELAMAIM/YOUSSEF MR(CHD)"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "body_text_full",
+            "quote": "No approval for family member."
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      },
+      {
+        "rank": 4,
+        "sl_nos": [
+          96
+        ],
+        "headline": "Unapproved Family Member Travel",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "total_value_at_risk_sar": 2790.0,
+        "full_reasoning": "Family member traveling on company spend without documented approval.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MR. MOHAMED AHMED FAGEIR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "body_text_full",
+            "quote": "No approval for family member."
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      },
+      {
+        "rank": 5,
+        "sl_nos": [
+          77
+        ],
+        "headline": "Unapproved Family Member Travel",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "total_value_at_risk_sar": 2550.0,
+        "full_reasoning": "Family member traveling on company spend without documented approval.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ARAR/RAYN NADEEM MS"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "body_text_full",
+            "quote": "No approval for family member."
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      }
+    ],
+    "batch_summary": {
+      "red_count": 16,
+      "yellow_count": 0,
+      "clean_count": 89,
+      "total_rows": 105,
+      "total_value_at_risk_sar": 31302.04,
+      "catches_by_category": {
+        "UNAPPROVED_FAMILY": 16
+      },
+      "key_themes": [
+        "Unapproved family members traveling on company spend."
+      ]
+    }
+  },
+  "v1511_summary_catches": {},
+  "generated_at": "2026-06-20T00:50:18.264673Z"
+}

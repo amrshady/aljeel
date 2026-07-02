@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""
+QC Gates - 13 hard gates + 14 soft gates per cost-center-rulebook-v1.md Section 4.
+
+Hard gates: REJECT - do not post to GL.
+Soft gates: FLAG - post to HOLD queue for human review.
+
+Usage:
+    from qc.qc_gates import validate_line, GateResult
+    result = validate_line(resolved_line, master_data)
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Optional
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from cost_center_resolver import ResolvedLine, MasterData, SEGMENT_WIDTHS, SEGMENT_NAMES
+
+
+@dataclass
+class GateResult:
+    hard_failures: list = field(default_factory=list)
+    soft_flags: list = field(default_factory=list)
+
+    @property
+    def passed_hard(self):
+        return len(self.hard_failures) == 0
+
+    @property
+    def action(self):
+        if self.hard_failures:
+            codes = [f[1] for f in self.hard_failures]
+            return "REJECT - " + " | ".join(codes)
+        elif self.soft_flags:
+            codes = [f[1] for f in self.soft_flags]
+            return "HOLD - " + " | ".join(codes)
+        else:
+            return "Post to GL"
+
+    @property
+    def flag_string(self):
+        all_codes = [f[1] for f in self.hard_failures] + [f[1] for f in self.soft_flags]
+        if not all_codes:
+            return "CLEAN"
+        return " | ".join(all_codes)
+
+
+def validate_line(line, md):
+    """Run all 13 hard + 14 soft gates on a resolved line."""
+    result = GateResult()
+
+    segments = line.combo.split("-")
+
+    # === HARD GATES ===
+
+    # H1: Combo segment count != 10
+    if len(segments) != 10:
+        result.hard_failures.append(("H1", "INVALID_COMBO_STRUCTURE"))
+
+    # H2: Any segment is N/A, blank, or non-numeric
+    for i, seg in enumerate(segments):
+        name = SEGMENT_NAMES[i] if i < len(SEGMENT_NAMES) else str(i)
+        if not seg or seg.lower() in ("n/a", "nan", "none", ""):
+            result.hard_failures.append(("H2", "NON_NUMERIC_SEGMENT_" + name))
+        elif not seg.isdigit():
+            result.hard_failures.append(("H2", "NON_NUMERIC_SEGMENT_" + name))
+
+    # H3: Company != 03
+    if line.company != "03":
+        result.hard_failures.append(("H3", "INVALID_COMPANY"))
+
+    # H4: Location not in valid set
+    if line.location not in md.valid_locations:
+        result.hard_failures.append(("H4", "UNKNOWN_LOCATION"))
+
+    # H5: Account not in INDEX valid set
+    if line.account not in md.valid_accounts:
+        result.hard_failures.append(("H5", "UNKNOWN_ACCOUNT"))
+
+    # H6: Cost Center not in Cost Center Segment master
+    if line.cost_center not in md.valid_cost_centers:
+        if line.cost_center != "999999":
+            result.hard_failures.append(("H6", "UNKNOWN_COST_CENTER"))
+
+    # H7: DIV not in DIV master (192/194/196 are soft, not hard)
+    if line.div not in md.valid_divs:
+        if line.div not in {"192", "194", "196"}:
+            result.hard_failures.append(("H7", "UNKNOWN_DIV"))
+
+    # H8: Agency not in Agency master
+    if line.agency not in md.valid_agencies:
+        if line.agency != "00000":
+            result.hard_failures.append(("H8", "UNKNOWN_AGENCY"))
+
+    # H9: Solution not in Solution master AND != 00000
+    if line.solution != "00000" and line.solution not in md.valid_solutions:
+        result.hard_failures.append(("H9", "UNKNOWN_SOLUTION"))
+
+    # H10: Project != 00000
+    if line.project != "00000":
+        result.hard_failures.append(("H10", "BAD_PROJECT_PADDING"))
+
+    # H11: Intercompany != 00
+    if line.intercompany != "00":
+        result.hard_failures.append(("H11", "BAD_INTERCOMPANY_PADDING"))
+
+    # H12: Future 1 != 000000
+    if line.future1 != "000000":
+        result.hard_failures.append(("H12", "BAD_FUTURE_PADDING"))
+
+    # H13: Segment width mismatch
+    if len(segments) == 10:
+        for i, (seg, expected_width) in enumerate(zip(segments, SEGMENT_WIDTHS)):
+            if len(seg) != expected_width:
+                name = SEGMENT_NAMES[i] if i < len(SEGMENT_NAMES) else str(i)
+                result.hard_failures.append(("H13", f"BAD_SEGMENT_WIDTH_{name}_{len(seg)}_vs_{expected_width}"))
+
+    # === SOFT GATES ===
+
+    # S1: Need to allocate and no subordinate found (original)
+    if "ALLOCATION_TARGET_MISSING" in line.flags:
+        result.soft_flags.append(("S1", "ALLOCATION_TARGET_MISSING"))
+
+    # S1a: Allocation resolved via deterministic .msg parsing
+    if "ALLOCATION_RESOLVED_DETERMINISTIC" in line.flags:
+        result.soft_flags.append(("S1a", "ALLOCATION_RESOLVED_DETERMINISTIC"))
+
+    # S1b: Allocation resolved via LLM
+    if "ALLOCATION_RESOLVED_LLM" in line.flags:
+        result.soft_flags.append(("S1b", "ALLOCATION_RESOLVED_LLM"))
+
+    # S1c: Allocation resolved via hierarchy (single subordinate)
+    if "ALLOCATION_RESOLVED_HIERARCHY" in line.flags:
+        result.soft_flags.append(("S1c", "ALLOCATION_RESOLVED_HIERARCHY"))
+
+    # S1d: Multiple allocation candidates pending review
+    if "MULTI_ALLOCATION_PENDING_REVIEW" in line.flags:
+        result.soft_flags.append(("S1d", "MULTI_ALLOCATION_PENDING_REVIEW"))
+
+    # S2: Charge to Medsource
+    if "MEDSOURCE_ROUTE" in line.flags:
+        result.soft_flags.append(("S2", "MEDSOURCE_ROUTE"))
+
+    # S3: Erbe exception and Agency != 10043
+    if "ERBE_EXCEPTION" in line.flags:
+        if line.agency != "10043":
+            result.soft_flags.append(("S3", "ERBE_EXCEPTION"))
+
+    # S4: Account = 60301003 default but DIV = 888 (G&A)
+    if line.account == "60301003" and line.div == "888":
+        result.soft_flags.append(("S4", "MAYBE_60301004_GA"))
+
+    # S5: Sponsoring account but pax is a known employee
+    if line.account == "60307021" and line.emp_no is not None:
+        result.soft_flags.append(("S5", "EMPLOYEE_AS_SPONSORED"))
+
+    # S6: Credit memo without matching original - handled at batch level
+
+    # S7: Employee not found
+    if "EMPLOYEE_NOT_IN_MASTER" in line.flags:
+        result.soft_flags.append(("S7", "EMPLOYEE_NOT_IN_MASTER"))
+
+    # S8: DIV in Manpower but not in DIV master (192/194/196)
+    if "MANPOWER_DIV_NOT_IN_MASTER" in line.flags:
+        result.soft_flags.append(("S8", "MANPOWER_DIV_NOT_IN_MASTER"))
+
+    # S9: Solution code pending (EP)
+    if "SOLUTION_CODE_PENDING" in line.flags:
+        result.soft_flags.append(("S9", "SOLUTION_CODE_PENDING"))
+
+    # S10: Manager-level pax traveling without explicit allocation
+    if line.div == "888" and line.emp_no is not None:
+        emp = md.employees.get(line.emp_no)
+        if emp:
+            manages_others = any(e.manager_no == line.emp_no for e in md.employees.values())
+            if manages_others and line.sol_flag == "Can Be used":
+                result.soft_flags.append(("S10", "MANAGER_NOT_REALLOCATED"))
+
+    # S11: Allocation loop detected (target is also "Need to allocate")
+    if "ALLOCATION_LOOP_DETECTED" in line.flags:
+        result.hard_failures.append(("H14", "ALLOCATION_LOOP_DETECTED"))
+
+    # Also flag ACCOUNT_DEFAULT_FALLBACK
+    if "Rule 99" in line.account_rule:
+        result.soft_flags.append(("S99", "ACCOUNT_DEFAULT_FALLBACK"))
+
+    return result

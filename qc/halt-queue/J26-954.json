@@ -1,0 +1,67 @@
+[
+  {
+    "sl_no": 23,
+    "passenger": "ALJUNDI/LAMA MS",
+    "description": "ALJUNDI/LAMA MS - RUH CAI YYZ CAI RUH (6906462559)",
+    "amount": 10470.0,
+    "combo": "03-10100-60301004-120010-888-00000-88888-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 24,
+    "passenger": "MOWAFI/IYAD MR",
+    "description": "MOWAFI/IYAD MR - RUH AMM RUH (6906462571)",
+    "amount": 2220.0,
+    "combo": "03-10100-60301004-130010-888-00000-88888-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 109,
+    "passenger": "HAZIMEH/RIHAM MRS",
+    "description": "HAZIMEH/RIHAM MRS - RUH BEY RUH (4860132173)",
+    "amount": 3150.0,
+    "combo": "03-10100-60301003-160011-196-00000-10081-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 112,
+    "passenger": "KHADOUJ AWADA/ISSA MR(CHD)",
+    "description": "KHADOUJ AWADA/ISSA MR(CHD) - RUH BEY RUH (4860132176)",
+    "amount": 2610.0,
+    "combo": "03-10100-60301003-160011-196-00000-10081-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 114,
+    "passenger": "BAZRBASHI/HEBAH MRS",
+    "description": "BAZRBASHI/HEBAH MRS - DMM AMM DAM (4860165152)",
+    "amount": 830.0,
+    "combo": "03-30100-60301003-160013-192-00000-10202-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  }
+]

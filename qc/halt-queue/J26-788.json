@@ -1,0 +1,54 @@
+[
+  {
+    "sl_no": 18,
+    "passenger": "SALEH/MARIAM MS(CHD)",
+    "description": "SALEH/MARIAM MS(CHD) - RUH AMM RUH (6905478428)",
+    "amount": 2690.0,
+    "combo": "03-10100-60301004-130040-888-00000-88888-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 19,
+    "passenger": "SALEH/FARAH MRS",
+    "description": "SALEH/FARAH MRS - RUH AMM RUH (6905478429)",
+    "amount": 3330.0,
+    "combo": "03-10100-60301004-130040-888-00000-88888-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 20,
+    "passenger": "SALEH/EKREMA MR(CHD)",
+    "description": "SALEH/EKREMA MR(CHD) - RUH AMM RUH (6905478431)",
+    "amount": 2690.0,
+    "combo": "03-10100-60301004-130040-888-00000-88888-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 69,
+    "passenger": "KONDO/MBWANA HAMISI MR",
+    "description": "KONDO/MBWANA HAMISI MR - RUH DXB MBA DXB RUH (6905569429)",
+    "amount": 3850.0,
+    "combo": "03-30100-60301004-140020-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  }
+]

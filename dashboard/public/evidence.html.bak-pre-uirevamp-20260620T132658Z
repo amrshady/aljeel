@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>AlJeel AP - Evidence Browser</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #F0F4F3;
+      --panel: #FFFFFF;
+      --panel-2: #F8FAFC;
+      --panel-3: #F0F4F3;
+      --border: #E5E7EB;
+      --text: #111827;
+      --muted: #6B7280;
+      --accent: #2563EB;
+      --accent-2: #16A34A;
+      --danger: #DC2626;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    html {
+      scrollbar-color: #6B7280 #E5E7EB;
+      scrollbar-width: thin;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #E5E7EB; }
+    ::-webkit-scrollbar-thumb { background: #6B7280; border-radius: 999px; border: 2px solid #E5E7EB; }
+    ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+    h1 { font-size: 40px; line-height: 1.2; font-weight: 700; }
+    h2 { font-size: 32px; line-height: 1.25; font-weight: 700; }
+    h3 { font-size: 24px; line-height: 1.3; font-weight: 600; }
+    button, select, a { font: inherit; }
+    .topbar {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 22px;
+      background: #1E40AF;
+      border-bottom: 1px solid #1E40AF;
+      color: #FFFFFF;
+    }
+    .title {
+      color: #FFFFFF;
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    .spacer { flex: 1; }
+    .batch-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.75);
+      font-size: 12px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    select {
+      color: #FFFFFF;
+      background: #2563EB;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 8px 34px 8px 10px;
+      outline: none;
+    }
+    select:focus { border-color: rgba(255,255,255,0.75); }
+    .topbar button {
+      color: #FFFFFF;
+      background: #2563EB;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    .topbar button:hover { background: #1E40AF; }
+    .topbar .secondary-btn {
+      color: #111827;
+      background: #FFFFFF;
+      border-color: #E5E7EB;
+    }
+    .topbar .secondary-btn:hover {
+      color: #111827;
+      background: #F0F4F3;
+    }
+    .hidden { display: none !important; }
+    .shell {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 16px;
+      height: calc(100vh - 58px);
+      padding: 16px;
+    }
+    .sidebar, .viewer {
+      min-height: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .count { color: var(--text); font-weight: 600; text-transform: none; letter-spacing: 0; }
+    .search-wrap {
+      padding: 8px 10px;
+      border-bottom: 1px solid #E5E7EB;
+      background: #FFFFFF;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      font: inherit;
+      font-size: 13px;
+      color: #111827;
+      background: #F0F4F3;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: #2563EB;
+      background: #FFFFFF;
+    }
+    .tree {
+      overflow: auto;
+      padding: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    details {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: var(--panel);
+    }
+    details[open] { border-color: var(--border); }
+    summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 9px 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .folder-summary {
+      display: grid;
+      grid-template-columns: 16px 20px minmax(0, 1fr) auto;
+      gap: 6px;
+      align-items: center;
+    }
+    .chevron {
+      width: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .chevron::before { content: "▸"; }
+    details[open] > summary .chevron::before { content: "▾"; }
+    details[open] > .folder-summary .chevron::before { content: "▾"; }
+    .folder-icon { width: 20px; text-align: center; }
+    .folder-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .day-name { font-weight: 700; }
+    .ticket-details { margin-left: 0; }
+    .day-details > div > .ticket-details { margin-left: 20px; }
+    .ticket-details summary { font-weight: 500; }
+    .root-details { margin-left: 0; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(37,99,235,0.15);
+      color: #1E40AF;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .file-list {
+      padding: 0 6px 8px 12px;
+    }
+    .ticket-details .file-list { padding-left: 18px; }
+    .file-btn {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      margin: 2px 0;
+      padding: 8px 8px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .file-btn:hover {
+      background: #F0F4F3;
+      color: var(--text);
+    }
+    .file-btn.selected {
+      background: #EFF6FF;
+      border: 1px solid rgba(37,99,235,0.35);
+      color: var(--text);
+    }
+    .file-btn.search-match {
+      background: #EFF6FF;
+      border: 1px solid rgba(37,99,235,0.35);
+      color: var(--text);
+    }
+    .file-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-size {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .row-list {
+      overflow: auto;
+      padding: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    .row-item {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+      padding: 10px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+    .row-item:hover {
+      background: #F0F4F3;
+      border-color: #E5E7EB;
+    }
+    .row-item.selected {
+      background: #EFF6FF;
+      border-left: 3px solid #2563EB;
+    }
+    .row-main {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+    .row-person {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .row-person-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .row-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #6B7280;
+    }
+    .row-dot.green { background: #16A34A; }
+    .row-dot.yellow { background: #D97706; }
+    .row-dot.red { background: #DC2626; }
+    .row-meta-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .row-number { color: var(--muted); }
+    .ticket-code {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .row-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .folder-file-list {
+      max-width: 720px;
+      margin: 28px auto;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .folder-file-list h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+    .folder-file-list .file-btn {
+      border-color: #E5E7EB;
+      background: #FFFFFF;
+    }
+    .folder-file-list .file-btn:hover { background: #F0F4F3; }
+    .empty, .error {
+      padding: 18px;
+      color: var(--muted);
+    }
+    .error { color: var(--danger); }
+    .viewer {
+      display: flex;
+      flex-direction: column;
+    }
+    .viewer-head {
+      min-height: 51px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .viewer-title {
+      min-width: 0;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .viewer-meta {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .viewer-body {
+      min-height: 0;
+      flex: 1;
+      overflow: auto;
+      background: var(--panel-2);
+    }
+    .placeholder {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(37,99,235,0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .email-card {
+      margin: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .email-subject {
+      padding: 16px 18px;
+      font-size: 17px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+    }
+    .email-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .email-meta b {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--text);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .email-body {
+      max-height: calc(100vh - 260px);
+      overflow: auto;
+      margin: 0;
+      padding: 18px;
+      color: var(--text);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      direction: auto;
+      unicode-bidi: plaintext;
+    }
+    .attachments {
+      padding: 12px 18px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .attachments-title {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+    }
+    .attachment-link, .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      margin: 0 8px 8px 0;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 1px solid #2563EB;
+      color: #FFFFFF;
+      background: #2563EB;
+      text-decoration: none;
+    }
+    .attachment-link:hover, .download-link:hover {
+      background: #1E40AF;
+      border-color: #1E40AF;
+    }
+    iframe, .image-preview {
+      width: 100%;
+      height: 100%;
+      min-height: calc(100vh - 110px);
+      border: 0;
+      display: block;
+      background: #FFFFFF;
+    }
+    .image-wrap {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: #FFFFFF;
+    }
+    .image-preview {
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: calc(100vh - 130px);
+      min-height: 0;
+      background: transparent;
+      object-fit: contain;
+    }
+    .notice {
+      max-width: 520px;
+      margin: 48px auto;
+      padding: 22px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+    }
+    .notice strong {
+      display: block;
+      color: var(--text);
+      font-size: 17px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 800px) {
+      .topbar { height: auto; min-height: 58px; flex-wrap: wrap; padding: 12px 14px; }
+      .spacer { display: none; }
+      .shell { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 58px); }
+      .sidebar { min-height: 260px; max-height: 42vh; }
+      .viewer { min-height: 58vh; }
+      .email-meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">AlJeel AP - Evidence Browser</div>
+    <label class="batch-picker">
+      Batch:
+      <select id="batch-select"></select>
+    </label>
+    <button id="invoice-load-button" type="button">📂 Load Invoice</button>
+    <button id="back-tree-button" class="secondary-btn hidden" type="button">✕ Back to tree</button>
+    <input id="invoice-file-input" class="hidden" type="file" accept=".xlsx" />
+  </header>
+
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="panel-head">
+        <span id="panel-title">Folders</span>
+        <span class="count" id="file-count">0 files</span>
+      </div>
+      <div class="search-wrap">
+        <input class="search-input" id="search-input" type="search" placeholder="Search names + inside PDFs/emails…" autocomplete="off" />
+      </div>
+      <div class="tree" id="tree"></div>
+    </aside>
+
+    <section class="viewer">
+      <div class="viewer-head">
+        <div class="viewer-title" id="viewer-title">Select an evidence file</div>
+        <div class="viewer-meta" id="viewer-meta"></div>
+      </div>
+      <div class="viewer-body" id="viewer-body">
+        <div class="placeholder">Choose a file from the evidence tree.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_BASE = (window.DROPLET_URL || 'https://aljeel-ap.accordpartners.ai').replace(/\/$/, '');
+    const batchSelect = document.getElementById('batch-select');
+    const treeEl = document.getElementById('tree');
+    const panelTitleEl = document.getElementById('panel-title');
+    const fileCountEl = document.getElementById('file-count');
+    const viewerTitleEl = document.getElementById('viewer-title');
+    const viewerMetaEl = document.getElementById('viewer-meta');
+    const viewerBodyEl = document.getElementById('viewer-body');
+    const invoiceLoadButton = document.getElementById('invoice-load-button');
+    const backTreeButton = document.getElementById('back-tree-button');
+    const invoiceFileInput = document.getElementById('invoice-file-input');
+    const searchInput = document.getElementById('search-input');
+    let selectedRel = '';
+    let treeFolders = [];
+    let treeIndex = { days: [], directTickets: [], rootFiles: [] };
+    let invoiceRows = [];
+    let invoiceLoaded = false;
+    let contentSearchTimer = null;
+    let contentSearchController = null;
+    let contentSearchSeq = 0;
+    let contentMatchRels = new Set();
+    let lastTreeCountLabel = '0 files';
+
+    function apiUrl(path, params = {}) {
+      const query = new URLSearchParams(params).toString();
+      return `${API_BASE}${path}${query ? `?${query}` : ''}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[ch]));
+    }
+
+    async function loadBatchList() {
+      batchSelect.innerHTML = '<option value="">Loading batches...</option>';
+      batchSelect.disabled = true;
+      try {
+        const resp = await fetch(apiUrl('/api/batches'), { cache: 'no-store' });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+        const batches = Array.isArray(data.batches) ? data.batches : [];
+        if (!batches.length) {
+          batchSelect.innerHTML = '<option value="">No batches found</option>';
+          treeEl.innerHTML = '<div class="empty">No evidence batches found.</div>';
+          return;
+        }
+
+        batchSelect.innerHTML = batches.map(batch => `<option value="${escapeHtml(batch.id)}">${escapeHtml(batch.id)}</option>`).join('');
+        const defaultBatch = batches.find(batch => batch.id === 'J26-788') || batches[0];
+        batchSelect.value = defaultBatch.id;
+        batchSelect.disabled = false;
+        loadTree();
+      } catch (err) {
+        batchSelect.innerHTML = '<option value="">Could not load batches</option>';
+        treeEl.innerHTML = '<div class="error">Could not load batches — check connection</div>';
+        console.error('[evidence] Could not load batches:', err);
+      }
+    }
+
+    function iconFor(ext) {
+      if (ext === 'msg' || ext === 'eml') return '📧';
+      if (ext === 'pdf') return '📄';
+      if (['png', 'gif', 'jpg', 'jpeg', 'webp'].includes(ext)) return '🖼️';
+      if (['xlsx', 'xls'].includes(ext)) return '📊';
+      return '📎';
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes)) return '';
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function setLoading(message = 'Loading evidence...') {
+      viewerBodyEl.innerHTML = `<div class="placeholder"><div><div class="spinner"></div>${escapeHtml(message)}</div></div>`;
+    }
+
+    function setError(message) {
+      viewerBodyEl.innerHTML = `<div class="error">${escapeHtml(message)}</div>`;
+    }
+
+    function clearViewer() {
+      selectedRel = '';
+      viewerTitleEl.textContent = 'Select an evidence file';
+      viewerMetaEl.textContent = '';
+      viewerBodyEl.innerHTML = '<div class="placeholder">Choose a file from the evidence tree.</div>';
+      document.querySelectorAll('.file-btn.selected').forEach(el => el.classList.remove('selected'));
+    }
+
+    async function loadTree() {
+      if (!batchSelect.value) return;
+      cancelContentSearch();
+      contentSearchSeq += 1;
+      contentMatchRels = new Set();
+      clearViewer();
+      treeEl.innerHTML = '<div class="placeholder"><div><div class="spinner"></div>Loading folders...</div></div>';
+      fileCountEl.textContent = '0 files';
+      try {
+        const resp = await fetch(apiUrl('/evidence/tree', { batch_id: batchSelect.value }), { cache: 'no-store' });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        treeFolders = data.folders || [];
+        treeIndex = buildTreeIndex(treeFolders);
+        if (invoiceLoaded) {
+          renderInvoiceRows();
+        } else {
+          renderTree(treeFolders);
+        }
+      } catch (err) {
+        treeEl.innerHTML = `<div class="error">${escapeHtml(err.message || err)}</div>`;
+      }
+    }
+
+    function normalizeFiles(files) {
+      return (Array.isArray(files) ? files : []).map(file => ({
+        rel: file.rel || '',
+        ext: (file.ext || '').toLowerCase(),
+        name: file.name || file.rel || 'file',
+        size: Number(file.size)
+      }));
+    }
+
+    function buildTreeIndex(folders) {
+      const daysByName = new Map();
+      const directTickets = [];
+      const rootFiles = [];
+
+      folders.forEach(folder => {
+        const folderPath = folder.folder || '';
+        const files = normalizeFiles(folder.files);
+        if (!folderPath) {
+          rootFiles.push(...files);
+          return;
+        }
+
+        const slashAt = folderPath.indexOf('/');
+        if (slashAt > -1) {
+          const day = folderPath.slice(0, slashAt);
+          const ticket = folderPath.slice(slashAt + 1) || folderPath;
+          if (!daysByName.has(day)) {
+            daysByName.set(day, { day, tickets: [], fileCount: 0 });
+          }
+          const dayNode = daysByName.get(day);
+          dayNode.tickets.push({ folder: folderPath, ticket, files });
+          dayNode.fileCount += files.length;
+          return;
+        }
+
+        directTickets.push({ folder: folderPath, ticket: folderPath, files });
+      });
+
+      return {
+        days: Array.from(daysByName.values()),
+        directTickets,
+        rootFiles
+      };
+    }
+
+    function normalizeSearch(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function resetSearch(placeholder) {
+      searchInput.value = '';
+      searchInput.placeholder = placeholder;
+    }
+
+    function fileButtonHtml(file, isSearchMatch = false) {
+      return `
+        <button class="file-btn${isSearchMatch ? ' search-match' : ''}" data-rel="${escapeHtml(file.rel)}" data-ext="${escapeHtml(file.ext)}" data-name="${escapeHtml(file.name)}" data-size="${Number.isFinite(file.size) ? file.size : ''}">
+          <span>${iconFor(file.ext)}</span>
+          <span class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+          <span class="file-size">${escapeHtml(formatBytes(file.size))}</span>
+        </button>
+      `;
+    }
+
+    function ticketDetailsHtml(ticketNode, extraClass = '', options = {}) {
+      const fileCount = ticketNode.files.length;
+      const matchingFileRels = options.matchingFileRels || new Set();
+      const files = ticketNode.files.map(file => fileButtonHtml(file, matchingFileRels.has(file.rel))).join('');
+      return `
+        <details class="ticket-details ${extraClass}"${options.open ? ' open' : ''}>
+          <summary class="folder-summary" title="${escapeHtml(ticketNode.ticket)}">
+            <span class="chevron" aria-hidden="true"></span>
+            <span class="folder-icon" aria-hidden="true">📁</span>
+            <span class="folder-name">${escapeHtml(ticketNode.ticket)}</span>
+            <span class="badge">${fileCount} ${fileCount === 1 ? 'file' : 'files'}</span>
+          </summary>
+          <div class="file-list">${files || '<div class="empty">No files</div>'}</div>
+        </details>
+      `;
+    }
+
+    function rootFilesHtml(files, options = {}) {
+      const matchingFileRels = options.matchingFileRels || new Set();
+      return `
+        <details class="root-details"${options.open ? ' open' : ''}>
+          <summary class="folder-summary" title="Root files">
+            <span class="chevron" aria-hidden="true"></span>
+            <span class="folder-icon" aria-hidden="true">📁</span>
+            <span class="folder-name day-name">Root files</span>
+            <span class="badge">${files.length} ${files.length === 1 ? 'file' : 'files'}</span>
+          </summary>
+          <div class="file-list">${files.map(file => fileButtonHtml(file, matchingFileRels.has(file.rel))).join('')}</div>
+        </details>
+      `;
+    }
+
+    function renderTree(folders) {
+      panelTitleEl.textContent = 'Folders';
+      backTreeButton.classList.add('hidden');
+      resetSearch('Search names + inside PDFs/emails…');
+      contentMatchRels = new Set();
+      const index = buildTreeIndex(folders);
+      treeIndex = index;
+      const total = folders.reduce((sum, folder) => sum + normalizeFiles(folder.files).length, 0);
+      lastTreeCountLabel = `${total} ${total === 1 ? 'file' : 'files'}`;
+      fileCountEl.textContent = lastTreeCountLabel;
+      renderTreeIndex(index, {
+        emptyHtml: !folders.length || total === 0 ? '<div class="empty">No evidence files found.</div>' : ''
+      });
+    }
+
+    function renderTreeIndex(index, options = {}) {
+      if (options.emptyHtml) {
+        treeEl.innerHTML = options.emptyHtml;
+        return;
+      }
+
+      const total = index.days.reduce((sum, day) => sum + day.fileCount, 0)
+        + index.directTickets.reduce((sum, ticket) => sum + ticket.files.length, 0)
+        + index.rootFiles.length;
+      if (total === 0) {
+        treeEl.innerHTML = '<div class="empty">No evidence files found.</div>';
+        return;
+      }
+
+      const hasDayFolders = index.days.length > 0;
+      const dayHtml = index.days.map(dayNode => `
+        <details class="day-details"${options.openAll ? ' open' : ''}>
+          <summary class="folder-summary" title="${escapeHtml(dayNode.day)}">
+            <span class="chevron" aria-hidden="true"></span>
+            <span class="folder-icon" aria-hidden="true">📁</span>
+            <span class="folder-name day-name">${escapeHtml(dayNode.day)}</span>
+            <span class="badge">${dayNode.tickets.length} ${dayNode.tickets.length === 1 ? 'ticket' : 'tickets'}</span>
+          </summary>
+          <div class="ticket-list">
+            ${dayNode.tickets.map(ticketNode => ticketDetailsHtml(ticketNode, '', {
+              open: options.openAll,
+              matchingFileRels: options.matchingFileRels
+            })).join('')}
+          </div>
+        </details>
+      `).join('');
+      const directHtml = index.directTickets.map(ticketNode => ticketDetailsHtml(ticketNode, hasDayFolders ? 'root-details' : '', {
+        open: options.openAll,
+        matchingFileRels: options.matchingFileRels
+      })).join('');
+      const rootHtml = index.rootFiles.length ? rootFilesHtml(index.rootFiles, {
+        open: options.openAll,
+        matchingFileRels: options.matchingFileRels
+      }) : '';
+
+      treeEl.innerHTML = hasDayFolders
+        ? `${dayHtml}${directHtml}${rootHtml}`
+        : `${directHtml}${rootHtml}`;
+
+      bindFileButtons(treeEl);
+    }
+
+    function filterTree(query, contentMatches = new Set()) {
+      const needle = normalizeSearch(query);
+      if (!needle) {
+        renderTree(treeFolders);
+        return;
+      }
+
+      const matchingFileRels = new Set();
+      const filterTicket = ticketNode => {
+        const folderText = `${ticketNode.folder} ${ticketNode.ticket}`.toLowerCase();
+        const ticketMatches = folderText.includes(needle);
+        const matchingFiles = ticketNode.files.filter(file => {
+          const contentMatchesFile = contentMatches.has(file.rel);
+          const fileMatches = String(file.name || '').toLowerCase().includes(needle)
+            || String(file.rel || '').toLowerCase().includes(needle)
+            || contentMatchesFile;
+          if (fileMatches) matchingFileRels.add(file.rel);
+          return fileMatches;
+        });
+        if (!ticketMatches && matchingFiles.length === 0) return null;
+        if (ticketMatches) {
+          ticketNode.files.forEach(file => {
+            if (contentMatches.has(file.rel)) matchingFileRels.add(file.rel);
+          });
+        }
+        return {
+          ...ticketNode,
+          files: ticketMatches ? ticketNode.files : matchingFiles
+        };
+      };
+
+      const days = treeIndex.days.map(dayNode => {
+        const dayMatches = dayNode.day.toLowerCase().includes(needle);
+        const tickets = dayMatches
+          ? dayNode.tickets
+          : dayNode.tickets.map(filterTicket).filter(Boolean);
+        if (!dayMatches && tickets.length === 0) return null;
+        if (dayMatches) {
+          dayNode.tickets.forEach(ticket => {
+            ticket.files.forEach(file => {
+              if (contentMatches.has(file.rel)) matchingFileRels.add(file.rel);
+            });
+          });
+        }
+        return {
+          ...dayNode,
+          tickets,
+          fileCount: tickets.reduce((sum, ticket) => sum + ticket.files.length, 0)
+        };
+      }).filter(Boolean);
+      const directTickets = treeIndex.directTickets.map(filterTicket).filter(Boolean);
+      const rootFiles = treeIndex.rootFiles.filter(file => {
+        const contentMatchesFile = contentMatches.has(file.rel);
+        const fileMatches = String(file.name || '').toLowerCase().includes(needle)
+          || String(file.rel || '').toLowerCase().includes(needle)
+          || contentMatchesFile;
+        if (fileMatches) matchingFileRels.add(file.rel);
+        return fileMatches;
+      });
+      const hasMatches = days.length || directTickets.length || rootFiles.length;
+
+      if (!hasMatches) {
+        treeEl.innerHTML = `<div class="empty">No results for '${escapeHtml(query)}'</div>`;
+        return;
+      }
+
+      renderTreeIndex({ days, directTickets, rootFiles }, {
+        openAll: true,
+        matchingFileRels
+      });
+    }
+
+    function cancelContentSearch() {
+      if (contentSearchTimer) {
+        clearTimeout(contentSearchTimer);
+        contentSearchTimer = null;
+      }
+      if (contentSearchController) {
+        contentSearchController.abort();
+        contentSearchController = null;
+      }
+    }
+
+    function scheduleContentSearch(query) {
+      cancelContentSearch();
+      contentMatchRels = new Set();
+      filterTree(query, contentMatchRels);
+
+      const needle = normalizeSearch(query);
+      if (!needle) {
+        fileCountEl.textContent = lastTreeCountLabel;
+        return;
+      }
+
+      fileCountEl.textContent = 'Searching content...';
+      const seq = ++contentSearchSeq;
+      contentSearchTimer = setTimeout(async () => {
+        contentSearchTimer = null;
+        contentSearchController = new AbortController();
+        try {
+          const resp = await fetch(apiUrl('/evidence/search', {
+            batch_id: batchSelect.value,
+            q: query
+          }), {
+            cache: 'no-store',
+            signal: contentSearchController.signal
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+          if (seq !== contentSearchSeq || query !== searchInput.value || invoiceLoaded) return;
+          contentMatchRels = new Set(Array.isArray(data.matches) ? data.matches : []);
+          filterTree(query, contentMatchRels);
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            console.warn('[evidence] Content search failed:', err);
+          }
+        } finally {
+          if (seq === contentSearchSeq && !invoiceLoaded) {
+            fileCountEl.textContent = lastTreeCountLabel;
+          }
+          contentSearchController = null;
+        }
+      }, 250);
+    }
+
+    function filterRows(query) {
+      const needle = normalizeSearch(query);
+      const rows = treeEl.querySelectorAll('.row-item');
+      let visibleCount = 0;
+
+      rows.forEach(button => {
+        const row = invoiceRows[Number(button.dataset.rowIndex)];
+        const haystack = `${row?.passenger || ''} ${row?.ticketNumber || ''}`.toLowerCase();
+        const visible = !needle || haystack.includes(needle);
+        button.style.display = visible ? '' : 'none';
+        if (visible) visibleCount += 1;
+      });
+
+      const rowList = treeEl.querySelector('.row-list');
+      let emptyEl = treeEl.querySelector('.search-empty');
+      if (needle && visibleCount === 0) {
+        if (!emptyEl) {
+          emptyEl = document.createElement('div');
+          emptyEl.className = 'empty search-empty';
+          emptyEl.textContent = 'No results';
+          treeEl.appendChild(emptyEl);
+        }
+        if (rowList) rowList.style.display = 'none';
+      } else {
+        if (emptyEl) emptyEl.remove();
+        if (rowList) rowList.style.display = '';
+      }
+    }
+
+    function onSearch() {
+      if (invoiceLoaded) {
+        cancelContentSearch();
+        filterRows(searchInput.value);
+      } else {
+        scheduleContentSearch(searchInput.value);
+      }
+    }
+
+    function bindFileButtons(scope) {
+      scope.querySelectorAll('.file-btn').forEach(button => {
+        button.addEventListener('click', () => selectFile(button));
+      });
+    }
+
+    function fileFromButton(button) {
+      return {
+        rel: button.dataset.rel,
+        ext: (button.dataset.ext || '').toLowerCase(),
+        name: button.dataset.name,
+        size: Number(button.dataset.size)
+      };
+    }
+
+    function selectFile(button) {
+      selectFileData(fileFromButton(button), button);
+    }
+
+    function selectFileData(file, button = null) {
+      document.querySelectorAll('.file-btn.selected').forEach(el => el.classList.remove('selected'));
+      if (button) button.classList.add('selected');
+      selectedRel = file.rel;
+      viewerTitleEl.textContent = file.name;
+      viewerMetaEl.textContent = `${file.ext || 'file'} · ${formatBytes(file.size)}`;
+      loadFile(file);
+    }
+
+    function findTicketFolder(ticketNumber) {
+      if (!ticketNumber) return null;
+      const ticket = String(ticketNumber);
+      const allTickets = [
+        ...treeIndex.directTickets,
+        ...treeIndex.days.flatMap(day => day.tickets)
+      ];
+      return allTickets.find(node => node.folder.includes(ticket) || node.ticket.includes(ticket)) || null;
+    }
+
+    function showTicketFiles(ticketNode, ticketNumber) {
+      document.querySelectorAll('.file-btn.selected').forEach(el => el.classList.remove('selected'));
+      viewerTitleEl.textContent = ticketNode.ticket;
+      viewerMetaEl.textContent = `${ticketNode.files.length} ${ticketNode.files.length === 1 ? 'file' : 'files'}`;
+
+      if (ticketNode.files.length === 1) {
+        selectFileData(ticketNode.files[0]);
+        return;
+      }
+
+      if (!ticketNode.files.length) {
+        viewerBodyEl.innerHTML = `
+          <div class="notice">
+            <strong>No evidence files found</strong>
+            <div>Folder found for ticket ${escapeHtml(ticketNumber)}, but it has no files.</div>
+          </div>
+        `;
+        return;
+      }
+
+      viewerBodyEl.innerHTML = `
+        <div class="folder-file-list">
+          <h3>${escapeHtml(ticketNode.ticket)}</h3>
+          ${ticketNode.files.map(fileButtonHtml).join('')}
+        </div>
+      `;
+      bindFileButtons(viewerBodyEl);
+    }
+
+    function getCell(row, headers, name) {
+      const index = headers.findIndex(header => String(header || '').trim().toLowerCase() === name.toLowerCase());
+      return index > -1 ? String(row[index] ?? '').trim() : '';
+    }
+
+    function extractTicketNumber(description) {
+      const text = String(description || '');
+      const tenDigit = text.match(/\b\d{10}\b/);
+      if (tenDigit) return tenDigit[0];
+      const shortTicket = text.match(/\b26-\d+\b/);
+      return shortTicket ? shortTicket[0] : '';
+    }
+
+    function passengerName(description) {
+      const text = String(description || '').trim();
+      if (!text) return 'Unnamed passenger';
+      return text.split(' - ')[0] || text;
+    }
+
+    function statusDotClass(status) {
+      const value = String(status || '').toUpperCase();
+      if (value.includes('GREEN')) return 'green';
+      if (value.includes('YELLOW')) return 'yellow';
+      if (value.includes('RED')) return 'red';
+      return '';
+    }
+
+    function statusIcon(status, okIcon, missingIcon) {
+      return String(status || '').trim().toUpperCase() === 'OK' ? okIcon : missingIcon;
+    }
+
+    function parseInvoiceWorkbook(workbook) {
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      const headers = rows[2] || [];
+      return rows.slice(3).map((row, index) => {
+        const description = getCell(row, headers, 'Description');
+        return {
+          excelRow: index + 4,
+          description,
+          employeeNo: getCell(row, headers, 'Employee No'),
+          rowStatus: getCell(row, headers, 'Row Status'),
+          evidenceStatus: getCell(row, headers, 'Evidence Folder Status'),
+          approvalStatus: getCell(row, headers, 'Approval Email Status'),
+          account: getCell(row, headers, 'Account'),
+          costCenter: getCell(row, headers, 'Cost Center'),
+          ticketNumber: extractTicketNumber(description),
+          passenger: passengerName(description)
+        };
+      }).filter(row => row.description || row.ticketNumber);
+    }
+
+    function renderInvoiceRows() {
+      invoiceLoaded = true;
+      panelTitleEl.textContent = 'Invoice Rows';
+      backTreeButton.classList.remove('hidden');
+      resetSearch('Search rows…');
+      fileCountEl.textContent = `${invoiceRows.length} ${invoiceRows.length === 1 ? 'row' : 'rows'}`;
+
+      if (!invoiceRows.length) {
+        treeEl.innerHTML = '<div class="empty">No invoice rows found.</div>';
+        return;
+      }
+
+      treeEl.innerHTML = `
+        <div class="row-list">
+          ${invoiceRows.map((row, index) => `
+            <button class="row-item" type="button" data-row-index="${index}">
+              <span class="row-main">
+                <span class="row-person">
+                  <span class="row-dot ${statusDotClass(row.rowStatus)}" aria-hidden="true"></span>
+                  <span class="row-person-name" title="${escapeHtml(row.passenger)}">${escapeHtml(row.passenger)}</span>
+                </span>
+                <span class="row-meta-line">
+                  <span class="row-number">Row ${row.excelRow}</span>
+                  <span class="ticket-code">${escapeHtml(row.ticketNumber || 'No ticket')}</span>
+                </span>
+              </span>
+              <span class="row-icons" aria-label="Evidence and approval statuses">
+                <span title="Evidence folder: ${escapeHtml(row.evidenceStatus || 'MISSING')}">${statusIcon(row.evidenceStatus, '✅', '⚠️')}</span>
+                <span title="Approval email: ${escapeHtml(row.approvalStatus || 'MISSING')}">${statusIcon(row.approvalStatus, '✅', '❌')}</span>
+              </span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+
+      treeEl.querySelectorAll('.row-item').forEach(button => {
+        button.addEventListener('click', () => selectInvoiceRow(button));
+      });
+    }
+
+    function selectInvoiceRow(button) {
+      treeEl.querySelectorAll('.row-item.selected').forEach(el => el.classList.remove('selected'));
+      button.classList.add('selected');
+      const row = invoiceRows[Number(button.dataset.rowIndex)];
+      const ticketNumber = row?.ticketNumber || '';
+      const ticketNode = findTicketFolder(ticketNumber);
+
+      if (!ticketNode) {
+        viewerTitleEl.textContent = ticketNumber || 'No ticket number';
+        viewerMetaEl.textContent = row?.passenger || '';
+        viewerBodyEl.innerHTML = `
+          <div class="notice">
+            <strong>No evidence folder found for ticket ${escapeHtml(ticketNumber || 'unknown')}</strong>
+            <div>${escapeHtml(row?.description || '')}</div>
+          </div>
+        `;
+        return;
+      }
+
+      showTicketFiles(ticketNode, ticketNumber);
+    }
+
+    function exitInvoiceMode() {
+      invoiceLoaded = false;
+      invoiceRows = [];
+      invoiceFileInput.value = '';
+      clearViewer();
+      renderTree(treeFolders);
+    }
+
+    function loadInvoiceFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = event => {
+        try {
+          const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+          invoiceRows = parseInvoiceWorkbook(workbook);
+          clearViewer();
+          renderInvoiceRows();
+        } catch (err) {
+          setError(err.message || String(err));
+        }
+      };
+      reader.onerror = () => setError('Unable to read invoice file.');
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function loadFile(file) {
+      setLoading(`Opening ${file.name}...`);
+      const src = apiUrl('/evidence/file', { batch_id: batchSelect.value, rel: file.rel });
+      try {
+        if (file.ext === 'msg' || file.ext === 'eml') {
+          const resp = await fetch(src, { cache: 'no-store' });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+          renderEmail(data, file);
+        } else if (file.ext === 'pdf') {
+          viewerBodyEl.innerHTML = `<iframe title="${escapeHtml(file.name)}" src="${escapeHtml(src)}"></iframe>`;
+        } else if (['png', 'gif', 'jpg', 'jpeg', 'webp'].includes(file.ext)) {
+          viewerBodyEl.innerHTML = `<div class="image-wrap"><img class="image-preview" alt="${escapeHtml(file.name)}" src="${escapeHtml(src)}" /></div>`;
+        } else if (['xlsx', 'xls'].includes(file.ext)) {
+          viewerBodyEl.innerHTML = `
+            <div class="notice">
+              <strong>Excel preview not available</strong>
+              <div style="margin-bottom:14px;">Open the spreadsheet outside the browser when review is needed.</div>
+              <a class="download-link" href="${escapeHtml(src)}" download="${escapeHtml(file.name)}">📊 Click to download</a>
+            </div>
+          `;
+        } else {
+          viewerBodyEl.innerHTML = `
+            <div class="notice">
+              <strong>Preview not available</strong>
+              <a class="download-link" href="${escapeHtml(src)}" download="${escapeHtml(file.name)}">Download file</a>
+            </div>
+          `;
+        }
+      } catch (err) {
+        setError(err.message || String(err));
+      }
+    }
+
+    function renderEmail(email, file) {
+      const to = Array.isArray(email.to) ? email.to.join(', ') : (email.to || '');
+      const attachments = Array.isArray(email.attachments) ? email.attachments : [];
+      const attachmentHtml = attachments.length ? `
+        <div class="attachments">
+          <div class="attachments-title">Attachments</div>
+          ${attachments.map(att => {
+            if (file.ext !== 'msg') {
+              return `<span class="attachment-link">${escapeHtml(att.name || `Attachment ${att.index + 1}`)}</span>`;
+            }
+            const href = apiUrl('/evidence/msg-attachment', {
+              batch_id: batchSelect.value,
+              rel: file.rel,
+              attachment: att.index
+            });
+            return `<a class="attachment-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(att.name || `Attachment ${att.index + 1}`)}</a>`;
+          }).join('')}
+        </div>
+      ` : '';
+
+      viewerBodyEl.innerHTML = `
+        <article class="email-card">
+          <div class="email-subject">${escapeHtml(email.subject || '(No subject)')}</div>
+          <div class="email-meta">
+            <div><b>From</b>${escapeHtml(email.from || '')}</div>
+            <div><b>To</b>${escapeHtml(to)}</div>
+            <div><b>Date</b>${escapeHtml(email.date || '')}</div>
+          </div>
+          <pre class="email-body">${escapeHtml(email.body || '')}</pre>
+          ${attachmentHtml}
+        </article>
+      `;
+    }
+
+    batchSelect.addEventListener('change', loadTree);
+    invoiceLoadButton.addEventListener('click', () => invoiceFileInput.click());
+    invoiceFileInput.addEventListener('change', event => loadInvoiceFile(event.target.files[0]));
+    backTreeButton.addEventListener('click', exitInvoiceMode);
+    searchInput.addEventListener('input', onSearch);
+    loadBatchList();
+  </script>
+</body>
+</html>

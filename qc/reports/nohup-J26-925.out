@@ -1,0 +1,126 @@
+[15:07:07] ═══════════════════════════════════════════════════════════════
+[15:07:07] AlJeel AP Jawal Batch Processor — version v15.11.2
+[15:07:07] Batch:     J26-925
+[15:07:07] Started:   2026-06-25T15:07:07+00:00
+[15:07:07] Workspace: /home/clawdbot/.openclaw/workspace/aljeel
+[15:07:07] Log:       /home/clawdbot/.openclaw/workspace/aljeel/qc/reports/run-J26-925-20260625-150707Z.log
+[15:07:07] ═══════════════════════════════════════════════════════════════
+[15:07:07] 
+[15:07:08] ── Stage -1: Pre-flight checks ──
+[15:07:08] ✓ batch dir exists
+[15:07:08] ✓ invoice xlsx: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/J26-925.xlsx
+[15:07:08] ✓ raw corpus: 57 .msg files
+[15:07:08] ✓ master data present
+[15:07:08] ✓ reference golden present
+[15:07:08] ✓ env file present
+[15:07:08] ✓ cache files writable
+[15:07:08] 
+[15:07:08] ── Stage 0: Loading environment ──
+[15:07:08] ✓ env loaded
+[15:07:08] 
+[15:07:08] ── Stages 1-5: process_batch.py (full v10 pipeline) ──
+[15:07:08] Running: scripts/process_batch.py --batch /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925 --raw-dir /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/raw --suffix v15.11.2
+[process_batch] Loading master data from Aljeel_Lookups-v2.xlsx...
+  656 employees loaded
+  No Manpower Email column — using learned email cache
+  8 valid accounts, 35 DIVs, 676 agencies, 296 solutions, 28 cost centers
+[process_batch] Reading Spreadsheet-v4-input.xlsx...
+  Header at row 2, data starts at row 3
+[allocation_resolver] Gemini model used: gemini-pro-latest modelVersion=gemini-3.1-pro-preview
+[resolver] modelVersion='gemini-3.1-pro-preview' model='gemini-pro-latest'
+[allocation_resolver] Gemini model used: gemini-pro-latest modelVersion=gemini-3.1-pro-preview
+[resolver] modelVersion='gemini-3.1-pro-preview' model='gemini-pro-latest'
+[allocation_resolver] Gemini model used: gemini-pro-latest modelVersion=gemini-3.1-pro-preview
+[resolver] modelVersion='gemini-3.1-pro-preview' model='gemini-pro-latest'
+[Fix E v15.8] v3_L8_manager_cc_unanimous emp_no 1000124 forced to primary (was 1000124, not in md.employees)
+[allocation_resolver] Gemini model used: gemini-pro-latest modelVersion=gemini-3.1-pro-preview
+[resolver] modelVersion='gemini-3.1-pro-preview' model='gemini-pro-latest'
+[allocation_resolver] Gemini model used: gemini-pro-latest modelVersion=gemini-3.1-pro-preview
+[resolver] modelVersion='gemini-3.1-pro-preview' model='gemini-pro-latest'
+[allocation_resolver] Gemini model used: gemini-pro-latest modelVersion=gemini-3.1-pro-preview
+[resolver] modelVersion='gemini-3.1-pro-preview' model='gemini-pro-latest'
+[email_allocation_extractor] gemini-2.5-pro returned HTTP Error 503: Service Unavailable -- trying next model in cascade
+[extractor] modelVersion='gemini-2.5-flash' model='gemini-2.5-flash'
+[email_allocation_extractor] modelVersion=gemini-2.5-flash
+[email_allocation_extractor] Gemini model used: gemini-2.5-flash
+[Fix E v15.8] v3_L7.7_email_llm emp_no 1002584 forced to primary (was 1002584, not in md.employees)
+[email_allocation_extractor] gemini-2.5-pro returned HTTP Error 503: Service Unavailable -- trying next model in cascade
+[extractor] modelVersion='gemini-2.5-flash' model='gemini-2.5-flash'
+[email_allocation_extractor] modelVersion=gemini-2.5-flash
+[email_allocation_extractor] Gemini model used: gemini-2.5-flash
+[L7.7] Fix2: unknown Agency '60338' from LLM -- rejected
+[L7.7] Fix2: unknown Solution '60034' from LLM -- rejected
+[Fix E v15.8] v3_L7.7_email_llm emp_no 1002625 forced to primary (was 1002625, not in md.employees)
+  Email report: /home/clawdbot/.openclaw/workspace/aljeel/qc/reports/2026-05-21-resolver-v2
+    Emails extracted: 45/67
+    Resolved via email (L1.5): 0
+    Unique derived emails: 163
+
+[process_batch] Running within-batch QC catches...
+  Within-batch catches: 28
+    NO_APPROVAL: 12
+    NO_FOLDER: 7
+    SHARED_OPEX_SPONSORSHIP: 5
+    DUP_ROUTE_STRICT: 3
+    ROUND_AMOUNT: 1
+
+[process_batch] Running cross-batch fraud detection...
+  Cross-batch catches: 0
+  Cross-batch history updated: 875 tickets tracked
+  Labadi RULE 4/5 catches: 48
+    OPEX_SERIAL_MISSING: 48
+
+[process_batch] Row status breakdown:
+  🟢 GREEN:  20
+  🟡 YELLOW: 22
+  🔴 RED:    25
+
+[process_batch] Output: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/Spreadsheet-J26-925-FILLED-v15.11.2.xlsx
+  38132 bytes
+  Summary: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/summary-v15.11.2.json
+
+=== BATCH SUMMARY ===
+  Total lines:    67
+  Clean (Post):   0
+  Hard failures:  0
+  Soft flags:     67
+  Flag breakdown: {'FORM_TRIP_VALUE_DIFFERS': 42, 'FORM_FUSION_CODES_LOGGED': 37, 'MANPOWER_DIV_NOT_IN_MASTER': 26, 'FORM_NOT_FOUND_IN_EMAIL': 25, 'TRIP_PURPOSE_UNKNOWN': 25, 'ALLOCATION_TARGET_MISSING': 14, 'ACCOUNT_OVERRIDE_APPLIED': 10, 'EMPLOYEE_NOT_IN_MASTER': 7, 'ALLOCATION_RESOLVED_LLM': 1, 'LOCATION_FROM_WESTERN_CARVEOUT': 1, 'RESOLVED_VIA_MANAGER_CC_UNANIMOUS': 1, 'MANAGER_NOT_REALLOCATED': 1}
+  Match methods:  {'emp_no_direct': 56, 'v2_v3_L_overrides': 1, 'allocation_email_subordinate (llm)': 1, 'v2_v3_L8_manager_cc_unanimous': 1, 'v2_L4': 1, 'v2_v3_L7.7_email_llm': 2, 'not_found': 5}
+
+=== LABADI QC CHECK (2026-06-09) ===
+  Workbook: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/Spreadsheet-J26-925-FILLED-v15.11.2.xlsx
+  Rows checked: 67
+  1. Blank emp_no rows: 4  (expected 0)  FAIL ⚠️
+  2. OPEX Serial MISSING: 48
+  3. Annual/family (21070229) rows missing Mai/Sanad approval: 0
+  4. Rows where |*Amount(M)| > |*Invoice Amount(E)|: 0  (expected 0)  OK ✓
+[15:13:32] 
+[15:13:32] ── Stage 6: Golden fixture regression check ──
+[validator] J26-640: using current file: Spreadsheet-J26-640-FILLED-v30.xlsx
+[REGRESSED] J26-640: 15/117 exact (12.8%), 20 loc-only, 82 other diffs
+[validator] J26-788: using current file: Spreadsheet-J26-788-FILLED-v30-SPLIT.xlsx
+[REGRESSED] J26-788: 43/100 exact (43.0%), 1 loc-only, 56 other diffs
+
+Results: /home/clawdbot/.openclaw/workspace/aljeel/qc/fixtures/v2/validation-results.json
+[15:13:34] 
+[15:13:34] ── Stage 7: Post-run verification ──
+[15:13:34] ✓ output xlsx: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/Spreadsheet-J26-925-FILLED-v15.11.2.xlsx
+[15:13:34] ✓ summary written
+[15:13:34]   total lines:    67
+[15:13:34]   clean (post):   0
+[15:13:34]   soft flags:     67
+[15:13:34]   hard failures:  0
+[15:13:34]   row status:     🟢 20  🟡 22  🔴 25
+[15:13:34]   QC catches:     76 within-batch, 0 cross-batch
+[15:13:34] 
+[15:13:34] ═══════════════════════════════════════════════════════════════
+[15:13:34] ✅ DONE — Batch J26-925 processed via v15.11.2
+[15:13:34] Output:  /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/Spreadsheet-J26-925-FILLED-v15.11.2.xlsx
+[15:13:34] Summary: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/summary-v15.11.2.json
+[15:13:34] Log:     /home/clawdbot/.openclaw/workspace/aljeel/qc/reports/run-J26-925-20260625-150707Z.log
+[15:13:34] ═══════════════════════════════════════════════════════════════
+
+SUMMARY FOR TELEGRAM:
+Batch J26-925 processed via v10.
+  67 lines | 0 hard fails | 67 soft flags
+  Output: /home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-925/output/Spreadsheet-J26-925-FILLED-v15.11.2.xlsx

@@ -1,0 +1,630 @@
+{
+  "resolved": [
+    {
+      "line": 29,
+      "pax": "AAMIR ABDELLATIF SHARIF - TRAIN SERVICE (26-729)",
+      "emp_no": 1000615,
+      "emp_name": "Aamir Abdellatif Sharif",
+      "amount": 160.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_single",
+      "resolved": true,
+      "flag": "ALLOCATION_RESOLVED_HIERARCHY",
+      "target_name": "Abdel Hadi Mustafa Helmi Al Hato",
+      "target_emp": 1000596,
+      "confidence": 0.7,
+      "reasoning": "Single usable subordinate with same Agency (10052): Abdel Hadi Mustafa Helmi Al Hato (1000596)",
+      "candidates": []
+    },
+    {
+      "line": 30,
+      "pax": "AAMIR ABDELLATIF SHARIF - TRAIN SERVICE (26-730)",
+      "emp_no": 1000615,
+      "emp_name": "Aamir Abdellatif Sharif",
+      "amount": 120.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_single",
+      "resolved": true,
+      "flag": "ALLOCATION_RESOLVED_HIERARCHY",
+      "target_name": "Abdel Hadi Mustafa Helmi Al Hato",
+      "target_emp": 1000596,
+      "confidence": 0.7,
+      "reasoning": "Single usable subordinate with same Agency (10052): Abdel Hadi Mustafa Helmi Al Hato (1000596)",
+      "candidates": []
+    }
+  ],
+  "multi": [
+    {
+      "line": 4,
+      "pax": "MAHMOUD/BELAL MR - JED RUH (6905428830)",
+      "emp_no": 1000450,
+      "emp_name": "Belal Issa Mahmoud",
+      "amount": 1700.0,
+      "ticket": "6905428830",
+      "msg_files": 1,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.5,
+      "reasoning": "Multiple usable subordinates with same Agency (10081): ['Bashar Rasheed Jalal Omar', 'Hala Nader A Aljishi', 'Yousef  Abdelrazek Younes']",
+      "candidates": [
+        {
+          "emp_no": 1002343,
+          "name": "Bashar Rasheed Jalal Omar",
+          "agency": 10081
+        },
+        {
+          "emp_no": 1002391,
+          "name": "Hala Nader A Aljishi",
+          "agency": 10081
+        },
+        {
+          "emp_no": 1002427,
+          "name": "Yousef  Abdelrazek Younes",
+          "agency": 10081
+        }
+      ]
+    },
+    {
+      "line": 7,
+      "pax": "MAHMOUD/BELAL MR - JED RUH (1936046286)",
+      "emp_no": 1000450,
+      "emp_name": "Belal Issa Mahmoud",
+      "amount": 138.0,
+      "ticket": "1936046286",
+      "msg_files": 0,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.5,
+      "reasoning": "Multiple usable subordinates with same Agency (10081): ['Bashar Rasheed Jalal Omar', 'Hala Nader A Aljishi', 'Yousef  Abdelrazek Younes']",
+      "candidates": [
+        {
+          "emp_no": 1002343,
+          "name": "Bashar Rasheed Jalal Omar",
+          "agency": 10081
+        },
+        {
+          "emp_no": 1002391,
+          "name": "Hala Nader A Aljishi",
+          "agency": 10081
+        },
+        {
+          "emp_no": 1002427,
+          "name": "Yousef  Abdelrazek Younes",
+          "agency": 10081
+        }
+      ]
+    },
+    {
+      "line": 49,
+      "pax": "WADI/MAHMOUD MR - JED RUH JED (6905495703)",
+      "emp_no": 1001011,
+      "emp_name": "Mahmoud  Ahmad  Wadi",
+      "amount": 1115.01,
+      "ticket": "6905495703",
+      "msg_files": 1,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.5,
+      "reasoning": "Multiple usable subordinates with same Agency (10005): ['Somar Ahmad Alaksah', 'Moayyad M R Shihab', 'Abdulrahman Aljawish']",
+      "candidates": [
+        {
+          "emp_no": 1000404,
+          "name": "Somar Ahmad Alaksah",
+          "agency": 10005
+        },
+        {
+          "emp_no": 1000502,
+          "name": "Moayyad M R Shihab",
+          "agency": 10005
+        },
+        {
+          "emp_no": 1001058,
+          "name": "Abdulrahman Aljawish",
+          "agency": 10005
+        }
+      ]
+    },
+    {
+      "line": 51,
+      "pax": "ELKAHLOUT/NABEL MR - RUH AHB RUH (6905495712)",
+      "emp_no": 1000182,
+      "emp_name": "Nabel Ahmed Mousa Elkahlout",
+      "amount": 1180.0,
+      "ticket": "6905495712",
+      "msg_files": 1,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.5,
+      "reasoning": "Multiple usable subordinates with same Agency (10126): ['Ibrahim Wesam Ibrahim Lello', 'Omar Iehab Ahmed Abu Noufal']",
+      "candidates": [
+        {
+          "emp_no": 1001957,
+          "name": "Ibrahim Wesam Ibrahim Lello",
+          "agency": 10126
+        },
+        {
+          "emp_no": 1002345,
+          "name": "Omar Iehab Ahmed Abu Noufal",
+          "agency": 10126
+        }
+      ]
+    },
+    {
+      "line": 60,
+      "pax": "MOSTAFA AMER - Kimpton Vividora Barcelona - 1 NTS. (26-731)",
+      "emp_no": 1002091,
+      "emp_name": "Mostafa Mahmoud Mohamed Amer",
+      "amount": 6300.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.4,
+      "reasoning": "Multiple usable direct subordinates: ['Yousef Saleh S Alnasyan', 'Wejdan Ishaq M Bukhari', 'Maymunah Raed M Albukhari']",
+      "candidates": [
+        {
+          "emp_no": 1000826,
+          "name": "Yousef Saleh S Alnasyan",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1001255,
+          "name": "Wejdan Ishaq M Bukhari",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1001935,
+          "name": "Maymunah Raed M Albukhari",
+          "agency": 10153
+        }
+      ]
+    },
+    {
+      "line": 61,
+      "pax": "MOSTAFA AMER - Kimpton Vividora Barcelona - 1 NTS. (26-732)",
+      "emp_no": 1002091,
+      "emp_name": "Mostafa Mahmoud Mohamed Amer",
+      "amount": 2650.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.4,
+      "reasoning": "Multiple usable direct subordinates: ['Yousef Saleh S Alnasyan', 'Wejdan Ishaq M Bukhari', 'Maymunah Raed M Albukhari']",
+      "candidates": [
+        {
+          "emp_no": 1000826,
+          "name": "Yousef Saleh S Alnasyan",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1001255,
+          "name": "Wejdan Ishaq M Bukhari",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1001935,
+          "name": "Maymunah Raed M Albukhari",
+          "agency": 10153
+        }
+      ]
+    },
+    {
+      "line": 62,
+      "pax": "SULTAN ABU DOGHMEH - Kimpton Vividora Barcelona - 1 NTS. (26",
+      "emp_no": 1000995,
+      "emp_name": "Sultan Mohammad Abu Doghmeh",
+      "amount": 6300.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.3,
+      "reasoning": "Multiple usable indirect subordinates: ['Mohamed Ahmed Diab Daloul', 'Waleed  Hassan A Alasiri', 'Jawdat  Ammar  Jawdat  Shorab', 'Said Ali Said Ali', 'Mohamed  Abdelsalam Abdelsalam Elgamal', 'Fatima",
+      "candidates": [
+        {
+          "emp_no": 1000606,
+          "name": "Mohamed Ahmed Diab Daloul",
+          "agency": 10109
+        },
+        {
+          "emp_no": 1001906,
+          "name": "Waleed  Hassan A Alasiri",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1002057,
+          "name": "Jawdat  Ammar  Jawdat  Shorab",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1000414,
+          "name": "Said Ali Said Ali",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1001256,
+          "name": "Mohamed  Abdelsalam Abdelsalam Elgamal",
+          "agency": 10155
+        }
+      ]
+    },
+    {
+      "line": 63,
+      "pax": "SULTAN ABU DOGHMEH - Kimpton Vividora Barcelona - 1 NTS. (26",
+      "emp_no": 1000995,
+      "emp_name": "Sultan Mohammad Abu Doghmeh",
+      "amount": 2650.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.3,
+      "reasoning": "Multiple usable indirect subordinates: ['Mohamed Ahmed Diab Daloul', 'Waleed  Hassan A Alasiri', 'Jawdat  Ammar  Jawdat  Shorab', 'Said Ali Said Ali', 'Mohamed  Abdelsalam Abdelsalam Elgamal', 'Fatima",
+      "candidates": [
+        {
+          "emp_no": 1000606,
+          "name": "Mohamed Ahmed Diab Daloul",
+          "agency": 10109
+        },
+        {
+          "emp_no": 1001906,
+          "name": "Waleed  Hassan A Alasiri",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1002057,
+          "name": "Jawdat  Ammar  Jawdat  Shorab",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1000414,
+          "name": "Said Ali Said Ali",
+          "agency": 10153
+        },
+        {
+          "emp_no": 1001256,
+          "name": "Mohamed  Abdelsalam Abdelsalam Elgamal",
+          "agency": 10155
+        }
+      ]
+    },
+    {
+      "line": 66,
+      "pax": "AYED ZEIADH - RUH JED RUH (CDF5FD)",
+      "emp_no": 1000320,
+      "emp_name": "Ayed Ahmad Ayed Zeiadeh",
+      "amount": 1025.0,
+      "ticket": "N/A",
+      "msg_files": 0,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.5,
+      "reasoning": "Multiple usable subordinates with same Agency (10055): ['Mustafa Mahmoud Aljaroud', 'Ebaa Zakaria Al Hindi', 'Mohamma Sameer M. S. Al-Mohtasib', 'Omar  Abdullah M Alluwaimi']",
+      "candidates": [
+        {
+          "emp_no": 1000361,
+          "name": "Mustafa Mahmoud Aljaroud",
+          "agency": 10055
+        },
+        {
+          "emp_no": 1000411,
+          "name": "Ebaa Zakaria Al Hindi",
+          "agency": 10055
+        },
+        {
+          "emp_no": 1000505,
+          "name": "Mohamma Sameer M. S. Al-Mohtasib",
+          "agency": 10055
+        },
+        {
+          "emp_no": 1000953,
+          "name": "Omar  Abdullah M Alluwaimi",
+          "agency": 10055
+        }
+      ]
+    },
+    {
+      "line": 94,
+      "pax": "WADI/MAHMOUD MR - JED GIZ JED (6905600592)",
+      "emp_no": 1001011,
+      "emp_name": "Mahmoud  Ahmad  Wadi",
+      "amount": 1685.0,
+      "ticket": "6905600592",
+      "msg_files": 1,
+      "method": "hierarchy_multi",
+      "resolved": false,
+      "flag": "MULTI_ALLOCATION_PENDING_REVIEW",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.5,
+      "reasoning": "Multiple usable subordinates with same Agency (10005): ['Somar Ahmad Alaksah', 'Moayyad M R Shihab', 'Abdulrahman Aljawish']",
+      "candidates": [
+        {
+          "emp_no": 1000404,
+          "name": "Somar Ahmad Alaksah",
+          "agency": 10005
+        },
+        {
+          "emp_no": 1000502,
+          "name": "Moayyad M R Shihab",
+          "agency": 10005
+        },
+        {
+          "emp_no": 1001058,
+          "name": "Abdulrahman Aljawish",
+          "agency": 10005
+        }
+      ]
+    }
+  ],
+  "missing": [
+    {
+      "line": 11,
+      "pax": "BAHKALI/ARIEJ MS - JED DMM JED (6905478406)",
+      "emp_no": 1002469,
+      "emp_name": "Ariej Ibrahim Bahkali",
+      "amount": 1790.0,
+      "ticket": "6905478406",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Ariej Ibrahim Bahkali (1002469)",
+      "candidates": []
+    },
+    {
+      "line": 24,
+      "pax": "ISMAIEL/YASIN MR - RUH DMM RUH (6905478461)",
+      "emp_no": 1001406,
+      "emp_name": "Yasin Salahaldeen Osman Ismaiel",
+      "amount": 1640.0,
+      "ticket": "6905478461",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Yasin Salahaldeen Osman Ismaiel (1001406)",
+      "candidates": []
+    },
+    {
+      "line": 25,
+      "pax": "BABAKR/MOHAMMED MR - RUH DMM (6905478467)",
+      "emp_no": 1000030,
+      "emp_name": "Ashraf Mohamed Abdelaaty Saad",
+      "amount": 510.0,
+      "ticket": "6905478467",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Ashraf Mohamed Abdelaaty Saad (1000030)",
+      "candidates": []
+    },
+    {
+      "line": 26,
+      "pax": "BABAKR/MOHAMMED MR - DMM RUH (6905478468)",
+      "emp_no": 1000030,
+      "emp_name": "Ashraf Mohamed Abdelaaty Saad",
+      "amount": 440.0,
+      "ticket": "6905478468",
+      "msg_files": 0,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Ashraf Mohamed Abdelaaty Saad (1000030)",
+      "candidates": []
+    },
+    {
+      "line": 42,
+      "pax": "ISMAIEL/YASIN MR - RUH JED RUH (6905495656)",
+      "emp_no": 1001406,
+      "emp_name": "Yasin Salahaldeen Osman Ismaiel",
+      "amount": 1115.01,
+      "ticket": "6905495656",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Yasin Salahaldeen Osman Ismaiel (1001406)",
+      "candidates": []
+    },
+    {
+      "line": 48,
+      "pax": "AHMED/NAGMALDIN MR - RUH JED RUH (6905495693)",
+      "emp_no": 1002294,
+      "emp_name": "Nagmaldin  Abdelhamid Ahmed",
+      "amount": 1069.99,
+      "ticket": "6905495693",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Nagmaldin  Abdelhamid Ahmed (1002294)",
+      "candidates": []
+    },
+    {
+      "line": 50,
+      "pax": "ALASIRI/ABDULAZIZ MR - RUH AHB RUH (6905495711)",
+      "emp_no": 1000975,
+      "emp_name": "Abdulaziz Mohammed Saad Alasiri",
+      "amount": 1310.0,
+      "ticket": "6905495711",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Abdulaziz Mohammed Saad Alasiri (1000975)",
+      "candidates": []
+    },
+    {
+      "line": 57,
+      "pax": "KHADER/OMAR MR - RUH JED RUH (6905533338)",
+      "emp_no": 1000453,
+      "emp_name": "Omar Mahmoud Khader",
+      "amount": 1100.0,
+      "ticket": "6905533338",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Omar Mahmoud Khader (1000453)",
+      "candidates": []
+    },
+    {
+      "line": 67,
+      "pax": "BABAKR/MOHAMMED MR - RUH JED RUH (6905533352)",
+      "emp_no": 1000030,
+      "emp_name": "Ashraf Mohamed Abdelaaty Saad",
+      "amount": 1115.01,
+      "ticket": "6905533352",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Ashraf Mohamed Abdelaaty Saad (1000030)",
+      "candidates": []
+    },
+    {
+      "line": 90,
+      "pax": "BIN RAJAB/FERAS MR - JED RUH JED (6905569523)",
+      "emp_no": 1002217,
+      "emp_name": "Feras Mohammed  Bin Rajab",
+      "amount": 1050.0,
+      "ticket": "6905569523",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Feras Mohammed  Bin Rajab (1002217)",
+      "candidates": []
+    },
+    {
+      "line": 91,
+      "pax": "JAMAL/ABDULMALIK MR - JED RUH (6905569525)",
+      "emp_no": 1001799,
+      "emp_name": "Abdulmalik  Yasir S Jamal",
+      "amount": 650.0,
+      "ticket": "6905569525",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Abdulmalik  Yasir S Jamal (1001799)",
+      "candidates": []
+    },
+    {
+      "line": 92,
+      "pax": "JAMAL/ABDULMALIK MR - RUH JED (6905569526)",
+      "emp_no": 1001799,
+      "emp_name": "Abdulmalik  Yasir S Jamal",
+      "amount": 650.0,
+      "ticket": "6905569526",
+      "msg_files": 0,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Abdulmalik  Yasir S Jamal (1001799)",
+      "candidates": []
+    },
+    {
+      "line": 93,
+      "pax": "SAAD/ASHRAF MR - JED GIZ JED (6905600591)",
+      "emp_no": 1000030,
+      "emp_name": "Ashraf Mohamed Abdelaaty Saad",
+      "amount": 1685.0,
+      "ticket": "6905600591",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Ashraf Mohamed Abdelaaty Saad (1000030)",
+      "candidates": []
+    },
+    {
+      "line": 96,
+      "pax": "RATL/CHARLES MR - RUH DMM RUH (6905600631)",
+      "emp_no": 1002405,
+      "emp_name": "Charles  Salim  Ratl",
+      "amount": 1510.0,
+      "ticket": "6905600631",
+      "msg_files": 1,
+      "method": "none",
+      "resolved": false,
+      "flag": "ALLOCATION_TARGET_MISSING",
+      "target_name": null,
+      "target_emp": null,
+      "confidence": 0.0,
+      "reasoning": "No usable subordinates found for manager Charles  Salim  Ratl (1002405)",
+      "candidates": []
+    }
+  ]
+}

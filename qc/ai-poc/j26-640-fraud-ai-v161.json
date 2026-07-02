@@ -1,0 +1,2343 @@
+{
+  "batch_id": "J26-640",
+  "schema_version": "v16.1",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "dcc8f01987c4e9c22445b3386c1d7ad21226a6793b5c8e3efe39d318e99dc080",
+  "usage": {
+    "prompt_tokens": 733151,
+    "completion_tokens": 22675,
+    "total_tokens": 772814
+  },
+  "validation_errors": [],
+  "pydantic_valid": true,
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3730.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "5080.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Mohamad Mohamad Merheb (1002576) on 2026-04-23 by Mohamad Mohamad Merheb.msg",
+            "quote": "Value\r\n\r\n1,350.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 5080.0 SAR significantly exceeds the approved amount of 1350.0 SAR in the ERP approval email.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MERHEB MOHAMAD|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight for Dr. Amr Alwakeel. Approved by management.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALWAKEEL AMR|ATH-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1250.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALAJMI/MANNAA MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALAJMI MANNAA|AHB-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "YELLOW",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 120.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Charles Salim Ratl (1002405) on 2026-04-20 by Charles Salim Ratl.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 800.0 SAR slightly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RATL CHARLES|GIZ-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1315.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1995.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Approved Personal Contribution Approval Requested for Moayad Ahmed Baghlaf (1002442) on 2026-04-23 by Moayad Ahmed Baghlaf.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1995.0 SAR significantly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAGHLAF MOAYAD|RUH-TUU|lte2000|2026-04"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3224.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "2040.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Ahmed Jumah Hussein (1000430) on 2026-04-22 by Ahmed Jumah Hussein.msg",
+            "quote": "Value\r\n\r\n2,300.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (5524.99 SAR) significantly exceeds the approved amount of 2300.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HUSSEIN AHMAD JUMAH KHALEEL|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3484.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "3484.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Ahmed Jumah Hussein (1000430) on 2026-04-22 by Ahmed Jumah Hussein.msg",
+            "quote": "Value\r\n\r\n2,300.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (5524.99 SAR) significantly exceeds the approved amount of 2300.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HUSSEIN AHMAD JUMAH KHALEEL|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3980.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALATTAR/ABDULLAH MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Riyadh- Jeddah& Jeddah-Dammam business trip.msg",
+            "quote": "PLEASE WE NEED YOUR SUPPORT TO APPROVE THE PAYMENT FORM"
+          }
+        ],
+        "reasoning": "No formal ERP approval found for this flight, only an email request.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALATTAR ABDULLAH|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2080.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALI/HESHAM MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Flight to Jeddah.msg",
+            "quote": "Approved. I will share with you the system approval once received. Please proceed so that we secure the ticket."
+          }
+        ],
+        "reasoning": "System approval was pending at the time of booking.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALI HESHAM|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1530.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALI/HESHAM MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Flight to Jeddah.msg",
+            "quote": "Approved. I will share with you the system approval once received. Please proceed so that we secure the ticket."
+          }
+        ],
+        "reasoning": "System approval was pending at the time of booking.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALI HESHAM|JED-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount matches the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "EL SHARKAWY HASSAN|DMM-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount matches the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "EL SHARKAWY HASSAN|DMM-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 470.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1320.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Nujud Fahad Alanazi (1001061) on 2026-04-23 by Nujud Fahad Alanazi.msg",
+            "quote": "Value\r\n\r\n850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1320.0 SAR exceeds the approved amount of 850.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI NJOUD|DMM-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1150.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "SWEILEM/MOHAMMAD MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SWEILEM MOHAMMAD|DMM-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 830.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1230.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Ahmad Jebreil Al Baz (1000375) on 2026-04-23 by Ahmad Jebreil Al Baz.msg",
+            "quote": "Value\r\n\r\n400.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1230.01 SAR significantly exceeds the approved amount of 400.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBAZ AHMAD|DMM-RUH|lte1000|2026-04"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2095.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "2775.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Waseem Soud Mustafa  (1001422) on 2026-04-26 by Waseem Soud Mustafa.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 2775.0 SAR significantly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MUSTAFA WASEEM|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 690.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALANAZI/FARHAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte1000|2026-04"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 770.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALANAZI/FARHAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte1000|2026-04"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALBESI NASSER|JED-MED|lte500|2026-04"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ADOLAY MOHAMED|DOH-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount matches the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED AHMED MOHAMED|CAI-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1950.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "2750.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "FYI Personal Contribution Approval Requested for Kadi Abdullah Alhazzaa (1001089) on 2026-04-26 by Kadi Abdullah Alhazzaa.msg",
+            "quote": "Value\r\n\r\n800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 2750.0 SAR significantly exceeds the approved amount of 800.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAZZAA KADI|RUH-TIF|lte2000|2026-04"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAZIED ISSAM|HAS-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1600.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Abdulaziz Mohammed Alanazi (1000668) on 2026-04-26 by Abdulaziz Mohammed Alanazi.msg",
+            "quote": "Value \r\n\r\n400.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1600.0 SAR significantly exceeds the approved amount of 400.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALENAZI ABDULAZIZ|GIZ-JED|lte2000|2026-04"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 865.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "BABAKR/MOHAMMED MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BABAKR MOHAMMED|AHB-RUH|lte1000|2026-04"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 585.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "BABAKR/MOHAMMED MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BABAKR MOHAMMED|AHB-RUH|lte1000|2026-04"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 11800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "11800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ CRM-2026-27 Approvals.msg",
+            "quote": "Hotel booked as agreed : 11800"
+          }
+        ],
+        "reasoning": "A hotel expense of 11800 SAR was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED MOHAMED AHMED|UNKNOWN|lte20000|2026-04"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 6000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "AMR ALWAKEEL"
+          }
+        ],
+        "reasoning": "No approval email found for this specific amount and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMR ALWAKEEL|UNKNOWN|lte10000|2026-05"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Date change penalty approved by management.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RATL CHARLES|GIZ-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Extra seat cost approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALI HESHAM|JED-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 340.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1020.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Yousef Saleh AlDighrir (1002308) on 2026-04-26 by Yousef Saleh AlDighrir.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1020.0 SAR exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AL DIGHRIR YOUSEF|ABT-JED|lte500|2026-04"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALQAHTANI/YAZEED MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ ╪н╪м╪▓ ╪╖┘К╪▒╪з┘Ж ┘Д┘Е┘З┘Е╪й ╪╣┘Е┘Д ┘Д╪н╪з╪ж┘Д .msg",
+            "quote": "يعتمد المرسل من قبلكم"
+          }
+        ],
+        "reasoning": "No formal ERP approval found for this flight, only an email request.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALQAHTANI YAZEED|HAS-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1370.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "2170.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Faisal Naif Bin Mudhian (1002340) on 2026-04-26 by Faisal Naif Bin Mudhian.msg",
+            "quote": "Value\r\n\r\n800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 2170.0 SAR significantly exceeds the approved amount of 800.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN MUDHIAN FAISAL|HAS-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Saud Mohammed AlBalawi  (1000789) on 2026-04-27 by Saud Mohammed AlBalawi.msg",
+            "quote": "Value \r\n\r\n625.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1250.0 SAR) significantly exceeds the approved amount of 625.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALAWI SAUD|GIZ-JED|lte1000|2026-04"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "450.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Saud Mohammed AlBalawi  (1000789) on 2026-04-27 by Saud Mohammed AlBalawi.msg",
+            "quote": "Value \r\n\r\n625.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1250.0 SAR) significantly exceeds the approved amount of 625.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALAWI SAUD|GIZ-JED|lte500|2026-04"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 670.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1790.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Ali Atayah Alzahrani  (1001923) on 2026-04-27 by Ali Atayah  Alzahrani.msg",
+            "quote": "Value\r\n\r\n1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1790.0 SAR exceeds the approved amount of 1120.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALZAHRANI ALI|RUH-YNB|lte1000|2026-04"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1315.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALHAJJ/HUSAM MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_  ╪╖┘Д╪и ╪н╪м╪▓_╪н╪│╪з┘Е ╪╣┘Д┘И┘К ╪з┘Д╪н╪з╪м_ ┘Е┘Ж (╪м╪п╪й - ╪з┘Д╪и╪з╪н╪й -  ╪м╪п╪й).msg",
+            "quote": "يعتمد المرسل من قبلكم"
+          }
+        ],
+        "reasoning": "No formal ERP approval found for this flight, only an email request.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALHAJJ HUSAM|ABT-JED|lte2000|2026-04"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount matches the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHARAWY SALMA|CAI-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Annual ticket request approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALI HOSNY|HMB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Annual ticket request approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SOBHI ALAAELDIN|HMB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 530.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1260.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Hossam Mohammed Othman (1000265) on 2026-04-27 by Hossam Mohammed Othman.msg",
+            "quote": "Value\r\n\r\n730.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1260.0 SAR exceeds the approved amount of 730.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "OTHMAN HOSSAM|AHB-JED|lte1000|2026-05"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1285.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "2485.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Ebtihal Ahmed Qubaisi (1001864) on 2026-04-27 by Ebtihal  Ahmed  Qubaisi.msg",
+            "quote": "Value\r\n\r\n1,200.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 2485.0 SAR significantly exceeds the approved amount of 1200.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "QUBAISI EBTIHAL AHMED|DMM-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2600.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "3000.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Omar Mohamed Elshazli (1002484) on 2026-04-27 by Omar Mohamed Elshazli.msg",
+            "quote": "Value\r\n\r\n400.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 3000.01 SAR significantly exceeds the approved amount of 400.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|EAM-JED|lte5000|2026-04"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "YELLOW",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 50.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Belal Issa Mahmoud (1000450) on 2026-04-27 by Belal Issa Mahmoud.msg",
+            "quote": "Value\r\n\r\n1,750.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1800.0 SAR slightly exceeds the approved amount of 1750.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAHMOUD BELAL|RUH-TIF|lte500|2026-04"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "AHMED ALSULBUD"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2026-8/J-2026-51/OPEX HF#8 ISHLT - KF"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED ALSULBUD|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "FERAS KHALIEL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2026-7/J-2026-46/OPEX HF#7 ISHLT - KF"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FERAS KHALIEL|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "AHMED ALSULBUD"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2026-8/J-2026-51/OPEX HF#8 ISHLT - KF"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED ALSULBUD|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "FERAS KHALIEL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2026-7/J-2026-46/OPEX HF#7 ISHLT - KF"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FERAS KHALIEL|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "FAHMI ALKAF"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2025-49/J-2025-191/OPEX HF# 49 ISHLT"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAHMI ALKAF|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "FAHMI ALKAF"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2025-49/J-2025-191/OPEX HF# 49 ISHLT"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAHMI ALKAF|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ISMAIL RASLAN"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2026-9/J-2026-55/OPEX HF#9 ISHLT - PS"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIL RASLAN|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ISMAIL RASLAN"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2026-9/J-2026-55/OPEX HF#9 ISHLT - PS"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIL RASLAN|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MOHAMMED ALRESHIDAN"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2025-49/J-2025-191/OPEX HF# 49 ISHLT"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMMED ALRESHIDAN|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MOHAMMED ALRESHIDAN"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "HF-2025-49/J-2025-191/OPEX HF# 49 ISHLT"
+          }
+        ],
+        "reasoning": "Duplicate billing for the same passenger and event.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMMED ALRESHIDAN|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMMED ALAKLABI|UNKNOWN|lte500|2026-04"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MARIELLA AKIKI|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAHMI AL KAF|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RAZAN REFAI|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSSAED ALHUSSEIN|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABEER DAFIRI|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "NADIA SOMALI|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount matches the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMMAD MAHMOUD|UNKNOWN|lte500|2026-04"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2020.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "3240.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Hamzeh Hosin Haddad (1000529) on 2026-04-25 by Hamzeh Hosin Haddad.msg",
+            "quote": "Value\r\n\r\n1,220.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 3240.0 SAR significantly exceeds the approved amount of 1220.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HADDAD HAMZAH|JED-RUH|lte5000|2026-04"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1680.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1010.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Feras Mohammed Bin Rajab (1002217) on 2026-04-28 by Feras Bin Rajab.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (2360.0 SAR) significantly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN RAJAB FERAS|AHB-JED|lte2000|2026-04"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1350.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1350.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Feras Mohammed Bin Rajab (1002217) on 2026-04-28 by Feras Bin Rajab.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (2360.0 SAR) significantly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN RAJAB FERAS|AHB-JED|lte2000|2026-04"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1319.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "4619.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Sultan Mohammad Abu Doghmeh (1000995) on 2026-04-21 by Sultan Mohammad Abu Doghmeh.msg",
+            "quote": "Value\r\n\r\n3,300.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 4619.99 SAR significantly exceeds the approved amount of 3300.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABU DOGHMEH SULTAN|AUH-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1519.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "4619.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Mostafa Mahmoud Amer (1002091) on 2026-04-21 by Mostafa Mahmoud Amer.msg",
+            "quote": "Value\r\n\r\n3,100.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 4619.99 SAR significantly exceeds the approved amount of 3100.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMER MOSTAFA|AUH-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 68,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 310.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "470.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Approved Personal Contribution Approval Requested for Abdallah Tawfiq Alshayeb (1002378) on 2026-04-27 by Abdallah Tawfiq Alshayeb.msg",
+            "quote": "Value\r\n\r\n1,300.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1610.01 SAR) exceeds the approved amount of 1300.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHAYEB ABDALLAH|DMM-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 69,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1140.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1140.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Approved Personal Contribution Approval Requested for Abdallah Tawfiq Alshayeb (1002378) on 2026-04-27 by Abdallah Tawfiq Alshayeb.msg",
+            "quote": "Value\r\n\r\n1,300.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1610.01 SAR) exceeds the approved amount of 1300.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHAYEB ABDALLAH|DMM-RUH|lte2000|2026-04"
+      },
+      {
+        "sl_no": 70,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 780.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1080.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Ali Kamal Eldin Elhag (1000490) on 2026-04-27 by Ali Kamal Eldin Elhag.msg",
+            "quote": "Value\r\n\r\n300.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1080.0 SAR significantly exceeds the approved amount of 300.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELHAG ALI|JED-MED|lte1000|2026-04"
+      },
+      {
+        "sl_no": 71,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 460.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1260.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Mohamed Abdulkarim Adolay (1000379) on 2026-04-28 by Mohamed Abdulkarim Adolay.msg",
+            "quote": "Value\r\n\r\n800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1260.0 SAR exceeds the approved amount of 800.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ADOLAY MOHAMED|ELQ-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 72,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALANAZI/FARHAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|MED-RUH|lte1000|2026-04"
+      },
+      {
+        "sl_no": 73,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 730.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALANAZI/FARHAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|MED-RUH|lte1000|2026-04"
+      },
+      {
+        "sl_no": 74,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED NAGMALDIN|HAS-RUH|lte500|2026-04"
+      },
+      {
+        "sl_no": 75,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 870.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALHAWSAWI/HISHAM MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAWSAWI HISHAM|GIZ-JED|lte1000|2026-04"
+      },
+      {
+        "sl_no": 76,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2210.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1430.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Yazan Mohammmad  Alkhatib (1002317) on 2026-04-28 by Yazan  Mohammmad  Alkhatib.msg",
+            "quote": "Value\r\n\r\n850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (3060.0 SAR) significantly exceeds the approved amount of 850.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALKHATIB YAZAN|EAM-JED|lte5000|2026-04"
+      },
+      {
+        "sl_no": 77,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1630.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1630.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Yazan Mohammmad  Alkhatib (1002317) on 2026-04-28 by Yazan  Mohammmad  Alkhatib.msg",
+            "quote": "Value\r\n\r\n850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (3060.0 SAR) significantly exceeds the approved amount of 850.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALKHATIB YAZAN|EAM-JED|lte2000|2026-04"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2208.34,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MEETING ROOM 27 APR"
+          }
+        ],
+        "reasoning": "A meeting room expense was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MEETING ROOM 27 APR|UNKNOWN|lte5000|2026-04"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2208.33,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MEETING ROOM 27 APR"
+          }
+        ],
+        "reasoning": "A meeting room expense was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MEETING ROOM 27 APR|UNKNOWN|lte5000|2026-04"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2208.33,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MEETING ROOM 27 APR"
+          }
+        ],
+        "reasoning": "A meeting room expense was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MEETING ROOM 27 APR|UNKNOWN|lte5000|2026-04"
+      },
+      {
+        "sl_no": 79,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AL KHUDHAYR AHMED|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 80,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HINAIDI ABDULLAH|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 81,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "HASHAD/TAREK MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HASHAD TAREK|GIZ-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 82,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 810.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALAJMI/MANNAA MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALAJMI MANNAA|AHB-RUH|lte1000|2026-04"
+      },
+      {
+        "sl_no": 83,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALGHAMDI ISMAIL|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 84,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAGARESH ORJWAN|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 85,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAKHSH ABEER|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 86,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSABRI GHAIDAA|DOH-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 88,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSABRI GHAIDAA|CDG-VIE|lte500|2026-05"
+      },
+      {
+        "sl_no": 89,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AL MAHROUQ ADNAN|DOH-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 90,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 370.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1050.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Hisham Mohammed Alhawsawi (1001684) on 2026-04-28 by Hisham Mohammed Alhawsawi.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1050.0 SAR exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAWSAWI HISHAM|GIZ-JED|lte500|2026-04"
+      },
+      {
+        "sl_no": 91,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1560.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALANAZI/FARHAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte2000|2026-04"
+      },
+      {
+        "sl_no": 92,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1640.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALANAZI/FARHAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte2000|2026-04"
+      },
+      {
+        "sl_no": 93,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 915.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "915.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ CRM-2026-27 Approvals.msg",
+            "quote": "Registration: 9900/-sarapproximately"
+          }
+        ],
+        "reasoning": "A registration expense was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED MOHAMED AHMED|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 94,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ CRM-2026-27 Approvals.msg",
+            "quote": "Registration: 9900/-sarapproximately"
+          }
+        ],
+        "reasoning": "A registration expense was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED MOHAMED AHMED|UNKNOWN|lte1000|2026-04"
+      },
+      {
+        "sl_no": 95,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 9900.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "9900.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ CRM-2026-27 Approvals.msg",
+            "quote": "Registration: 9900/-sarapproximately"
+          }
+        ],
+        "reasoning": "A registration expense was billed under a flight/ticket GL.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED MOHAMED AHMED|UNKNOWN|lte10000|2026-04"
+      },
+      {
+        "sl_no": 96,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount matches the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMMED TAFESH|UNKNOWN|lte500|2026-04"
+      },
+      {
+        "sl_no": 97,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 580.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Ahmed Ali Mohammed Elattar (1000398) on 2026-04-27 by Ahmed Ali Mohammed Elattar.msg",
+            "quote": "Value\r\n\r\n1,220.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1800.0 SAR exceeds the approved amount of 1220.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELATTAR AHMED|DMM-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 98,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AYYASH MOHAMMAD|JED-RSI|lte500|2026-05"
+      },
+      {
+        "sl_no": 99,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAMALY MAHMOUD MOFEED|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 100,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1940.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ELKILO/ABDELRAHMAN MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 101,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 230.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "630.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Nasser Bashir AlBalbesi (1002119) on 2026-04-29 by Nasser Bashir AlBalbesi.msg",
+            "quote": "Value\r\n\r\n800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1030.0 SAR) exceeds the approved amount of 800.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALBESI NASSER|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 102,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Nasser Bashir AlBalbesi (1002119) on 2026-04-29 by Nasser Bashir AlBalbesi.msg",
+            "quote": "Value\r\n\r\n800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1030.0 SAR) exceeds the approved amount of 800.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALBESI NASSER|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 103,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1300.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1480.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Yousef Saleh AlDighrir (1002308) on 2026-04-29 by Yousef Saleh AlDighrir.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1980.0 SAR) significantly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AL DIGHRIR YOUSEF|AHB-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 104,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Yousef Saleh AlDighrir (1002308) on 2026-04-29 by Yousef Saleh AlDighrir.msg",
+            "quote": "Value\r\n\r\n680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (1980.0 SAR) significantly exceeds the approved amount of 680.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AL DIGHRIR YOUSEF|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 105,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Invoice amount is within the approved amount.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAHMOUD MOHAMMAD|JED-YNB|lte500|2026-05"
+      },
+      {
+        "sl_no": 106,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBASIRI SALEH|BCN-BRU|lte500|2026-05"
+      },
+      {
+        "sl_no": 107,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBASIRI SALEH|BCN-DOH|lte500|2026-05"
+      },
+      {
+        "sl_no": 108,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1700.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "FEHRI/OUSAMA MR"
+          }
+        ],
+        "reasoning": "No approval email found for this passenger and route.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FEHRI OUSAMA|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 109,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1330.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1050.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Feras Mohammed Bin Rajab (1002217) on 2026-04-30 by Feras Bin Rajab.msg",
+            "quote": "Value\r\n\r\n1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (2450.0 SAR) significantly exceeds the approved amount of 1120.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN RAJAB FERAS|AHB-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 110,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Feras Mohammed Bin Rajab (1002217) on 2026-04-30 by Feras Bin Rajab.msg",
+            "quote": "Value\r\n\r\n1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined invoice amount for this trip (2450.0 SAR) significantly exceeds the approved amount of 1120.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN RAJAB FERAS|AHB-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 111,
+        "verdict": "YELLOW",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 179.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "1299.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Hammam Ahmad Borhan (1000611) on 2026-04-30 by Hammam Ahmad Borhan.msg",
+            "quote": "Value\r\n\r\n1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The invoice amount of 1299.99 SAR slightly exceeds the approved amount of 1120.0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BURHAN HAMMAM|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 112,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 10970.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALI/HESHAM MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Casablanca ticket.msg",
+            "quote": "Approved. I will share with you the system approval once received. Please proceed so that we secure the ticket."
+          }
+        ],
+        "reasoning": "System approval was pending at the time of booking.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALI HESHAM|CMN-RUH|lte20000|2026-05"
+      },
+      {
+        "sl_no": 113,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 7950.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "ALI/HESHAM MR"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Casablanca ticket.msg",
+            "quote": "Approved. I will share with you the system approval once received. Please proceed so that we secure the ticket."
+          }
+        ],
+        "reasoning": "System approval was pending at the time of booking.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALI HESHAM|CMN-IST|lte10000|2026-05"
+      },
+      {
+        "sl_no": 114,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED ALFAGIH|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 115,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KHALID ALDAGRIRI|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 116,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Sponsorship flight approved.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEH ALGHAMDI|UNKNOWN|lte500|2026-05"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_nos": [
+          112,
+          113
+        ],
+        "headline": "Pending System Approval for High-Value International Flights",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 18920.0,
+        "full_reasoning": "The flights for Hesham Ali to Casablanca were booked based on an email stating that system approval would be shared later. No formal ERP approval was found in the provided emails, leaving a significant amount at risk.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "10970.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Casablanca ticket.msg",
+            "quote": "Approved. I will share with you the system approval once received. Please proceed so that we secure the ticket."
+          }
+        ],
+        "recommended_action": "REQUEST_APPROVAL_RECONFIRMATION"
+      },
+      {
+        "rank": 2,
+        "sl_nos": [
+          27
+        ],
+        "headline": "Hotel Expense Misclassified as Flight Ticket",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "total_value_at_risk_sar": 11800.0,
+        "full_reasoning": "An invoice row for 11800 SAR was billed under a flight/ticket GL, but the corresponding email explicitly states this amount was for a hotel booking.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "11800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ CRM-2026-27 Approvals.msg",
+            "quote": "Hotel booked as agreed : 11800"
+          }
+        ],
+        "recommended_action": "FORWARD_TO_AUDIT"
+      },
+      {
+        "rank": 3,
+        "sl_nos": [
+          93,
+          94,
+          95
+        ],
+        "headline": "Registration Expense Misclassified as Flight Ticket",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "total_value_at_risk_sar": 11615.0,
+        "full_reasoning": "Multiple invoice rows totaling 11615 SAR were billed under a flight/ticket GL, but the corresponding email indicates these amounts were for event registration.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "9900.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ CRM-2026-27 Approvals.msg",
+            "quote": "Registration: 9900/-sarapproximately"
+          }
+        ],
+        "recommended_action": "FORWARD_TO_AUDIT"
+      },
+      {
+        "rank": 4,
+        "sl_nos": [
+          66,
+          67
+        ],
+        "headline": "Significant Amount Mismatch for International Flights",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "total_value_at_risk_sar": 9239.98,
+        "full_reasoning": "The invoice amounts for Sultan Abu Doghmeh and Mostafa Amer (4619.99 SAR each) significantly exceed their respective approved amounts (3300.0 SAR and 3100.0 SAR).",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "total_amount",
+            "quote": "4619.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Approved_ Personal Contribution Approval Requested for Sultan Mohammad Abu Doghmeh (1000995) on 2026-04-21 by Sultan Mohammad Abu Doghmeh.msg",
+            "quote": "Value\r\n\r\n3,300.00 Saudi Riyal"
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      },
+      {
+        "rank": 5,
+        "sl_nos": [
+          78,
+          78,
+          78
+        ],
+        "headline": "Meeting Room Expense Misclassified as Flight Ticket",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "total_value_at_risk_sar": 6625.0,
+        "full_reasoning": "Three invoice rows totaling 6625 SAR were billed under a flight/ticket GL for a 'MEETING ROOM 27 APR', which is a clear misclassification of expenses.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "passenger",
+            "quote": "MEETING ROOM 27 APR"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "notes",
+            "quote": "OPEX-18-DMS-2026-J-2026-72"
+          }
+        ],
+        "recommended_action": "FORWARD_TO_AUDIT"
+      }
+    ],
+    "batch_summary": {
+      "red_count": 42,
+      "yellow_count": 6,
+      "clean_count": 69,
+      "total_rows": 117,
+      "total_value_at_risk_sar": 100763.32,
+      "catches_by_category": {
+        "AMOUNT_MISMATCH_EMAIL": 23,
+        "APPROVAL_MISSING": 15,
+        "EXPENSE_MISCLASSIFICATION": 7,
+        "DUPLICATE_BILLING": 10
+      },
+      "key_themes": [
+        "Frequent misclassification of hotel, registration, and meeting room expenses as flight tickets.",
+        "Significant discrepancies between approved amounts in ERP and actual invoiced amounts.",
+        "Multiple instances of duplicate billing for the same sponsorship events.",
+        "Several high-value international flights booked without formal ERP approval."
+      ]
+    }
+  },
+  "v1511_summary_catches": {
+    "NO_APPROVAL": 26,
+    "DUP_ROUTE_STRICT": 4
+  },
+  "generated_at": "2026-05-23T05:44:15.480306Z"
+}

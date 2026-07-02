@@ -1,0 +1,15 @@
+[
+  {
+    "sl_no": 16,
+    "passenger": "SALEM/AMIRA MRS",
+    "description": "SALEM/AMIRA MRS - RUH DBB CAI RUH (6905992254)",
+    "amount": 2030.0,
+    "combo": "03-10100-60301003-160012-194-00000-10111-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  }
+]

@@ -1,0 +1,1696 @@
+{
+  "total_rows": 103,
+  "verified_rows": 29,
+  "challenged_rows": 74,
+  "challenges": [
+    {
+      "excel_row": 5,
+      "sl_no": 2,
+      "passenger": "ELZAIM/AHMAD MR",
+      "description": "ELZAIM/AHMAD MR - AJF RUH (6905428828)",
+      "amount": 1000.01,
+      "acct": "60301003",
+      "emp_no": 1000539,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 6,
+      "sl_no": 3,
+      "passenger": "ALANAZI/FARHAN MR",
+      "description": "ALANAZI/FARHAN MR - RUH TUU RUH (6905428829)",
+      "amount": 2800,
+      "acct": "60301003",
+      "emp_no": 1000407,
+      "row_status": "YELLOW",
+      "qc_catches": "DUP_ROUTE_STRICT(HIGH)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALANAZI/FARHAN MR' matched to Employee No 1000407 (Farhan Modhsher Ameq Alenazy) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 7,
+      "sl_no": 4,
+      "passenger": "MAHMOUD/BELAL MR",
+      "description": "MAHMOUD/BELAL MR - JED RUH (6905428830)",
+      "amount": 1700,
+      "acct": "60301003",
+      "emp_no": 1000450,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000450 (Belal Issa Mahmoud) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 8,
+      "sl_no": 5,
+      "passenger": "ALBASIRI/SALEH MR",
+      "description": "ALBASIRI/SALEH MR - RUH CDG ZYR (6905428831)",
+      "amount": 19500,
+      "acct": "60301003",
+      "emp_no": null,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "EMPLOYEE_NO_MISSING",
+          "severity": "HIGH",
+          "detail": "Travel Tickets Expense row has no Employee No assigned, despite using employee account '60301003'."
+        },
+        {
+          "type": "SPONSORSHIP_CC_MISMATCH",
+          "severity": "CRITICAL",
+          "detail": "Saleh Albasiri (sponsorship row 8) is mapped to home/requestor CC Ansell ('160013'/'192'/'10060') instead of actual event CC Abbott/EP ('160014'/'170'/'10072') as documented in IEPC AF EP-2026-16."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_MISSING",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_MISSING): No approval email found for this ticket.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 5",
+              "quote": "ALBASIRI/SALEH MR | RUH CDG ZYR | 19500.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 10,
+      "sl_no": 7,
+      "passenger": "MAHMOUD/BELAL MR",
+      "description": "MAHMOUD/BELAL MR - JED RUH (1936046286)",
+      "amount": 138,
+      "acct": "60301003",
+      "emp_no": 1000450,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000450 (Belal Issa Mahmoud) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_MISSING",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_MISSING): No approval email found for this seat selection.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 7",
+              "quote": "MAHMOUD/BELAL MR | JED RUH | 138.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 13,
+      "sl_no": 10,
+      "passenger": "AHMED/AHMED MOHAMED MR",
+      "description": "AHMED/AHMED MOHAMED MR - RUH HAS (6905428854)",
+      "amount": 2000,
+      "acct": "60301003",
+      "emp_no": null,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "EMPLOYEE_NO_MISSING",
+          "severity": "HIGH",
+          "detail": "Travel Tickets Expense row has no Employee No assigned, despite using employee account '60301003'."
+        }
+      ]
+    },
+    {
+      "excel_row": 14,
+      "sl_no": 11,
+      "passenger": "BAHKALI/ARIEJ MS",
+      "description": "BAHKALI/ARIEJ MS - JED DMM JED (6905478406)",
+      "amount": 1790,
+      "acct": "60301003",
+      "emp_no": 1002469,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1002469 (Ariej Ibrahim Bahkali) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 16,
+      "sl_no": 13,
+      "passenger": "BATAWEEL/WALEED MR",
+      "description": "BATAWEEL/WALEED MR - AHB JED (6905478419)",
+      "amount": 470.01,
+      "acct": "60301003",
+      "emp_no": 1001008,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 18,
+      "sl_no": 15,
+      "passenger": "ALJAROUD/MUSTAFA MR",
+      "description": "ALJAROUD/MUSTAFA MR - JED DMM (6905478422)",
+      "amount": 1100,
+      "acct": "60301003",
+      "emp_no": 1000361,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 20,
+      "sl_no": 17,
+      "passenger": "ALHAJJ/HUSAM MR",
+      "description": "ALHAJJ/HUSAM MR - JED GIZ JED (6905478426)",
+      "amount": 1830,
+      "acct": "60301003",
+      "emp_no": 1000233,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALHAJJ/HUSAM MR' matched to Employee No 1000233 (Husam Mohammad Hamed Aboukshabe) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 21,
+      "sl_no": 18,
+      "passenger": "SALEH/MARIAM MS(CHD)",
+      "description": "SALEH/MARIAM MS(CHD) - RUH AMM RUH (6905478428)",
+      "amount": 2690,
+      "acct": "21070229",
+      "emp_no": null,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_CORRUPT",
+          "severity": "CRITICAL",
+          "detail": "Approval email exists but is corrupt or has empty content (body length < 10 characters)."
+        },
+        {
+          "type": "AI_FRAUD_UNAPPROVED_FAMILY",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (UNAPPROVED_FAMILY): Family member traveling on company spend without documented approval.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 18",
+              "quote": "SALEH/MARIAM MS(CHD) | RUH AMM RUH | 2690.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 22,
+      "sl_no": 19,
+      "passenger": "SALEH/FARAH MRS",
+      "description": "SALEH/FARAH MRS - RUH AMM RUH (6905478429)",
+      "amount": 3330,
+      "acct": "21070229",
+      "emp_no": null,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "AI_FRAUD_UNAPPROVED_FAMILY",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (UNAPPROVED_FAMILY): Family member traveling on company spend without documented approval.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 19",
+              "quote": "SALEH/FARAH MRS | RUH AMM RUH | 3330.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 23,
+      "sl_no": 20,
+      "passenger": "SALEH/EKREMA MR(CHD)",
+      "description": "SALEH/EKREMA MR(CHD) - RUH AMM RUH (6905478431)",
+      "amount": 2690,
+      "acct": "21070229",
+      "emp_no": null,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "AI_FRAUD_UNAPPROVED_FAMILY",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (UNAPPROVED_FAMILY): Family member traveling on company spend without documented approval.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 20",
+              "quote": "SALEH/EKREMA MR(CHD) | RUH AMM RUH | 2690.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 24,
+      "sl_no": 21,
+      "passenger": "HADDAD/HAMZAH MR",
+      "description": "HADDAD/HAMZAH MR - RUH JED (6905478435)",
+      "amount": 570,
+      "acct": "60301003",
+      "emp_no": 1000226,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'HADDAD/HAMZAH MR' matched to Employee No 1000226 (Hamzah Mohammad Asif Mohammad) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 27,
+      "sl_no": 24,
+      "passenger": "ISMAIEL/YASIN MR",
+      "description": "ISMAIEL/YASIN MR - RUH DMM RUH (6905478461)",
+      "amount": 1640,
+      "acct": "60301003",
+      "emp_no": 1001406,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1001406 (Yasin Salahaldeen Osman Ismaiel ) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 28,
+      "sl_no": 25,
+      "passenger": "BABAKR/MOHAMMED MR",
+      "description": "BABAKR/MOHAMMED MR - RUH DMM (6905478467)",
+      "amount": 510,
+      "acct": "60301003",
+      "emp_no": 1000030,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'BABAKR/MOHAMMED MR' matched to Employee No 1000030 (Ashraf Mohamed Abdelaaty Saad) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "COST_CENTER_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has CC '160012' but employee home CC is '160013' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "DIVISION_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Division Code '194' but employee division code is '192' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "AGENCY_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Agency Code '10153' but employee agency code is '10200' (S&M)."
+        },
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000030 (Ashraf Mohamed Abdelaaty Saad) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_CORRUPT",
+          "severity": "CRITICAL",
+          "detail": "Approval email exists but is corrupt or has empty content (body length < 10 characters)."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_MISSING",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_MISSING): No approval email found for this ticket.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 25",
+              "quote": "BABAKR/MOHAMMED MR | RUH DMM | 510.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 29,
+      "sl_no": 26,
+      "passenger": "BABAKR/MOHAMMED MR",
+      "description": "BABAKR/MOHAMMED MR - DMM RUH (6905478468)",
+      "amount": 440,
+      "acct": "60301003",
+      "emp_no": 1000030,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'BABAKR/MOHAMMED MR' matched to Employee No 1000030 (Ashraf Mohamed Abdelaaty Saad) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "COST_CENTER_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has CC '160012' but employee home CC is '160013' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "DIVISION_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Division Code '194' but employee division code is '192' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "AGENCY_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Agency Code '10153' but employee agency code is '10200' (S&M)."
+        },
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000030 (Ashraf Mohamed Abdelaaty Saad) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_MISSING",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_MISSING): No approval email found for this ticket.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 26",
+              "quote": "BABAKR/MOHAMMED MR | DMM RUH | 440.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 30,
+      "sl_no": 27,
+      "passenger": "ALI ALQAHTANI",
+      "description": "ALI ALQAHTANI - TRAIN SERVICE (26-727)",
+      "amount": 335,
+      "acct": "60301004",
+      "emp_no": 1000927,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 31,
+      "sl_no": 28,
+      "passenger": "AHMAD ALZAHRANI",
+      "description": "AHMAD ALZAHRANI - TRAIN SERVICE (26-728)",
+      "amount": 460,
+      "acct": "60301003",
+      "emp_no": 1000198,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 32,
+      "sl_no": 29,
+      "passenger": "AAMIR ABDELLATIF SHARIF",
+      "description": "AAMIR ABDELLATIF SHARIF - TRAIN SERVICE (26-729)",
+      "amount": 160,
+      "acct": "60301003",
+      "emp_no": 1000615,
+      "row_status": "RED",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000615 (Aamir Abdellatif Sharif) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 33,
+      "sl_no": 30,
+      "passenger": "AAMIR ABDELLATIF SHARIF",
+      "description": "AAMIR ABDELLATIF SHARIF - TRAIN SERVICE (26-730)",
+      "amount": 120,
+      "acct": "60301003",
+      "emp_no": 1000615,
+      "row_status": "RED",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000615 (Aamir Abdellatif Sharif) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 36,
+      "sl_no": 33,
+      "passenger": "ALFAR/BARA ENG",
+      "description": "ALFAR/BARA ENG - JED TUU (6905495639)",
+      "amount": 460,
+      "acct": "60301003",
+      "emp_no": 1000219,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALFAR/BARA ENG' matched to Employee No 1000219 (Barra Yousef Alfar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 37,
+      "sl_no": 34,
+      "passenger": "ALFAR/BARA ENG",
+      "description": "ALFAR/BARA ENG - TUU JED (6905495640)",
+      "amount": 1360,
+      "acct": "60301003",
+      "emp_no": 1000219,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALFAR/BARA ENG' matched to Employee No 1000219 (Barra Yousef Alfar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 39,
+      "sl_no": 36,
+      "passenger": "ABOUSEWILAM/AMR MR",
+      "description": "ABOUSEWILAM/AMR MR - AJF RUH (6905495642)",
+      "amount": 470.01,
+      "acct": "60301003",
+      "emp_no": 1002412,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 40,
+      "sl_no": 37,
+      "passenger": "OMER/WALAA MS",
+      "description": "OMER/WALAA MS - JED RUH JED (6905495644)",
+      "amount": 1069.99,
+      "acct": "60301003",
+      "emp_no": 1002096,
+      "row_status": "GREEN",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "AI_FRAUD_APPROVAL_INVALID",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_INVALID): Approval provided by an unauthorized person (Sanad) without an ERP approval from the designated manager.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 37",
+              "quote": "OMER/WALAA MS | JED RUH JED | 1069.99"
+            },
+            {
+              "source": "approval_msg",
+              "pointer": "RE: Riyadh Business Trip",
+              "quote": "\u064a\u0639\u062a\u0645\u062f \u0627\u0644\u0645\u0631\u0633\u0644 \u0645\u0646 \u0642\u0628\u0644\u0643\u0645"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 41,
+      "sl_no": 38,
+      "passenger": "MOSA/MAHAMED MR",
+      "description": "MOSA/MAHAMED MR - RUH JED RUH (6905495648)",
+      "amount": 1065,
+      "acct": "60301003",
+      "emp_no": 1002312,
+      "row_status": "GREEN",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'MOSA/MAHAMED MR' matched to Employee No 1002312 (Mohamed  Ahmed Gad Mosa) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 44,
+      "sl_no": 41,
+      "passenger": "ALEM/AHMED MR",
+      "description": "ALEM/AHMED MR - RUH JED (6905495651)",
+      "amount": 540.01,
+      "acct": "60301003",
+      "emp_no": 1001811,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 45,
+      "sl_no": 42,
+      "passenger": "ISMAIEL/YASIN MR",
+      "description": "ISMAIEL/YASIN MR - RUH JED RUH (6905495656)",
+      "amount": 1115.01,
+      "acct": "60301003",
+      "emp_no": 1001406,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1001406 (Yasin Salahaldeen Osman Ismaiel ) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 47,
+      "sl_no": 44,
+      "passenger": "ABU ABED/IBRAHIM MR",
+      "description": "ABU ABED/IBRAHIM MR - JED EAM JED (6905495665)",
+      "amount": 1830,
+      "acct": "60301003",
+      "emp_no": 1000328,
+      "row_status": "YELLOW",
+      "qc_catches": "DUP_ROUTE_STRICT(HIGH)",
+      "findings": [
+        {
+          "type": "AI_FRAUD_DUPLICATE_BILLING",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (DUPLICATE_BILLING): Duplicate billing for the same passenger, route, and departure date.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 44",
+              "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 1830.0"
+            },
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 55",
+              "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 1735.01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 49,
+      "sl_no": 46,
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "description": "ABO NOUFAL/OMAR MR - RAE RUH (6905495667)",
+      "amount": 550,
+      "acct": "60301003",
+      "emp_no": 1002345,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 50,
+      "sl_no": 47,
+      "passenger": "ALANAZI/FARHAN MR",
+      "description": "ALANAZI/FARHAN MR - RUH TUU RUH (6905495692)",
+      "amount": 2250,
+      "acct": "60301003",
+      "emp_no": 1000407,
+      "row_status": "YELLOW",
+      "qc_catches": "DUP_ROUTE_STRICT(HIGH)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALANAZI/FARHAN MR' matched to Employee No 1000407 (Farhan Modhsher Ameq Alenazy) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 51,
+      "sl_no": 48,
+      "passenger": "AHMED/NAGMALDIN MR",
+      "description": "AHMED/NAGMALDIN MR - RUH JED RUH (6905495693)",
+      "amount": 1069.99,
+      "acct": "60301003",
+      "emp_no": 1002294,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1002294 (Nagmaldin  Abdelhamid Ahmed ) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 52,
+      "sl_no": 49,
+      "passenger": "WADI/MAHMOUD MR",
+      "description": "WADI/MAHMOUD MR - JED RUH JED (6905495703)",
+      "amount": 1115.01,
+      "acct": "60301003",
+      "emp_no": 1001011,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1001011 (Mahmoud  Ahmad  Wadi) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 53,
+      "sl_no": 50,
+      "passenger": "ALASIRI/ABDULAZIZ MR",
+      "description": "ALASIRI/ABDULAZIZ MR - RUH AHB RUH (6905495711)",
+      "amount": 1310,
+      "acct": "60301003",
+      "emp_no": 1000975,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000975 (Abdulaziz Mohammed Saad Alasiri) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 54,
+      "sl_no": 51,
+      "passenger": "ELKAHLOUT/NABEL MR",
+      "description": "ELKAHLOUT/NABEL MR - RUH AHB RUH (6905495712)",
+      "amount": 1180,
+      "acct": "60301003",
+      "emp_no": 1000182,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "AGENCY_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Agency Code '10125' but employee agency code is '10126' (Sakura)."
+        },
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000182 (Nabel Ahmed Mousa Elkahlout) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 55,
+      "sl_no": 52,
+      "passenger": "SAUD  ALBALAWI",
+      "description": "SAUD  ALBALAWI - TRAIN TICKET (26-725)",
+      "amount": 400,
+      "acct": "60301003",
+      "emp_no": 1000789,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 56,
+      "sl_no": 53,
+      "passenger": "ALANAZI ABDULAZIZ",
+      "description": "ALANAZI ABDULAZIZ - TRAIN SERVICE (26-726)",
+      "amount": 515,
+      "acct": "60301003",
+      "emp_no": 1000668,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 58,
+      "sl_no": 55,
+      "passenger": "ABU ABED/IBRAHIM MR",
+      "description": "ABU ABED/IBRAHIM MR - JED EAM JED (6905533283)",
+      "amount": 1735.01,
+      "acct": "60301003",
+      "emp_no": 1000328,
+      "row_status": "YELLOW",
+      "qc_catches": "DUP_ROUTE_STRICT(HIGH)",
+      "findings": [
+        {
+          "type": "AI_FRAUD_DUPLICATE_BILLING",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (DUPLICATE_BILLING): Duplicate billing for the same passenger, route, and departure date.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 55",
+              "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 1735.01"
+            },
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 44",
+              "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 1830.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 60,
+      "sl_no": 57,
+      "passenger": "KHADER/OMAR MR",
+      "description": "KHADER/OMAR MR - RUH JED RUH (6905533338)",
+      "amount": 1100,
+      "acct": "60301003",
+      "emp_no": 1000453,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000453 (Omar Mahmoud Khader) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 61,
+      "sl_no": 58,
+      "passenger": "ALHATO/ABDULHADI MR",
+      "description": "ALHATO/ABDULHADI MR - JED GIZ (6905533340)",
+      "amount": 1400,
+      "acct": "60301003",
+      "emp_no": 1000596,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALHATO/ABDULHADI MR' matched to Employee No 1000596 (Abdel Hadi Mustafa Helmi Al Hato) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "APPROVAL_EMAIL_CORRUPT",
+          "severity": "CRITICAL",
+          "detail": "Approval email exists but is corrupt or has empty content (body length < 10 characters)."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_MISSING",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_MISSING): No approval email found for this ticket.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 58",
+              "quote": "ALHATO/ABDULHADI MR | JED GIZ | 1400.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 62,
+      "sl_no": 59,
+      "passenger": "ALHATO/ABDULHADI MR",
+      "description": "ALHATO/ABDULHADI MR - GIZ JED (6905533341)",
+      "amount": 400,
+      "acct": "60301003",
+      "emp_no": 1000596,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALHATO/ABDULHADI MR' matched to Employee No 1000596 (Abdel Hadi Mustafa Helmi Al Hato) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_MISSING",
+          "severity": "HIGH",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_MISSING): No approval email found for this ticket.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 59",
+              "quote": "ALHATO/ABDULHADI MR | GIZ JED | 400.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 63,
+      "sl_no": 60,
+      "passenger": "MOSTAFA AMER",
+      "description": "MOSTAFA AMER - Kimpton Vividora Barcelona - 1 NTS. (26-731)",
+      "amount": 6300,
+      "acct": "60301003",
+      "emp_no": 1002091,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1002091 (Mostafa Mahmoud Mohamed Amer) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 64,
+      "sl_no": 61,
+      "passenger": "MOSTAFA AMER",
+      "description": "MOSTAFA AMER - Kimpton Vividora Barcelona - 1 NTS. (26-732)",
+      "amount": 2650,
+      "acct": "60301003",
+      "emp_no": 1002091,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1002091 (Mostafa Mahmoud Mohamed Amer) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 65,
+      "sl_no": 62,
+      "passenger": "SULTAN ABU DOGHMEH",
+      "description": "SULTAN ABU DOGHMEH - Kimpton Vividora Barcelona - 1 NTS. (26-733)",
+      "amount": 6300,
+      "acct": "60301003",
+      "emp_no": 1000995,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000995 (Sultan Mohammad Abu Doghmeh) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_INVALID",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_INVALID): Self-approval by the passenger for their own hotel booking.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 62",
+              "quote": "SULTAN ABU DOGHMEH | Kimpton Vividora Barcelona - 1 NTS. | 6300.0"
+            },
+            {
+              "source": "approval_msg",
+              "pointer": "RE: IMPORTANT: Sakura Forum",
+              "quote": "Approved by Sultan Mohammad Abu Doghmeh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 66,
+      "sl_no": 63,
+      "passenger": "SULTAN ABU DOGHMEH",
+      "description": "SULTAN ABU DOGHMEH - Kimpton Vividora Barcelona - 1 NTS. (26-734)",
+      "amount": 2650,
+      "acct": "60301003",
+      "emp_no": 1000995,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000995 (Sultan Mohammad Abu Doghmeh) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_INVALID",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_INVALID): Self-approval by the passenger for their own hotel booking.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 63",
+              "quote": "SULTAN ABU DOGHMEH | Kimpton Vividora Barcelona - 1 NTS. | 2650.0"
+            },
+            {
+              "source": "approval_msg",
+              "pointer": "RE: IMPORTANT: Sakura Forum",
+              "quote": "Approved by Sultan Mohammad Abu Doghmeh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 67,
+      "sl_no": 64,
+      "passenger": "YOUSEF AL DIGHRIR",
+      "description": "YOUSEF AL DIGHRIR - TRAIN SERVICE (26-737)",
+      "amount": 265,
+      "acct": "60301003",
+      "emp_no": 1000100,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'YOUSEF AL DIGHRIR' matched to Employee No 1000100 (Mohamad Yousef Mohamad Alshaieb) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 68,
+      "sl_no": 65,
+      "passenger": "AMR BUKHARI",
+      "description": "AMR BUKHARI - JED EAM JED (C5Q64Y)",
+      "amount": 1220,
+      "acct": "60301003",
+      "emp_no": 1000666,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 69,
+      "sl_no": 66,
+      "passenger": "AYED ZEIADH",
+      "description": "AYED ZEIADH - RUH JED RUH (CDF5FD)",
+      "amount": 1025,
+      "acct": "60301003",
+      "emp_no": 1000320,
+      "row_status": "RED",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'AYED ZEIADH' matched to Employee No 1000320 (Ayed Ahmad Ayed Zeiadeh) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000320 (Ayed Ahmad Ayed Zeiadeh) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 70,
+      "sl_no": 67,
+      "passenger": "BABAKR/MOHAMMED MR",
+      "description": "BABAKR/MOHAMMED MR - RUH JED RUH (6905533352)",
+      "amount": 1115.01,
+      "acct": "60301003",
+      "emp_no": 1000030,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'BABAKR/MOHAMMED MR' matched to Employee No 1000030 (Ashraf Mohamed Abdelaaty Saad) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "COST_CENTER_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has CC '160012' but employee home CC is '160013' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "DIVISION_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Division Code '194' but employee division code is '192' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "AGENCY_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Agency Code '10153' but employee agency code is '10200' (S&M)."
+        },
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000030 (Ashraf Mohamed Abdelaaty Saad) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_CORRUPT",
+          "severity": "CRITICAL",
+          "detail": "Approval email exists but is corrupt or has empty content (body length < 10 characters)."
+        }
+      ]
+    },
+    {
+      "excel_row": 71,
+      "sl_no": 68,
+      "passenger": "HADDAD/HAMZAH MR",
+      "description": "HADDAD/HAMZAH MR - JED RUH (6905533359)",
+      "amount": 520,
+      "acct": "60301003",
+      "emp_no": 1000226,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'HADDAD/HAMZAH MR' matched to Employee No 1000226 (Hamzah Mohammad Asif Mohammad) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 72,
+      "sl_no": 69,
+      "passenger": "KONDO/MBWANA HAMISI MR",
+      "description": "KONDO/MBWANA HAMISI MR - RUH DXB MBA DXB RUH (6905569429)",
+      "amount": 3850,
+      "acct": "21070229",
+      "emp_no": 1000575,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "ACCOUNT_DIVISION_MISMATCH",
+          "severity": "HIGH",
+          "detail": "G&A Employee 1000575 (Mbwana Hamisi Konodo) is charged to Business Account '21070229' instead of G&A Employee Travel Account '60301004'."
+        },
+        {
+          "type": "AI_FRAUD_APPROVAL_INVALID",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_INVALID): Approval provided by someone who is not the employee's manager.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 69",
+              "quote": "KONDO/MBWANA HAMISI MR | RUH DXB MBA DXB RUH | 3850.0"
+            },
+            {
+              "source": "approval_msg",
+              "pointer": "6905569429",
+              "quote": "Approved by May Abdullah Aldossary"
+            },
+            {
+              "source": "manpower_master",
+              "pointer": "emp_no: 1000575",
+              "quote": "manager_no: 1000679, line_manager: Laith Omar Jaradat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 74,
+      "sl_no": 71,
+      "passenger": "ALBALAWI/SAUD MR",
+      "description": "ALBALAWI/SAUD MR - GIZ JED (6905569439)",
+      "amount": 420,
+      "acct": "60301003",
+      "emp_no": 1000789,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 75,
+      "sl_no": 72,
+      "passenger": "ALMADHUN/ABDULRAHMAN MR",
+      "description": "ALMADHUN/ABDULRAHMAN MR - JED ABT JED (6905569440)",
+      "amount": 1460.01,
+      "acct": "60301003",
+      "emp_no": 1000354,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALMADHUN/ABDULRAHMAN MR' matched to Employee No 1000354 (Husni Abdulmajid Abdulrahman Bahurmuz) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 80,
+      "sl_no": 77,
+      "passenger": "MAZEN  KARALI",
+      "description": "MAZEN  KARALI - TRAIN TICKET (26-738)",
+      "amount": 400,
+      "acct": "60301003",
+      "emp_no": 1000985,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 81,
+      "sl_no": 78,
+      "passenger": "YOUSEF  AL DIGHRIR",
+      "description": "YOUSEF  AL DIGHRIR - TRAIN TICKET (26-745)",
+      "amount": 250,
+      "acct": "60301003",
+      "emp_no": 1000100,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'YOUSEF  AL DIGHRIR' matched to Employee No 1000100 (Mohamad Yousef Mohamad Alshaieb) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 83,
+      "sl_no": 80,
+      "passenger": "HUSSIN/ABDALAZIZ MR",
+      "description": "HUSSIN/ABDALAZIZ MR - DMM DOH MUC DOH DMM (6905569493)",
+      "amount": 2020,
+      "acct": "60301003",
+      "emp_no": 1000624,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "AI_FRAUD_APPROVAL_INVALID",
+          "severity": "CRITICAL",
+          "detail": "AI Fraud Detector flagged as RED (APPROVAL_INVALID): Approval provided by an unauthorized person (Sanad) without an ERP approval from the designated manager.",
+          "ai_evidence": [
+            {
+              "source": "invoice_row",
+              "pointer": "sl_no: 80",
+              "quote": "HUSSIN/ABDALAZIZ MR | DMM DOH MUC DOH DMM | 2020.0"
+            },
+            {
+              "source": "approval_msg",
+              "pointer": "6905569493",
+              "quote": "\u064a\u0639\u062a\u0645\u062f \u0627\u0644\u0645\u0631\u0633\u0644 \u0645\u0646 \u0642\u0628\u0644\u0643\u0645"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "excel_row": 84,
+      "sl_no": 81,
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "description": "SHAYEB/ABDALLAH MR - AHB RUH (6905569509)",
+      "amount": 600,
+      "acct": "60301003",
+      "emp_no": 1000473,
+      "row_status": "YELLOW",
+      "qc_catches": "PASSENGER_AMOUNT_PATTERN(LOW)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'SHAYEB/ABDALLAH MR' matched to Employee No 1000473 (Abdallah Omar Mohammad Abuwa`Ar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 85,
+      "sl_no": 82,
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "description": "SHAYEB/ABDALLAH MR - RUH GIZ (6905569510)",
+      "amount": 570,
+      "acct": "60301003",
+      "emp_no": 1000473,
+      "row_status": "YELLOW",
+      "qc_catches": "DUP_ROUTE_STRICT(MEDIUM); NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'SHAYEB/ABDALLAH MR' matched to Employee No 1000473 (Abdallah Omar Mohammad Abuwa`Ar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 86,
+      "sl_no": 83,
+      "passenger": "KALTHOUM/ABDALLAH MR",
+      "description": "KALTHOUM/ABDALLAH MR - JED RUH JED (6905569511)",
+      "amount": 1350,
+      "acct": "60301003",
+      "emp_no": 1000473,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'KALTHOUM/ABDALLAH MR' matched to Employee No 1000473 (Abdallah Omar Mohammad Abuwa`Ar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 87,
+      "sl_no": 84,
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "description": "SHAYEB/ABDALLAH MR - RUH GIZ (6905569512)",
+      "amount": 202.4,
+      "acct": "60301003",
+      "emp_no": 1000473,
+      "row_status": "YELLOW",
+      "qc_catches": "DUP_ROUTE_STRICT(MEDIUM)",
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'SHAYEB/ABDALLAH MR' matched to Employee No 1000473 (Abdallah Omar Mohammad Abuwa`Ar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 89,
+      "sl_no": 86,
+      "passenger": "FADHEL/NABEL MR",
+      "description": "FADHEL/NABEL MR - JED MED JED (6905569516)",
+      "amount": 1080,
+      "acct": "60301003",
+      "emp_no": 1002078,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 93,
+      "sl_no": 90,
+      "passenger": "BIN RAJAB/FERAS MR",
+      "description": "BIN RAJAB/FERAS MR - JED RUH JED (6905569523)",
+      "amount": 1050,
+      "acct": "60301003",
+      "emp_no": 1002217,
+      "row_status": "RED",
+      "qc_catches": "PASSENGER_AMOUNT_PATTERN(LOW)",
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1002217 (Feras Mohammed  Bin Rajab) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 94,
+      "sl_no": 91,
+      "passenger": "JAMAL/ABDULMALIK MR",
+      "description": "JAMAL/ABDULMALIK MR - JED RUH (6905569525)",
+      "amount": 650,
+      "acct": "60301003",
+      "emp_no": 1001799,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1001799 (Abdulmalik  Yasir S Jamal) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 95,
+      "sl_no": 92,
+      "passenger": "JAMAL/ABDULMALIK MR",
+      "description": "JAMAL/ABDULMALIK MR - RUH JED (6905569526)",
+      "amount": 650,
+      "acct": "60301003",
+      "emp_no": 1001799,
+      "row_status": "RED",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1001799 (Abdulmalik  Yasir S Jamal) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        },
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 96,
+      "sl_no": 93,
+      "passenger": "SAAD/ASHRAF MR",
+      "description": "SAAD/ASHRAF MR - JED GIZ JED (6905600591)",
+      "amount": 1685,
+      "acct": "60301003",
+      "emp_no": 1000030,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "COST_CENTER_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has CC '250010' but employee home CC is '160013' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "DIVISION_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Division Code '120' but employee division code is '192' (Dental & Medical Solutions)."
+        },
+        {
+          "type": "AGENCY_MISMATCH",
+          "severity": "MEDIUM",
+          "detail": "Row has Agency Code '10206' but employee agency code is '10200' (S&M)."
+        },
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1000030 (Ashraf Mohamed Abdelaaty Saad) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 97,
+      "sl_no": 94,
+      "passenger": "WADI/MAHMOUD MR",
+      "description": "WADI/MAHMOUD MR - JED GIZ JED (6905600592)",
+      "amount": 1685,
+      "acct": "60301003",
+      "emp_no": 1001011,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1001011 (Mahmoud  Ahmad  Wadi) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 98,
+      "sl_no": 95,
+      "passenger": "ALJAMAL/MOHAMMED ABDULMAJEED MR",
+      "description": "ALJAMAL/MOHAMMED ABDULMAJEED MR - RUH AJF RUH (6905600626)",
+      "amount": 2385,
+      "acct": "60301003",
+      "emp_no": 1000196,
+      "row_status": "YELLOW",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALJAMAL/MOHAMMED ABDULMAJEED MR' matched to Employee No 1000196 (Mohammad Wajid Abdul Sattar Sattar) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 99,
+      "sl_no": 96,
+      "passenger": "RATL/CHARLES MR",
+      "description": "RATL/CHARLES MR - RUH DMM RUH (6905600631)",
+      "amount": 1510,
+      "acct": "60301003",
+      "emp_no": 1002405,
+      "row_status": "RED",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "MANPOWER_NEED_ALLOCATE",
+          "severity": "MEDIUM",
+          "detail": "Employee 1002405 (Charles  Salim  Ratl ) is flagged as 'Need to allocate' in Master Manpower lookup. Home segments may be placeholder/outdated."
+        }
+      ]
+    },
+    {
+      "excel_row": 101,
+      "sl_no": 98,
+      "passenger": "ALHMEDI/TARIQ MR",
+      "description": "ALHMEDI/TARIQ MR - JED RUH JED (6905600633)",
+      "amount": 1795,
+      "acct": "60301003",
+      "emp_no": 1000389,
+      "row_status": "GREEN",
+      "qc_catches": null,
+      "findings": [
+        {
+          "type": "PASSENGER_NAME_MISMATCH",
+          "severity": "HIGH",
+          "detail": "Passenger 'ALHMEDI/TARIQ MR' matched to Employee No 1000389 (Tariq Tayseer Rafiq Alhamedi) but less than 2 name tokens overlap. This is a potential mis-assignment."
+        }
+      ]
+    },
+    {
+      "excel_row": 102,
+      "sl_no": 99,
+      "passenger": "AHMED ABDELHAKIM ELSAYED MR",
+      "description": "AHMED ABDELHAKIM ELSAYED MR - TRAIN BOOKING HHR (26-746)",
+      "amount": 410,
+      "acct": "60301003",
+      "emp_no": 1002437,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 103,
+      "sl_no": 100,
+      "passenger": "FAISAL ASIRI",
+      "description": "FAISAL ASIRI - JED  GIZ (H7T2NV)",
+      "amount": 510,
+      "acct": "60301003",
+      "emp_no": 1002144,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 104,
+      "sl_no": 101,
+      "passenger": "REFUND: ALSABRI/GHAIDAA MS",
+      "description": "REFUND: ALSABRI/GHAIDAA MS - JED DOH CDG VIE DOH (orig J26-640)",
+      "amount": -2153,
+      "acct": "21070229",
+      "emp_no": null,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 105,
+      "sl_no": 102,
+      "passenger": "REFUND: ALSABRI/GHAIDAA MS",
+      "description": "REFUND: ALSABRI/GHAIDAA MS - CDG VIE (orig J26-640)",
+      "amount": -803.5,
+      "acct": "21070229",
+      "emp_no": null,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    },
+    {
+      "excel_row": 106,
+      "sl_no": 103,
+      "passenger": "REFUND: ALNATOUR/YASER MR",
+      "description": "REFUND: ALNATOUR/YASER MR - RUH CMN RUH (orig J26-90)",
+      "amount": -9587,
+      "acct": "60301004",
+      "emp_no": 1001103,
+      "row_status": "YELLOW",
+      "qc_catches": "NO_APPROVAL(MEDIUM)",
+      "findings": [
+        {
+          "type": "APPROVAL_EMAIL_MISSING",
+          "severity": "HIGH",
+          "detail": "Evidence folder exists, but no approval email (.msg) file is present."
+        }
+      ]
+    }
+  ]
+}

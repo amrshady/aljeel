@@ -1,0 +1,1442 @@
+{
+  "batch_id": "J26-925",
+  "schema_version": "v16.2",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "db1e742859beab7d9cc2c9991fd36ad1ce3a7a2e2bebb391a33da393d5cb326a",
+  "usage": {
+    "prompt_tokens": 703444,
+    "completion_tokens": 21850,
+    "total_tokens": 725294
+  },
+  "validation_errors": [],
+  "pydantic_valid": true,
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FADHEL NABEL|JED-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 850.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 2",
+            "quote": "total_amount: 1650.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Ariej Ibrahim Bahkali (1002469) on 2026-05-31",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1650 SAR significantly exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAHKALI ARIEJ|JED-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "TAFESH MOHAMMED|JED-MED|lte500|2026-06"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSANUNAH MAHDI|DMM-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSANUNAH MAHDI|IST-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 23000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 6",
+            "quote": "total_amount: 23000.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "reasoning": "No approval email was found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBASIRI SALEH|DXB-RUH|lte50000|2026-06"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1599.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 7",
+            "quote": "total_amount: 2449.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Yazan Mohammmad Alkhatib (1002317) on 2026-06-01",
+            "quote": "Value 850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 2449.99 SAR significantly exceeds the approved amount of 850 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALKHATIB YAZAN|DMM-JED|lte2000|2026-06"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALI SHERIF|JED-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|JED-MAD|lte500|2026-07"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 590.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 10",
+            "quote": "total_amount: 2150.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Ahmed Abdelhakim Elsayed (1002437) on 2026-05-18",
+            "quote": "Value 1,560.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 2150.01 SAR exceeds the approved amount of 1560 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAYED AHMED|JED-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1020.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 11",
+            "quote": "total_amount: 500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Ali Atayah Alzahrani (1001923) on 2026-06-01",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1700 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALZAHRANI ALI|HAS-RUH|lte2000|2026-06"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 12",
+            "quote": "total_amount: 1200.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Ali Atayah Alzahrani (1001923) on 2026-06-01",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1700 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALZAHRANI ALI|HAS-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 13",
+            "quote": "total_amount: 2400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Albaraa Abdullah Alharbi (1002398) on 2026-06-02",
+            "quote": "Value 1,200.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 2400 SAR exceeds the approved amount of 1200 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHARBI ALBARAA|RUH-TUU|lte2000|2026-06"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 775.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 14",
+            "quote": "total_amount: 1400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Abdulaziz Mohammed Alanazi (1000668) on 2026-06-02",
+            "quote": "Value 625.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1400 SAR exceeds the approved amount of 625 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte1000|2026-06"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "GOULAY SALEH|JED-MUC|lte500|2026-06"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 520.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 16",
+            "quote": "total_amount: 1200.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Saif Mohammed ALRUGAIB (1001019) on 2026-06-02",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1200 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALRUGAIB SAIF|JED-MED|lte1000|2026-06"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1130.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 17",
+            "quote": "total_amount: 1850.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Moshari Yousef Albattah (1002005) on 2026-06-03",
+            "quote": "Value 720.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1850.01 SAR exceeds the approved amount of 720 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBATTAH MOSHARI|RUH-TUU|lte2000|2026-06"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2749.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 18",
+            "quote": "total_amount: 4499.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Ghadeer Abdulmuti Alfaleh (1001687) on 2026-05-18",
+            "quote": "Value 1,750.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 4499.99 SAR exceeds the approved amount of 1750 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALFALEH GHADEER|IST-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 19",
+            "quote": "total_amount: 1500.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "reasoning": "No approval email was found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHATO ABDULHADI|GIZ-JED|lte2000|2026-06"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 850.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 20",
+            "quote": "total_amount: 800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Yazan Mohammmad Alkhatib (1002317) on 2026-06-03",
+            "quote": "Value 850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1700 SAR exceeds the approved amount of 850 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALKHATIB YAZAN|EAM-JED|lte1000|2026-06"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 21",
+            "quote": "total_amount: 900.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Yazan Mohammmad Alkhatib (1002317) on 2026-06-03",
+            "quote": "Value 850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1700 SAR exceeds the approved amount of 850 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALKHATIB YAZAN|EAM-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELTOUKHI MOHAMMED|DMM-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELTOUKHI MOHAMMED|AHB-DMM|lte500|2026-06"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 680.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 24",
+            "quote": "total_amount: 1800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Charles Salim Ratl (1002405) on 2026-06-03",
+            "quote": "Value 1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1800 SAR exceeds the approved amount of 1120 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RATL CHARLES|RUH-YNB|lte1000|2026-06"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 820.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 25",
+            "quote": "total_amount: 1500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Charles Salim Ratl (1002405) on 2026-06-03",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1500 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RATL CHARLES|GIZ-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAMALY MAHMOUD MOFEED|JED-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAMALY MAHMOUD MOFEED|JED-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "YELLOW",
+        "primary_category": "OTHER",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 28",
+            "quote": "total_amount: 1400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Zakaria Ahmad Ayesh (1000124) on 2026-06-03",
+            "quote": "We already submitted the Deputation on the ORACEL, kindly make a flight bookings for ZAKARIA AHMED AYESH"
+          }
+        ],
+        "reasoning": "Approval email exists but does not specify an approved amount.",
+        "confidence": "medium",
+        "other_label": "MISSING_APPROVAL_AMOUNT",
+        "entity_key": "AYESH ZAKARIA|JED-MED|lte2000|2026-06"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 875.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 29",
+            "quote": "total_amount: 1500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Abdulaziz Mohammed Alanazi (1000668) on 2026-06-04",
+            "quote": "Value 625.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1500 SAR exceeds the approved amount of 625 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte1000|2026-06"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1070.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 30",
+            "quote": "total_amount: 1800.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Aamir Abdellatif Sharif (1000615) on 2026-06-02",
+            "quote": "Value 730.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1800 SAR exceeds the approved amount of 730 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHARIF AAMIR|GIZ-RUH|lte2000|2026-06"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 31",
+            "quote": "total_amount: 1400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Mohamad Mahmoud Baassiri (1000820) on 2026-06-03",
+            "quote": "Value 400.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1400 SAR exceeds the approved amount of 400 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAASSIRI MOHAMAD|JED-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1080.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 32",
+            "quote": "total_amount: 2200.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Feras Mohammed Bin Rajab (1002217) on 2026-06-01",
+            "quote": "Value 1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 2200 SAR exceeds the approved amount of 1120 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN RAJAB FERAS|AHB-JED|lte2000|2026-06"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 4250.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 33",
+            "quote": "total_amount: 3600.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Zeyad Tawfik Alsaed (1001959) on 2026-06-03",
+            "quote": "Value 1,850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 6100.01 SAR exceeds the approved amount of 1850 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|JED-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 34",
+            "quote": "total_amount: 2500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Zeyad Tawfik Alsaed (1001959) on 2026-06-03",
+            "quote": "Value 1,850.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 6100.01 SAR exceeds the approved amount of 1850 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|AUH-ZRH|lte500|2026-06"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSHEHRI ABDULILAH|AHB-DXB|lte500|2026-06"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 720.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 36",
+            "quote": "total_amount: 1400.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Haitham Saber Elkhateeb (1000391) on 2026-06-03",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1400 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKHATEEB HAITHAM|GIZ-JED|lte1000|2026-06"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 380.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 37",
+            "quote": "total_amount: 1500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Amr Abdulaziz Bukhari (1000666) في 2026-06-03",
+            "quote": "القيمة ١,١٢٠.٠٠ ريال سعودي"
+          }
+        ],
+        "reasoning": "The ticket amount of 1500 SAR exceeds the approved amount of 1120 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BUKHARI AMR|GIZ-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1009.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 38",
+            "quote": "total_amount: 1299.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Abdallah Abdulrahman Amoudi (1002169) on 2026-06-04",
+            "quote": "Value 290.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1299.99 SAR exceeds the approved amount of 290 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMOUDI ABDALLAH|JED-RUH|lte2000|2026-06"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 820.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 39",
+            "quote": "total_amount: 1500.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Omar Ahmed Alkulaib (1002584) on 2026-06-04",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1500 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALKULAIB OMAR|JED-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 700.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 40",
+            "quote": "total_amount: 700.01"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "reasoning": "No approval email was found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 700.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 41",
+            "quote": "total_amount: 700.01"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "reasoning": "No approval email was found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte1000|2026-06"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAGHLAF MOAYAD|ELQ-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 499.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 43",
+            "quote": "total_amount: 1299.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Yousef Aeiad Alanazi (1001202) on 2026-06-04",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1299.99 SAR exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI YOUSEF|JED-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1170.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 44",
+            "quote": "total_amount: 1850.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Amro Adel Yaseen (1000257) on 2026-06-04",
+            "quote": "Value 680.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1850.01 SAR exceeds the approved amount of 680 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "YASEEN AMRO|HAS-JED|lte2000|2026-06"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAJED OTAIBI|EUROANAESTHESIA 2026|lte500|2026-06"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ADEL ALQARNI|EUROANAESTHESIA 2026|lte500|2026-06"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FOUAD AHMED AL AHDAL|ESC-NTS|lte500|2026-06"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HANI BARAQAAN|EUROANAESTHESIA 2026|lte500|2026-06"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 49",
+            "quote": "total_amount: 500.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "reasoning": "No approval email was found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABDELHADI ALHATO|TRAIN TICKET|lte500|2026-06"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHETA MOHAMED|AHB-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHETA MOHAMED|AHB-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 340.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 52",
+            "quote": "total_amount: 1460.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Husam Mohammed Al Hajj (1000394) on 2026-06-04",
+            "quote": "Value 1,120.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1460.01 SAR exceeds the approved amount of 1120 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAJJ HUSAM|GIZ-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALFARRA ADHAM|JED-MED|lte500|2026-06"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 90.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 54",
+            "quote": "total_amount: 430.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "MANAL ABDULLAH ASIRI (1002625) on 2026-06-03",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 890 SAR exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ASIRI MANAL|AHB-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 55",
+            "quote": "total_amount: 460.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "MANAL ABDULLAH ASIRI (1002625) on 2026-06-03",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 890 SAR exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ASIRI MANAL|AHB-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 56",
+            "quote": "total_amount: 2250.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Yousef Saleh AlDighrir (1002308) on 2026-06-07",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 2250 SAR exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AL DIGHRIR YOUSEF|JED-SHW|lte2000|2026-06"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 825.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 57",
+            "quote": "total_amount: 600.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Farhan Modhsher Alenazy (1000407) في 2026-06-07",
+            "quote": "القيمة ٦٢٥.٠٠ ريال سعودي"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1450 SAR exceeds the approved amount of 625 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte1000|2026-06"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 58",
+            "quote": "total_amount: 850.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Farhan Modhsher Alenazy (1000407) في 2026-06-07",
+            "quote": "القيمة ٦٢٥.٠٠ ريال سعودي"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1450 SAR exceeds the approved amount of 625 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte500|2026-06"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALRUGAIB SAIF|JED-MED|lte500|2026-06"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1015.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 60",
+            "quote": "total_amount: 1640.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Abdulaziz Mohammed Alanazi (1000668) on 2026-06-07",
+            "quote": "Value 625.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1640 SAR exceeds the approved amount of 625 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte2000|2026-06"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAZIED ISSAM|HAS-RUH|lte500|2026-06"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 800.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 62",
+            "quote": "total_amount: 1800.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Zeyad Tawfik Alsaed (1001959) on 2026-06-07",
+            "quote": "Value 1,000.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 1800.01 SAR exceeds the approved amount of 1000 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|JED-MCT|lte1000|2026-06"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 500.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 63",
+            "quote": "total_amount: 700.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Omar Mohamed Elshazli (1002484) on 2026-06-07",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1300.01 SAR exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|AHB-JED|lte1000|2026-06"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 64",
+            "quote": "total_amount: 600.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Omar Mohamed Elshazli (1002484) on 2026-06-07",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The combined ticket amount of 1300.01 SAR exceeds the approved amount of 800 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|AHB-JED|lte500|2026-06"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 250.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 65",
+            "quote": "total_amount: 250.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "reasoning": "No approval email was found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ADHAM ALFARRA|TRAIN TICKET|lte500|2026-06"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Ticket amount is within the approved limit.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HASSAN EL SHARKAWY|TRAIN TICKET|lte500|2026-06"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "RED",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "secondary_categories": [],
+        "value_at_risk_sar": 9870.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 67",
+            "quote": "total_amount: 9870.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Hesham Ramadan Rabie (1000583) on 2026-05-18",
+            "quote": "Value 0.00 Saudi Riyal"
+          }
+        ],
+        "reasoning": "The ticket amount of 9870 SAR exceeds the approved amount of 0 SAR.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HESHAM RABIE 3|CAI-RUH|lte10000|2026-07"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_nos": [
+          6
+        ],
+        "headline": "Missing Approval for High Value Ticket",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 23000.0,
+        "full_reasoning": "No approval email was found for this high-value ticket of 23000 SAR.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 6",
+            "quote": "total_amount: 23000.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_msg",
+            "quote": "No approval email found for this ticket."
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 2,
+        "sl_nos": [
+          67
+        ],
+        "headline": "Significant Amount Mismatch for Hesham Rabie",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "total_value_at_risk_sar": 9870.0,
+        "full_reasoning": "The ticket amount of 9870 SAR significantly exceeds the approved amount of 0 SAR.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 67",
+            "quote": "total_amount: 9870.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Hesham Ramadan Rabie (1000583) on 2026-05-18",
+            "quote": "Value 0.00 Saudi Riyal"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 3,
+        "sl_nos": [
+          33,
+          34
+        ],
+        "headline": "Significant Amount Mismatch for Zeyad Alsaed",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "total_value_at_risk_sar": 4250.01,
+        "full_reasoning": "The combined ticket amount of 6100.01 SAR significantly exceeds the approved amount of 1850 SAR.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 33",
+            "quote": "total_amount: 3600.01"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Zeyad Tawfik Alsaed (1001959) on 2026-06-03",
+            "quote": "Value 1,850.00 Saudi Riyal"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 4,
+        "sl_nos": [
+          18
+        ],
+        "headline": "Significant Amount Mismatch for Ghadeer Alfaleh",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "total_value_at_risk_sar": 2749.99,
+        "full_reasoning": "The ticket amount of 4499.99 SAR significantly exceeds the approved amount of 1750 SAR.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 18",
+            "quote": "total_amount: 4499.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Ghadeer Abdulmuti Alfaleh (1001687) on 2026-05-18",
+            "quote": "Value 1,750.00 Saudi Riyal"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 5,
+        "sl_nos": [
+          56
+        ],
+        "headline": "Significant Amount Mismatch for Yousef Al Dighrir",
+        "primary_category": "AMOUNT_MISMATCH_EMAIL",
+        "total_value_at_risk_sar": 1450.0,
+        "full_reasoning": "The ticket amount of 2250 SAR significantly exceeds the approved amount of 800 SAR.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 56",
+            "quote": "total_amount: 2250.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Yousef Saleh AlDighrir (1002308) on 2026-06-07",
+            "quote": "Value 800.00 Saudi Riyal"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      }
+    ],
+    "batch_summary": {
+      "red_count": 31,
+      "yellow_count": 1,
+      "clean_count": 35,
+      "total_rows": 67,
+      "total_value_at_risk_sar": 41320.0,
+      "catches_by_category": {
+        "AMOUNT_MISMATCH_EMAIL": 27,
+        "APPROVAL_MISSING": 4,
+        "OTHER": 1
+      },
+      "key_themes": [
+        "Frequent discrepancies between approved amounts and actual ticket costs",
+        "Missing approval emails for several tickets"
+      ]
+    }
+  },
+  "v1511_summary_catches": {},
+  "generated_at": "2026-06-29T09:55:57.436399Z"
+}

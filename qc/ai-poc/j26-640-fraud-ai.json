@@ -1,0 +1,1002 @@
+{
+  "batch_id": "J26-640",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "92c614556ff454430f039b686ddbbf908181ff3697ecf8f7c02a90c900d0c8d4",
+  "usage": {
+    "prompt_tokens": 733242,
+    "completion_tokens": 7821,
+    "total_tokens": 761089
+  },
+  "validation_errors": [],
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Extremely high fare (5080 SAR) for a domestic RUH-JED-RUH round trip.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved sponsorship flight.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "High fare for a domestic flight.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Extremely high fare (3484.99 SAR) for a domestic one-way flight.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "d"
+        ],
+        "reasoning": "No approval email found. Part of 6 flights in 5 days for this passenger.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "d"
+        ],
+        "reasoning": "No approval email found. Part of 6 flights in 5 days for this passenger.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Hotel booking billed as a zero-VAT flight ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Change penalty, approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Change penalty, approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Round number with 0 VAT, likely non-flight expense billed as ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 68,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 69,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 70,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 71,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 72,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "d"
+        ],
+        "reasoning": "No approval email found. Part of 6 flights in 5 days for this passenger.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 73,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "d"
+        ],
+        "reasoning": "No approval email found. Part of 6 flights in 5 days for this passenger.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 74,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 75,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 76,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 77,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 79,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 80,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 81,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 82,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 83,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 84,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 85,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 86,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 88,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 89,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 90,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 91,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "d"
+        ],
+        "reasoning": "No approval email found. Part of 6 flights in 5 days for this passenger.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 92,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "d"
+        ],
+        "reasoning": "No approval email found. Part of 6 flights in 5 days for this passenger.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 93,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Non-flight expense billed as a zero-VAT flight ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 94,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Non-flight expense billed as a zero-VAT flight ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 95,
+        "verdict": "YELLOW",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Registration fee billed as a zero-VAT flight ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 96,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 97,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 98,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 99,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 100,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 101,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 102,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 103,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 104,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 105,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 106,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 107,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 108,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 109,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 110,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 111,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 112,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "b"
+        ],
+        "reasoning": "Self-approval by the traveler for an expensive international flight.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 113,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "b"
+        ],
+        "reasoning": "Self-approval by the traveler for an expensive international flight.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 114,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 115,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 116,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Approved via email.",
+        "confidence": "high"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_no": [
+          112,
+          113
+        ],
+        "headline": "Self-Approval for Expensive International Flights",
+        "full_reasoning": "Hesham Ali approved his own international flights (RUH-CMN and CMN-IST-RUH) totaling 18,920 SAR. The email explicitly shows him stating 'Approved. I will share with you the system approval once received. Please proceed so that we secure the ticket.' This is a clear violation of approval policies.",
+        "recommended_action": "Reject the invoice rows and escalate to HR/Compliance for policy violation regarding self-approval of travel expenses."
+      },
+      {
+        "rank": 2,
+        "sl_no": [
+          17,
+          18,
+          72,
+          73,
+          91,
+          92
+        ],
+        "headline": "Unapproved High-Frequency Domestic Travel",
+        "full_reasoning": "Farhan Alanazi has 6 domestic flights booked within a 5-day window (April 26 to April 30) across multiple routes (RUH-TUU, RUH-MED). None of these flights have matching approval emails in the provided batch, indicating potential unauthorized travel or rebooking fraud.",
+        "recommended_action": "Request explicit management approval for all 6 flights and investigate the business justification for such high-frequency travel."
+      },
+      {
+        "rank": 3,
+        "sl_no": [
+          6,
+          7
+        ],
+        "headline": "Extremely High Domestic Flight Cost",
+        "full_reasoning": "Ahmad Jumah Hussein's domestic round trip (RUH-JED-RUH) totals 5,524.99 SAR, which is exceptionally high for this route corridor. While approved, the amount is highly anomalous and suggests either a booking error, premium class abuse, or inflated billing.",
+        "recommended_action": "Audit the ticket class and fare breakdown to determine why a domestic flight cost over 5,500 SAR. Recover funds if policy was violated."
+      },
+      {
+        "rank": 4,
+        "sl_no": [
+          21,
+          27,
+          93,
+          94,
+          95
+        ],
+        "headline": "Non-Flight Expenses Billed as Zero-VAT Tickets",
+        "full_reasoning": "Multiple rows for Ahmed Mohamed Ahmed are billed as zero-VAT flight tickets but the email evidence reveals these are actually for hotel bookings (11,800 SAR), car rentals (1,600 SAR), and event registration fees (9,900 SAR). This misclassification bypasses proper expense categorization and VAT accounting.",
+        "recommended_action": "Require the agency to reissue the invoice with correct categorization and VAT application for non-flight expenses."
+      },
+      {
+        "rank": 5,
+        "sl_no": [
+          1
+        ],
+        "headline": "Inflated Domestic Flight Fare",
+        "full_reasoning": "Mohamad Merheb's domestic round trip (RUH-JED-RUH) is billed at 5,080 SAR. This is significantly higher than the median cost for this route and warrants scrutiny, despite having an approval email.",
+        "recommended_action": "Review the fare class and booking timeline to understand the inflated cost. Enforce advance booking policies if applicable."
+      }
+    ],
+    "batch_summary": {
+      "red_count": 8,
+      "yellow_count": 30,
+      "clean_count": 79,
+      "total_rows": 117,
+      "key_themes": [
+        "Self-approval of expensive international flights",
+        "Non-flight expenses (hotels, registrations) misclassified as zero-VAT flight tickets",
+        "Unapproved high-frequency domestic travel by single employees",
+        "Extremely high fares for standard domestic routes (e.g., RUH-JED)"
+      ]
+    }
+  },
+  "v1511_summary_catches": {
+    "NO_APPROVAL": 26,
+    "DUP_ROUTE_STRICT": 4
+  },
+  "generated_at": "2026-05-23T04:47:36.167276Z"
+}

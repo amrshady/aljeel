@@ -1,0 +1,816 @@
+#!/usr/bin/env python3
+"""
+Within-Batch QC Catches — v15.11 fraud rule refinements.
+
+Categories:
+  DUP_ROUTE_STRICT  — same pax + same actual route + same service date (excl EMD pairs, cost-center splits)
+                      STRICT: same route + same service date; SOFT: same route + diff dates within ±7 days
+  NO_FOLDER         — ticket has no evidence folder under the raw evidence root
+  VAT_MISMATCH      — 15% VAT on Sponsoring or 0% on domestic Travel
+  NO_APPROVAL       — line without approval evidence (multi-source: Fusion form, msg body, voucher, CHD)
+  EMD_MISMATCH      — change-fee ticket (1936*) without original (6905*)
+                      Rule verified working 2026-05-22 (case file 01).
+  OVER_LIMIT        — SUSPENDED in v15.11: Manpower has no Grade column.
+                      Reactivate when grade data is added OR rewrite with alternative ceiling source.
+                      See qc/fraud-analysis/08-over-limit.md.
+  ROUND_AMOUNT      — suspiciously round SAR amounts (refined: skips sponsorship accounts + VAT rows + non-routes)
+
+Usage:
+    from qc_catches_within_batch import run_within_batch_catches
+    catches = run_within_batch_catches(batch_lines, raw_dir, master_data, service_date_map, vat_amount_map)
+
+Or standalone:
+    python3 scripts/qc_catches_within_batch.py --batch batches/jawal-J26-788 --raw-dir batches/jawal-J26-788/raw
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import os
+import sys
+from pathlib import Path
+from datetime import datetime
+from collections import defaultdict
+
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+sys.path.insert(0, str(ROOT / "scripts"))
+
+# Sponsorship/event/hospitality/recruitment account codes where round amounts are normal
+_ROUND_AMOUNT_EXEMPT_ACCOUNTS = {
+    "60307021",  # Sponsorship
+    "60307022",  # Hospitality
+    "60308007",  # Recruitment
+    "11034013",  # Personal
+    "21070229",  # Accrued annual tickets
+}
+
+
+def _parse_route_corridor(description: str) -> tuple | None:
+    """Extract route corridor from description, preserving actual direction (NOT sorted).
+
+    v15.11: Changed from sorted tuple to ordered tuple so that
+    RUH→JED and JED→RUH are treated as distinct routes (not collapsed
+    into a single corridor). This prevents outbound + return legs from
+    being flagged as duplicate-route pairs.
+
+    Description format: 'LASTNAME/FIRSTNAME MR - RUH JED (6905123456)'
+    """
+    if not description:
+        return None
+    dash_idx = description.find(" - ")
+    if dash_idx < 0:
+        return None
+    after_dash = description[dash_idx + 3:].strip()
+    # Remove ticket number in parens
+    paren_idx = after_dash.find("(")
+    if paren_idx > 0:
+        after_dash = after_dash[:paren_idx].strip()
+    # Route is the remaining text — split into city codes
+    cities = after_dash.split()
+    # Filter to 3-letter IATA-like codes
+    cities = [c for c in cities if len(c) == 3 and c.isalpha()]
+    if len(cities) >= 2:
+        return tuple(cities)  # v15.11: unsorted — preserves direction
+    return None
+
+
+def _extract_ticket_no(description: str) -> str | None:
+    """Extract 10-digit ticket number from description."""
+    if not description:
+        return None
+    m = re.search(r"\((\d{10})\)", description)
+    return m.group(1) if m else None
+
+
+def _extract_passenger(description: str) -> str:
+    """Extract passenger name from description."""
+    if not description:
+        return ""
+    dash_idx = description.find(" - ")
+    if dash_idx > 0:
+        return description[:dash_idx].strip()
+    return description.strip()
+
+
+# --- Grade ceilings per Manpower grade ---
+GRADE_CEILINGS = {
+    # G16+ = SAR 5000 per ticket
+    16: 5000, 17: 5000, 18: 5000, 19: 5000, 20: 5000,
+    # G14-15 = SAR 3500
+    14: 3500, 15: 3500,
+    # G11-13 = SAR 2500
+    11: 2500, 12: 2500, 13: 2500,
+    # G7-10 = SAR 1500
+    7: 1500, 8: 1500, 9: 1500, 10: 1500,
+}
+
+def _get_grade_ceiling(grade) -> float | None:
+    """Get per-ticket ceiling for a grade number."""
+    try:
+        g = int(grade)
+    except (ValueError, TypeError):
+        return None
+    if g >= 16:
+        return 5000
+    elif g >= 14:
+        return 3500
+    elif g >= 11:
+        return 2500
+    elif g >= 7:
+        return 1500
+    return None
+
+
+class BatchLine:
+    """Lightweight representation of a batch line for QC catches."""
+    def __init__(self, sl_no, passenger_name, description, amount, ticket_no,
+                 account, emp_no, inv_date, flags, combo, route_corridor=None,
+                 grade=None, has_msg=False, match_method="",
+                 service_date=None, vat_amount=None):
+        self.sl_no = sl_no
+        self.passenger_name = passenger_name
+        self.description = description
+        self.amount = amount
+        self.ticket_no = ticket_no
+        self.account = account
+        self.emp_no = emp_no
+        self.inv_date = inv_date
+        self.flags = flags or []
+        self.combo = combo
+        self.route_corridor = route_corridor
+        self.grade = grade
+        self.has_msg = has_msg
+        self.match_method = match_method
+        # v15.11 additions
+        self.service_date = service_date or inv_date  # fall back to inv_date if not available
+        self.vat_amount = vat_amount  # None = unknown; 0 = explicit zero VAT
+
+
+def _dup_route_strict(lines: list[BatchLine]) -> list[dict]:
+    """Same pax + same ACTUAL route direction + same/similar service date.
+
+    v15.11 redesign:
+    - Compare actual ordered route tuples (not sorted) so RUH→JED != JED→RUH
+    - STRICT tier: same route + same service date (±0 days) + diff tickets → HIGH/MEDIUM
+    - SOFT tier: same route + diff service dates within ±7 days → LOW (informational)
+    - Frequent-traveler downgrade: pax with 3+ DUP catches on same route downgraded to SOFT
+    """
+    catches = []
+    by_pax = defaultdict(list)
+    for line in lines:
+        if line.passenger_name and line.route_corridor and (line.service_date or line.inv_date):
+            by_pax[line.passenger_name].append(line)
+
+    seen_pairs: set = set()
+    raw_catches: list[dict] = []
+
+    for pax, trips in by_pax.items():
+        for i, t1 in enumerate(trips):
+            for t2 in trips[i + 1:]:
+                # Same actual route direction (v15.11: not sorted)
+                if t1.route_corridor != t2.route_corridor:
+                    continue
+                # Skip same-ticket cost-center splits
+                if t1.ticket_no and t2.ticket_no and t1.ticket_no == t2.ticket_no:
+                    continue
+                # Skip EMD fee pairs (1936* tickets)
+                if t1.ticket_no and t1.ticket_no.startswith("1936"):
+                    continue
+                if t2.ticket_no and t2.ticket_no.startswith("1936"):
+                    continue
+
+                # Use service_date for comparison (falls back to inv_date)
+                d1_str = t1.service_date or t1.inv_date
+                d2_str = t2.service_date or t2.inv_date
+                try:
+                    d1 = datetime.strptime(d1_str, "%Y-%m-%d")
+                    d2 = datetime.strptime(d2_str, "%Y-%m-%d")
+                except (ValueError, TypeError):
+                    continue
+                gap = abs((d2 - d1).days)
+
+                # Determine tier
+                if gap == 0:
+                    tier = "STRICT"
+                elif gap <= 7:
+                    tier = "SOFT"
+                else:
+                    continue  # beyond ±7 days → not a meaningful pair
+
+                pair_key = tuple(sorted([
+                    t1.ticket_no or str(t1.sl_no),
+                    t2.ticket_no or str(t2.sl_no),
+                ]))
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+
+                total = (t1.amount or 0) + (t2.amount or 0)
+                route_str = " ".join(t1.route_corridor) if t1.route_corridor else ""
+
+                if tier == "STRICT":
+                    severity = "HIGH" if total > 3000 else "MEDIUM"
+                else:
+                    severity = "LOW"
+
+                raw_catches.append({
+                    "category": "DUP_ROUTE_STRICT",
+                    "tier": tier,
+                    "severity": severity,
+                    "ticket_no": t1.ticket_no,
+                    "related_ticket": t2.ticket_no,
+                    "passenger": pax,
+                    "route": route_str,
+                    "gap_days": gap,
+                    "value_at_risk_sar": total,
+                    "sl_nos": [t1.sl_no, t2.sl_no],
+                    "detail": (
+                        f"{pax} booked {route_str} {tier.lower()} match "
+                        f"(tickets {t1.ticket_no}, {t2.ticket_no}, "
+                        f"service dates {d1_str}/{d2_str}, gap {gap} day(s)) — "
+                        f"SAR {total:,.2f} at risk."
+                    ),
+                })
+
+    # Frequent-traveler downgrade: pax with 3+ DUP catches on same route → all SOFT
+    route_pax_counts: dict = defaultdict(int)
+    for c in raw_catches:
+        route_pax_counts[(c["passenger"], c["route"])] += 1
+
+    for c in raw_catches:
+        if route_pax_counts[(c["passenger"], c["route"])] >= 3:
+            c["tier"] = "SOFT"
+            c["severity"] = "LOW"
+            c["detail"] += " [frequent-traveler commute pattern — downgraded to SOFT]"
+
+    catches.extend(raw_catches)
+    return catches
+
+
+def _vat_mismatch(lines: list[BatchLine]) -> list[dict]:
+    """15% VAT on Sponsoring (should be 0%) or 0% on domestic Travel (should be 15%)."""
+    catches = []
+    for line in lines:
+        # Sponsoring = account 60307021
+        if line.account == "60307021":
+            pass  # VAT info not directly available in the resolved lines; skip for now
+    return catches
+
+
+# ---------------------------------------------------------------------------
+# NO_FOLDER / NO_APPROVAL — evidence folder and approval detectors (v15.11)
+# ---------------------------------------------------------------------------
+
+def _ticket_folder_exists(raw_dir: Path | None, ticket_no: str) -> bool:
+    """Return True if any folder named exactly ticket_no exists under raw_dir."""
+    ticket_str = str(ticket_no or "").strip()
+    if not raw_dir or not ticket_str:
+        return True
+
+    try:
+        for root, dirs, files in os.walk(raw_dir):
+            if os.path.basename(root) == ticket_str:
+                return True
+    except Exception:
+        return True
+    return False
+
+
+def _normalize_name_text(s: str) -> str:
+    """Normalize text for fuzzy passenger-name matching: uppercase, strip
+    spaces/punctuation, collapse doubled letters (MOSAAD -> MOSAD)."""
+    s = re.sub(r"[^A-Za-z0-9]+", "", (s or "").upper())
+    return re.sub(r"(.)\1+", r"\1", s)
+
+
+def _passenger_match_tokens(passenger_name: str) -> list[str]:
+    """Normalized 2+ char tokens from the passenger name, with leading
+    AL/EL/ABD prefixes stripped (ALHUSSEIN -> HUSEIN)."""
+    tokens = []
+    for raw in re.split(r"[\s/\\,.\-]+", (passenger_name or "").upper()):
+        raw = raw.strip()
+        if not raw or raw in {"MR", "MS", "DR", "MRS", "MISS"}:
+            continue
+        raw = re.sub(r"^(?:AL|EL|ABD)+", "", raw)
+        tok = _normalize_name_text(raw)
+        if len(tok) >= 2:
+            tokens.append(tok)
+    return tokens
+
+
+def _folder_content_references_passenger(
+    files: list[Path], passenger_name: str
+) -> bool:
+    """Fallback content scan when file *names* give no signal.
+
+    Only PDF evidence counts here. Email threads often mention unrelated
+    AlJeel contacts with common first names; those names must not attach an
+    unnumbered ticket to the wrong shared OPEX folder.
+    """
+    tokens = _passenger_match_tokens(passenger_name)
+    if not tokens:
+        return False
+
+    content = ""
+    for f in files:
+        if not f.is_file():
+            continue
+        fn = f.name.lower()
+        if fn.endswith(".pdf"):
+            try:
+                import fitz  # pymupdf
+                with fitz.open(str(f)) as doc:
+                    content += " " + " ".join(page.get_text() for page in doc)
+            except Exception:
+                continue
+
+    if not content.strip():
+        return False
+    norm_content = _normalize_name_text(content)
+    hits = sum(1 for tok in tokens if tok in norm_content)
+    return hits >= min(2, len(tokens))
+
+
+def _find_shared_opex_folder(date_dir: Path, ticket_no: str, passenger_name: str) -> Path | None:
+    """
+    Look for a sibling folder inside date_dir that:
+    - Is NOT named like a ticket number (10 digits)
+    - Contains at least one OPEX-*.pdf file
+    - Contains at least one file whose name references the passenger name or ticket number,
+      OR (fallback) whose OPEX PDF / .msg content references the passenger name
+    Returns the folder path if found, else None.
+    """
+    if not date_dir or not date_dir.is_dir():
+        return None
+
+    ticket_str = str(ticket_no or "").strip()
+    name_parts = [
+        p.strip().lower()
+        for p in re.split(r"[/\s]+", passenger_name or "")
+        if len(p.strip()) >= 3
+    ]
+
+    try:
+        siblings = list(date_dir.iterdir())
+    except Exception:
+        return None
+
+    for sibling in siblings:
+        if not sibling.is_dir():
+            continue
+        if re.fullmatch(r"\d{10}", sibling.name):
+            continue
+        try:
+            files = list(sibling.iterdir())
+        except Exception:
+            continue
+        file_names_lower = [f.name.lower() for f in files if f.is_file()]
+        has_opex = any(
+            fn.startswith("opex-") and fn.endswith(".pdf")
+            for fn in file_names_lower
+        )
+        if not has_opex:
+            continue
+
+        references_ticket = bool(ticket_str) and any(
+            ticket_str in fn for fn in file_names_lower
+        )
+        references_passenger = any(
+            part in fn
+            for part in name_parts
+            for fn in file_names_lower
+        )
+        if references_ticket or references_passenger:
+            return sibling
+
+        # Fallback (file names gave no signal): scan OPEX PDF + .msg content
+        file_paths = [f for f in files if f.is_file()]
+        if _folder_content_references_passenger(file_paths, passenger_name):
+            return sibling
+
+    return None
+
+
+def _find_shared_opex_folder_in_batch(
+    raw_dir: Path | None,
+    ticket_no: str,
+    passenger_name: str,
+) -> tuple[Path | None, Path | None]:
+    """Scan all date dirs under raw_dir. Returns (date_dir, shared_opex_folder) or (None, None)."""
+    if not raw_dir or not raw_dir.is_dir():
+        return None, None
+    try:
+        date_dirs = list(raw_dir.iterdir())
+    except Exception:
+        return None, None
+    for date_dir in date_dirs:
+        if not date_dir.is_dir():
+            continue
+        found = _find_shared_opex_folder(date_dir, ticket_no, passenger_name)
+        if found:
+            return date_dir, found
+    return None, None
+
+
+def _no_folder(lines: list[BatchLine], raw_dir: Path | None) -> list[dict]:
+    """Ticket with no per-ticket evidence folder under the raw evidence root."""
+    catches = []
+    for line in lines:
+        if not line.ticket_no:
+            continue
+        if _ticket_folder_exists(raw_dir, line.ticket_no):
+            continue
+
+        v = line.amount or 0
+        date_dir, shared_folder = _find_shared_opex_folder_in_batch(
+            raw_dir, line.ticket_no, line.passenger_name
+        )
+        if shared_folder:
+            catches.append({
+                "category": "SHARED_OPEX_SPONSORSHIP",
+                "severity": "INFO",
+                "ticket_no": line.ticket_no,
+                "passenger": line.passenger_name,
+                "account": line.account,
+                "value_at_risk_sar": v,
+                "sl_nos": [line.sl_no],
+                "approval_evidence": "SHARED_OPEX_FOLDER",
+                "date_dir": str(date_dir) if date_dir else "",
+                "shared_folder_path": str(shared_folder),
+                "detail": (
+                    f"Ticket {line.ticket_no} ({line.passenger_name}, SAR {v:,.2f}) "
+                    f"has no per-ticket folder, but shared OPEX sponsorship evidence "
+                    f"was found at {shared_folder}."
+                ),
+            })
+            continue
+
+        catches.append({
+            "category": "NO_FOLDER",
+            "severity": "HIGH",
+            "ticket_no": line.ticket_no,
+            "passenger": line.passenger_name,
+            "account": line.account,
+            "value_at_risk_sar": v,
+            "sl_nos": [line.sl_no],
+            "approval_evidence": "NO_FOLDER_MISSING",
+            "detail": (
+                f"Ticket {line.ticket_no} ({line.passenger_name}, SAR {v:,.2f}, "
+                f"account {line.account}) — no evidence folder found under raw evidence root."
+            ),
+        })
+    return catches
+
+def _find_msgs_for_ticket_v2(raw_dir: Path, ticket_no: str) -> list[Path]:
+    """Find .msg files for a ticket by searching raw_dir recursively."""
+    if not raw_dir or not ticket_no:
+        return []
+    results = []
+    try:
+        for msg_path in raw_dir.rglob("*.msg"):
+            fname = msg_path.name
+            parent = msg_path.parent.name
+            if ticket_no in fname or ticket_no in parent:
+                results.append(msg_path)
+    except Exception:
+        pass
+    return results
+
+
+def _read_msg_body_text(msg_path: Path) -> str:
+    """Read .msg body text, using the shared msg_parser if available."""
+    try:
+        from msg_parser import parse_msg
+        parsed = parse_msg(msg_path, use_cache=True)
+        if parsed.get("parse_method") != "failed":
+            return parsed.get("body_text", "") or ""
+    except Exception:
+        pass
+    return ""
+
+
+def has_approval(line: "BatchLine", raw_dir: Path | None) -> tuple[bool, str]:
+    """Multi-source approval detector (v15.11).
+
+    Returns (has_approval: bool, evidence_source: str).
+    Checks 4 sources:
+      1. Oracle Fusion form parsed successfully
+      2. .msg file with explicit approval markers (Arabic يعتمد or English Approved)
+      3. Voucher row with resolved emp_no (26-XXX ticket)
+      4. Family ride-along (CHD suffix)
+    """
+    # Source 1: Oracle Fusion form parsed successfully (current logic)
+    if line.flags and "FORM_NOT_FOUND_IN_EMAIL" not in line.flags:
+        return True, "FUSION_FORM"
+
+    # Source 2: .msg file with explicit approval markers
+    if raw_dir and line.ticket_no:
+        for msg_path in _find_msgs_for_ticket_v2(raw_dir, line.ticket_no):
+            fname = msg_path.name
+            # Subject contains "Approved" → strong signal
+            if "Approved" in fname or "approved" in fname.lower():
+                return True, f"APPROVAL_SUBJECT: {fname[:60]}"
+            # Body contains Arabic approval stamp or English "approved"
+            try:
+                body = _read_msg_body_text(msg_path)
+                if body:
+                    body_lower = body.lower()
+                    if ("يعتمد" in body or
+                            "Approved" in body[:500] or
+                            "approved" in body_lower[:500]):
+                        return True, f"APPROVAL_BODY: {fname[:60]}"
+            except Exception:
+                continue
+
+    # Source 3: Voucher with resolved emp_no (26-XXX ticket, employee resolved via Ref.No.)
+    if line.ticket_no and re.match(r"^26-\d{3,}$", line.ticket_no) and line.emp_no:
+        return True, "VOUCHER_EMP_NO_FROM_INPUT"
+
+    # Source 4: Family ride-along (CHD suffix — parent employee's approval covers it)
+    if line.passenger_name and "(CHD)" in line.passenger_name:
+        return True, "FAMILY_RIDE_ALONG"
+
+    # Source 5 (v15.11.2, May 25): Family cluster member — process_batch ran
+    # cluster unification because at least one row in this cluster carried a
+    # CHD marker, which means the sponsor's approval governs the whole group.
+    # Adults with no individual approval form (e.g. spouse on the same trip)
+    # would otherwise misfire NO_APPROVAL even though they're covered.
+    if line.flags and any(
+        isinstance(f, str) and f.startswith("FAMILY_CLUSTER_UNIFIED")
+        for f in line.flags
+    ):
+        return True, "FAMILY_CLUSTER_SPONSOR_APPROVAL"
+
+    return False, "NO_APPROVAL_EVIDENCE_FOUND"
+
+
+def _no_approval(lines: list[BatchLine], raw_dir: Path | None) -> list[dict]:
+    """Line without approval evidence from any of 4 sources (v15.11 multi-source detector).
+
+    Tiers:
+    - HIGH (> SAR 3,000 AND no approval from any source): surface per-row to Finance
+    - MEDIUM (≤ SAR 3,000): aggregate count only (detail flag set, no per-row surface)
+    """
+    catches = []
+    for line in lines:
+        # Skip sponsorship lines (they have OPEX PDF instead)
+        if line.account == "60307021":
+            continue
+        # Skip EMD change-fee tickets
+        if line.ticket_no and line.ticket_no.startswith("1936"):
+            continue
+
+        approved, evidence = has_approval(line, raw_dir)
+        if approved:
+            continue
+
+        v = line.amount or 0
+        severity = "HIGH" if v > 3000 else "MEDIUM"
+        catches.append({
+            "category": "NO_APPROVAL",
+            "severity": severity,
+            "ticket_no": line.ticket_no,
+            "passenger": line.passenger_name,
+            "account": line.account,
+            "value_at_risk_sar": v,
+            "sl_nos": [line.sl_no],
+            "approval_evidence": evidence,
+            "detail": (
+                f"Ticket {line.ticket_no} ({line.passenger_name}, SAR {v:,.2f}, "
+                f"account {line.account}) — no approval evidence found "
+                f"from any of 4 sources (Fusion form, msg body, voucher emp_no, CHD). "
+                f"Evidence check: {evidence}."
+            ),
+        })
+    return catches
+
+
+def _emd_mismatch(lines: list[BatchLine]) -> list[dict]:
+    """Change-fee ticket (1936*) without matching original (6905*).
+    Rule verified working 2026-05-22 (case file 01).
+    """
+    catches = []
+    emd_lines = [l for l in lines if l.ticket_no and l.ticket_no.startswith("1936")]
+    original_by_pax = defaultdict(list)
+    for l in lines:
+        if l.ticket_no and l.ticket_no.startswith("6905"):
+            original_by_pax[l.passenger_name].append(l)
+
+    for emd in emd_lines:
+        found_match = False
+        for orig in original_by_pax.get(emd.passenger_name, []):
+            try:
+                if emd.inv_date and orig.inv_date:
+                    d1 = datetime.strptime(emd.inv_date, "%Y-%m-%d")
+                    d2 = datetime.strptime(orig.inv_date, "%Y-%m-%d")
+                    if abs((d2 - d1).days) <= 7:
+                        found_match = True
+                        break
+                else:
+                    found_match = True
+                    break
+            except (ValueError, TypeError):
+                found_match = True
+                break
+
+        if not found_match:
+            catches.append({
+                "category": "EMD_MISMATCH",
+                "severity": "MEDIUM",
+                "ticket_no": emd.ticket_no,
+                "passenger": emd.passenger_name,
+                "value_at_risk_sar": emd.amount or 0,
+                "sl_nos": [emd.sl_no],
+                "detail": (
+                    f"EMD/change-fee ticket {emd.ticket_no} ({emd.passenger_name}, "
+                    f"SAR {emd.amount or 0:,.2f}) has no matching original 6905* ticket "
+                    "for the same passenger ±7 days."
+                ),
+            })
+    return catches
+
+
+def _over_limit(lines: list[BatchLine], md=None) -> list[dict]:
+    """Single ticket > grade ceiling.
+
+    SUSPENDED in v15.11: Manpower has no Grade column.
+    Reactivate when grade data is added to Manpower master, OR rewrite
+    with an alternative ceiling source (account class, flat per-trip cap).
+    See qc/fraud-analysis/08-over-limit.md.
+    """
+    return []  # OVER_LIMIT suspended — see docstring
+
+
+def _round_amount(lines: list[BatchLine]) -> list[dict]:
+    """Suspiciously round SAR amounts (exact multiples of 1000).
+
+    v15.11 guards — skip when:
+    1. account is in sponsorship/hospitality/recruitment/personal/accrual set
+       (round amounts are normal for event budgets, not fraud)
+    2. VAT amount > 0 (real retail fare carrying 15% VAT; zero-VAT is the anomaly)
+    3. Description doesn't contain a 3-letter IATA pair (hotel/registration/transfer)
+    """
+    catches = []
+    for line in lines:
+        if not line.amount or line.amount <= 0:
+            continue
+        # Base check: exact multiple of 1000 at ≥ SAR 2000
+        if line.amount < 2000:
+            continue
+        if line.amount % 1000 != 0:
+            continue
+
+        # Guard 1: skip sponsorship/event accounts where round amounts are normal
+        if line.account in _ROUND_AMOUNT_EXEMPT_ACCOUNTS:
+            continue
+
+        # Guard 2: skip rows with VAT > 0 (real retail fares carry VAT;
+        # if amount % 1000 == 0 but VAT > 0 the underlying fare is metered)
+        if line.vat_amount is not None and line.vat_amount > 0:
+            continue
+
+        # Guard 3: skip hotel/registration/transfer rows
+        # (rows where the route parser finds no IATA city pair)
+        if not line.route_corridor:
+            continue  # no IATA codes → hotel/registration/transfer description
+
+        catches.append({
+            "category": "ROUND_AMOUNT",
+            "severity": "MEDIUM",
+            "ticket_no": line.ticket_no,
+            "passenger": line.passenger_name,
+            "account": line.account,
+            "amount_sar": line.amount,
+            "value_at_risk_sar": 0,
+            "sl_nos": [line.sl_no],
+            "detail": (
+                f"Ticket {line.ticket_no} ({line.passenger_name}, account {line.account}) "
+                f"has a suspiciously round amount of SAR {line.amount:,.0f} "
+                f"with zero VAT on an airline route — not a sponsorship/event row. "
+                f"Worth Finance investigation."
+            ),
+        })
+    return catches
+
+
+def run_within_batch_catches(
+    results,
+    gate_results,
+    raw_dir=None,
+    md=None,
+    inv_date=None,
+    service_date_map: dict | None = None,
+    vat_amount_map: dict | None = None,
+) -> list[dict]:
+    """
+    Run all within-batch QC catches on processed results.
+
+    Args:
+        results: list of ResolvedLine objects from process_batch
+        gate_results: list of GateResult objects
+        raw_dir: Path to raw .msg directory
+        md: MasterData object
+        inv_date: Invoice date string (YYYY-MM-DD)
+        service_date_map: dict of sl_no -> service_date_str (v15.11)
+        vat_amount_map: dict of sl_no -> vat_amount_float (v15.11)
+
+    Returns:
+        list of catch dicts
+    """
+    service_date_map = service_date_map or {}
+    vat_amount_map = vat_amount_map or {}
+
+    # Build BatchLine objects from resolved results
+    batch_lines = []
+    for i, r in enumerate(results):
+        desc = getattr(r, '_description', '')
+        ticket_no = _extract_ticket_no(desc)
+        passenger = r.passenger_name
+        route_corridor = _parse_route_corridor(desc)
+
+        # Get grade from master data
+        grade = None
+        if md and r.emp_no:
+            emp = md.employees.get(r.emp_no)
+            if emp:
+                grade = getattr(emp, 'grade', None)
+
+        # Check if this line has msg files (Oracle Fusion form found)
+        has_msg = "FORM_NOT_FOUND_IN_EMAIL" not in r.flags
+
+        # v15.11: service_date from Details/Sheet sheet lookup
+        service_date = service_date_map.get(r.sl_no) or inv_date
+
+        # v15.11: vat_amount from Details sheet lookup
+        vat_amount = vat_amount_map.get(r.sl_no)  # None if not found
+
+        batch_lines.append(BatchLine(
+            sl_no=r.sl_no,
+            passenger_name=passenger,
+            description=desc,
+            amount=getattr(r, '_amount', 0),
+            ticket_no=ticket_no,
+            account=r.account,
+            emp_no=r.emp_no,
+            inv_date=inv_date,
+            flags=list(r.flags),
+            combo=r.combo,
+            route_corridor=route_corridor,
+            grade=grade,
+            has_msg=has_msg,
+            match_method=r.emp_match_method,
+            service_date=service_date,
+            vat_amount=vat_amount,
+        ))
+
+    all_catches = []
+    all_catches.extend(_dup_route_strict(batch_lines))
+    # VAT mismatch needs raw tax column data — skipping in this version
+    no_folder_catches = _no_folder(batch_lines, raw_dir)
+    all_catches.extend(no_folder_catches)
+
+    no_folder_sl_nos = {
+        sl_no
+        for catch in no_folder_catches
+        for sl_no in catch.get("sl_nos", [])
+    }
+    shared_opex_sl_nos = {
+        sl_no
+        for catch in no_folder_catches
+        if catch.get("category") == "SHARED_OPEX_SPONSORSHIP"
+        for sl_no in catch.get("sl_nos", [])
+    }
+    approval_lines = [
+        line for line in batch_lines
+        if line.sl_no not in no_folder_sl_nos
+    ]
+    all_catches.extend(_no_approval(approval_lines, raw_dir))
+    all_catches.extend(_emd_mismatch(batch_lines))
+    all_catches.extend(_over_limit(batch_lines, md))
+    round_amount_lines = [
+        line for line in batch_lines
+        if line.sl_no not in shared_opex_sl_nos
+    ]
+    all_catches.extend(_round_amount(round_amount_lines))
+
+    return all_catches
+
+
+def main():
+    """Standalone runner for within-batch QC catches."""
+    parser = argparse.ArgumentParser(description="Within-Batch QC Catches")
+    parser.add_argument("--batch", required=True, help="Path to batch directory")
+    parser.add_argument("--raw-dir", default=None, help="Path to raw .msg directory")
+    args = parser.parse_args()
+
+    batch_dir = Path(args.batch)
+    if not batch_dir.is_absolute():
+        batch_dir = ROOT / batch_dir
+
+    print(f"[qc_catches_within_batch] Batch: {batch_dir}")
+    print("  NOTE: Standalone mode is limited. Use via process_batch.py integration for full results.")
+
+
+if __name__ == "__main__":
+    main()

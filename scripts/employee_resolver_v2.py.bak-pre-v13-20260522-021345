@@ -1,0 +1,820 @@
+#!/usr/bin/env python3
+"""
+Employee Resolver v2 — 9-Layer Resolution Cascade.
+
+Exhausts ALL internal data sources before declaring not_found.
+Goal: Reduce J26-640's 72/117 not_found (61%) to <15.
+
+Cascade priority (first high-confidence hit wins):
+  L1: Form Emp No (Oracle Fusion form Person Number)
+  L2: .msg filename regex — (NNNNNNN) in matched .msg filenames
+  L3: Ticket folder → .msg filename → emp_no (walk raw folder by ticket)
+  L4: GDS-format name normalization + fuzzy (rapidfuzz)
+  L5: Phonetic / transliteration variance (metaphone + custom Arabic→English)
+  L6: Arabic name matching (Manpower Arabic Name col)
+  L7: Approver → reverse subordinate lookup
+  L8: Cross-batch passenger cache
+  L9: Sponsorship / external traveler auto-route
+
+Each layer returns (emp_no, confidence, layer_id, trace) or None.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import unicodedata
+from pathlib import Path
+from typing import Optional
+
+import rapidfuzz.fuzz as rfuzz
+from metaphone import doublemetaphone
+
+from cost_center_resolver import Employee, MasterData
+from email_resolver import resolve_by_email
+
+# ============================================================================
+# Constants
+# ============================================================================
+
+CACHE_PATH = Path("/home/clawdbot/.openclaw/workspace/aljeel/cache/passenger_to_empno.json")
+
+# GDS titles to strip
+GDS_TITLES = {
+    "MR", "MRS", "MS", "DR", "ENG", "MISS", "MASTER", "INF", "CHD",
+    "MR(CHD)", "MS(CHD)", "MRS(CHD)", "MSTR",
+}
+
+# Common Arabic→English transliteration variants
+TRANSLITERATION_MAP = {
+    # Given name variants
+    "MOHAMMAD": "MOHAMMED", "MOHAMED": "MOHAMMED", "MUHAMMED": "MOHAMMED",
+    "MUHAMMAD": "MOHAMMED", "MOHAMAD": "MOHAMMED", "MHAMMED": "MOHAMMED",
+    "BELAL": "BILAL",
+    "KHALID": "KHALED",
+    "HUSAYN": "HUSSAIN", "HUSSEIN": "HUSSAIN", "HUSAIN": "HUSSAIN",
+    "ABDULRAHMAN": "ABDELRAHMAN", "ABDULLTAIF": "ABDELLATIF",
+    "ABDEL": "ABDUL", "ABDAL": "ABDUL",
+    "OUSAMA": "OSAMA", "OUSSAMA": "OSAMA", "USAMA": "OSAMA",
+    "HESHAM": "HISHAM",
+    "HOSNY": "HUSNI", "HOSNI": "HUSNI",
+    "HAMMAM": "HAMAM",
+    "ALAAELDIN": "ALAEDDIN", "ALAAEDDIN": "ALAEDDIN",
+    "NJOUD": "NUJUD", "NUJOOD": "NUJUD",
+    "WASEEM": "WASIM",
+    "ISSAM": "ISAM", "ESSAM": "ISAM",
+    "ABDULAZIZ": "ABDULAZIZ",  # no change needed
+    "ADOLAY": "ADOLAI",
+    "HOSSAM": "HUSAM", "HOSAM": "HUSAM",
+    "HAMZAH": "HAMZEH", "HAMZA": "HAMZEH",
+    "ABDALLAH": "ABDULLAH",
+    "AHMED": "AHMAD",
+    "JUMAH": "JUMA",
+    "SOBHI": "SUBHI",
+    "ALANAZI": "ALENAZY",
+    "ALNAAZI": "ALENAZY",
+    "ALNAZI": "ALENAZY",
+}
+
+# Article variants to normalize
+ARTICLE_VARIANTS = {"EL", "AL", "UL"}
+
+# Sponsorship indicator patterns
+SPONSORSHIP_GROUND_KEYWORDS = [
+    r"AIRPORT\s+PICK\s*UP", r"AIRPORT\s+DROP\s*OFF",
+    r"HOTEL[\s-]+AIRPORT", r"TRANSFER",
+]
+SPONSORSHIP_EVENT_KEYWORDS = [
+    r"Heart\s+Failure.*Barcelona", r"Heart\s+Failure.*Registrati",
+    r"ISHLT", r"CardioMEMS", r"HeartMate",
+    r"DDW\s+\d{4}", r"Prague\s+Rhythm",
+    r"Sakura\s+Forum",
+]
+SPONSORSHIP_OPEX_PATTERN = re.compile(
+    r"\b(OPEX|SIS|EP|CRM|HF)-\d{2,4}[-/]", re.IGNORECASE
+)
+MEETING_ROOM_PATTERN = re.compile(
+    r"^MEETING\s+ROOM\b", re.IGNORECASE
+)
+
+# ============================================================================
+# Resolution Result
+# ============================================================================
+
+class ResolutionResult:
+    __slots__ = ("emp_no", "confidence", "layer", "trace", "flag_code",
+                 "is_sponsorship", "sponsorship_meta", "matched_email")
+
+    def __init__(self, emp_no=None, confidence=0.0, layer="not_resolved",
+                 trace="", flag_code=None, is_sponsorship=False,
+                 sponsorship_meta=None, matched_email=None):
+        self.emp_no = emp_no
+        self.confidence = confidence
+        self.layer = layer
+        self.trace = trace
+        self.flag_code = flag_code
+        self.is_sponsorship = is_sponsorship
+        self.sponsorship_meta = sponsorship_meta or {}
+        self.matched_email = matched_email
+
+
+# ============================================================================
+# Helpers
+# ============================================================================
+
+def _normalize_gds_name(raw: str) -> tuple[str, str]:
+    """Parse GDS 'SURNAME/GIVENNAME TITLE' → (given, surname) normalized.
+    
+    Returns (given_name_upper, surname_upper) with titles stripped.
+    """
+    if not raw:
+        return ("", "")
+    raw = raw.strip().upper()
+    
+    # Remove parenthetical suffixes like (CHD), (INF)
+    raw = re.sub(r"\((?:CHD|INF)\)", "", raw).strip()
+    
+    # Split on /
+    if "/" in raw:
+        parts = raw.split("/", 1)
+        surname = parts[0].strip()
+        rest = parts[1].strip()
+    else:
+        # Non-GDS format (e.g., "AMR ALWAKEEL")
+        tokens = raw.split()
+        if len(tokens) >= 2:
+            return (tokens[0], " ".join(tokens[1:]))
+        return (raw, "")
+    
+    # Strip titles from rest
+    rest_tokens = rest.split()
+    given_tokens = [t for t in rest_tokens if t not in GDS_TITLES]
+    
+    given = " ".join(given_tokens).strip()
+    return (given, surname)
+
+
+def _normalize_transliteration(name: str) -> str:
+    """Apply common Arabic→English transliteration normalization."""
+    tokens = name.upper().split()
+    normalized = []
+    for t in tokens:
+        # Strip article prefix for matching
+        core = t
+        if len(t) > 3:
+            for art in ARTICLE_VARIANTS:
+                if t.startswith(art) and len(t) > len(art) + 1:
+                    # Keep the article-stripped version for matching
+                    pass
+        mapped = TRANSLITERATION_MAP.get(core, core)
+        normalized.append(mapped)
+    return " ".join(normalized)
+
+
+def _strip_article(name: str) -> str:
+    """Strip leading AL/EL article from a name token."""
+    up = name.upper()
+    for art in ["AL-", "EL-", "AL ", "EL "]:
+        if up.startswith(art):
+            return name[len(art):]
+    if len(up) > 3 and up[:2] in ("AL", "EL") and up[2:3].isupper():
+        return name[2:]
+    return name
+
+
+def _tokenize_for_match(name: str) -> list[str]:
+    """Split a name into matchable tokens, strip articles, min length 2."""
+    tokens = re.split(r"[\s,./]+", name.upper())
+    result = []
+    for t in tokens:
+        t = t.strip()
+        if len(t) < 2:
+            continue
+        if t in GDS_TITLES:
+            continue
+        result.append(t)
+    return result
+
+
+def _arabic_normalize(text: str) -> str:
+    """Normalize Arabic text for fuzzy matching."""
+    if not text:
+        return ""
+    # Normalize unicode
+    text = unicodedata.normalize("NFKD", text)
+    # Normalize alif variants → ا
+    text = re.sub(r"[أإآ]", "ا", text)
+    # Normalize taa marbuta → هـ
+    text = re.sub(r"ة", "ه", text)
+    # Remove diacritics (tashkeel)
+    text = re.sub(r"[\u064B-\u065F\u0670]", "", text)
+    # Normalize spaces
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+# ============================================================================
+# Layer implementations
+# ============================================================================
+
+def _layer1_form_empno(form_emp_no, md: MasterData) -> Optional[ResolutionResult]:
+    """L1: Oracle Fusion form Person Number → Manpower lookup."""
+    if not form_emp_no:
+        return None
+    try:
+        emp_no = int(float(str(form_emp_no)))
+    except (ValueError, TypeError):
+        return None
+    
+    if emp_no in md.employees:
+        return ResolutionResult(
+            emp_no=emp_no, confidence=1.0, layer="L1",
+            trace=f"L1→form_emp_no={emp_no}",
+            flag_code="RESOLVED_VIA_FORM_EMPNO",
+        )
+    return None
+
+
+
+def _layer1_5_email(extracted_email: str | None, md: MasterData,
+                     manpower_emails: dict = None) -> Optional[ResolutionResult]:
+    """L1.5: Email-based employee resolution."""
+    if not extracted_email:
+        return None
+    
+    result = resolve_by_email(extracted_email, md, manpower_emails)
+    if result:
+        return ResolutionResult(
+            emp_no=result["emp_no"],
+            confidence=result["confidence"],
+            layer="L1.5",
+            trace=f"L1.5->email={extracted_email} source={result['source']} -> emp={result['emp_no']}",
+            flag_code=result["flag"],
+            matched_email=extracted_email,
+        )
+    return None
+
+
+def _layer2_msg_filename(msg_filenames: list[str], md: MasterData) -> Optional[ResolutionResult]:
+    """L2: (NNNNNNN) regex from .msg filenames."""
+    if not msg_filenames:
+        return None
+    emp_re = re.compile(r"\((\d{7,8})\)")
+    for fname in msg_filenames:
+        m = emp_re.search(str(fname))
+        if m:
+            cand = int(m.group(1))
+            if cand in md.employees:
+                return ResolutionResult(
+                    emp_no=cand, confidence=0.98, layer="L2",
+                    trace=f"L2→msg_filename_empno={cand} from '{Path(fname).name}'",
+                    flag_code="RESOLVED_VIA_MSG_FILENAME",
+                )
+    return None
+
+
+def _layer3_ticket_folder_scan(ticket_no: str, raw_dir: Path, md: MasterData) -> Optional[ResolutionResult]:
+    """L3: Walk raw folder by ticket number, find .msg with emp_no in filename."""
+    if not ticket_no or not raw_dir or not raw_dir.exists():
+        return None
+    
+    emp_re = re.compile(r"\((\d{7,8})\)")
+    
+    # Walk ALL date folders looking for ticket folder
+    for date_dir in sorted(raw_dir.iterdir()):
+        if not date_dir.is_dir():
+            continue
+        for sub in date_dir.iterdir():
+            if not sub.is_dir():
+                continue
+            dirname = sub.name
+            # Match ticket_no in folder name (could be "6905264364" or "6905264364-65")
+            if ticket_no in dirname:
+                # Found the ticket folder — scan for .msg files
+                for f in sub.iterdir():
+                    if f.suffix.lower() == ".msg":
+                        m = emp_re.search(f.name)
+                        if m:
+                            cand = int(m.group(1))
+                            if cand in md.employees:
+                                return ResolutionResult(
+                                    emp_no=cand, confidence=0.97, layer="L3",
+                                    trace=f"L3→folder={dirname}→msg={f.name}→emp={cand}",
+                                    flag_code="RESOLVED_VIA_FOLDER_MSG",
+                                )
+    return None
+
+
+def _layer4_gds_fuzzy(passenger_name: str, md: MasterData) -> Optional[ResolutionResult]:
+    """L4: GDS-format name normalization + rapidfuzz matching."""
+    if not passenger_name:
+        return None
+    
+    given, surname = _normalize_gds_name(passenger_name)
+    if not given and not surname:
+        return None
+    
+    # Build search string in "GIVEN SURNAME" order
+    search_name = f"{given} {surname}".strip().upper()
+    
+    # Try transliteration-normalized version
+    search_norm = _normalize_transliteration(search_name)
+    
+    # Build article-split alternative: ALHAJJ → AL HAJJ
+    search_alt_split = search_name
+    if surname and len(surname) > 4:
+        for prefix in ["AL", "EL"]:
+            if surname.startswith(prefix) and len(surname) > len(prefix) + 2:
+                alt_surname = f"{prefix} {surname[len(prefix):]}"
+                search_alt_split = f"{given} {alt_surname}".strip().upper()
+                break
+    search_alt_split_norm = _normalize_transliteration(search_alt_split)
+    
+    best_emp = None
+    best_score = 0.0
+    second_score = 0.0
+    
+    for emp_no, emp in md.employees.items():
+        emp_name_upper = emp.name.upper()
+        emp_name_norm = _normalize_transliteration(emp_name_upper)
+        
+        # Try multiple fuzzy strategies on raw names
+        score_tsr = rfuzz.token_set_ratio(search_name, emp_name_upper)
+        score_tsort = rfuzz.token_sort_ratio(search_name, emp_name_upper)
+        
+        # Try on transliteration-normalized names
+        score_norm_tsr = rfuzz.token_set_ratio(search_norm, emp_name_norm)
+        score_norm_tsort = rfuzz.token_sort_ratio(search_norm, emp_name_norm)
+        
+        # Try article-split version
+        score_alt_tsr = rfuzz.token_set_ratio(search_alt_split_norm, emp_name_norm) if search_alt_split_norm != search_norm else 0
+        
+        # Also try surname-only match if surname has >3 chars
+        score_partial = 0.0
+        if surname and len(surname) > 3:
+            # Check if surname appears as a token in emp name
+            emp_tokens = emp_name_upper.split()
+            for et in emp_tokens:
+                # Exact surname match in tokens (also try stripped article)
+                et_stripped = _strip_article(et).upper()
+                surname_stripped = _strip_article(surname).upper()
+                if et == surname or et_stripped == surname or et == surname_stripped or et_stripped == surname_stripped:
+                    # Now check if given name also partially matches
+                    if given:
+                        for et2 in emp_tokens:
+                            if et2 != et:
+                                g_score = rfuzz.ratio(given, et2)
+                                g_score_norm = rfuzz.ratio(
+                                    _normalize_transliteration(given),
+                                    _normalize_transliteration(et2)
+                                )
+                                best_g = max(g_score, g_score_norm)
+                                if best_g > 70:
+                                    score_partial = max(score_partial, (best_g + 100) / 2)
+        
+        score = max(score_tsr, score_tsort, score_norm_tsr, score_norm_tsort, score_alt_tsr, score_partial)
+        
+        if score > best_score:
+            second_score = best_score
+            best_score = score
+            best_emp = emp_no
+        elif score > second_score:
+            second_score = score
+    
+    # Threshold logic
+    if best_emp is None:
+        return None
+    
+    # If multiple candidates within 5 points of each other, require higher threshold
+    if second_score > 0 and (best_score - second_score) < 5:
+        threshold = 90
+    else:
+        threshold = 80
+    
+    if best_score >= threshold:
+        return ResolutionResult(
+            emp_no=best_emp, confidence=round(best_score / 100, 2),
+            layer="L4",
+            trace=f"L4→gds_fuzzy score={best_score:.0f} (2nd={second_score:.0f}) search='{search_name}' → emp={best_emp} ({md.employees[best_emp].name})",
+            flag_code="RESOLVED_VIA_GDS_FUZZY",
+        )
+    return None
+
+
+def _layer5_phonetic(passenger_name: str, md: MasterData) -> Optional[ResolutionResult]:
+    """L5: Phonetic + transliteration normalization then fuzzy."""
+    if not passenger_name:
+        return None
+    
+    given, surname = _normalize_gds_name(passenger_name)
+    search_raw = f"{given} {surname}".strip().upper()
+    search_norm = _normalize_transliteration(search_raw)
+    
+    # Get metaphone codes for search tokens
+    search_tokens = _tokenize_for_match(search_norm)
+    search_phones = set()
+    for t in search_tokens:
+        ph = doublemetaphone(t)
+        search_phones.update(p for p in ph if p)
+    
+    if not search_phones:
+        return None
+    
+    best_emp = None
+    best_score = 0.0
+    second_score = 0.0
+    
+    for emp_no, emp in md.employees.items():
+        emp_norm = _normalize_transliteration(emp.name.upper())
+        emp_tokens = _tokenize_for_match(emp_norm)
+        emp_phones = set()
+        for t in emp_tokens:
+            ph = doublemetaphone(t)
+            emp_phones.update(p for p in ph if p)
+        
+        if not emp_phones:
+            continue
+        
+        # Phonetic overlap
+        overlap = len(search_phones & emp_phones)
+        if overlap == 0:
+            continue
+        
+        phone_ratio = overlap / max(len(search_phones), len(emp_phones))
+        
+        # Also run fuzzy on normalized versions
+        fuzzy_score = rfuzz.token_set_ratio(search_norm, emp_norm)
+        
+        # Combined score: weighted
+        combined = phone_ratio * 40 + fuzzy_score * 0.6
+        
+        if combined > best_score:
+            second_score = best_score
+            best_score = combined
+            best_emp = emp_no
+        elif combined > second_score:
+            second_score = combined
+    
+    if best_emp and best_score >= 75 and (best_score - second_score) >= 3:
+        return ResolutionResult(
+            emp_no=best_emp, confidence=round(min(best_score / 100, 0.95), 2),
+            layer="L5",
+            trace=f"L5→phonetic combined={best_score:.1f} (2nd={second_score:.1f}) '{search_raw}'→'{search_norm}' → emp={best_emp} ({md.employees[best_emp].name})",
+            flag_code="RESOLVED_VIA_PHONETIC",
+        )
+    return None
+
+
+def _layer6_arabic(passenger_name: str, description: str, msg_filenames: list[str],
+                    md: MasterData) -> Optional[ResolutionResult]:
+    """L6: Arabic name matching against Manpower Arabic Name column."""
+    # Extract Arabic text from description, msg filenames, or subject
+    arabic_texts = []
+    
+    # Check for Arabic in description
+    if description:
+        arabic_chars = re.findall(r"[\u0600-\u06FF]+", description)
+        if arabic_chars:
+            arabic_texts.append(" ".join(arabic_chars))
+    
+    # Check msg filenames for Arabic
+    for fn in (msg_filenames or []):
+        fn_str = str(fn)
+        arabic_chars = re.findall(r"[\u0600-\u06FF]+", fn_str)
+        if arabic_chars:
+            arabic_texts.append(" ".join(arabic_chars))
+    
+    if not arabic_texts:
+        return None
+    
+    combined_arabic = _arabic_normalize(" ".join(arabic_texts))
+    if len(combined_arabic) < 3:
+        return None
+    
+    best_emp = None
+    best_score = 0.0
+    
+    for emp_no, emp in md.employees.items():
+        if not emp.arabic_name:
+            continue
+        emp_arabic = _arabic_normalize(emp.arabic_name)
+        if not emp_arabic:
+            continue
+        
+        score = rfuzz.token_set_ratio(combined_arabic, emp_arabic)
+        if score > best_score:
+            best_score = score
+            best_emp = emp_no
+    
+    if best_emp and best_score >= 80:
+        return ResolutionResult(
+            emp_no=best_emp, confidence=round(best_score / 100, 0.90),
+            layer="L6",
+            trace=f"L6→arabic_match score={best_score:.0f} → emp={best_emp} ({md.employees[best_emp].name})",
+            flag_code="RESOLVED_VIA_ARABIC_NAME",
+        )
+    return None
+
+
+def _layer7_approver_subordinate(form_approver: str, passenger_name: str,
+                                  md: MasterData) -> Optional[ResolutionResult]:
+    """L7: Use approver name to narrow to their subordinates, then fuzzy."""
+    if not form_approver:
+        return None
+    
+    # Find the approver in Manpower
+    approver_emp = None
+    approver_score = 0.0
+    for emp_no, emp in md.employees.items():
+        score = rfuzz.token_set_ratio(form_approver.upper(), emp.name.upper())
+        if score > approver_score:
+            approver_score = score
+            approver_emp = emp_no
+    
+    if not approver_emp or approver_score < 75:
+        return None
+    
+    # Find subordinates (employees whose manager_no == approver_emp)
+    subordinates = {
+        eno: emp for eno, emp in md.employees.items()
+        if emp.manager_no == approver_emp
+    }
+    
+    if not subordinates:
+        return None
+    
+    # Fuzzy match passenger name against subordinates only
+    given, surname = _normalize_gds_name(passenger_name)
+    search_name = f"{given} {surname}".strip().upper()
+    
+    best_emp = None
+    best_score = 0.0
+    
+    for emp_no, emp in subordinates.items():
+        score_tsr = rfuzz.token_set_ratio(search_name, emp.name.upper())
+        score_norm = rfuzz.token_set_ratio(
+            _normalize_transliteration(search_name),
+            _normalize_transliteration(emp.name.upper())
+        )
+        score = max(score_tsr, score_norm)
+        if score > best_score:
+            best_score = score
+            best_emp = emp_no
+    
+    if best_emp and best_score >= 70:
+        return ResolutionResult(
+            emp_no=best_emp, confidence=round(best_score / 100 * 0.9, 2),
+            layer="L7",
+            trace=f"L7→approver={form_approver}(emp={approver_emp})→subordinate fuzzy={best_score:.0f} → emp={best_emp} ({md.employees[best_emp].name})",
+            flag_code="RESOLVED_VIA_APPROVER_SUBORDINATE",
+        )
+    return None
+
+
+def _layer8_cache(passenger_name: str, md: MasterData) -> Optional[ResolutionResult]:
+    """L8: Cross-batch passenger cache lookup."""
+    if not passenger_name:
+        return None
+    
+    cache = _load_cache()
+    if not cache:
+        return None
+    
+    # Normalize the passenger name for cache lookup
+    given, surname = _normalize_gds_name(passenger_name)
+    key = f"{given} {surname}".strip().upper()
+    key_norm = _normalize_transliteration(key)
+    
+    # Try exact key
+    if key in cache:
+        emp_no = cache[key]
+        if emp_no in md.employees:
+            return ResolutionResult(
+                emp_no=emp_no, confidence=0.95, layer="L8",
+                trace=f"L8→cache hit key='{key}' → emp={emp_no}",
+                flag_code="RESOLVED_VIA_CROSS_BATCH_CACHE",
+            )
+    
+    # Try normalized key
+    if key_norm in cache:
+        emp_no = cache[key_norm]
+        if emp_no in md.employees:
+            return ResolutionResult(
+                emp_no=emp_no, confidence=0.93, layer="L8",
+                trace=f"L8→cache hit norm_key='{key_norm}' → emp={emp_no}",
+                flag_code="RESOLVED_VIA_CROSS_BATCH_CACHE",
+            )
+    
+    return None
+
+
+def _layer9_sponsorship(passenger_name: str, description: str,
+                         all_layers_failed: bool) -> Optional[ResolutionResult]:
+    """L9: Sponsorship / external traveler auto-route."""
+    if not description:
+        return None
+    
+    desc_upper = description.upper()
+    
+    # Meeting room pattern — not a person at all
+    if MEETING_ROOM_PATTERN.search(description):
+        return ResolutionResult(
+            emp_no=None, confidence=0.95, layer="L9",
+            trace="L9→MEETING_ROOM pattern",
+            flag_code="MEETING_ROOM_AUTO_ROUTED",
+            is_sponsorship=True,
+            sponsorship_meta={
+                "auto_account": "60307021",
+                "reason": "meeting_room_booking",
+            },
+        )
+    
+    # Check ground services (airport pick up/drop off)
+    for pat in SPONSORSHIP_GROUND_KEYWORDS:
+        if re.search(pat, desc_upper):
+            return ResolutionResult(
+                emp_no=None, confidence=0.90, layer="L9",
+                trace=f"L9→ground_service pattern '{pat}'",
+                flag_code="SPONSORSHIP_AUTO_ROUTED",
+                is_sponsorship=True,
+                sponsorship_meta={
+                    "auto_account": "60307021",
+                    "reason": "ground_services_external",
+                },
+            )
+    
+    # Check event/conference registrations
+    for pat in SPONSORSHIP_EVENT_KEYWORDS:
+        if re.search(pat, description, re.IGNORECASE):
+            # Only if also has OPEX/SIS/EP/CRM/HF reference
+            if SPONSORSHIP_OPEX_PATTERN.search(description):
+                return ResolutionResult(
+                    emp_no=None, confidence=0.85, layer="L9",
+                    trace=f"L9→event+OPEX pattern '{pat}'",
+                    flag_code="SPONSORSHIP_AUTO_ROUTED",
+                    is_sponsorship=True,
+                    sponsorship_meta={
+                        "auto_account": "60307021",
+                        "reason": "sponsored_event_registration",
+                    },
+                )
+    
+    # Hotel bookings for non-employees with OPEX reference
+    if re.search(r"\d+\s*NTS?\.", description, re.IGNORECASE) and SPONSORSHIP_OPEX_PATTERN.search(description):
+        if all_layers_failed:
+            return ResolutionResult(
+                emp_no=None, confidence=0.80, layer="L9",
+                trace="L9→hotel+OPEX pattern, all layers failed",
+                flag_code="SPONSORSHIP_AUTO_ROUTED",
+                is_sponsorship=True,
+                sponsorship_meta={
+                    "auto_account": "60307021",
+                    "reason": "sponsored_hotel_booking",
+                },
+            )
+    
+    # New employee annotation
+    if "new employee" in description.lower():
+        return ResolutionResult(
+            emp_no=None, confidence=0.90, layer="L9",
+            trace="L9→'new employee' annotation in description",
+            flag_code="NEW_EMPLOYEE_NOT_IN_MASTER",
+            is_sponsorship=False,
+        )
+    
+    # Train ticket for non-employee with OPEX ref
+    if re.search(r"TRAIN\s+TICKET", desc_upper) and all_layers_failed:
+        # Check if there's a close-enough name in Manpower first — don't auto-route employees
+        return None  # Let it fall through; Layer 4/5 should catch employees
+    
+    return None
+
+
+# ============================================================================
+# Cache management
+# ============================================================================
+
+def _load_cache() -> dict:
+    """Load passenger→empno cache from disk."""
+    if CACHE_PATH.exists():
+        try:
+            with open(CACHE_PATH) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return {}
+    return {}
+
+
+def save_cache(cache: dict):
+    """Save passenger→empno cache to disk."""
+    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(CACHE_PATH, "w") as f:
+        json.dump(cache, f, indent=2, ensure_ascii=False)
+
+
+def enrich_cache(results: list[tuple[str, int]]):
+    """Add resolved passenger→empno pairs to cache.
+    
+    Args:
+        results: list of (normalized_passenger_name, emp_no) tuples
+    """
+    cache = _load_cache()
+    for name, emp_no in results:
+        if name and emp_no:
+            key = name.strip().upper()
+            cache[key] = emp_no
+            # Also store transliteration-normalized version
+            key_norm = _normalize_transliteration(key)
+            if key_norm != key:
+                cache[key_norm] = emp_no
+    save_cache(cache)
+
+
+# ============================================================================
+# Main cascade
+# ============================================================================
+
+def resolve_employee(
+    passenger_name: str,
+    description: str,
+    emp_no_raw: int | None,
+    form_emp_no: str | None,
+    form_approver: str | None,
+    msg_filenames: list[str] | None,
+    ticket_no: str | None,
+    raw_dir: Path | None,
+    md: MasterData,
+    extracted_email: str | None = None,
+    manpower_emails: dict = None,
+) -> ResolutionResult:
+    """Run the 9-layer resolution cascade.
+    
+    Short-circuits at first high-confidence hit.
+    Returns ResolutionResult with layer info and trace.
+    """
+    msg_filenames = msg_filenames or []
+    
+    # Pre-check: if emp_no_raw directly resolves, skip cascade
+    if emp_no_raw and emp_no_raw in md.employees:
+        return ResolutionResult(
+            emp_no=emp_no_raw, confidence=1.0, layer="L0",
+            trace=f"L0→direct emp_no_col={emp_no_raw}",
+            flag_code="RESOLVED_VIA_DIRECT",
+        )
+    
+    # L1: Form Emp No
+    r = _layer1_form_empno(form_emp_no, md)
+    if r:
+        return r
+    
+    # L1.5: Email match
+    r = _layer1_5_email(extracted_email, md, manpower_emails)
+    if r:
+        return r
+    
+    # L2: .msg filename regex
+    r = _layer2_msg_filename(msg_filenames, md)
+    if r:
+        return r
+    
+    # L3: Ticket folder → .msg → emp_no
+    r = _layer3_ticket_folder_scan(ticket_no, raw_dir, md)
+    if r:
+        return r
+    
+    # L4: GDS-format name normalization + fuzzy
+    r = _layer4_gds_fuzzy(passenger_name, md)
+    if r:
+        return r
+    
+    # L5: Phonetic / transliteration
+    r = _layer5_phonetic(passenger_name, md)
+    if r:
+        return r
+    
+    # L6: Arabic name matching
+    r = _layer6_arabic(passenger_name, description, msg_filenames, md)
+    if r:
+        return r
+    
+    # L7: Approver → subordinate lookup
+    r = _layer7_approver_subordinate(form_approver, passenger_name, md)
+    if r:
+        return r
+    
+    # L8: Cross-batch cache
+    r = _layer8_cache(passenger_name, md)
+    if r:
+        return r
+    
+    # L9: Sponsorship / external traveler auto-route
+    r = _layer9_sponsorship(passenger_name, description, all_layers_failed=True)
+    if r:
+        return r
+    
+    # Nothing resolved
+    return ResolutionResult(
+        emp_no=None, confidence=0.0, layer="not_resolved",
+        trace=f"All 9 layers failed for '{passenger_name}'",
+        flag_code=None,
+    )

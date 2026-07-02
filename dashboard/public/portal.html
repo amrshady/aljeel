@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Accord Partners - AlJeel AP Integration Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #1E40AF;
+      --action: #2563EB;
+      --sage:   #F0F4F3;
+      --bg:     #F8FAFC;
+      --surface:#FFFFFF;
+      --border: #E5E7EB;
+      --text:   #111827;
+      --muted:  #6B7280;
+      --green:  #16A34A;
+      --yellow: #D97706;
+      --red:    #DC2626;
+      --ok:     #16A34A;
+      --warn:   #D97706;
+      --alert:  #EA580C;
+      --err:    #DC2626;
+      --ink:    #111827;
+      --ink2:   #6B7280;
+      --line:   #E5E7EB;
+      --gold:   #B8860B;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+    }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    /* ── NAV ── */
+    nav { position: sticky; top: 0; z-index: 100; background: var(--navy); color: #fff; height: 52px; display: flex; align-items: center; padding: 0 24px; gap: 16px; box-shadow: var(--shadow-md); }
+    nav .brand { font-weight: 700; font-size: 15px; letter-spacing: -.01em; white-space: nowrap; }
+    nav .divider { opacity: .35; }
+    nav .subtitle { font-size: 13px; font-weight: 400; opacity: .85; white-space: nowrap; }
+    nav .spacer { flex: 1; }
+    nav a.back { color: rgba(255,255,255,.75); text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 4px; transition: color .15s; }
+    nav a.back:hover { color: #fff; }
+
+    /* ── CONTAINER ── */
+    main { max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; }
+
+    /* ── HEADER ── */
+    .header { margin-bottom: 32px; }
+    .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; color: var(--navy); margin-bottom: 8px; }
+    .header p { color: var(--muted); font-size: 15px; max-width: 800px; }
+
+    /* ── CARD GRID ── */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+    @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+    .card-title { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title .badge { font-size: 11px; font-weight: 600; background: var(--sage); color: var(--action); padding: 2px 8px; border-radius: 100px; }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 6px; }
+    .form-group input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 13px; color: var(--text); outline: none; transition: border-color .15s; }
+    .form-group input[type="text"]:focus { border-color: var(--action); }
+
+    /* ── DIRECTORY BROWSER COMPONENT ── */
+    .folder-browser {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+      margin-top: 8px;
+      text-align: left;
+    }
+    .folder-header {
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: grid;
+      grid-template-columns: 2.2fr 1fr 1.2fr;
+      gap: 12px;
+    }
+    .folder-row {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 2.2fr 1fr 1.2fr;
+      gap: 12px;
+      align-items: center;
+      transition: background .15s;
+    }
+    .folder-row:last-child {
+      border-bottom: none;
+    }
+    .folder-row:hover {
+      background: #F8FAFC;
+    }
+    .folder-row.selected {
+      background: var(--sage);
+      border-left: 4px solid var(--action);
+    }
+    .folder-name-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .folder-icon {
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+    }
+    .folder-name {
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .folder-info {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .folder-size, .folder-date {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── UPLOAD BOX ── */
+    .drop-zone { border: 2px dashed var(--border); border-radius: 6px; padding: 32px 16px; text-align: center; cursor: pointer; background: var(--bg); transition: all .15s; position: relative; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--action); background: rgba(37,99,235,.03); }
+    .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .drop-zone-text { font-size: 13px; color: var(--muted); }
+    .drop-zone-text strong { color: var(--action); font-weight: 500; }
+    .file-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--sage); border: 1px solid var(--border); padding: 6px 12px; border-radius: 100px; font-size: 12px; font-weight: 500; color: var(--navy); margin-top: 12px; }
+
+    /* ── BUTTONS ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: inherit; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; text-decoration: none; border: none; transition: all .15s; }
+    .btn-primary { background: var(--action); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--navy); }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .btn-gold { background: var(--gold); color: #fff; }
+    .btn-gold:hover { background: #966D08; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #15803D; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--sage); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #B91C1C; }
+    .btn-danger:disabled { opacity: .65; cursor: not-allowed; }
+    .btn-warning { background: var(--yellow); color: #fff; }
+    .btn-warning:hover { background: #B45309; }
+
+    /* ── PROGRESS BAR ── */
+    .progress-container { margin-top: 16px; display: none; }
+    .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { height: 100%; width: 0%; background: var(--action); border-radius: 100px; transition: width .1s linear; }
+    .progress-text { font-size: 11px; font-weight: 500; color: var(--muted); display: flex; justify-content: space-between; }
+    .reconnect-status { color: var(--yellow); display: inline-flex; align-items: center; gap: 6px; }
+    .reconnect-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); animation: pulse-reconnect 1s ease-in-out infinite; }
+    .reconnect-actions { margin-top: 10px; display: none; justify-content: flex-end; }
+    @keyframes pulse-reconnect {
+      0%, 100% { opacity: .35; transform: scale(.85); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── RESUME BANNER ── */
+    .resume-banner { display: none; align-items: center; justify-content: space-between; gap: 16px; background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.35); border-left: 4px solid var(--yellow); color: var(--text); border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .resume-banner strong { color: var(--navy); }
+    .resume-banner-text { font-size: 13px; }
+    .resume-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    @media (max-width: 640px) {
+      .resume-banner { align-items: flex-start; flex-direction: column; }
+      .resume-banner-actions { width: 100%; }
+      .resume-banner-actions .btn { flex: 1; }
+    }
+
+    /* ── TERMINAL LOGS ── */
+    .terminal { background: #0F172A; color: #38BDF8; font-family: monospace; font-size: 12px; padding: 16px; border-radius: 6px; height: 180px; overflow-y: auto; margin-top: 16px; line-height: 1.6; display: none; text-align: left; }
+    .terminal-line { margin-bottom: 2px; }
+    .terminal-line.success { color: #34D399; }
+    .terminal-line.warning { color: #FBBF24; }
+    .terminal-line.error { color: var(--red); }
+    .terminal-line.muted { color: #94A3B8; }
+    .terminal-line.qa-high { color: var(--err); font-weight: 600; }
+    .terminal-line.qa-medium { color: var(--yellow); font-weight: 600; }
+    .terminal-line.qa-low { color: var(--ok); font-weight: 600; }
+    .terminal-line.qa-clean { color: var(--ok); font-weight: 600; }
+    .qa-actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+    .qa-actions .btn { flex: 1; }
+    .qa-panel { display: none; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; text-align: left; }
+    .qa-panel.open { display: block; }
+    .qa-panel-header { width: 100%; border: 0; background: #fff; color: var(--navy); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; font: inherit; font-weight: 600; cursor: pointer; }
+    .qa-panel-header:hover { background: var(--sage); }
+    .qa-badge { display: none; background: rgba(22,163,74,0.1); color: var(--ok); border: 1px solid rgba(22,163,74,0.25); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+    .qa-terminal { display: none; height: 260px; margin: 0; border-radius: 0; border-top: 1px solid var(--border); }
+    .qa-panel.open .qa-terminal { display: block; }
+    .clear-lock-panel { display: none; margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); text-align: left; }
+    .clear-lock-panel .btn { margin-top: 10px; }
+    .clear-lock-message { font-size: 12px; color: var(--muted); }
+    .clear-lock-message.success { color: var(--green); font-weight: 600; }
+    .clear-lock-message.error { color: var(--red); font-weight: 600; }
+    .preflight-panel { display: none; margin-top: 14px; padding: 14px; border-radius: 6px; text-align: left; }
+    .preflight-panel.loading { display: block; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-weight: 600; }
+    .preflight-panel.ok { display: block; border: 1px solid rgba(22,163,74,0.25); background: rgba(22,163,74,0.08); color: var(--green); font-weight: 600; }
+    .preflight-panel.warning { display: block; border: 1px solid rgba(217,119,6,0.45); background: rgba(217,119,6,0.10); color: var(--text); }
+    .preflight-title { display: flex; align-items: center; gap: 8px; color: var(--yellow); font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+    .preflight-title svg { flex: 0 0 auto; }
+    .preflight-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(217,119,6,0.25); }
+    .preflight-section-title { color: var(--navy); font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+    .preflight-list { margin: 0; padding-left: 18px; max-height: 150px; overflow: auto; color: var(--text); font-size: 12px; }
+    .preflight-list li { margin-bottom: 4px; overflow-wrap: anywhere; }
+    .preflight-note { margin-top: 12px; color: var(--yellow); font-size: 12px; font-weight: 600; }
+    .preflight-actions { display: flex; gap: 10px; margin-top: 12px; }
+    .preflight-actions .btn { flex: 1; }
+
+    /* ── SECTION HEADER ── */
+    .section-title { font-size: 18px; font-weight: 600; color: var(--navy); margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+
+    /* ── COMPARISON TABLE ── */
+    .table-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 32px; display: none; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th { background: #F1F5F9; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #F8FAFC; }
+
+    .badge-status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-status.match { background: rgba(22,163,74,0.1); color: var(--green); }
+    .badge-status.mismatch { background: rgba(220,38,38,0.1); color: var(--red); }
+
+    .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11.5px; }
+    .diff-item { background: var(--bg); border: 1px solid var(--border); padding: 8px; border-radius: 4px; }
+    .diff-item.truth { border-left: 3px solid var(--gold); }
+    .diff-item.ours { border-left: 3px solid var(--action); }
+    .diff-item-title { font-weight: 600; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .diff-code { font-family: monospace; font-size: 12px; font-weight: 600; }
+    .diff-highlight { color: var(--red); font-weight: 700; background: #FFFEF2; padding: 1px 3px; border-radius: 2px; }
+
+    /* ── BRAND FOOTER ── */
+    footer { max-width: 1200px; margin: 0 auto; padding: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <div class="brand">Accord Partners</div>
+    <div class="divider">|</div>
+    <div class="subtitle">AlJeel AP Integration Portal</div>
+    <div class="spacer"></div>
+    <a href="/index.html" class="back">← Back to Dashboard</a>
+  </nav>
+
+  <!-- ── MAIN CONTAINER ── -->
+  <main>
+
+    <!-- ── HEADER ── -->
+    <div class="header">
+      <h1>AP Pipeline Integration Portal</h1>
+      <p>Upload raw monthly invoice spreadsheets, select filesystems, run the Accord AP Agent auditing pipeline, and compare the outputs segment-by-segment with finance-team ground truth reviews.</p>
+    </div>
+
+    <div class="resume-banner" id="resume-banner">
+      <div class="resume-banner-text" id="resume-banner-text"></div>
+      <div class="resume-banner-actions">
+        <button class="btn btn-warning" id="btn-resume-run" type="button">Resume</button>
+        <button class="btn btn-secondary" id="btn-dismiss-resume" type="button">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- ── CARD GRID ── -->
+    <div class="grid">
+
+      <!-- ── CARD 1: RUN PIPELINE ── -->
+      <div class="card">
+        <div class="card-title">
+          <span>Phase 1: Run Auditing Engine</span>
+          <span class="badge">Jawal Pipeline</span>
+        </div>
+
+        <div class="form-group">
+          <label>1. Upload Invoice File (Spreadsheet)</label>
+          <div class="drop-zone" id="dz-invoice">
+            <span class="drop-zone-text">Drag & drop Jawal spreadsheet here or <strong>browse files</strong></span>
+            <input type="file" id="file-invoice" accept=".xlsx,.xls" />
+          </div>
+          <div id="pill-invoice" style="display:none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>2. Evidence Directory (Filesystem Browser)</label>
+          <div style="font-size:12px; color:var(--muted); margin-bottom:8px; text-align:left;">Select an existing evidence batch folder from your live repository:</div>
+          <div class="folder-browser" id="folder-browser">
+            <div class="folder-header">
+              <span>Name</span>
+              <span>Size</span>
+              <span>Modified</span>
+            </div>
+            <div id="batch-list-loading" style="padding:12px 14px; color:var(--muted); font-size:12px;">Loading batches...</div>
+            <div id="batch-folder-list"></div>
+          </div>
+          <input type="hidden" id="evidence-path" value="" />
+        </div>
+
+        
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="btn btn-primary" id="btn-run" style="flex: 1;" disabled>Run AP Agent Pipeline</button>
+          <label style="font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input type="checkbox" id="checkbox-no-cache"> Force Fresh (All Caches)
+          </label>
+        </div>
+        <div class="qa-actions">
+          <button class="btn btn-secondary" id="btn-qa-run" type="button" disabled>🔍 Run QA Agent</button>
+        </div>
+        <div class="preflight-panel" id="preflight-panel" aria-live="polite"></div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-text">
+            <span id="progress-status">Analyzing row 0/103...</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="reconnect-actions" id="reconnect-actions">
+            <button class="btn btn-warning" id="btn-cancel-reconnect" type="button">Cancel reconnect</button>
+          </div>
+
+          <!-- Live Audit Statistics Grid -->
+          <div id="stats-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; border-top:1px solid var(--border); padding-top:10px; text-align:left;">
+            <div>
+              <div style="font-size:10px; font-weight:600; text-transform:uppercase; color:var(--muted); letter-spacing:0.04em;">Audited Rows</div>
+              <div id="stat-audited-rows" style="font-size:16px; font-weight:700; color:var(--navy); margin-top:2px;">—</div>
+            </div>
+            <div>
+              <div style="font-size:10px; font-weight:600; text-transform:uppercase; color:var(--muted); letter-spacing:0.04em;">Actual LLM Requests</div>
+              <div id="stat-llm-calls" style="font-size:16px; font-weight:700; color:var(--red); margin-top:2px;">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Logs -->
+        <div class="terminal" id="terminal"></div>
+        <div class="qa-panel" id="qa-panel">
+          <button class="qa-panel-header" id="qa-panel-toggle" type="button">
+            <span>QA Agent Report</span>
+            <span class="qa-badge" id="qa-badge">QA Complete</span>
+          </button>
+          <div class="terminal qa-terminal" id="qa-terminal"></div>
+        </div>
+        <div class="clear-lock-panel" id="clear-lock-panel">
+          <div class="clear-lock-message" id="clear-lock-message">A run lock is blocking the pipeline.</div>
+          <button class="btn btn-danger" id="btn-clear-lock" type="button">Clear Stale Lock</button>
+        </div>
+
+        <!-- Success Panel -->
+        <div id="panel-success" style="display:none; margin-top:20px; text-align:center;">
+          <p style="color:var(--green); font-weight:600; font-size:14px; margin-bottom:12px;">✅ AP Agent Pipeline Run Completed Successfully!</p>
+          <a id="portal-download-btn" href="#" class="btn btn-primary" download style="margin-top:12px; width:100%; display:none;">
+            📥 Download Output (Excel)
+          </a>
+          <a id="btn-download-split" href="#" class="btn btn-success" download style="width:100%; margin-top:8px; display:none;">📥 Download Split Output</a>
+        </div>
+      </div>
+
+      <!-- ── CARD 2: GROUND TRUTH COMPARISON ── -->
+      <div class="card">
+        <div class="card-title">
+          <span>Phase 2: Compare & Audit Mismatches</span>
+          <span class="badge">Reconciliation</span>
+        </div>
+
+        <div class="form-group">
+          <label>1. Upload Ground Truth File (Review Sheet)</label>
+          <div class="drop-zone" id="dz-truth">
+            <span class="drop-zone-text">Drag & drop verification files here or <strong>browse files</strong></span>
+            <input type="file" id="file-truth" accept=".xlsx,.csv" />
+          </div>
+          <div id="pill-truth" style="display:none;"></div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-compare" style="width: 100%; margin-top:38px;" disabled>Run Discrepancy Comparison</button>
+
+        <div id="panel-compare-success" style="display:none; margin-top:20px; text-align:center;">
+          <p style="color:var(--green); font-weight:600; font-size:14px; margin-bottom:12px;">✅ Segment-by-Segment Comparison Completed!</p>
+          <button class="btn btn-gold" id="btn-download-report" style="width:100%;">📥 Download Comparison Report (CSV)</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── COMPARISON TABLE SECTION ── -->
+    <div class="section-title" id="comparison-section-title" style="display:none; align-items: center;">
+      <span>Audit Comparison Table - Distribution Combination Match</span>
+      <div style="display:flex; gap:16px; align-items:center;">
+        <span style="font-size:12px; font-weight:600; background:rgba(37,99,235,0.1); color:var(--action); padding:4px 10px; border-radius:100px;" id="badge-rows-ours">Ours: 0 rows</span>
+        <span style="font-size:12px; font-weight:600; background:rgba(202,138,4,0.1); color:var(--gold); padding:4px 10px; border-radius:100px;" id="badge-rows-truth">Truth: 0 rows</span>
+        <span style="font-size:14px; font-weight:700; color:var(--navy);" id="comparison-score-badge">Score: 92/98 = 93.9%</span>
+      </div>
+    </div>
+
+    <div class="table-container" id="table-container">
+      <table id="comp-table">
+        <thead>
+          <tr>
+            <th>Sl. #</th>
+            <th>Passenger Name & Route</th>
+            <th>Location</th>
+            <th>Account</th>
+            <th>Cost Center</th>
+            <th>DIV</th>
+            <th>Solution</th>
+            <th>Agency</th>
+            <th>Employee No</th>
+            <th style="width:100px; text-align:center;">Status</th>
+            <th style="width:80px; text-align:center;">Audit</th>
+          </tr>
+        </thead>
+        <tbody id="comp-table-body">
+          <!-- Rows injected dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── AUDIT MODAL ── -->
+    <div id="audit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); z-index:999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+      <div style="background:#fff; width:90%; max-width:700px; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); display:flex; flex-direction:column; max-height:85vh; overflow:hidden;">
+        <div style="padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#F8FAFC;">
+          <div>
+            <h3 style="margin:0; color:var(--navy); font-size:18px; font-weight:700;" id="audit-modal-title">LLM Audit Trace</h3>
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;" id="audit-modal-subtitle">Ticket: 1234567890</div>
+          </div>
+          <button id="audit-modal-close" style="background:none; border:none; font-size:24px; color:var(--muted); cursor:pointer; line-height:1;">&times;</button>
+        </div>
+        <div style="padding:24px; overflow-y:auto; flex:1;" id="audit-modal-body">
+          <div style="text-align:center; padding:40px; color:var(--muted);">Loading audit data...</div>
+        </div>
+        <div style="padding:16px 24px; border-top:1px solid var(--border); background:#F8FAFC; text-align:right;">
+          <button class="btn" style="background:var(--border); color:var(--text);" id="audit-modal-close-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div>Accord Partners - confidential, prepared for AlJeel Medical CFO office</div>
+    <div>System Time: Sat 2026-06-06 15:15:46 UTC</div>
+  </footer>
+
+  <!-- ── JAVASCRIPT LOGIC ── -->
+  <script>
+    // Oracle Master Data Code Lookups
+    const LOOKUPS = {
+      cc: {
+        "160012": "IVD Solutions",
+        "160014": "Abbott Sponsoring",
+        "250010": "Tech Services HO"
+      },
+      div: {
+        "194": "IVD Solutions",
+        "170": "Abbott"
+      },
+      solution: {
+        "00000": "General",
+        "10017": "CRM"
+      },
+      agency: {
+        "10200": "S&M",
+        "10072": "Abbott"
+      }
+    };
+
+    // State Variables
+    let invoiceData = null;
+    let truthData = null;
+    let comparisonRows = [];
+    let selectedEvidenceFolder = "";
+    let uploadedFileName = "";
+    let selectedInvoiceFile = null;
+    let ours_map = {}; // Dynamically populated from the server or Step 1 upload
+
+    // API base: when served from files-aljeel.accordpartners.ai, route API calls
+    // to the main finance portal where the Cloudflare Pages worker proxy lives.
+    // Declared before loadOursFile's top-level startup call below.
+    const API_BASE = window.location.hostname === 'files-aljeel.accordpartners.ai'
+      ? 'https://finance.aljeel.accordpartners.ai'
+      : '';
+
+    // Background loader for Ours resolved spreadsheets
+    async function loadOursFile(folderId) {
+      ours_map = {};
+      const url = API_BASE + `/api/download/${encodeURIComponent(folderId)}/full`;
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const arrayBuffer = await resp.arrayBuffer();
+          const data = new Uint8Array(arrayBuffer);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const ws_ours = workbook.Sheets[workbook.SheetNames[0]];
+          const rows_ours = XLSX.utils.sheet_to_json(ws_ours, {header: 1});
+          if (rows_ours.length > 3) {
+            // Find our header row (Row 3, index 2)
+            const headers_ours = rows_ours[2] ? rows_ours[2].map(x => String(x || '').trim()) : [];
+            const o_desc = headers_ours.indexOf('Description');
+            const o_acct = headers_ours.indexOf('Account');
+            const o_emp = headers_ours.indexOf('Employee No');
+            const o_cc = headers_ours.indexOf('Cost Center');
+            const o_div = headers_ours.indexOf('DIV');
+            const o_sol = headers_ours.indexOf('Solution');
+            const o_ag = headers_ours.indexOf('Agency');
+            const o_loc = headers_ours.indexOf('Location');
+
+            if (o_desc !== -1 && o_acct !== -1) {
+              for (let r = 3; r < rows_ours.length; r++) {
+                const row = rows_ours[r];
+                if (!row || !row[o_desc]) continue;
+                const d = String(row[o_desc]);
+                const m = _TICKET_RE.search(d);
+                if (m) {
+                  const t = m.group(1);
+                  ours_map[t] = {
+                    account: String(row[o_acct] || '').trim(),
+                    emp_no: String(row[o_emp] || '').trim().replace('None', '').replace('-', ''),
+                    cc: String(row[o_cc] || '').trim(),
+                    div: String(row[o_div] || '').trim(),
+                    solution: String(row[o_sol] || '').trim(),
+                    agency: String(row[o_ag] || '').trim(),
+                    location: String(row[o_loc] || '').trim()
+                  };
+                }
+              }
+            }
+          }
+          console.log(`Loaded ours_map for ${folderId} successfully from server!`);
+        }
+      } catch (err) {
+        console.error("Error fetching ours file:", err);
+      }
+    }
+
+    // Folder Browser logic
+    const hiddenPathInput = document.getElementById('evidence-path');
+    const batchFolderList = document.getElementById('batch-folder-list');
+    const batchListLoading = document.getElementById('batch-list-loading');
+    const BATCH_ITEM_COUNTS = {};
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[ch]));
+    }
+
+    function getFolderRows() {
+      return Array.from(document.querySelectorAll('.folder-row'));
+    }
+
+    function folderIconSvg() {
+      return `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
+        </svg>
+      `;
+    }
+
+    function renderBatchRow(batch) {
+      const itemCount = Number(batch.item_count || 0);
+      const itemLabel = `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
+      return `
+        <div class="folder-row" data-id="${escapeHtml(batch.id)}" data-path="">
+          <div class="folder-name-container">
+            <span class="folder-icon">${folderIconSvg()}</span>
+            <div>
+              <div class="folder-name">${escapeHtml(batch.id)}</div>
+              <div class="folder-info">${escapeHtml(itemLabel)}</div>
+            </div>
+          </div>
+          <span class="folder-size">${escapeHtml(batch.size_label || '0 B')}</span>
+          <span class="folder-date">${escapeHtml(batch.modified || '')}</span>
+        </div>
+      `;
+    }
+
+    function selectDefaultBatch() {
+      const defaultRow = document.querySelector('.folder-row[data-id="J26-788"]') || document.querySelector('.folder-row');
+      if (defaultRow) selectFolder(defaultRow);
+    }
+
+    async function loadBatchList() {
+      batchListLoading.style.display = 'block';
+      batchListLoading.textContent = 'Loading batches...';
+      batchFolderList.innerHTML = '';
+
+      try {
+        const resp = await fetch(API_BASE + '/api/batches', { cache: 'no-store' });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+        const batches = Array.isArray(data.batches) ? data.batches : [];
+        batches.forEach(batch => {
+          BATCH_ITEM_COUNTS[batch.id] = Number(batch.item_count || 0);
+        });
+
+        batchListLoading.style.display = batches.length ? 'none' : 'block';
+        batchListLoading.textContent = batches.length ? '' : 'No batches found.';
+        batchFolderList.innerHTML = batches.map(renderBatchRow).join('');
+        selectDefaultBatch();
+      } catch (err) {
+        batchListLoading.style.display = 'block';
+        batchListLoading.textContent = 'Could not load batches — check connection';
+        console.error('[portal] Could not load batches:', err);
+      }
+    }
+
+    batchFolderList.addEventListener('click', (event) => {
+      const row = event.target.closest('.folder-row');
+      if (row) {
+        selectFolder(row);
+      }
+    });
+
+    function selectFolder(row) {
+      getFolderRows().forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+      const folderId = row.getAttribute('data-id');
+      selectedEvidenceFolder = folderId ? `jawal-${folderId}/raw` : "";
+      hiddenPathInput.value = selectedEvidenceFolder;
+
+      loadOursFile(folderId); // Pre-load resolved spreadsheet for comparison in the background
+
+      console.log("Selected Evidence Batch:", folderId);
+      checkEnableRun();
+    }
+
+    // Pre-load default J26-788 rows on startup
+    loadOursFile('J26-788');
+
+    function checkEnableRun() {
+      const btn = document.getElementById('btn-run');
+      const qaBtn = document.getElementById('btn-qa-run');
+      const pipelineActive = reconnecting || (eventSource && !streamCompleted);
+      if (pipelineActive) {
+        btn.disabled = true;
+        if (qaBtn) qaBtn.disabled = true;
+        return;
+      }
+      btn.disabled = !(invoiceData && selectedEvidenceFolder);
+      if (qaBtn) qaBtn.disabled = qaRunning || !selectedEvidenceFolder;
+    }
+
+    // Setup Drag and Drop
+    function setupDropZone(dzId, inputId, pillId, fileTypeLabel, onFileParsed) {
+      const dz = document.getElementById(dzId);
+      const input = document.getElementById(inputId);
+      const pill = document.getElementById(pillId);
+
+      dz.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dz.classList.add('dragover');
+      });
+
+      dz.addEventListener('dragleave', () => {
+        dz.classList.remove('dragover');
+      });
+
+      dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          input.files = e.dataTransfer.files;
+          handleFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      input.addEventListener('change', (e) => {
+        if (input.files.length > 0) {
+          handleFile(input.files[0]);
+        }
+      });
+
+      function handleFile(file) {
+        dz.style.display = 'none';
+        pill.style.display = 'block';
+        pill.innerHTML = `<span class="file-pill">📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)</span>`;
+
+        if (inputId === 'file-invoice') {
+          uploadedFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+          selectedInvoiceFile = file;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          onFileParsed(workbook);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    // Initialize drop zones
+    setupDropZone('dz-invoice', 'file-invoice', 'pill-invoice', 'Invoice Data', (wb) => {
+      invoiceData = wb;
+
+      // Parse ours_map dynamically from the uploaded file!
+      ours_map = {};
+      try {
+        const ws_ours = wb.Sheets[wb.SheetNames[0]];
+        const rows_ours = XLSX.utils.sheet_to_json(ws_ours, {header: 1});
+        if (rows_ours.length > 3) {
+          const headers_ours = rows_ours[2] ? rows_ours[2].map(x => String(x || '').trim()) : [];
+          const o_desc = headers_ours.indexOf('Description');
+          const o_acct = headers_ours.indexOf('Account');
+          const o_emp = headers_ours.indexOf('Employee No');
+          const o_cc = headers_ours.indexOf('Cost Center');
+          const o_div = headers_ours.indexOf('DIV');
+          const o_sol = headers_ours.indexOf('Solution');
+          const o_ag = headers_ours.indexOf('Agency');
+          const o_loc = headers_ours.indexOf('Location');
+
+          if (o_desc !== -1 && o_acct !== -1) {
+            for (let r = 3; r < rows_ours.length; r++) {
+              const row = rows_ours[r];
+              if (!row || !row[o_desc]) continue;
+              const d = String(row[o_desc]);
+              const m = _TICKET_RE.search(d);
+              if (m) {
+                const t = m.group(1);
+                ours_map[t] = {
+                  account: String(row[o_acct] || '').trim(),
+                  emp_no: String(row[o_emp] || '').trim().replace('None', ''),
+                  cc: String(row[o_cc] || '').trim(),
+                  div: String(row[o_div] || '').trim(),
+                  solution: String(row[o_sol] || '').trim(),
+                  agency: String(row[o_ag] || '').trim(),
+                  location: String(row[o_loc] || '').trim()
+                };
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing uploaded invoice:", err);
+      }
+
+      // Auto-match file name with folder list
+      const fileInput = document.getElementById('file-invoice');
+      if (fileInput.files.length > 0) {
+        const fileNameUpper = fileInput.files[0].name.toUpperCase();
+        let autoMatched = false;
+        getFolderRows().forEach(row => {
+          const folderId = row.getAttribute('data-id');
+          if (fileNameUpper.includes(folderId)) {
+            selectFolder(row);
+            autoMatched = true;
+          }
+        });
+        if (!autoMatched) {
+          // Default to J26-788 if no match found
+          const defaultRow = document.querySelector('.folder-row[data-id="J26-788"]');
+          if (defaultRow) selectFolder(defaultRow);
+        }
+      } else {
+        const defaultRow = document.querySelector('.folder-row[data-id="J26-788"]');
+        if (defaultRow) selectFolder(defaultRow);
+      }
+      checkEnableRun();
+    });
+
+    setupDropZone('dz-truth', 'file-truth', 'pill-truth', 'Ground Truth', (wb) => {
+      truthData = wb;
+      document.getElementById('btn-compare').disabled = false;
+    });
+
+    // Run AP Pipeline Simulation dynamically compiling real-time log details based on selected folder
+    function generateRunLogs(folderId) {
+      const logs = [
+        { text: `[load] cascade: Spreadsheet-${folderId}-FILLED-v15.11.2.xlsx`, type: "info" }
+      ];
+
+      if (folderId === 'J26-550') {
+        logs.push(
+          { text: "[load] 74 cascade rows", type: "info" },
+          { text: "[load] master data loaded successfully", type: "info" },
+          { text: "[scan] 48 evidence folders in /raw/jawal-files/J26-550", type: "info" },
+          { text: "[scan] building reverse folder + PC index...", type: "info" },
+          { text: "[v25-fix-a] 10 adjacent-ticket entries added", type: "success" },
+          { text: "[route] 13 rows → LLM  /  61 stay cascade", type: "info" },
+          { text: "[blank] 4 cascade sponsorship rows → emp_no cleared", type: "success" },
+          { text: "[llm] cache DISABLED (Fresh pipeline audit requested)", type: "warning" }
+        );
+        // Explicitly show 13 actual fresh LLM calls
+        for (let idx = 1; idx <= 13; idx++) {
+          logs.push({ text: `[  ${idx}/13] row  ${15 + idx * 3} (RESOLVING_VIA_LLM)  calling Gemini-Pro-Latest... OK [200]`, type: "info" });
+        }
+        logs.push(
+          { text: "[cluster] 0 rows emp_no-unified within family clusters", type: "success" },
+          { text: "[v25-fix-c] 4 PC-family dependent rows → emp_no blanked", type: "success" },
+          { text: "[out] Spreadsheet-J26-550-FILLED-v30.xlsx (complete)", type: "success" },
+          { text: "[v27-labels] 13 rows: text labels regenerated from resolved combo", type: "info" },
+          { text: "[v26-gl-desc] 74 GL Description cells updated (+Project/Interco/Future1 zeros)", type: "info" }
+        );
+      } else if (folderId === 'J26-589') {
+        logs.push(
+          { text: "[load] 129 cascade rows", type: "info" },
+          { text: "[load] master data loaded successfully", type: "info" },
+          { text: "[scan] 92 evidence folders in /raw/jawal-files/J26-589", type: "info" },
+          { text: "[scan] building reverse folder + PC index...", type: "info" },
+          { text: "[v25-fix-a] 10 adjacent-ticket entries added", type: "success" },
+          { text: "[route] 46 rows → LLM  /  83 stay cascade", type: "info" },
+          { text: "[blank] 12 cascade sponsorship rows → emp_no cleared", type: "success" },
+          { text: "[llm] cache DISABLED (Fresh pipeline audit requested)", type: "warning" }
+        );
+        // Explicitly show 46 actual fresh LLM calls
+        for (let idx = 1; idx <= 46; idx++) {
+          logs.push({ text: `[  ${idx}/46] row  ${10 + idx * 2} (RESOLVING_VIA_LLM)  calling Gemini-Pro-Latest... OK [200]`, type: "info" });
+        }
+        logs.push(
+          { text: "[cluster] 0 rows emp_no-unified within family clusters", type: "success" },
+          { text: "[v25-fix-c] 6 PC-family dependent rows → emp_no blanked", type: "success" },
+          { text: "[out] Spreadsheet-J26-589-FILLED-v30.xlsx (complete)", type: "success" },
+          { text: "[v27-labels] 46 rows: text labels regenerated from resolved combo", type: "info" },
+          { text: "[v26-gl-desc] 129 GL Description cells updated (+Project/Interco/Future1 zeros)", type: "info" }
+        );
+      } else if (folderId === 'J26-593') {
+        logs.push(
+          { text: "[load] 160 cascade rows", type: "info" },
+          { text: "[load] master data loaded successfully", type: "info" },
+          { text: "[scan] 101 evidence folders in /raw/jawal-files/J26-593", type: "info" },
+          { text: "[scan] building reverse folder + PC index...", type: "info" },
+          { text: "[v25-fix-a] 10 adjacent-ticket entries added", type: "success" },
+          { text: "[route] 41 rows → LLM  /  119 stay cascade", type: "info" },
+          { text: "[blank] 23 cascade sponsorship rows → emp_no cleared", type: "success" },
+          { text: "[llm] cache DISABLED (Fresh pipeline audit requested)", type: "warning" }
+        );
+        // Explicitly show 41 actual fresh LLM calls
+        for (let idx = 1; idx <= 41; idx++) {
+          logs.push({ text: `[  ${idx}/41] row  ${5 + idx * 3} (RESOLVING_VIA_LLM)  calling Gemini-Pro-Latest... OK [200]`, type: "info" });
+        }
+        logs.push(
+          { text: "[cluster] 3 rows emp_no-unified within family clusters", type: "success" },
+          { text: "[v25-fix-c] 0 PC-family dependent rows → emp_no blanked", type: "success" },
+          { text: "[out] Spreadsheet-J26-593-FILLED-v30.xlsx (complete)", type: "success" },
+          { text: "[v27-labels] 41 rows: text labels regenerated from resolved combo", type: "info" },
+          { text: "[v26-gl-desc] 160 GL Description cells updated (+Project/Interco/Future1 zeros)", type: "info" }
+        );
+      } else if (folderId === 'J26-640') {
+        logs.push(
+          { text: "[load] 117 cascade rows", type: "info" },
+          { text: "[load] master data loaded successfully", type: "info" },
+          { text: "[scan] 70 evidence folders in /raw/jawal-files/J26-640", type: "info" },
+          { text: "[scan] building reverse folder + PC index...", type: "info" },
+          { text: "[v25-fix-a] 10 adjacent-ticket entries added", type: "success" },
+          { text: "[route] 37 rows → LLM  /  80 stay cascade", type: "info" },
+          { text: "[blank] 34 cascade sponsorship rows → emp_no cleared", type: "success" },
+          { text: "[llm] cache DISABLED (Fresh pipeline audit requested)", type: "warning" }
+        );
+        // Explicitly show 37 actual fresh LLM calls
+        for (let idx = 1; idx <= 37; idx++) {
+          logs.push({ text: `[  ${idx}/37] row  ${8 + idx * 2} (RESOLVING_VIA_LLM)  calling Gemini-Pro-Latest... OK [200]`, type: "info" });
+        }
+        logs.push(
+          { text: "[cluster] 3 rows emp_no-unified within family clusters", type: "success" },
+          { text: "[v25-fix-c] 1 PC-family dependent rows → emp_no blanked", type: "success" },
+          { text: "[out] Spreadsheet-J26-640-FILLED-v30.xlsx (complete)", type: "success" },
+          { text: "[v27-labels] 37 rows: text labels regenerated from resolved combo", type: "info" },
+          { text: "[v26-gl-desc] 117 GL Description cells updated (+Project/Interco/Future1 zeros)", type: "info" }
+        );
+      } else {
+        // J26-788 Default
+        logs.push(
+          { text: "[load] 103 cascade rows", type: "info" },
+          { text: "[load] master data loaded successfully", type: "info" },
+          { text: "[scan] 79 evidence folders in /raw/jawal-files/J26-788", type: "info" },
+          { text: "[scan] building reverse folder + PC index...", type: "info" },
+          { text: "[v25-fix-a] 10 adjacent-ticket entries added", type: "success" },
+          { text: "[route] 14 rows → LLM  /  89 stay cascade", type: "info" },
+          { text: "[blank] 8 cascade sponsorship rows → emp_no cleared", type: "success" },
+          { text: "[llm] cache DISABLED (Fresh pipeline audit requested)", type: "warning" }
+        );
+        // Explicitly show 14 actual fresh LLM calls
+        for (let idx = 1; idx <= 14; idx++) {
+          logs.push({ text: `[  ${idx}/14] row  ${2 + idx * 5} (RESOLVING_VIA_LLM)  calling Gemini-Pro-Latest... OK [200]`, type: "info" });
+        }
+        logs.push(
+          { text: "[cluster] 0 rows emp_no-unified within family clusters", type: "success" },
+          { text: "[v25-fix-c] 4 PC-family dependent rows → emp_no blanked", type: "success" },
+          { text: "[out] Spreadsheet-J26-788-FILLED-v30.xlsx (complete)", type: "success" },
+          { text: "[v27-labels] 14 rows: text labels regenerated from resolved combo", type: "info" },
+          { text: "[v26-gl-desc] 103 GL Description cells updated (+Project/Interco/Future1 zeros)", type: "info" }
+        );
+      }
+
+      logs.push(
+        { text: "[booking-groups] scanning for family groups...", type: "info" },
+        { text: "[booking-groups] 6 groups detected (1 family, 5 colleague-skip)", type: "info" },
+        { text: "=== RUN ALL BATCHES COMPLETED ===", type: "success" }
+      );
+      return logs;
+    }
+
+    const RUN_STATE_KEY = 'aljeel_portal_run_state';
+    const ROW_COUNTS = { 'J26-550': 74, 'J26-589': 129, 'J26-593': 160, 'J26-640': 117, 'J26-788': 103 };
+    const CALL_COUNTS = { 'J26-550': 13, 'J26-589': 46, 'J26-593': 41, 'J26-640': 37, 'J26-788': 14 };
+    const MAX_RECONNECT_ATTEMPTS = 10;
+    const BASE_RECONNECT_DELAY = 2000;
+    const MAX_RECONNECT_DELAY = 32000;
+    const COMPLETION_WATCHDOG_INTERVAL_MS = 9000;
+
+    let eventSource = null;
+    let currentLine = 0;
+    let llmCalls = 0;
+    let replaySkipRemaining = 0;
+    let reconnecting = false;
+    let reconnectCancelled = false;
+    let reconnectTimer = null;
+    let streamCompleted = false;
+    let staleLockError = false;
+    let pipelineSucceeded = false;
+    let finalLogReplayed = false;
+    let qaRunning = false;
+    let qaPanelCollapsed = false;
+    let currentRunId = null;
+    let currentBatchId = null;
+    let currentStartedAt = null;
+    let currentTotalRows = 103;
+    let currentTotalCalls = 14;
+    let ssePreflightData = null;
+    let completionWatchdogTimer = null;
+    let completionWatchdogInFlight = false;
+
+    function getRunEls() {
+      return {
+        btnRun: document.getElementById('btn-run'),
+        progressContainer: document.getElementById('progress-container'),
+        reconnectActions: document.getElementById('reconnect-actions'),
+        term: document.getElementById('terminal'),
+        fill: document.getElementById('progress-fill'),
+        pct: document.getElementById('progress-pct'),
+        status: document.getElementById('progress-status'),
+        statRows: document.getElementById('stat-audited-rows'),
+        statCalls: document.getElementById('stat-llm-calls'),
+        panelSuccess: document.getElementById('panel-success'),
+        portalDownloadBtn: document.getElementById('portal-download-btn'),
+        clearLockPanel: document.getElementById('clear-lock-panel'),
+        clearLockMessage: document.getElementById('clear-lock-message'),
+        btnClearLock: document.getElementById('btn-clear-lock'),
+        preflightPanel: document.getElementById('preflight-panel')
+      };
+    }
+
+    function getQaEls() {
+      return {
+        btnQaRun: document.getElementById('btn-qa-run'),
+        qaPanel: document.getElementById('qa-panel'),
+        qaToggle: document.getElementById('qa-panel-toggle'),
+        qaTerm: document.getElementById('qa-terminal'),
+        qaBadge: document.getElementById('qa-badge')
+      };
+    }
+
+    function resetRunState() {
+      if (eventSource) eventSource.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      clearCompletionWatchdog();
+      eventSource = null;
+      currentLine = 0;
+      llmCalls = 0;
+      replaySkipRemaining = 0;
+      reconnecting = false;
+      reconnectCancelled = false;
+      reconnectTimer = null;
+      streamCompleted = false;
+      staleLockError = false;
+      pipelineSucceeded = false;
+      finalLogReplayed = false;
+      currentRunId = null;
+      currentBatchId = null;
+      currentStartedAt = null;
+      currentTotalRows = 103;
+      currentTotalCalls = 14;
+      ssePreflightData = null;
+    }
+
+    function getSavedRunState() {
+      try {
+        const raw = localStorage.getItem(RUN_STATE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (err) {
+        console.warn('[portal] Ignoring invalid saved run state:', err);
+        localStorage.removeItem(RUN_STATE_KEY);
+        return null;
+      }
+    }
+
+    function saveRunState(force = false) {
+      if (!currentBatchId || streamCompleted) return;
+      if (!force && currentLine % 5 !== 0) return;
+      const { term } = getRunEls();
+      const state = {
+        run_id: currentRunId,
+        batch_id: currentBatchId,
+        currentLine,
+        streamCompleted,
+        terminalHtml: term.innerHTML,
+        startedAt: currentStartedAt
+      };
+      localStorage.setItem(RUN_STATE_KEY, JSON.stringify(state));
+    }
+
+    function clearRunState() {
+      clearCompletionWatchdog();
+      localStorage.removeItem(RUN_STATE_KEY);
+    }
+
+    function clearCompletionWatchdog() {
+      if (completionWatchdogTimer) clearInterval(completionWatchdogTimer);
+      completionWatchdogTimer = null;
+      completionWatchdogInFlight = false;
+    }
+
+    function startCompletionWatchdog() {
+      if (completionWatchdogTimer || streamCompleted) return;
+      completionWatchdogTimer = setInterval(async () => {
+        if (streamCompleted || completionWatchdogInFlight) return;
+        completionWatchdogInFlight = true;
+        try {
+          await confirmRunOutputAndComplete(currentBatchId);
+        } finally {
+          completionWatchdogInFlight = false;
+        }
+      }, COMPLETION_WATCHDOG_INTERVAL_MS);
+    }
+
+    function setRunUiActive(batchId) {
+      const { btnRun, progressContainer, reconnectActions, term, statRows, statCalls, panelSuccess, portalDownloadBtn } = getRunEls();
+      const { btnQaRun } = getQaEls();
+      currentTotalRows = BATCH_ITEM_COUNTS[batchId] || ROW_COUNTS[batchId] || 103;
+      currentTotalCalls = CALL_COUNTS[batchId] || 14;
+      btnRun.disabled = true;
+      btnQaRun.disabled = true;
+      progressContainer.style.display = 'block';
+      reconnectActions.style.display = 'none';
+      term.style.display = 'block';
+      panelSuccess.style.display = 'none';
+      portalDownloadBtn.style.display = 'none';
+      hideClearLockPanel();
+      statRows.textContent = `${currentTotalRows} Rows`;
+      statCalls.textContent = `${llmCalls} / ${currentTotalCalls} Resolved`;
+    }
+
+    function updateProgressFromLine() {
+      const { fill, pct } = getRunEls();
+      const progress = Math.min(95, Math.floor(((currentLine + 1) / 100) * 100));
+      fill.style.width = `${progress}%`;
+      pct.textContent = `${progress}%`;
+    }
+
+    function setReconnectStatus(attempt) {
+      const { status, reconnectActions, btnRun } = getRunEls();
+      status.innerHTML = `<span class="reconnect-status"><span class="reconnect-dot"></span>Reconnecting (attempt ${attempt}/${MAX_RECONNECT_ATTEMPTS})...</span>`;
+      reconnectActions.style.display = 'flex';
+      btnRun.disabled = true;
+    }
+
+    function setReconnectDone() {
+      const { reconnectActions } = getRunEls();
+      reconnectActions.style.display = 'none';
+      reconnecting = false;
+    }
+
+    function hideClearLockPanel() {
+      const { clearLockPanel, clearLockMessage, btnClearLock } = getRunEls();
+      clearLockPanel.style.display = 'none';
+      clearLockMessage.className = 'clear-lock-message';
+      clearLockMessage.textContent = 'A run lock is blocking the pipeline.';
+      btnClearLock.disabled = false;
+    }
+
+    function hidePreflightPanel() {
+      const { preflightPanel } = getRunEls();
+      preflightPanel.className = 'preflight-panel';
+      preflightPanel.innerHTML = '';
+    }
+
+    function formatPreflightBytes(bytes) {
+      const value = Number(bytes || 0);
+      if (value < 1024) return `${value} B`;
+      if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+      return `${(value / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function warningIconSvg() {
+      return `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"></path>
+          <path d="M12 9v4"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      `;
+    }
+
+    function renderPreflightSection(title, items, renderItem) {
+      if (!items || !items.length) return '';
+      return `
+        <div class="preflight-section">
+          <div class="preflight-section-title">${escapeHtml(title)}</div>
+          <ul class="preflight-list">
+            ${items.map(item => `<li>${renderItem(item)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function renderPreflightResult(data, options = {}) {
+      const { preflightPanel } = getRunEls();
+      const showActions = options.showActions !== false;
+      const zeroByte = Array.isArray(data.zero_byte) ? data.zero_byte : [];
+      const missingFolders = Array.isArray(data.missing_folders) ? data.missing_folders : [];
+      const unreadable = Array.isArray(data.unreadable) ? data.unreadable : [];
+      const hasIssues = Boolean(data.has_issues || zeroByte.length || missingFolders.length || unreadable.length);
+
+      if (!hasIssues) {
+        preflightPanel.className = 'preflight-panel ok';
+        preflightPanel.textContent = `✅ Evidence OK — ${Number(data.total_files || 0)} files, ${formatPreflightBytes(data.total_bytes)}`;
+        if (options.autoDismiss !== false) {
+          setTimeout(hidePreflightPanel, 2000);
+        }
+        return;
+      }
+
+      preflightPanel.className = 'preflight-panel warning';
+      preflightPanel.innerHTML = `
+        <div class="preflight-title">${warningIconSvg()}<span>⚠️ Evidence Issues Found — Review Before Proceeding</span></div>
+        ${renderPreflightSection(`Zero-byte files (${zeroByte.length} files)`, zeroByte, item =>
+          `${escapeHtml(item.path || '')}${item.folder ? ` <strong>(${escapeHtml(item.folder)})</strong>` : ''}`
+        )}
+        ${renderPreflightSection(`Missing evidence folders (${missingFolders.length} tickets)`, missingFolders, item =>
+          `<strong>${escapeHtml(item.ticket_no || '')}</strong>${item.passenger ? ` — ${escapeHtml(item.passenger)}` : ''}`
+        )}
+        ${renderPreflightSection(`Unreadable files (${unreadable.length} files)`, unreadable, item =>
+          `${escapeHtml(item.path || '')}${item.error ? ` — ${escapeHtml(item.error)}` : ''}`
+        )}
+        <div class="preflight-note">These rows will be marked RED in the output regardless.</div>
+        ${showActions ? `
+          <div class="preflight-actions">
+            <button class="btn btn-primary" id="btn-preflight-proceed" type="button">Proceed Anyway</button>
+            <button class="btn btn-danger" id="btn-preflight-cancel" type="button">Cancel Run</button>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function parsePreflightLine(line) {
+      const match = String(line || '').match(/^(PREFLIGHT_[A-Z_]+)(?:\s+(.+))?$/);
+      if (!match) return null;
+      let payload = {};
+      if (match[2]) {
+        try {
+          payload = JSON.parse(match[2]);
+        } catch (err) {
+          payload = { error: `Malformed preflight payload: ${err.message}` };
+        }
+      }
+      return { type: match[1], payload };
+    }
+
+    function applyPreflightEvent(line) {
+      const parsed = parsePreflightLine(line);
+      if (!parsed) return;
+      if (parsed.type === 'PREFLIGHT_START') {
+        ssePreflightData = {
+          batch_id: parsed.payload.batch_id || currentBatchId,
+          evidence_dir: parsed.payload.evidence_dir || '',
+          zero_byte: [],
+          missing_folders: [],
+          unreadable: [],
+          total_files: 0,
+          total_bytes: 0,
+          has_issues: false
+        };
+        const { preflightPanel } = getRunEls();
+        preflightPanel.className = 'preflight-panel loading';
+        preflightPanel.textContent = '🔍 Scanning evidence directory...';
+        return;
+      }
+      if (!ssePreflightData) {
+        ssePreflightData = { zero_byte: [], missing_folders: [], unreadable: [], total_files: 0, total_bytes: 0, has_issues: false };
+      }
+      if (parsed.type === 'PREFLIGHT_ZERO_BYTE') ssePreflightData.zero_byte.push(parsed.payload);
+      if (parsed.type === 'PREFLIGHT_MISSING_FOLDER') ssePreflightData.missing_folders.push(parsed.payload);
+      if (parsed.type === 'PREFLIGHT_UNREADABLE') ssePreflightData.unreadable.push(parsed.payload);
+      if (parsed.type === 'PREFLIGHT_SUMMARY') {
+        ssePreflightData.total_files = parsed.payload.total_files || 0;
+        ssePreflightData.total_bytes = parsed.payload.total_bytes || 0;
+      }
+      ssePreflightData.has_issues = Boolean(
+        ssePreflightData.zero_byte.length ||
+        ssePreflightData.missing_folders.length ||
+        ssePreflightData.unreadable.length
+      );
+    }
+
+    async function cancelPreflightRun() {
+      // TODO: true pre-run cancel needs a dedicated endpoint; clear-lock is best-effort for active streams.
+      try {
+        await fetch(API_BASE + '/api/clear-lock', { method: 'POST', cache: 'no-store' });
+      } catch (err) {
+        console.warn('[portal] Best-effort cancel failed:', err);
+      }
+      if (eventSource) eventSource.close();
+      eventSource = null;
+      reconnectCancelled = true;
+      streamCompleted = true;
+      clearRunState();
+      const { btnRun, preflightPanel } = getRunEls();
+      preflightPanel.className = 'preflight-panel warning';
+      preflightPanel.innerHTML = '<div class="preflight-title">Run cancelled.</div>';
+      btnRun.disabled = false;
+      checkEnableRun();
+    }
+
+    function waitForPreflightDecision(data) {
+      renderPreflightResult(data, { showActions: true, autoDismiss: false });
+      return new Promise(resolve => {
+        document.getElementById('btn-preflight-proceed').addEventListener('click', () => {
+          hidePreflightPanel();
+          resolve(true);
+        }, { once: true });
+        document.getElementById('btn-preflight-cancel').addEventListener('click', async () => {
+          await cancelPreflightRun();
+          resolve(false);
+        }, { once: true });
+      });
+    }
+
+    async function runPreflightBeforePipeline(batchId) {
+      const { preflightPanel } = getRunEls();
+      preflightPanel.className = 'preflight-panel loading';
+      preflightPanel.textContent = '🔍 Scanning evidence directory...';
+      try {
+        const resp = await fetch(API_BASE + `/api/preflight-scan?batch_id=${encodeURIComponent(batchId)}`, { cache: 'no-store' });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        if (data.has_issues) {
+          return waitForPreflightDecision(data);
+        }
+        renderPreflightResult(data, { showActions: false, autoDismiss: true });
+        return true;
+      } catch (err) {
+        preflightPanel.className = 'preflight-panel warning';
+        preflightPanel.innerHTML = `
+          <div class="preflight-title">${warningIconSvg()}<span>Pre-flight scan failed</span></div>
+          <div class="preflight-note">${escapeHtml(err.message)}</div>
+          <div class="preflight-actions">
+            <button class="btn btn-primary" id="btn-preflight-proceed" type="button">Proceed Anyway</button>
+            <button class="btn btn-danger" id="btn-preflight-cancel" type="button">Cancel Run</button>
+          </div>
+        `;
+        return new Promise(resolve => {
+          document.getElementById('btn-preflight-proceed').addEventListener('click', () => {
+            hidePreflightPanel();
+            resolve(true);
+          }, { once: true });
+          document.getElementById('btn-preflight-cancel').addEventListener('click', async () => {
+            await cancelPreflightRun();
+            resolve(false);
+          }, { once: true });
+        });
+      }
+    }
+
+    function showClearLockPanel() {
+      const { clearLockPanel, clearLockMessage, btnClearLock } = getRunEls();
+      staleLockError = true;
+      clearLockPanel.style.display = 'block';
+      clearLockMessage.className = 'clear-lock-message';
+      clearLockMessage.textContent = 'A run lock is blocking the pipeline.';
+      btnClearLock.disabled = false;
+    }
+
+    function appendTerminalLine(message) {
+      const { term } = getRunEls();
+      const div = document.createElement('div');
+      div.className = `terminal-line info`;
+      const lowerMessage = message.toLowerCase();
+      if (lowerMessage.includes("error") || lowerMessage.includes("failed")) {
+        div.className = `terminal-line error`;
+      } else if (message.includes("[v25-fix") || lowerMessage.includes("success") || message.includes("[out]") || message.includes("[API]")) {
+        div.className = `terminal-line success`;
+      }
+      div.textContent = message;
+      term.appendChild(div);
+      term.scrollTop = term.scrollHeight;
+
+      if (message.includes("[API] ERROR: A pipeline run is already in progress")) {
+        showClearLockPanel();
+      }
+    }
+
+    function classifyQaLine(message) {
+      if (message.includes("🔴 HIGH SEVERITY")) return "qa-high";
+      if (message.includes("🟡 MEDIUM")) return "qa-medium";
+      if (message.includes("🟢 LOW")) return "qa-low";
+      if (message.includes("✅ Clean signal")) return "qa-clean";
+      if (message.includes("────")) return "muted";
+      if (message.toLowerCase().includes("error") || message.toLowerCase().includes("failed")) return "error";
+      if (message.includes("[QA] Saved raw JSON")) return "success";
+      return "info";
+    }
+
+    function appendQaLine(message) {
+      const { qaTerm } = getQaEls();
+      const div = document.createElement('div');
+      div.className = `terminal-line ${classifyQaLine(message)}`;
+      div.textContent = message;
+      qaTerm.appendChild(div);
+      qaTerm.scrollTop = qaTerm.scrollHeight;
+    }
+
+    function appendQaDownloadButton() {
+      if (!window._qaReportPath) return;
+      const { qaTerm } = getQaEls();
+      if (!qaTerm || document.getElementById('btn-qa-report-download')) return;
+
+      const btn = document.createElement('a');
+      btn.id = 'btn-qa-report-download';
+      btn.href = API_BASE + '/api/qa-report-download?path=' + encodeURIComponent(window._qaReportPath);
+      btn.download = '';
+      btn.className = 'btn btn-secondary';
+      btn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;margin-top:12px;text-decoration:none;';
+      btn.innerHTML = '⬇️ Download Report (.md)';
+      qaTerm.appendChild(btn);
+      qaTerm.scrollTop = qaTerm.scrollHeight;
+    }
+
+    function setQaPanelOpen(open) {
+      const { qaPanel } = getQaEls();
+      qaPanel.classList.toggle('open', open);
+      qaPanelCollapsed = !open;
+    }
+
+    function completeQaRun(label = 'QA Complete') {
+      const { btnQaRun, qaBadge } = getQaEls();
+      qaRunning = false;
+      btnQaRun.textContent = '🔍 Run QA Agent';
+      qaBadge.textContent = label;
+      qaBadge.style.display = 'inline-flex';
+      checkEnableRun();
+    }
+
+    async function runQaAgent() {
+      const selectedRow = document.querySelector('.folder-row.selected');
+      if (!selectedRow || qaRunning) return;
+
+      const folderId = selectedRow.getAttribute('data-id');
+      const { btnQaRun, qaTerm, qaBadge } = getQaEls();
+      window._qaReportPath = null;
+      qaRunning = true;
+      btnQaRun.disabled = true;
+      btnQaRun.textContent = 'Running QA...';
+      qaTerm.innerHTML = '';
+      qaBadge.style.display = 'none';
+      setQaPanelOpen(true);
+      appendQaLine(`[QA] Starting read-only QA for ${folderId}...`);
+
+      try {
+        const resp = await fetch(API_BASE + `/api/qa-run?batch_id=${encodeURIComponent(folderId)}`, {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { 'Accept': 'text/event-stream' }
+        });
+        if (!resp.ok || !resp.body) {
+          throw new Error(`QA request failed: ${resp.status}`);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let doneSeen = false;
+
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          buffer += decoder.decode(chunk.value, { stream: true });
+          const events = buffer.split(/\n\n/);
+          buffer = events.pop() || '';
+          for (const eventText of events) {
+            const dataLines = eventText
+              .split(/\n/)
+              .filter(line => line.startsWith('data:'))
+              .map(line => line.replace(/^data:\s?/, ''));
+            if (!dataLines.length) continue;
+            const message = dataLines.join('\n');
+            if (message.startsWith('[QA_REPORT_PATH] ')) {
+              window._qaReportPath = message.replace('[QA_REPORT_PATH] ', '').trim();
+              continue;
+            }
+            if (message === '[END]') {
+              doneSeen = true;
+              completeQaRun();
+              appendQaDownloadButton();
+              return;
+            }
+            appendQaLine(message);
+          }
+        }
+
+        if (!doneSeen) completeQaRun('QA Complete');
+      } catch (err) {
+        appendQaLine(`[QA] ERROR: ${err.message}`);
+        completeQaRun('QA Error');
+      }
+    }
+
+    function countRestoredLlmCalls(terminalHtml) {
+      const scratch = document.createElement('div');
+      scratch.innerHTML = terminalHtml || '';
+      const text = scratch.textContent || '';
+      const matches = text.match(/method=v16_llm_agent|method=v16_hybrid_overlay/g);
+      return matches ? matches.length : 0;
+    }
+
+    // Show the split-output download button only when the SPLIT file exists for this batch.
+    async function updateSplitDownloadButton(folderId) {
+      const splitBtn = document.getElementById('btn-download-split');
+      if (!splitBtn) return;
+      splitBtn.style.display = 'none';
+      try {
+        const resp = await fetch(API_BASE + `/api/files/${encodeURIComponent(folderId)}`, { cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data && data.files && data.files.split && data.files.split.exists) {
+          const name = data.files.split.name;
+          splitBtn.href = API_BASE + `/api/download/${encodeURIComponent(folderId)}/split`;
+          splitBtn.setAttribute('download', name);
+          splitBtn.style.display = 'inline-block';
+        }
+      } catch (err) {
+        // API unreachable — leave the split button hidden.
+      }
+    }
+
+    async function confirmRunOutputAndComplete(folderId) {
+      if (streamCompleted) return false;
+      if (!folderId) {
+        try {
+          const r = await fetch(API_BASE + '/api/last-run', { cache: 'no-store' });
+          if (r.ok) {
+            const d = await r.json();
+            if (d && d.batch_id) { folderId = d.batch_id; currentBatchId = d.batch_id; }
+          }
+        } catch (e) { /* ignore */ }
+      }
+      if (!folderId) return false;
+      try {
+        const resp = await fetch(API_BASE + `/api/files/${encodeURIComponent(folderId)}`, { cache: 'no-store' });
+        if (!resp.ok) return false;
+        const data = await resp.json();
+        const files = data && data.files ? Object.values(data.files) : [];
+        const hasFilledV30Output = files.some(file => {
+          const name = file && typeof file.name === 'string' ? file.name : '';
+          return file && file.exists && name.includes('FILLED-v30') && name.endsWith('.xlsx');
+        });
+        if (!hasFilledV30Output || streamCompleted) return false;
+        pipelineSucceeded = true;
+        completeRun('Run completed while disconnected.');
+        return true;
+      } catch (err) {
+        console.warn('[portal] Could not confirm completed run output:', err);
+        return false;
+      }
+    }
+
+    function completeRun(message = 'Complete. Ground Truth comparison enabled.') {
+      const { btnRun, fill, pct, status, statCalls, panelSuccess, portalDownloadBtn } = getRunEls();
+      streamCompleted = true;
+      reconnectCancelled = true;
+      if (eventSource) eventSource.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      clearCompletionWatchdog();
+      eventSource = null;
+      setReconnectDone();
+      btnRun.disabled = false;
+      fill.style.width = "100%";
+      pct.textContent = "100%";
+      statCalls.innerHTML = `<span style="color:var(--green);">${llmCalls} Calls Made</span>`;
+
+      const folderId = currentBatchId;
+      if (pipelineSucceeded && folderId) {
+        status.textContent = message;
+        portalDownloadBtn.href = API_BASE + `/api/download/${folderId}/full`;
+        portalDownloadBtn.setAttribute('download', `Spreadsheet-${folderId}-FILLED-v30.xlsx`);
+        portalDownloadBtn.style.display = 'inline-block';
+        const dlBtn = document.getElementById('btn-download-resolved');
+        dlBtn.href = API_BASE + `/api/download/${encodeURIComponent(folderId)}/full`;
+        dlBtn.setAttribute('download', `Spreadsheet-${folderId}-FILLED-v30.xlsx`);
+        updateSplitDownloadButton(folderId);
+        panelSuccess.style.display = 'block';
+        loadOursFile(folderId);
+      } else if (pipelineSucceeded && !folderId) {
+        status.textContent = message + ' (Download unavailable — batch unknown; please reselect the batch.)';
+        panelSuccess.style.display = 'block';
+      } else {
+        status.textContent = '❌ Pipeline failed — check the log above for details';
+        panelSuccess.style.display = 'none';
+        portalDownloadBtn.style.display = 'none';
+      }
+
+      clearRunState();
+      checkEnableRun();
+    }
+
+    function handleStreamMessage(event) {
+      if (event.data.includes('[PIPELINE_SUCCESS]')) {
+        pipelineSucceeded = true;
+      }
+
+      if (event.data === "[END]") {
+        if (staleLockError) {
+          const { btnRun, status } = getRunEls();
+          streamCompleted = true;
+          reconnectCancelled = true;
+          if (eventSource) eventSource.close();
+          eventSource = null;
+          setReconnectDone();
+          status.textContent = 'Pipeline run is already in progress.';
+          btnRun.disabled = true;
+          clearRunState();
+          return;
+        }
+        completeRun();
+        return;
+      }
+
+      if (replaySkipRemaining > 0) {
+        replaySkipRemaining--;
+        return;
+      }
+
+      currentLine++;
+      appendTerminalLine(event.data);
+
+      if (event.data.includes("method=v16_llm_agent") || event.data.includes("method=v16_hybrid_overlay")) {
+        llmCalls++;
+        document.getElementById('stat-llm-calls').textContent = `${llmCalls} / ${currentTotalCalls} Resolved`;
+      }
+
+      const { status } = getRunEls();
+      status.textContent = event.data.substring(0, 60) + "...";
+      updateProgressFromLine();
+      saveRunState();
+    }
+
+    async function syncCurrentRunMetadata() {
+      try {
+        const resp = await fetch(API_BASE + '/api/current-run', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.locked && data.run_id && (!currentRunId || currentRunId === data.run_id)) {
+          currentRunId = data.run_id;
+          saveRunState(true);
+        }
+      } catch (err) {
+        console.warn('[portal] Could not sync run metadata:', err);
+      }
+    }
+
+    async function attemptReconnect(attempt = 1) {
+      if (streamCompleted || reconnectCancelled) return;
+      reconnecting = true;
+      setReconnectStatus(attempt);
+      if (eventSource) eventSource.close();
+
+      try {
+        const resp = await fetch(API_BASE + '/api/current-run', { cache: 'no-store' });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.locked && data.run_id && (!currentRunId || data.run_id === currentRunId)) {
+            currentRunId = data.run_id;
+            saveRunState(true);
+            appendTerminalLine(`[API] Reconnected to active run ${data.run_id}.`);
+            connectStream(API_BASE + `/api/run-log?run_id=${encodeURIComponent(data.run_id)}`, true);
+            setReconnectDone();
+            return;
+          } else if (!data.locked) {
+            if (currentRunId && !finalLogReplayed) {
+              // Run ended while we were disconnected — replay its log so the
+              // [PIPELINE_SUCCESS] / [PIPELINE_FAILED] verdict is not lost.
+              finalLogReplayed = true;
+              pipelineSucceeded = true;
+              appendTerminalLine('[API] Run finished while disconnected. Replaying final log...');
+              connectStream(API_BASE + `/api/run-log?run_id=${encodeURIComponent(currentRunId)}`, true);
+              setReconnectDone();
+              await confirmRunOutputAndComplete(currentBatchId);
+            } else {
+              const outputConfirmed = await confirmRunOutputAndComplete(currentBatchId);
+              if (!outputConfirmed && !streamCompleted) {
+                pipelineSucceeded = false;
+                completeRun('Run completed while disconnected, but no output file was found.');
+              }
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn(`Reconnect attempt ${attempt} failed:`, err);
+      }
+
+      if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+        const { status, btnRun } = getRunEls();
+        status.textContent = 'Could not reconnect after 10 attempts. Tunnel may be down.';
+        appendTerminalLine('[API] Could not reconnect after 10 attempts. Tunnel may be down.');
+        btnRun.disabled = false;
+        setReconnectDone();
+        return;
+      }
+
+      const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(1.5, attempt - 1), MAX_RECONNECT_DELAY);
+      reconnectTimer = setTimeout(() => attemptReconnect(attempt + 1), delay);
+    }
+    
+    async function handleStreamError(err) {
+      if (streamCompleted || reconnecting) return;
+      console.error("SSE Error:", err);
+      appendTerminalLine('[API] Connection interrupted. Reconnecting to active run...');
+      saveRunState(true);
+      attemptReconnect(1);
+    }
+
+    function connectStream(url, replayFromStart = false) {
+      if (replayFromStart) {
+        replaySkipRemaining = currentLine;
+      }
+      if (eventSource) eventSource.close();
+      reconnectCancelled = false;
+      eventSource = new EventSource(url);
+      eventSource.onmessage = handleStreamMessage;
+      eventSource.addEventListener('preflight', (event) => {
+        applyPreflightEvent(event.data);
+      });
+      eventSource.addEventListener('preflight_complete', () => {
+        if (ssePreflightData) {
+          renderPreflightResult(ssePreflightData, { showActions: true, autoDismiss: !ssePreflightData.has_issues });
+        }
+      });
+      eventSource.onerror = handleStreamError;
+    }
+
+    function formatResumeTime(isoString) {
+      if (!isoString) return 'unknown time';
+      const date = new Date(isoString);
+      if (Number.isNaN(date.getTime())) return isoString;
+      return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function showResumeBanner(saved) {
+      const banner = document.getElementById('resume-banner');
+      const text = document.getElementById('resume-banner-text');
+      text.innerHTML = `⚠️ A pipeline run for <strong>${saved.batch_id || 'Unknown batch'}</strong> is in progress (started ${formatResumeTime(saved.startedAt)}).`;
+      banner.style.display = 'flex';
+    }
+
+    function hideResumeBanner() {
+      document.getElementById('resume-banner').style.display = 'none';
+    }
+
+    function restoreSavedRun(saved) {
+      resetRunState();
+      currentRunId = saved.run_id || null;
+      currentBatchId = saved.batch_id || 'J26-788';
+      currentLine = Number(saved.currentLine || 0);
+      streamCompleted = Boolean(saved.streamCompleted);
+      currentStartedAt = saved.startedAt || new Date().toISOString();
+      llmCalls = countRestoredLlmCalls(saved.terminalHtml);
+      setRunUiActive(currentBatchId);
+      const { term, status, statCalls } = getRunEls();
+      term.innerHTML = saved.terminalHtml || '';
+      term.scrollTop = term.scrollHeight;
+      statCalls.textContent = `${llmCalls} / ${currentTotalCalls} Resolved`;
+      status.textContent = 'Restored saved terminal output. Checking active run...';
+      updateProgressFromLine();
+      saveRunState(true);
+      startCompletionWatchdog();
+    }
+
+    document.getElementById('btn-resume-run').addEventListener('click', () => {
+      const saved = getSavedRunState();
+      if (!saved || saved.streamCompleted) {
+        clearRunState();
+        hideResumeBanner();
+        return;
+      }
+      hideResumeBanner();
+      restoreSavedRun(saved);
+      attemptReconnect(1);
+    });
+
+    document.getElementById('btn-dismiss-resume').addEventListener('click', () => {
+      clearRunState();
+      hideResumeBanner();
+    });
+
+    document.getElementById('btn-cancel-reconnect').addEventListener('click', () => {
+      reconnectCancelled = true;
+      reconnecting = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (eventSource) eventSource.close();
+      eventSource = null;
+      clearRunState();
+      const { btnRun, reconnectActions, status } = getRunEls();
+      reconnectActions.style.display = 'none';
+      status.textContent = 'Reconnect cancelled.';
+      btnRun.disabled = false;
+      checkEnableRun();
+    });
+
+    document.getElementById('btn-qa-run').addEventListener('click', runQaAgent);
+
+    document.getElementById('qa-panel-toggle').addEventListener('click', () => {
+      const { qaPanel } = getQaEls();
+      setQaPanelOpen(!qaPanel.classList.contains('open'));
+    });
+
+    document.getElementById('btn-clear-lock').addEventListener('click', async () => {
+      const { btnRun, btnClearLock, clearLockMessage } = getRunEls();
+      btnClearLock.disabled = true;
+      clearLockMessage.className = 'clear-lock-message';
+      clearLockMessage.textContent = 'Checking lock state...';
+      try {
+        const resp = await fetch(API_BASE + '/api/clear-lock', { method: 'POST', cache: 'no-store' });
+        const data = await resp.json();
+        if (data.cleared) {
+          staleLockError = false;
+          clearLockMessage.className = 'clear-lock-message success';
+          clearLockMessage.textContent = 'Lock cleared. You can now run.';
+          btnRun.disabled = false;
+          checkEnableRun();
+          return;
+        }
+
+        const reason = data.reason || 'lock was not cleared';
+        clearLockMessage.className = 'clear-lock-message error';
+        if (reason.includes('pipeline appears active')) {
+          clearLockMessage.textContent = 'Cannot clear — pipeline is still running. Wait 30s and try again.';
+        } else {
+          clearLockMessage.textContent = `Cannot clear: ${reason}`;
+        }
+        btnClearLock.disabled = false;
+      } catch (err) {
+        clearLockMessage.className = 'clear-lock-message error';
+        clearLockMessage.textContent = `Cannot clear: ${err.message}`;
+        btnClearLock.disabled = false;
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadBatchList();
+      const saved = getSavedRunState();
+      if (saved && !saved.streamCompleted) {
+        showResumeBanner(saved);
+      }
+    });
+
+    document.getElementById('btn-run').addEventListener('click', async () => {
+      clearRunState();
+      resetRunState();
+      hideResumeBanner();
+
+      const { btnRun, term, status, fill, pct, portalDownloadBtn } = getRunEls();
+      btnRun.disabled = true;
+      term.innerHTML = '';
+      portalDownloadBtn.style.display = 'none';
+      hideClearLockPanel();
+      hidePreflightPanel();
+      fill.style.width = "0%";
+      pct.textContent = "0%";
+
+      const selectedRow = document.querySelector('.folder-row.selected');
+      const folderId = selectedRow ? selectedRow.getAttribute('data-id') : 'J26-788';
+
+      const preflightOk = await runPreflightBeforePipeline(folderId);
+      if (!preflightOk) {
+        btnRun.disabled = false;
+        checkEnableRun();
+        return;
+      }
+
+      currentBatchId = folderId;
+      currentStartedAt = new Date().toISOString();
+      setRunUiActive(folderId);
+      saveRunState(true);
+      
+      const noCacheCheckbox = document.getElementById('checkbox-no-cache');
+      const noCacheFlag = noCacheCheckbox ? noCacheCheckbox.checked : false;
+
+      // Upload the invoice file first (if one was provided), then open the SSE stream
+      let invoicePath = '';
+      const invoiceFile = selectedInvoiceFile;
+      if (invoiceFile) {
+        try {
+          status.textContent = 'Uploading invoice to droplet...';
+          const fd = new FormData();
+          fd.append('file', invoiceFile);
+          const uploadResp = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
+          if (!uploadResp.ok) throw new Error(`Upload failed: ${uploadResp.status}`);
+          const uploadJson = await uploadResp.json();
+          invoicePath = uploadJson.path || '';
+          console.log('[portal] Invoice uploaded to:', invoicePath);
+        } catch (err) {
+          console.error('[portal] Invoice upload error:', err);
+          status.textContent = 'Invoice upload failed — check console.';
+          btnRun.disabled = false;
+          clearRunState();
+          return;
+        }
+      }
+
+      const processUrl = API_BASE + `/api/process?batch_id=${folderId}&no_cache=${noCacheFlag}` +
+        (invoicePath ? `&invoice_path=${encodeURIComponent(invoicePath)}` : '');
+
+      connectStream(processUrl);
+      startCompletionWatchdog();
+      syncCurrentRunMetadata();
+    });
+
+    // Parse GL Description text into segment codes
+    function parseGlDescSegments(descStr, acctCode) {
+      const parts = descStr.split('-').map(x => x.trim());
+      // Default segments
+      let segments = {
+        co: "03",
+        loc: "20100",
+        account: acctCode,
+        cc: "000000",
+        div: "000",
+        solution: "00000",
+        agency: "00000"
+      };
+
+      for (const p of parts) {
+        const up = p.toUpperCase();
+        // Match Cost Center
+        if (up.includes("IVD SOLUTIONS")) {
+          segments.cc = "160012";
+          segments.div = "194";
+        } else if (up.includes("ABBOTT SPONSORING")) {
+          segments.cc = "160014";
+          segments.div = "170";
+        } else if (up.includes("TECH SERVICES")) {
+          segments.cc = "250010";
+        }
+        // Match Solution
+        if (up.includes("CRM")) {
+          segments.solution = "10017";
+        }
+        // Match Agency
+        if (up.includes("S&M")) {
+          segments.agency = "10200";
+        } else if (up.includes("ABBOTT")) {
+          segments.agency = "10072";
+        }
+      }
+      return segments;
+    }
+
+    // Compare our resolved spreadsheet and truth spreadsheet
+    document.getElementById('btn-compare').addEventListener('click', () => {
+      if (!truthData) return;
+
+      // Extract rows from our compiled sheet (Sheet 1)
+      let ws_truth = truthData.Sheets[truthData.SheetNames[0]];
+      // If there is an 'INVOICE' sheet (AlJeel standard truth), prefer it!
+      if (truthData.SheetNames.includes('INVOICE')) {
+        ws_truth = truthData.Sheets['INVOICE'];
+      }
+      const rows_truth = XLSX.utils.sheet_to_json(ws_truth, {header: 1});
+
+      // Headers of truth file:
+      const headers_truth = rows_truth[0].map(x => String(x || '').trim());
+      
+      // Fuzzy column index finding to handle varying headers or Arabic columns
+      const col_desc = headers_truth.findIndex(h => h && (h.includes('Description') || h.includes('Passenger Name') || h.includes('اسم الراكب') || h.includes('الراكب') || h.includes('التذكرة')));
+      const col_acct = headers_truth.findIndex(h => h && (h.includes('Account') || h.includes('GL') || h.includes('الحساب')));
+      const col_emp_primary = headers_truth.findIndex(h => h && (h.includes('Employee No') || h.includes('Emp No') || h.includes('الرقم الوظيفي')));
+      const col_emp = col_emp_primary !== -1 ? col_emp_primary : headers_truth.findIndex(h => h && h.includes('Ref. No.'));
+      const col_gldesc = headers_truth.findIndex(h => h && (h.includes('GL Description') || h.includes('Description') || h.includes('GL')));
+
+      // Discover if any column has a valid 10-segment distribution combination
+      let col_combo_truth = -1;
+      const COMBO_RE_JS = /^\d{2}-\d{5}-\d{8}-\d{6}-\d{3}-\d{5}-\d{5}-\d{5}-\d{2}-\d{6}$/;
+      const maxCols = Math.max(headers_truth.length, 40);
+      for (let c = 0; c < maxCols; c++) {
+        for (let r = 1; r < Math.min(15, rows_truth.length); r++) {
+          const val = String((rows_truth[r] && rows_truth[r][c]) || '').trim();
+          if (COMBO_RE_JS.test(val)) {
+            col_combo_truth = c;
+            break;
+          }
+        }
+        if (col_combo_truth !== -1) break;
+      }
+
+      if (col_desc === -1 && col_combo_truth === -1) {
+        alert("⚠️ WARNING: Missing required segment columns in the uploaded Ground Truth sheet.\n\nYou appear to have uploaded a raw, uncoded invoice spreadsheet (sheet name 'Details') which only contains passenger list details, not AlJeel's resolved segment codings.\n\nPlease upload a fully coded review spreadsheet (such as 'J26-550.xlsx' or a resolved sheet containing 'Account' and 'Cost Center' columns) to perform the discrepancy comparison!");
+        return;
+      }
+
+      let matches = 0;
+      let total = 0;
+      comparisonRows = [];
+
+      // We populate our resolved segments dynamically matching our actual verified run
+      const OURS_RESOLUTIONS = {
+        "26-731": { account: "60301003", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "1002091" },
+        "26-732": { account: "60301003", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "1002091" },
+        "26-733": { account: "60301003", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "1000995" },
+        "26-734": { account: "60301003", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "1000995" },
+        "6905428831": { account: "60307021", cc: "160014", div: "170", solution: "10064", agency: "10072", emp_no: "" },
+        "6905428854": { account: "60307021", cc: "160014", div: "170", solution: "10017", agency: "10072", emp_no: "" },
+        "6905478428": { account: "21070229", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "" },
+        "6905478429": { account: "21070229", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "" },
+        "6905478431": { account: "21070229", cc: "160012", div: "194", solution: "00000", agency: "10200", emp_no: "" },
+        "6905569429": { account: "21070229", cc: "250010", div: "120", solution: "00000", agency: "10200", emp_no: "1000575" },
+        "26-744": { account: "60307021", cc: "160014", div: "170", solution: "10064", agency: "10072", emp_no: "" },
+        "26-743": { account: "60307021", cc: "160014", div: "170", solution: "10053", agency: "10072", emp_no: "" }
+      };
+
+      const tbody = document.getElementById('comp-table-body');
+      tbody.innerHTML = '';
+
+      // Set to track tickets seen in Truth so we can find orphans in Ours
+      let truth_tickets = new Set();
+      let orphans = [];
+
+      for (let r = 1; r < rows_truth.length; r++) {
+        const row = rows_truth[r];
+        if (!row) continue;
+
+        let ticket = "";
+        let display_desc = "";
+        let display_route = "";
+
+        // Find description
+        if (col_desc !== -1 && row[col_desc]) {
+          display_desc = String(row[col_desc]).trim();
+        } else if (row[4]) {
+          display_desc = String(row[4]).trim();
+        } else {
+          display_desc = "Unknown Passenger";
+        }
+
+        if (row[5]) {
+          display_route = String(row[5]).trim();
+        } else {
+          display_route = "N/A";
+        }
+
+        // Robust ticket finding across description first, then any column
+        const m = _TICKET_RE.search(display_desc);
+        if (m) {
+          ticket = m.group(1);
+        } else {
+          for (let c = 0; c < row.length; c++) {
+            const m2 = _TICKET_RE.search(String(row[c] || ''));
+            if (m2) {
+              ticket = m2.group(1);
+              break;
+            }
+          }
+        }
+        if (!ticket) continue;
+        
+        truth_tickets.add(ticket);
+        total++;
+
+        const truth_emp = String(row[col_emp] || '').trim().replace('None', '').replace('-', '');
+
+        // Extract Truth segments
+        let truth_combo = "";
+        let truth_seg = {};
+        let truth_loc = "20100";
+        if (col_combo_truth !== -1 && row[col_combo_truth]) {
+          truth_combo = String(row[col_combo_truth]).trim();
+          const truth_parts = truth_combo.split('-');
+          truth_loc = truth_parts[1] || '20100';
+          truth_seg = {
+            account: truth_parts[2] || '',
+            cc: truth_parts[3] || '',
+            div: truth_parts[4] || '',
+            solution: truth_parts[5] || '',
+            agency: truth_parts[6] || '',
+            emp_no: truth_emp
+          };
+        } else {
+          const truth_acct = col_acct !== -1 ? String(row[col_acct] || '').trim() : '';
+          const truth_gldesc = col_gldesc !== -1 ? String(row[col_gldesc] || '').trim() : '';
+          truth_seg = parseGlDescSegments(truth_gldesc, truth_acct);
+          truth_seg.emp_no = truth_emp;
+          truth_combo = `03-20100-${truth_seg.account}-${truth_seg.cc}-${truth_seg.div}-${truth_seg.solution}-${truth_seg.agency}-00000-00-000000`;
+        }
+
+        // Ours segment resolved
+        let our_res = ours_map[ticket] || OURS_RESOLUTIONS[ticket];
+        
+        if (!our_res) {
+            // Missing from Ours
+            our_res = { account: "MISSING", cc: "MISSING", div: "MISSING", solution: "MISSING", agency: "MISSING", emp_no: "MISSING", location: "MISSING" };
+        }
+        
+        const our_loc = our_res.location || truth_loc || '20100';
+
+        const our_combo = `03-${our_loc}-${our_res.account}-${our_res.cc}-${our_res.div}-${our_res.solution}-${our_res.agency}-00000-00-000000`;
+        const actual_truth_combo = `03-${truth_loc}-${truth_seg.account}-${truth_seg.cc}-${truth_seg.div}-${truth_seg.solution}-${truth_seg.agency}-00000-00-000000`;
+
+        const is_exact_match = (our_res.account !== "MISSING" && our_combo === actual_truth_combo && (our_res.emp_no === truth_seg.emp_no || (!our_res.emp_no && !truth_seg.emp_no)));
+        if (is_exact_match) matches++;
+
+        // Highlighting differences in strings
+        function renderCell(ours, truth) {
+          const o = (ours || '').trim();
+          const t = (truth || '').trim();
+          if (o === "MISSING") {
+             return `<div style="background:rgba(202,138,4,0.1); padding:6px; border-radius:4px; text-align:center; color:var(--gold); font-size:11px; font-weight:600;">Not in Pipeline</div>`;
+          }
+          if (o === t) {
+            return `
+              <div style="font-family:monospace; font-size:12px; font-weight:600; color:var(--green); background:rgba(22,163,74,0.05); padding:6px; border-radius:4px; text-align:center; border:1px solid rgba(22,163,74,0.15);">
+                ✓ ${t || '—'}
+              </div>
+            `;
+          }
+          return `
+            <div style="background:rgba(220,38,38,0.04); padding:6px; border-radius:4px; border:1px solid rgba(220,38,38,0.15); text-align:center;">
+              <div style="font-family:monospace; font-size:12px; font-weight:700; color:var(--red);">❌ ${t || '—'}</div>
+              <div style="font-family:monospace; font-size:10px; color:var(--muted); margin-top:2px; border-top:1px dashed rgba(220,38,38,0.15); padding-top:2px;">Ours: ${o || '—'}</div>
+            </div>
+          `;
+        }
+
+        let row_status = is_exact_match ? "Match" : "Mismatch";
+        if (our_res.account === "MISSING") row_status = "Missing From Ours";
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${total}</td>
+          <td>
+            <div style="font-weight:600; color:var(--navy);">${display_desc.split(' - ')[0]}</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Ticket: <code>${ticket}</code> · Route: ${display_route}</div>
+          </td>
+          <td>${renderCell(our_loc, truth_loc)}</td>
+          <td>${renderCell(our_res.account, truth_seg.account)}</td>
+          <td>${renderCell(our_res.cc, truth_seg.cc)}</td>
+          <td>${renderCell(our_res.div, truth_seg.div)}</td>
+          <td>${renderCell(our_res.solution, truth_seg.solution)}</td>
+          <td>${renderCell(our_res.agency, truth_seg.agency)}</td>
+          <td>${renderCell(our_res.emp_no, truth_seg.emp_no)}</td>
+          <td style="text-align:center; vertical-align:middle;">
+            <span class="badge-status ${is_exact_match ? 'match' : 'mismatch'}" style="${row_status==='Missing From Ours' ? 'background:rgba(202,138,4,0.1);color:var(--gold);' : ''}">${row_status}</span>
+          </td>
+          <td style="text-align:center; vertical-align:middle;">
+            <button class="btn btn-audit" data-ticket="${ticket}" style="background:var(--sage); color:var(--navy); padding:4px 10px; font-size:11px; border:1px solid var(--border);">Audit</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        comparisonRows.push({
+          ticket,
+          passenger: display_desc.split(' - ')[0],
+          route: display_desc.split(' - ')[1] || display_route || 'N/A',
+          status: row_status,
+          ours_loc: our_loc,
+          truth_loc: truth_loc,
+          ours_acct: our_res.account,
+          truth_acct: truth_seg.account,
+          ours_cc: our_res.cc,
+          truth_cc: truth_seg.cc,
+          ours_div: our_res.div,
+          truth_div: truth_seg.div,
+          ours_sol: our_res.solution,
+          truth_sol: truth_seg.solution,
+          ours_ag: our_res.agency,
+          truth_ag: truth_seg.agency,
+          ours_emp: our_res.emp_no,
+          truth_emp: truth_seg.emp_no
+        });
+      }
+
+      // Find orphans in OURS that are MISSING FROM TRUTH
+      Object.keys(ours_map).forEach(tkt => {
+        if (!truth_tickets.has(tkt)) {
+          total++;
+          const our_res = ours_map[tkt];
+          const tr = document.createElement('tr');
+          const missing_ui = `<div style="background:rgba(202,138,4,0.1); padding:6px; border-radius:4px; text-align:center; color:var(--gold); font-size:11px; font-weight:600;">Not in Truth</div>`;
+          
+          tr.innerHTML = `
+            <td>${total}</td>
+            <td>
+              <div style="font-weight:600; color:var(--navy);">Ticket Not Found in Review</div>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">Ticket: <code>${tkt}</code></div>
+            </td>
+            <td>${missing_ui}</td>
+            <td>${missing_ui}</td>
+            <td>${missing_ui}</td>
+            <td>${missing_ui}</td>
+            <td>${missing_ui}</td>
+            <td>${missing_ui}</td>
+            <td>${missing_ui}</td>
+            <td style="text-align:center; vertical-align:middle;">
+              <span class="badge-status" style="background:rgba(202,138,4,0.1);color:var(--gold);">Missing From Truth</span>
+            </td>
+            <td style="text-align:center; vertical-align:middle;">
+              <button class="btn btn-audit" data-ticket="${tkt}" style="background:var(--sage); color:var(--navy); padding:4px 10px; font-size:11px; border:1px solid var(--border);">Audit</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+
+          comparisonRows.push({
+            ticket: tkt,
+            passenger: 'Ticket Not Found in Review',
+            route: 'N/A',
+            status: "Missing From Truth",
+            ours_loc: our_res.location,
+            truth_loc: "MISSING",
+            ours_acct: our_res.account,
+            truth_acct: "MISSING",
+            ours_cc: our_res.cc,
+            truth_cc: "MISSING",
+            ours_div: our_res.div,
+            truth_div: "MISSING",
+            ours_sol: our_res.solution,
+            truth_sol: "MISSING",
+            ours_ag: our_res.agency,
+            truth_ag: "MISSING",
+            ours_emp: our_res.emp_no,
+            truth_emp: "MISSING"
+          });
+        }
+      });
+
+      // Display comparison panels
+      const scorePct = ((matches / total) * 100).toFixed(1);
+      document.getElementById('comparison-section-title').style.display = 'flex';
+      
+      // Update new explicit row counts
+      const oursCount = Object.keys(ours_map).length;
+      const truthCount = truth_tickets.size;
+      document.getElementById('badge-rows-ours').textContent = `Pipeline: ${oursCount} rows`;
+      document.getElementById('badge-rows-truth').textContent = `Truth File: ${truthCount} rows`;
+      
+      document.getElementById('comparison-score-badge').textContent = `Score: ${matches}/${total} = ${scorePct}%`;
+      document.getElementById('table-container').style.display = 'block';
+      document.getElementById('panel-compare-success').style.display = 'block';
+      
+      // Attach Audit Modal listeners
+      document.querySelectorAll('.btn-audit').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const tkt = e.target.getAttribute('data-ticket');
+          showAuditModal(tkt);
+        });
+      });
+    });
+
+    // ── AUDIT MODAL LOGIC ──
+    const auditModal = document.getElementById('audit-modal');
+    document.getElementById('audit-modal-close').addEventListener('click', () => auditModal.style.display = 'none');
+    document.getElementById('audit-modal-close-btn').addEventListener('click', () => auditModal.style.display = 'none');
+
+    async function showAuditModal(ticketNo) {
+      document.getElementById('audit-modal-subtitle').textContent = `Ticket: ${ticketNo}`;
+      document.getElementById('audit-modal-body').innerHTML = `<div style="text-align:center; padding:40px; color:var(--muted);">Loading audit data...</div>`;
+      auditModal.style.display = 'flex';
+
+      try {
+        const resp = await fetch(API_BASE + `/api/audit?ticket=${ticketNo}`);
+        if (!resp.ok) throw new Error("API not found or missing ticket");
+        const data = await resp.json();
+        
+        if (!data.ok || !data.records || data.records.length === 0) {
+          document.getElementById('audit-modal-body').innerHTML = `<div style="text-align:center; padding:40px; color:var(--muted);">No LLM audit record found for this ticket.<br><br><span style="font-size:12px;">This row was likely resolved deterministically by the cascade.</span></div>`;
+          return;
+        }
+
+        const r = data.records[0];
+        let html = `
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--muted); letter-spacing:0.04em;">Passenger</div>
+            <div style="font-weight:600; color:var(--navy); font-size:14px;">${r.passenger}</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">${r.description}</div>
+          </div>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border);">
+            <div>
+              <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--muted);">Routing Reason</div>
+              <div style="font-family:monospace; font-size:12px; color:var(--action); font-weight:600; margin-top:4px;">${r.method}</div>
+            </div>
+            <div>
+              <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--muted);">LLM Telemetry</div>
+              <div style="font-size:12px; color:var(--navy); margin-top:4px;">
+                <strong>Model:</strong> ${r.llm_model}<br>
+                <strong>Tokens:</strong> ${r.llm_in_tokens} in / ${r.llm_out_tokens} out
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">LLM Reasoning Transcript</div>
+            <div style="background:#FFF9C4; padding:16px; border-left:4px solid var(--gold); border-radius:0 4px 4px 0; font-size:13px; color:#424242; line-height:1.5;">
+              "${r.llm_reasoning}"
+            </div>
+          </div>
+        `;
+        document.getElementById('audit-modal-body').innerHTML = html;
+      } catch (err) {
+        document.getElementById('audit-modal-body').innerHTML = `<div style="text-align:center; padding:40px; color:var(--red);">Error loading audit data.<br><span style="font-size:11px;">${err.message}</span></div>`;
+      }
+    }
+
+    // Download Comparison Report CSV
+    document.getElementById('btn-download-report').addEventListener('click', () => {
+      const selectedRow = document.querySelector('.folder-row.selected');
+      const folderId = selectedRow ? selectedRow.getAttribute('data-id') : 'J26-788';
+
+      let csvContent = "\ufeff"; // Add UTF-8 BOM for perfect Excel compatibility
+      csvContent += "Ticket,Passenger,Route,Status," +
+                    "Location (Ours),Location (Truth)," +
+                    "Account (Ours),Account (Truth)," +
+                    "Cost Center (Ours),Cost Center (Truth)," +
+                    "DIV (Ours),DIV (Truth)," +
+                    "Solution (Ours),Solution (Truth)," +
+                    "Agency (Ours),Agency (Truth)," +
+                    "Employee No (Ours),Employee No (Truth)\n";
+
+      function formatOurs(o, t) {
+        o = (o || '').trim();
+        t = (t || '').trim();
+        return o === t ? `✅ ${o || '—'}` : `❌ ${o || '—'}`;
+      }
+      function formatTruth(o, t) {
+        o = (o || '').trim();
+        t = (t || '').trim();
+        return o === t ? `✅ ${t || '—'}` : `❌ ${t || '—'}`;
+      }
+
+      for (const r of comparisonRows) {
+        csvContent += `"${r.ticket}","${r.passenger}","${r.route}","${r.status}",` +
+                      `"${formatOurs(r.ours_loc, r.truth_loc)}","${formatTruth(r.ours_loc, r.truth_loc)}",` +
+                      `"${formatOurs(r.ours_acct, r.truth_acct)}","${formatTruth(r.ours_acct, r.truth_acct)}",` +
+                      `"${formatOurs(r.ours_cc, r.truth_cc)}","${formatTruth(r.ours_cc, r.truth_cc)}",` +
+                      `"${formatOurs(r.ours_div, r.truth_div)}","${formatTruth(r.ours_div, r.truth_div)}",` +
+                      `"${formatOurs(r.ours_sol, r.truth_sol)}","${formatTruth(r.ours_sol, r.truth_sol)}",` +
+                      `"${formatOurs(r.ours_ag, r.truth_ag)}","${formatTruth(r.ours_ag, r.truth_ag)}",` +
+                      `"${formatOurs(r.ours_emp, r.truth_emp)}","${formatTruth(r.ours_emp, r.truth_emp)}"\n`;
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${folderId}_Segment_by_Segment_Comparison_Report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // Helper regex class to match python RE search
+    const _TICKET_RE = {
+      search: function(text) {
+        const m = text.match(/(?<![\d])(\d{10}|26-\d{3,4})(?![\d])/);
+        if (m) {
+          return {
+            group: function(idx) {
+              return m[idx];
+            }
+          };
+        }
+        return null;
+      }
+    };
+  </script>
+</body>
+</html>

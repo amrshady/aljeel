@@ -1,0 +1,2109 @@
+{
+  "batch_id": "J26-815",
+  "schema_version": "v16.2",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "b2a09f7aa4f5d7bd4b3879fb7b8965e04db7d790cd1226fadf6454dcc7dff928",
+  "usage": {
+    "prompt_tokens": 268615,
+    "completion_tokens": 17027,
+    "total_tokens": 289979
+  },
+  "validation_errors": [],
+  "pydantic_valid": true,
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI YOUSEF|RUH-URY|lte500|2026-05"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "YELLOW",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 1300.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "DUP_ROUTE_STRICT(MEDIUM)"
+          }
+        ],
+        "reasoning": "Potential duplicate billing detected for this route.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALRUGAIB SAIF|ABT-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SIDDIQUI MOHAMMED|HAS-RUH|lte5000|2026-05"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1630.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ZEIADEH AYED|DMM-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKHATEEB HAITHAM|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABU DAYAH RAFAT|MED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 480.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABU DAYAH RAFAT|MED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 470.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MISSING_HR_APPROVAL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "HUDAYS MOHAMMED|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HUDAYS MOHAMMED|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAHMOUD MOHAMMAD|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [
+          "DUPLICATE_BILLING"
+        ],
+        "value_at_risk_sar": 580.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 940.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MIXED_FAMILY_CLUSTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|AHB-JED|lte1000|2026-05"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 440.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MIXED_FAMILY_CLUSTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALBALAWI SAUD|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 640.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALAWI SAUD|GIZ-JED|lte1000|2026-05"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABUSHAREB ABDULLAH|ABT-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 438.15,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELZAIM AHMAD|DXB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 5195.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BABIKER MOHAMMED|DXB-RUH|lte10000|2026-05"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAWSAWI HISHAM|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAHMOUD MOHAMMAD|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABEER ALDHAFEERI|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RAZAN ALRIFAIE|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MARIELLA AKIKI|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "NADIYA ALSOMALI|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAHMI ALKAF|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEH ALBASIRI|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALFAGIH AHMED|PRAGUE RHYTHM 2026 C|lte5000|2026-05"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEH ALGHAMDI|PRAGUE RHYTHM 2026 C|lte5000|2026-05"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KHALID DAGRIRI|PRAGUE RHYTHM 2026 C|lte5000|2026-05"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HOSSAM MOHAMMED OSMAN|TRAIN BOOKING|lte500|2026-05"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 380.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKHATEEB HAITHAM|TRAIN BOOKING ROUND |lte500|2026-05"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED ABDELGHAFAR|CAI-RUH|lte5000|2026-05"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "YELLOW",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "DUP_ROUTE_STRICT(MEDIUM)"
+          }
+        ],
+        "reasoning": "Potential duplicate billing detected.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALRUGAIB SAIF|ABT-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 480.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALATTAR ABDULLAH|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 470.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALATTAR ABDULLAH|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMOUDI ABDALLAH|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1290.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "EMPLOYEE_NOT_IN_MASTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "AREF SALEH MOHAMMAD|RUH-WAE|lte2000|2026-05"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1090.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MIXED_FAMILY_CLUSTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALOTAIBI FAISAL|AHB-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1090.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALOTAIBI JALAL|AHB-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 460.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MISSING_HR_APPROVAL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "BURHAN HAMMAM|AHB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 600.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BURHAN HAMMAM|AHB-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [
+          "DUPLICATE_BILLING"
+        ],
+        "value_at_risk_sar": 550.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 550.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "AYESH ZAKARIA|JED-MED|lte1000|2026-05"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "YELLOW",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1890.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "DUP_ROUTE_STRICT(MEDIUM)"
+          }
+        ],
+        "reasoning": "Potential duplicate billing detected.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|DMM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALBESI NASSER|DMM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 650.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALMAZLOOM HASSAN|AHB-JED|lte1000|2026-05"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 780.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALMAZLOOM HASSAN|AHB-JED|lte1000|2026-05"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MANPOWER_DIV_NOT_IN_MASTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALBARZAN FATIMA|EAM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1490.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBARZAN FATIMA|EAM-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELHAG ALI|JED-MED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 8400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSAAD ALHUSSEIN|LEONARDO ROYAL HOTEL|lte10000|2026-05"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 450.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALRUGAIB SAIF|ABT-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 169.05,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALRUGAIB SAIF|ABT-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 350.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ZAKARIA AYESH|TRAIN TICKET|lte500|2026-05"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 170.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAZEN KARALI|TRAIN SERVICE DOMEST|lte500|2026-05"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "OMER WALAA|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 491.05,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "DUP_ROUTE_STRICT(MEDIUM)"
+          }
+        ],
+        "reasoning": "Potential duplicate billing detected.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIEL YASIN|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAROUD MUSTAFA|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAMAL MOHAMMED ABDULMAJEED|RUH-YNB|lte500|2026-05"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1145.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "YOUNES YOUSSEF|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1090.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAHKALI ARIEJ|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 10000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALRIFAIE RAZAN|BCN-IST|lte10000|2026-05"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHORAB JAWDAT|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 900.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "LELLO IBRAHIM|DMM-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 839.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MIXED_FAMILY_CLUSTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALZAHRANI ALI|RUH-TUU|lte1000|2026-05"
+      },
+      {
+        "sl_no": 68,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1120.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALZAHRANI ALI|RUH-TUU|lte2000|2026-05"
+      },
+      {
+        "sl_no": 69,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 735.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAMALY MAHMOUD MOFEED|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 70,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [
+          "DUPLICATE_BILLING"
+        ],
+        "value_at_risk_sar": 735.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 71,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1965.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALASIRI ABDULAZIZ|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 72,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABDELGHAFAR AHMED|IHG-INN|lte2000|2026-05"
+      },
+      {
+        "sl_no": 73,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 207.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIEL YASIN|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 74,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 510.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|TRAIN DOMESTIC|lte1000|2026-05"
+      },
+      {
+        "sl_no": 75,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3030.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "NAIF HUMAIDI S ALBOMEDRAH|DMM-MXP|lte5000|2026-05"
+      },
+      {
+        "sl_no": 76,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 415.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "YOUSEF AL DIGHRIR|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 77,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AWED RAED|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 19500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSHOAIBI NAEEM|DXB-JED|lte20000|2026-05"
+      },
+      {
+        "sl_no": 79,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJISHI HALA|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 80,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|MED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 81,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 700.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAMALY MAHMOUD MOFEED|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 82,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [
+          "DUPLICATE_BILLING"
+        ],
+        "value_at_risk_sar": 700.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKILO ABDELRAHMAN|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 83,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAWSAWI HISHAM|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 84,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSAAD ALHUSSEIN|AIRPORT PICK UP|lte1000|2026-05"
+      },
+      {
+        "sl_no": 85,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RAZAN ALRIFAIE|AIRPORT PICK UP|lte1000|2026-05"
+      },
+      {
+        "sl_no": 86,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAHMI ALKAF|AIRPORT PICK UP|lte1000|2026-05"
+      },
+      {
+        "sl_no": 87,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABEER ALDHAFEERI|AIRPORT PICK UP|lte1000|2026-05"
+      },
+      {
+        "sl_no": 88,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "NADIYA ALSOMALI|AIRPORT PICK UP|lte1000|2026-05"
+      },
+      {
+        "sl_no": 89,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MARIELLA AKIKI|AIRPORT PICK UP|lte1000|2026-05"
+      },
+      {
+        "sl_no": 90,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSAAD ALHUSSEIN|AIRPORT DROP OFF|lte1000|2026-05"
+      },
+      {
+        "sl_no": 91,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABEER ALDHAFEERI|AIRPORT DROP OFF|lte1000|2026-05"
+      },
+      {
+        "sl_no": 92,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RAZAN ALRIFAIE|AIRPORT DROP OFF|lte1000|2026-05"
+      },
+      {
+        "sl_no": 93,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "NADIYA ALSOMALI|AIRPORT DROP OFF|lte1000|2026-05"
+      },
+      {
+        "sl_no": 94,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAHMI ALKAF|AIRPORT DROP OFF|lte1000|2026-05"
+      },
+      {
+        "sl_no": 95,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 625.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MARIELLA AKIKI|AIRPORT DROP OFF|lte1000|2026-05"
+      },
+      {
+        "sl_no": 96,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 550.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RIZA CABERTE MUTIA|DUBAI VISA - 60 NTS.|lte1000|2026-05"
+      },
+      {
+        "sl_no": 97,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 260.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HOSSAM OTHMAN|TRAIN TICKET|lte500|2026-05"
+      },
+      {
+        "sl_no": 98,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [
+          "DUPLICATE_BILLING"
+        ],
+        "value_at_risk_sar": 560.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIEL YASIN|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 99,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 740.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIEL YASIN|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 100,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SIDDIQUI MOHAMMED|RAE-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 101,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MORSI MAHMOUD|RUH-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 102,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABU DAYAH RAFAT|DMM-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 103,
+        "verdict": "YELLOW",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 1299.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "DUP_ROUTE_STRICT(MEDIUM)"
+          }
+        ],
+        "reasoning": "Potential duplicate billing detected.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 104,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1950.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "MIXED_FAMILY_CLUSTER"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "ALZAHRANI RAYAN|RUH-TUU|lte2000|2026-05"
+      },
+      {
+        "sl_no": 105,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 650.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KHADER OMAR|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 106,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 650.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KHADER OMAR|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 107,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 750.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "ALLOCATION_TARGET_MISSING"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AWADA SALEEM|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 108,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 650.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AWADA SALEEM|JED-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 109,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 110,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAROUD MUSTAFA|EAM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 111,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 4620.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALMOTASEMBILLAH RAMMAL|ESGE 2026 - REGISTRA|lte5000|2026-05"
+      },
+      {
+        "sl_no": 112,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Row is compliant and verified.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 113,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "RAYEH MOHAMMED|JED-MED|lte500|2026-05"
+      },
+      {
+        "sl_no": 114,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 300.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          }
+        ],
+        "reasoning": "Missing approval documentation.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMMED RAYEH|TRAIN TICKET|lte500|2026-05"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_nos": [
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          53,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95
+        ],
+        "headline": "Unapproved Barcelona Hotel & Transport Bookings",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 66300.0,
+        "full_reasoning": "Multiple high-value hotel and transport bookings for Barcelona without any approval documentation.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "NO_APPROVAL(HIGH) | MISSING_EVIDENCE(HARD)"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 2,
+        "sl_nos": [
+          78
+        ],
+        "headline": "Unapproved High-Value Flight to Amsterdam",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 19500.0,
+        "full_reasoning": "High-value flight booking without any approval documentation.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "MISSING_EVIDENCE(HARD)"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 3,
+        "sl_nos": [
+          64
+        ],
+        "headline": "Unapproved Flight to Barcelona",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 10000.0,
+        "full_reasoning": "High-value flight booking without any approval documentation.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "MISSING_EVIDENCE(HARD)"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 4,
+        "sl_nos": [
+          28,
+          29,
+          30
+        ],
+        "headline": "Unapproved Prague Rhythm Congress Registrations",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 7350.0,
+        "full_reasoning": "Multiple congress registrations without any approval documentation.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "MISSING_EVIDENCE(HARD)"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 5,
+        "sl_nos": [
+          19
+        ],
+        "headline": "Unapproved Flight to Shanghai",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 5195.0,
+        "full_reasoning": "High-value flight booking without any approval documentation.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "agent_flags_v30",
+            "quote": "FORM_NOT_FOUND_IN_EMAIL"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "qc_catches_v30",
+            "quote": "NO_APPROVAL(HIGH)"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      }
+    ],
+    "batch_summary": {
+      "red_count": 68,
+      "yellow_count": 18,
+      "clean_count": 28,
+      "total_rows": 114,
+      "total_value_at_risk_sar": 150000.0,
+      "catches_by_category": {
+        "APPROVAL_MISSING": 80,
+        "DUPLICATE_BILLING": 6
+      },
+      "key_themes": [
+        "Missing approval documentation across the batch",
+        "High-value unapproved hotel and transport bookings for Barcelona",
+        "Potential duplicate billing on domestic routes"
+      ]
+    }
+  },
+  "v1511_summary_catches": {},
+  "generated_at": "2026-06-20T02:21:14.277539Z"
+}

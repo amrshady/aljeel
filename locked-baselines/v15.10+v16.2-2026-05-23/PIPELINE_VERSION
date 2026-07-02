@@ -1,0 +1,70 @@
+Aljeel AP Pipeline — Locked Baseline
+=====================================
+
+Lock tag:        v15.10+v16.2-2026-05-23
+Locked at:       2026-05-23 12:45 UTC (refreshed after re-run validation)
+Locked by:       Malik (Amr Shady directive 2026-05-23)
+Hostname:        aljeel-ap (206.189.57.22)
+
+What 'locked' guarantees:
+  ✅ Pipeline IS deterministic on the financial output:
+      - 100% match on Distribution Combination / Tax Code / Employee No across runs
+      - 100% match on the 31-col Oracle Fusion submission shape
+      - Verified by re-running J26-640 + J26-788 from clean state on 2026-05-23
+
+  ⚠️ Pipeline mutates cache/cross_batch_history.json on every run.
+      That cache feeds the AI fraud detector. We pin a snapshot here.
+      Restore from pinned-inputs/ before any AI fraud re-run that needs
+      to match locked verdicts.
+
+  ⚠️ AI fraud detector verdicts are NOT byte-identical across runs
+      (Gemini 3.1 Pro has temperature variance at high prompt complexity).
+      The locked verdict JSON in expected-output/ is the AS-DELIVERED
+      snapshot for Laith's email today. Future runs may produce a
+      different verdict count even with the same input bundle.
+
+Components:
+  pipeline:               v15.10 (deterministic GL/CC allocation)
+  ai-fraud-detector:      v16.2 (Gemini 3.1 Pro, Jawal-aware schema)
+  master-data:            snapshot as of 2026-05-23 12:45 UTC
+  pinned-inputs:          cross_batch_history.json snapshot
+  expected-output:        J26-640/J26-788 FILLED + fraud-ai JSON
+
+Pipeline composition:
+  v15.10 deterministic = GL account routing, cost-center allocation,
+                          division/contribution/solution/agency/intercompany
+                          coding, credit-memo handling, employee resolution
+                          (L0→L4 cascade), location pool, manager
+                          reverse-lookup. On rollback: process_batch.py
+                          was bumped from v15.11 back to v15.10 baseline
+                          on 2026-05-23 12:34 UTC.
+
+  v16.2 AI fraud layer = Gemini 3.1 Pro per-row verdict with closed
+                          12-category vocabulary (Jawal-aware), structured
+                          evidence pointers, Pydantic v2 validation,
+                          thinkingBudget=8192 (8K) to prevent output-token
+                          starvation. Schema bumped from v16.1 after
+                          discovering EXPENSE_MISCLASSIFICATION false
+                          positives on legitimate Jawal hotel/registration
+                          lines posted to 60307021 Sponsoring Expenses.
+
+Re-run discipline:
+  1. To re-run pipeline only:
+        cd $ALJEEL && bash PROCESS/run_jawal_batch.sh <BATCH>
+     Regenerates FILLED-v15.10.xlsx deterministically on financial
+     fields, but mutates cache/cross_batch_history.json.
+
+  2. To re-run AI fraud detector against locked snapshot:
+     a. Restore pinned cross-batch history:
+        cp $LOCK/pinned-inputs/cross_batch_history.json \
+           $ALJEEL/cache/cross_batch_history.json
+     b. Use the locked detector code:
+        cp $LOCK/ai-fraud-detector/ai_fraud_detector.py \
+           $ALJEEL/qc/ai-poc/ai_fraud_detector.py
+
+  3. To pin a NEW baseline (e.g. when v15.11 is locked clean):
+     Copy this directory, bump the tag, re-run the lock script.
+
+Drift detection:
+  cd $LOCK && sha256sum -c CHECKSUMS.sha256
+  Any file that changed = lock broken. Re-pin before re-running.

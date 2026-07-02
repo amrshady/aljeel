@@ -1,0 +1,644 @@
+{
+  "batch_id": "J26-870",
+  "schema_version": "v16.2",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "f5f77950b4b6aa9c8c2269689787e135efd351dfaf5afbe78eaa4371470fe373",
+  "usage": {
+    "prompt_tokens": 240373,
+    "completion_tokens": 5759,
+    "total_tokens": 248576
+  },
+  "validation_errors": [],
+  "pydantic_valid": true,
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 18000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:1",
+            "quote": "ALUTHMAN/UTHMAN MR | JED IST HAJ IST JED | 18000.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALUTHMAN UTHMAN|IST-JED|lte20000|2026-06"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2100.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:2",
+            "quote": "KHADER/OMAR MR | RUH JED RUH | 2100.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KHADER OMAR|JED-RUH|lte5000|2026-05"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:3",
+            "quote": "ALJAMAL/MOHAMMED ABDULMAJEED MR | RUH HAS RUH | 2500.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAMAL MOHAMMED ABDULMAJEED|HAS-RUH|lte5000|2026-05"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:4",
+            "quote": "ELSAED/ZEYAD MR | JED DMM JED | 1500.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSAED ZEYAD|DMM-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 12200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:5",
+            "quote": "BINSUHAYM/NAWAF MR | RUH IST AMS IST RUH | 12200.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BINSUHAYM NAWAF|IST-RUH|lte20000|2026-06"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 12000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:6",
+            "quote": "ALOTAIBI/MAJED MR | RUH IST AMS IST RUH | 12000.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALOTAIBI MAJED|IST-RUH|lte20000|2026-06"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 12000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:7",
+            "quote": "ALQARNI/ADEL MR | RUH IST AMS IST RUH | 12000.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALQARNI ADEL|IST-RUH|lte20000|2026-06"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:8",
+            "quote": "ALOTAIBI/MAJED MR | RUH IST AMS IST RUH | 2000.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALOTAIBI MAJED|IST-RUH|lte2000|2026-06"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:9",
+            "quote": "ALQARNI/ADEL MR | RUH IST AMS IST RUH | 2000.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALQARNI ADEL|IST-RUH|lte2000|2026-06"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 14500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:10",
+            "quote": "BANOQITAH/MOHANAD MR | JED IST AMS IST JED | 14500.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BANOQITAH MOHANAD|IST-JED|lte20000|2026-06"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3900.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:11",
+            "quote": "ALJAROUD/MUSTAFA MR | JED RUH RSI RUH JED | 3900.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAROUD MUSTAFA|JED-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 12200.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:12",
+            "quote": "BARAQAAN/HANI MR | RUH IST AMS IST RUH | 12200.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BARAQAAN HANI|IST-RUH|lte20000|2026-06"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2940.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:13",
+            "quote": "MUHAMMAD/MAHMOUD MR | RUH CAI RUH | 2940.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MUHAMMAD MAHMOUD|CAI-RUH|lte5000|2026-07"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 2030.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:14",
+            "quote": "MOHAMED/LAYAN MS(CHD) | RUH DBB CAI RUH | 2030.0"
+          }
+        ],
+        "reasoning": "Family member traveling without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHAMED LAYAN CHD|DBB-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 2030.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:15",
+            "quote": "MUHAMED/LARA MS(CHD) | RUH DBB CAI RUH | 2030.0"
+          }
+        ],
+        "reasoning": "Family member traveling without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MUHAMED LARA CHD|DBB-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 2030.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:16",
+            "quote": "SALEM/AMIRA MRS | RUH DBB CAI RUH | 2030.0"
+          }
+        ],
+        "reasoning": "Family member traveling without documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEM AMIRA|DBB-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2050.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:17",
+            "quote": "ALUTHMAN UTHMAN DR | Leonardo Hotel Hannover Medical Park | 2050.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALUTHMAN UTHMAN|UNKNOWN|lte5000|2026-06"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 6800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:18",
+            "quote": "DR MAJED ALOTAIBI | Hilton Rotterdam - 3 NTS. | 6800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAJED ALOTAIBI|UNKNOWN|lte10000|2026-06"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 6800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:19",
+            "quote": "DR ADEL ALQARNI | Hilton Rotterdam - 3 NTS. | 6800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ADEL ALQARNI|UNKNOWN|lte10000|2026-06"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 6800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:20",
+            "quote": "MOHANAD BANOQITAH DR | Hilton Rotterdam - 3 NTS. | 6800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOHANAD BANOQITAH|UNKNOWN|lte10000|2026-06"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 6800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:21",
+            "quote": "NAWAF BINSUHAYM DR | Hilton Rotterdam - 3 NTS. | 6800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "NAWAF BINSUHAYM|UNKNOWN|lte10000|2026-06"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 6800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:22",
+            "quote": "BARAQAAN/HANI DR | Hilton Rotterdam - 3 NTS. | 6800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BARAQAAN HANI|UNKNOWN|lte10000|2026-06"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1300.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:23",
+            "quote": "ALSHOAIBI NAEEM DR | TRAIN ROUND TRIP EURO STAR | 1300.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALSHOAIBI NAEEM|UNKNOWN|lte2000|2026-05"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 3800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:24",
+            "quote": "BUKHARI/AMR MR | PRG DXB JED | 3800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BUKHARI AMR|DXB-PRG|lte5000|2026-05"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 10800.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:25",
+            "quote": "HANIN MAHMOUD | Holiday Inn London - Regent's Park by IH | 10800.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HANIN MAHMOUD|UNKNOWN|lte20000|2026-06"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 485.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:26",
+            "quote": "AHMED ABDELGHAFAR | Holiday Inn Riyadh - Meydan by IHG - 1 N | 485.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED ABDELGHAFAR|UNKNOWN|lte500|2026-05"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 700.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:27",
+            "quote": "MOSAAD ALHUSSEIN | Kempinski Al Othman Hotel Al Khobar - 1 | 700.0"
+          }
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSAAD ALHUSSEIN|UNKNOWN|lte1000|2026-06"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_nos": [
+          1
+        ],
+        "headline": "Missing Approval for High Value Ticket",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 18000.0,
+        "full_reasoning": "No approval email found for this high value ticket.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:1",
+            "quote": "ALUTHMAN/UTHMAN MR | JED IST HAJ IST JED | 18000.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval emails found in the batch."
+          }
+        ],
+        "recommended_action": "REQUEST_APPROVAL_RECONFIRMATION"
+      },
+      {
+        "rank": 2,
+        "sl_nos": [
+          10
+        ],
+        "headline": "Missing Approval for High Value Ticket",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 14500.0,
+        "full_reasoning": "No approval email found for this high value ticket.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:10",
+            "quote": "BANOQITAH/MOHANAD MR | JED IST AMS IST JED | 14500.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval emails found in the batch."
+          }
+        ],
+        "recommended_action": "REQUEST_APPROVAL_RECONFIRMATION"
+      },
+      {
+        "rank": 3,
+        "sl_nos": [
+          5
+        ],
+        "headline": "Missing Approval for High Value Ticket",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 12200.0,
+        "full_reasoning": "No approval email found for this high value ticket.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:5",
+            "quote": "BINSUHAYM/NAWAF MR | RUH IST AMS IST RUH | 12200.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval emails found in the batch."
+          }
+        ],
+        "recommended_action": "REQUEST_APPROVAL_RECONFIRMATION"
+      },
+      {
+        "rank": 4,
+        "sl_nos": [
+          12
+        ],
+        "headline": "Missing Approval for High Value Ticket",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 12200.0,
+        "full_reasoning": "No approval email found for this high value ticket.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:12",
+            "quote": "BARAQAAN/HANI MR | RUH IST AMS IST RUH | 12200.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval emails found in the batch."
+          }
+        ],
+        "recommended_action": "REQUEST_APPROVAL_RECONFIRMATION"
+      },
+      {
+        "rank": 5,
+        "sl_nos": [
+          6
+        ],
+        "headline": "Missing Approval for High Value Ticket",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 12000.0,
+        "full_reasoning": "No approval email found for this high value ticket.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no:6",
+            "quote": "ALOTAIBI/MAJED MR | RUH IST AMS IST RUH | 12000.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval emails found in the batch."
+          }
+        ],
+        "recommended_action": "REQUEST_APPROVAL_RECONFIRMATION"
+      }
+    ],
+    "batch_summary": {
+      "red_count": 5,
+      "yellow_count": 22,
+      "clean_count": 0,
+      "total_rows": 27,
+      "total_value_at_risk_sar": 158865.0,
+      "catches_by_category": {
+        "APPROVAL_MISSING": 24,
+        "UNAPPROVED_FAMILY": 3
+      },
+      "key_themes": [
+        "Missing approval emails for all rows",
+        "Unapproved family travel"
+      ]
+    }
+  },
+  "v1511_summary_catches": {},
+  "generated_at": "2026-06-10T19:03:16.366966Z"
+}

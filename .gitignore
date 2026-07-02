@@ -1,0 +1,59 @@
+# ===== AlJeel AP — git excludes =====
+# Track CODE/CONFIG only. Never commit financial data, caches, or media.
+
+# --- Caches / rendered / generated ---
+**/_cache/
+**/_rendered/
+**/_poc_out/
+**/__pycache__/
+*.pyc
+cache/
+.wrangler/
+state/
+
+# --- Batch data & financial documents (CONFIDENTIAL) ---
+batches/
+archive/
+extracted/
+uploads/
+matched/
+reference/
+qc/master-data/
+qc/fixtures/
+dashboard/public/files/
+
+# --- Media / large binaries ---
+*.pdf
+*.xlsx
+*.xlsm
+*.xls
+*.m4a
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.zip
+*.tar
+*.gz
+
+# --- Logs / temp ---
+*.log
+tmp/
+tmp_*
+*.partial
+
+# --- Secrets ---
+.env
+*.key
+*.pem
+
+# --- Dashboard data & evidence (CONFIDENTIAL PII/financial) ---
+dashboard/public/evidence/
+dashboard/public/data/
+dashboard/public/files/
+dashboard/**/*.json
+
+# --- All env variants ---
+*.env
+tunnel.env

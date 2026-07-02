@@ -1,0 +1,1325 @@
+import os
+import select
+import subprocess
+import threading
+import sys
+import json
+import shutil
+import uuid
+import time
+import re
+import mimetypes
+from io import BytesIO
+from datetime import datetime, timezone
+from email import policy
+from email.parser import BytesParser
+from pathlib import Path
+from flask import Flask, request, Response, jsonify, send_file
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
+
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+SCRIPTS = ROOT / "scripts"
+RUN_LOCK = ROOT / "run.lock"
+RUN_LOCK_TS = ROOT / "run.lock.ts"
+UPLOADS_DIR = ROOT / "uploads" / "portal"
+PIPELINE_LOGS_DIR = ROOT / "tmp" / "pipeline-logs"
+VOLUME_BASE = Path("/mnt/aljeel_ap_kb/current")
+sys.path.insert(0, str(SCRIPTS))
+from msg_parser import parse_msg
+
+# Load environment variables from .env
+env_path = Path("/home/clawdbot/.openclaw/.env")
+if env_path.exists():
+    for _line in env_path.read_text().splitlines():
+        if "=" in _line and not _line.startswith("#"):
+            _k, _v = _line.split("=", 1)
+            os.environ[_k.strip()] = _v.strip()
+
+app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
+CORS(app)
+
+def _atomic_copy(src, dst):
+    dst = Path(dst)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dst.parent / f".tmp-{dst.name}"
+    shutil.copy2(src, tmp)
+    os.replace(tmp, dst)
+
+def _read_lock_status():
+    if not RUN_LOCK.exists():
+        return {"run_id": None, "since": None, "locked": False}
+    since = None
+    run_id = None
+    if RUN_LOCK_TS.exists():
+        try:
+            raw = RUN_LOCK_TS.read_text(encoding="utf-8").strip()
+            if raw:
+                try:
+                    lock_meta = json.loads(raw)
+                    since = lock_meta.get("since")
+                    run_id = lock_meta.get("run_id")
+                except json.JSONDecodeError:
+                    since = raw
+        except OSError:
+            since = None
+    if run_id is None:
+        try:
+            raw_run_id = RUN_LOCK.read_text(encoding="utf-8").strip()
+            run_id = raw_run_id or None
+        except OSError:
+            run_id = None
+    return {"run_id": run_id, "since": since, "locked": True}
+
+def _find_run_log_path(run_id):
+    if not run_id or not re.match(r"^[a-f0-9]{8}$", run_id):
+        return None
+    matches = sorted(PIPELINE_LOGS_DIR.glob(f"*-{run_id}.log"))
+    if not matches:
+        return None
+    return matches[-1]
+
+def _clear_run_lock_files():
+    for lock_path in (RUN_LOCK, RUN_LOCK_TS):
+        try:
+            lock_path.unlink()
+        except FileNotFoundError:
+            pass
+
+def _lock_since_age_seconds(since):
+    if not since:
+        return None
+    try:
+        parsed = datetime.fromisoformat(since)
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - parsed).total_seconds()
+
+def _run_log_age_seconds(run_id):
+    log_files = list(PIPELINE_LOGS_DIR.glob(f"*-{run_id}.log")) if run_id else []
+    if not log_files:
+        return None
+    latest = max(log_files, key=lambda path: path.stat().st_mtime)
+    return time.time() - latest.stat().st_mtime
+
+def _maybe_clear_stale_lock(status=None):
+    """Clear lock if it is old and the associated log is inactive."""
+    if not RUN_LOCK.exists():
+        return False
+    try:
+        lock_status = status or _read_lock_status()
+        age = _lock_since_age_seconds(lock_status.get("since"))
+        if age is None or age < 600:
+            return False
+
+        run_id = lock_status.get("run_id")
+        log_age = _run_log_age_seconds(run_id)
+        if log_age is not None and log_age < 60:
+            return False
+
+        _clear_run_lock_files()
+        return True
+    except Exception:
+        return False
+
+def _sse_headers():
+    return {
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    }
+
+def _stream_run_log(run_id, log_path):
+    def sse(message):
+        return f"data: [RUN-{run_id}] {message}\n\n"
+
+    with log_path.open("r", encoding="utf-8") as log_handle:
+        last_yield_time = time.monotonic()
+        while True:
+            line = log_handle.readline()
+            if not line:
+                now = time.monotonic()
+                if now - last_yield_time > 30:
+                    yield ": heartbeat\n\n"
+                    last_yield_time = now
+                time.sleep(0.5)
+                continue
+
+            message = line.rstrip("\n")
+            last_yield_time = time.monotonic()
+            if message == "[END]":
+                yield "data: [END]\n\n"
+                return
+            if message.startswith("PREFLIGHT_"):
+                yield f"event: preflight\ndata: {message}\n\n"
+                continue
+            if message == "[PREFLIGHT_COMPLETE]":
+                yield "event: preflight_complete\ndata: {}\n\n"
+                continue
+            yield sse(message)
+
+EVIDENCE_DIR_NAMES = (
+    "raw",
+    "gdrive-evidence",
+    "gdrive-evidence2",
+    "onedrive-pull",
+    "extracted",
+)
+
+def _normalize_batch_id(batch_id):
+    match = re.search(r"J26-\d+", str(batch_id or ""), re.IGNORECASE)
+    return match.group(0).upper() if match else str(batch_id or "").strip().upper()
+
+def _evidence_candidate_sort_key(candidate):
+    _batch_id, evidence_priority, location_priority, path = candidate
+    try:
+        modified_ts = path.stat().st_mtime
+    except OSError:
+        modified_ts = 0
+    return (evidence_priority, location_priority, -modified_ts, path.as_posix())
+
+def _batch_evidence_candidates(batch_id):
+    normalized = _normalize_batch_id(batch_id)
+    batch_dir = ROOT / "batches" / f"jawal-{normalized}"
+    for priority, dirname in enumerate(EVIDENCE_DIR_NAMES):
+        candidate = batch_dir / dirname
+        if candidate.is_dir():
+            yield normalized, priority, 0, candidate
+
+def _portal_evidence_candidates(batch_id=None):
+    wanted_batch_id = _normalize_batch_id(batch_id) if batch_id else None
+    if not UPLOADS_DIR.is_dir():
+        return
+
+    seen = set()
+    for upload_dir in sorted(UPLOADS_DIR.iterdir(), key=lambda path: path.name.lower()):
+        if not upload_dir.is_dir():
+            continue
+        for dirpath, _dirnames, _filenames in os.walk(upload_dir):
+            path = Path(dirpath)
+            match = re.search(r"J26-\d+", path.name, re.IGNORECASE)
+            if not match:
+                continue
+
+            found_batch_id = match.group(0).upper()
+            if wanted_batch_id and found_batch_id != wanted_batch_id:
+                continue
+
+            yielded_named_child = False
+            for priority, dirname in enumerate(EVIDENCE_DIR_NAMES):
+                candidate = path / dirname
+                key = (found_batch_id, candidate)
+                if candidate.is_dir() and key not in seen:
+                    seen.add(key)
+                    yielded_named_child = True
+                    yield found_batch_id, priority, 1, candidate
+
+            key = (found_batch_id, path)
+            if not yielded_named_child and key not in seen:
+                seen.add(key)
+                yield found_batch_id, len(EVIDENCE_DIR_NAMES), 1, path
+
+def _evidence_candidates(batch_id):
+    yield from _batch_evidence_candidates(batch_id)
+    yield from _portal_evidence_candidates(batch_id)
+
+def _resolve_volume_evidence_root(batch_id: str) -> Path | None:
+    """Find the directory on the DigitalOcean volume that directly contains ticket/date subfolders."""
+    normalized = _normalize_batch_id(batch_id)
+    batch_dir = VOLUME_BASE / normalized
+    if not batch_dir.is_dir():
+        return None
+
+    ticket_pat = re.compile(r"^\d{6,}$")
+    date_pat = re.compile(r"^\d{2}[a-z]{3}$")
+    from collections import deque
+
+    queue = deque([(batch_dir, 0)])
+    while queue:
+        current, depth = queue.popleft()
+        try:
+            subdirs = [p for p in current.iterdir() if p.is_dir()]
+        except PermissionError:
+            continue
+
+        evidence_subdirs = [
+            p for p in subdirs
+            if ticket_pat.match(p.name) or date_pat.match(p.name.lower())
+        ]
+        if evidence_subdirs:
+            return current
+
+        if depth < 3:
+            for subdir in subdirs:
+                queue.append((subdir, depth + 1))
+
+    return None
+
+def _evidence_raw_dir(batch_id):
+    normalized = _normalize_batch_id(batch_id)
+    vol = _resolve_volume_evidence_root(normalized)
+    if vol:
+        return vol
+    return ROOT / "batches" / f"jawal-{normalized}" / "raw"
+
+def _relative_to_root(path):
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+def _format_batch_size(size_bytes):
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / 1024 / 1024:.1f} MB"
+
+def _batch_sort_key(batch_id):
+    match = re.match(r"^J26-(\d+)$", batch_id, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return -1
+
+def _scan_size_and_count(root_dir, deadline):
+    size_bytes = 0
+    item_count = 0
+    for dirpath, _dirnames, filenames in os.walk(root_dir):
+        if time.monotonic() > deadline:
+            raise TimeoutError
+        for filename in filenames:
+            if time.monotonic() > deadline:
+                raise TimeoutError
+            file_path = Path(dirpath) / filename
+            try:
+                stat = file_path.stat()
+            except OSError:
+                continue
+            if not file_path.is_file():
+                continue
+            size_bytes += stat.st_size
+            item_count += 1
+    return size_bytes, item_count
+
+def _resolve_evidence_path(batch_id, rel):
+    raw_dir = _evidence_raw_dir(batch_id).resolve(strict=False)
+    file_path = (raw_dir / rel).resolve(strict=False)
+    if not file_path.is_relative_to(raw_dir):
+        return raw_dir, None
+    return raw_dir, file_path
+
+def _email_payload(email_type, subject="", sender="", to=None, date="", body="", attachments=None):
+    return {
+        "type": email_type,
+        "subject": subject or "",
+        "from": sender or "",
+        "to": to or [],
+        "date": date or "",
+        "body": body or "",
+        "attachments": attachments or [],
+    }
+
+def _parse_msg_payload(path):
+    parsed = parse_msg(path)
+    names = parsed.get("attachment_names") or []
+    attachments = [{"index": i, "name": name or f"attachment-{i + 1}"} for i, name in enumerate(names)]
+    return _email_payload(
+        "msg",
+        subject=parsed.get("subject", ""),
+        sender=parsed.get("sender", ""),
+        to=parsed.get("to", []),
+        date=parsed.get("received_at", ""),
+        body=parsed.get("body_text", ""),
+        attachments=attachments,
+    )
+
+def _parse_eml_payload(path):
+    with open(path, "rb") as f:
+        msg = BytesParser(policy=policy.default).parse(f)
+
+    body = ""
+    plain = msg.get_body(preferencelist=("plain",))
+    html = msg.get_body(preferencelist=("html",))
+    if plain:
+        body = plain.get_content()
+    elif html:
+        body = html.get_content()
+
+    attachments = []
+    for part in msg.walk():
+        if part.get_content_disposition() != "attachment":
+            continue
+        name = part.get_filename() or f"attachment-{len(attachments) + 1}"
+        attachments.append({"index": len(attachments), "name": name})
+
+    to_header = msg.get("To", "") or ""
+    to = [value.strip() for value in to_header.split(",") if value.strip()]
+    return _email_payload(
+        "eml",
+        subject=msg.get("Subject", ""),
+        sender=msg.get("From", ""),
+        to=to,
+        date=msg.get("Date", ""),
+        body=body,
+        attachments=attachments,
+    )
+
+def _msg_attachment(path, index):
+    import extract_msg
+
+    msg = extract_msg.Message(path)
+    try:
+        attachments = list(getattr(msg, "attachments", []) or [])
+        if index < 0 or index >= len(attachments):
+            return None
+        attachment = attachments[index]
+        data = getattr(attachment, "data", None)
+        if data is None and hasattr(attachment, "getData"):
+            data = attachment.getData()
+        if data is None:
+            return None
+        name = (
+            getattr(attachment, "longFilename", None)
+            or getattr(attachment, "shortFilename", None)
+            or f"attachment-{index + 1}"
+        )
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        return name, data
+    finally:
+        msg.close()
+
+def _resolve_jawal_batch_paths(batch_id):
+    normalized = batch_id.replace("jawal-", "")
+    batch_dir = ROOT / "batches" / f"jawal-{normalized}"
+
+    # First: try discover.py against archive raw dirs (works for J26-550/589/593/640)
+    try:
+        import discover
+        discovery_roots = [
+            ROOT / "archive" / f"raw-{normalized}",
+        ]
+        old_raw = getattr(discover, "RAW", None)
+        try:
+            for raw_root in discovery_roots:
+                if not raw_root.exists():
+                    continue
+                discover.RAW = raw_root
+                try:
+                    cfg = discover.discover_jawal()
+                except Exception as e:
+                    print(f"[warn] discover.py found no Jawal batch data under {raw_root}: {e}", flush=True)
+                    continue
+                discovered_batch_path = cfg.invoice_xlsx.resolve(strict=False)
+                if normalized not in str(discovered_batch_path):
+                    print(f"[warn] discover.py ignored {discovered_batch_path}; expected batch {normalized}", flush=True)
+                    continue
+                return batch_dir, raw_root, None
+        finally:
+            if old_raw is not None:
+                discover.RAW = old_raw
+    except Exception as e:
+        print(f"[warn] discover.py import/run failed: {e}", flush=True)
+
+    # Second: live batch layout — msg files in raw/
+    # This covers J26-788 and future batches dropped directly into batches/jawal-XXX/
+    raw_dir = batch_dir / "raw"
+    if batch_dir.exists() and raw_dir.exists():
+        print(f"[info] Using live batch layout: batch_dir={batch_dir}, raw_dir={raw_dir}", flush=True)
+        return batch_dir, raw_dir, None
+
+    # Third: DigitalOcean volume layout (portal uploads to /mnt/aljeel_ap_kb/current).
+    # Covers J26-815/830/870 and any batch staged on the volume but not migrated/staged locally.
+    volume_evidence_root = _resolve_volume_evidence_root(normalized)
+    if volume_evidence_root is not None:
+        raw_dir = volume_evidence_root
+        batch_dir.mkdir(parents=True, exist_ok=True)
+        print(f"[info] Using volume batch layout: batch_dir={batch_dir}, raw_dir={raw_dir}", flush=True)
+
+        # Stage the Jawal invoice xlsx from the volume so the pipeline can find it.
+        dst_invoice = batch_dir / "invoice-source.xlsx"
+        if not dst_invoice.exists():
+            volume_batch_dir = VOLUME_BASE / _normalize_batch_id(normalized)
+            try:
+                xlsx_candidates = [
+                    p for p in volume_batch_dir.iterdir()
+                    if p.is_file() and p.suffix.lower() == ".xlsx" and "inv" in p.name.lower()
+                ]
+            except OSError:
+                xlsx_candidates = []
+            if xlsx_candidates:
+                src_invoice = sorted(xlsx_candidates, key=lambda p: p.name)[0]
+                try:
+                    shutil.copy2(src_invoice, dst_invoice)
+                    print(f"[info] Copied volume invoice {src_invoice} -> {dst_invoice}", flush=True)
+                except OSError as e:
+                    print(f"[warn] Failed to copy volume invoice {src_invoice}: {e}", flush=True)
+
+        return batch_dir, raw_dir, None
+
+    return None, None, f"No valid batch layout found for {normalized} (checked archive/raw-{normalized}, {batch_dir}, and volume {VOLUME_BASE / normalized})"
+
+def _write_pipeline_log(log_handle, message):
+    print(message, file=log_handle, flush=True)
+
+def _run_logged_command(cmd, log_handle, cwd=None, env=None):
+    proc = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    last_heartbeat = time.time()
+    while True:
+        ready, _, _ = select.select([proc.stdout], [], [], 10.0)
+        if ready:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            stripped = line.strip()
+            if stripped:
+                _write_pipeline_log(log_handle, stripped)
+                try:
+                    log_handle.flush()
+                except Exception:
+                    pass
+            last_heartbeat = time.time()
+        else:
+            if proc.poll() is None:
+                elapsed = int(time.time() - last_heartbeat)
+                _write_pipeline_log(log_handle, f"[API] ... still running ({elapsed}s since last output)")
+                try:
+                    log_handle.flush()
+                except Exception:
+                    pass
+            else:
+                break
+    proc.wait()
+    return proc.returncode
+
+def _run_preflight_scan(batch_id, log_handle):
+    preflight_cmd = ["python3", str(SCRIPTS / "preflight_scan.py"), batch_id]
+    proc = subprocess.Popen(
+        preflight_cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    done_seen = False
+    for line in iter(proc.stdout.readline, ''):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("PREFLIGHT_"):
+            prefix, _, payload = stripped.partition(" ")
+            if payload:
+                try:
+                    json.loads(payload)
+                except json.JSONDecodeError:
+                    _write_pipeline_log(log_handle, f"[API] WARNING: malformed preflight payload: {stripped}")
+                    continue
+            _write_pipeline_log(log_handle, stripped)
+            if prefix == "PREFLIGHT_DONE":
+                done_seen = True
+        else:
+            _write_pipeline_log(log_handle, stripped)
+
+    proc.wait()
+    if proc.returncode != 0:
+        _write_pipeline_log(log_handle, f"[API] WARNING: preflight scan exited with code {proc.returncode}; continuing pipeline")
+    if not done_seen:
+        _write_pipeline_log(log_handle, "PREFLIGHT_DONE")
+    _write_pipeline_log(log_handle, "[PREFLIGHT_COMPLETE]")
+
+def _release_run_lock(lock_fd):
+    try:
+        os.close(lock_fd)
+    except OSError:
+        pass
+    _clear_run_lock_files()
+
+def _run_pipeline_worker(batch_id, no_cache, invoice_path, log_path, lock_fd):
+    try:
+        with log_path.open("a", encoding="utf-8", buffering=1) as log_handle:
+            def log(message):
+                _write_pipeline_log(log_handle, message)
+
+            pipeline_success = False
+            failure_reason = "unknown failure"
+
+            def fail(reason):
+                nonlocal failure_reason
+                failure_reason = reason
+                log(f"[API] {reason}")
+
+            try:
+                log(f"[API] Starting ZERO-CACHE FULL PIPELINE for {batch_id}...")
+                env_copy = os.environ.copy()
+                env_copy["PYTHONUNBUFFERED"] = "1"
+
+                # STAGE 1: Cascade
+                batch_dir, raw_dir, discover_error = _resolve_jawal_batch_paths(batch_id)
+                if discover_error:
+                    fail(f"ERROR: {discover_error}")
+                    return
+                log(f"[API] discover.py resolved batch_dir={batch_dir} raw_dir={raw_dir}")
+
+                log(f"[API] >> PRE-FLIGHT: Scanning evidence directory...")
+                _run_preflight_scan(batch_id, log_handle)
+
+                # If no invoice was explicitly supplied, fall back to one staged in batch_dir
+                # (e.g. invoice-source.xlsx copied from the DigitalOcean volume).
+                if not invoice_path and batch_dir is not None:
+                    staged_invoice = batch_dir / "invoice-source.xlsx"
+                    if not staged_invoice.exists():
+                        try:
+                            xlsx_files = sorted(
+                                p for p in batch_dir.iterdir()
+                                if p.is_file() and p.suffix.lower() == ".xlsx"
+                            )
+                        except OSError:
+                            xlsx_files = []
+                        staged_invoice = xlsx_files[0] if xlsx_files else None
+                    if staged_invoice and staged_invoice.exists():
+                        invoice_path = str(staged_invoice)
+                        log(f"[API] Auto-detected staged invoice from batch dir: {invoice_path}")
+
+                if invoice_path:
+                    upload_invoice = Path(invoice_path).expanduser().resolve(strict=False)
+                    if not upload_invoice.exists():
+                        fail(f"ERROR: uploaded invoice_path does not exist: {upload_invoice}")
+                        return
+                    if upload_invoice.suffix.lower() not in (".xlsx", ".xls"):
+                        fail(f"ERROR: invoice_path must be an Excel file: {upload_invoice}")
+                        return
+
+                    log("[API] >> PRE-STAGE: Converting uploaded Jawal invoice to pipeline input...")
+                    convert_cmd = [
+                        "python3",
+                        "-u",
+                        str(SCRIPTS / "convert_jawal_invoice.py"),
+                        "--invoice-file",
+                        str(upload_invoice),
+                        "--batch-dir",
+                        str(batch_dir),
+                        "--master-data",
+                        str(ROOT / "qc/master-data/Aljeel_Lookups-v2.xlsx"),
+                    ]
+                    convert_code = _run_logged_command(convert_cmd, log_handle, env=env_copy)
+
+                    if convert_code != 0:
+                        fail(f"Pre-stage invoice conversion failed with code {convert_code}")
+                        return
+                    log("[API] >> PRE-STAGE: Conversion complete - Spreadsheet-v4-input.xlsx ready")
+                else:
+                    log("[API] No invoice_path supplied; Stage 1 will use on-disk batch input")
+
+                log("[API] >> STAGE 1: Generating fresh deterministic cascade from raw excel...")
+                cmd1 = ["python3", "-u", str(SCRIPTS / "process_batch.py"), "--batch", str(batch_dir), "--raw-dir", str(raw_dir), "--suffix", "v15.11.2"]
+                if no_cache:
+                    cmd1.append("--no-cache")
+                stage1_code = _run_logged_command(cmd1, log_handle, env=env_copy)
+
+                if stage1_code != 0:
+                    fail(f"Stage 1 (Cascade) failed with code {stage1_code}")
+                    return
+
+                # STAGE 2: LLM v30 Exception Handler
+                log("[API] >> STAGE 2: Running LLM Exception Handler (v30)...")
+                cmd2 = ["python3", "-u", "/home/clawdbot/.openclaw/workspace/aljeel/scripts/run_v30.py", batch_id, "--input-suffix", "v15.11.2"]
+                stage2_code = _run_logged_command(cmd2, log_handle, env=env_copy)
+
+                if stage2_code != 0:
+                    fail(f"Stage 2 (LLM Pipeline) failed with code {stage2_code}")
+                    return
+
+                # STAGE 2.5: Phase 1 Document Parser (generate ai-parsed.json for fraud detector)
+                log("[API] >> STAGE 2.5: Running AI Document Parser (Phase 1 pre-parse for fraud detector)...")
+
+                parsed_json = ROOT / "qc" / "ai-poc" / "raw" / f"{batch_id.lower()}-ai-parsed.json"
+
+                # Find the invoice xlsx to parse — prefer the original volume/upload source (NOT the
+                # converted Spreadsheet-v4-input.xlsx which has already been reformatted)
+                invoice_to_parse = None
+
+                # 1. invoice-source.xlsx (copied from volume by _resolve_jawal_batch_paths)
+                candidate = batch_dir / "invoice-source.xlsx"
+                if candidate.exists():
+                    invoice_to_parse = candidate
+
+                # 2. The upload_invoice used for conversion earlier in this run
+                if invoice_to_parse is None and invoice_path:
+                    p = Path(invoice_path)
+                    if p.exists():
+                        invoice_to_parse = p
+
+                # 3. Any INV-matching xlsx in the volume batch dir
+                if invoice_to_parse is None:
+                    vol_dir = VOLUME_BASE / batch_id
+                    if vol_dir.is_dir():
+                        try:
+                            candidates = [
+                                p for p in vol_dir.iterdir()
+                                if p.is_file() and p.suffix.lower() == ".xlsx" and "inv" in p.name.lower()
+                            ]
+                            if candidates:
+                                invoice_to_parse = sorted(candidates, key=lambda p: p.name)[0]
+                        except OSError:
+                            pass
+
+                if invoice_to_parse is None:
+                    log("[API] WARNING: Stage 2.5 skipped — no source invoice found for Phase 1 parsing")
+                else:
+                    parsed_json.parent.mkdir(parents=True, exist_ok=True)
+                    cmd25 = [
+                        "python3",
+                        "-u",
+                        str(ROOT / "qc" / "ai-poc" / "ai_document_parser.py"),
+                        str(invoice_to_parse),
+                        "--raw-out", str(parsed_json),
+                        "--force",   # always re-parse, never use internal parser cache
+                    ]
+                    stage25_code = _run_logged_command(cmd25, log_handle, env=env_copy)
+                    if stage25_code != 0:
+                        if parsed_json.exists():
+                            fail("Stage 2.5 failed and stale parsed data exists — aborting to prevent stale fraud audit")
+                            return
+                        log(f"[API] WARNING: Stage 2.5 (Document Parser) failed with code {stage25_code}; Stage 3 may fail")
+                    else:
+                        log(f"[API] Stage 2.5 complete: {parsed_json.name} written")
+
+                # STAGE 3: AI Consistency Check
+                log("[API] >> STAGE 3: Running AI Consistency Check (Gemini-Pro Deep Audit)...")
+
+                stage3_env = env_copy.copy()
+                stage3_env["AI_POC_BATCHES"] = batch_id
+                cmd3 = ["python3", "-u", "/home/clawdbot/.openclaw/workspace/aljeel/qc/ai-poc/ai_fraud_detector.py"]
+                if no_cache:
+                    cmd3.append("--no-cache")
+                stage3_code = _run_logged_command(cmd3, log_handle, env=stage3_env)
+
+                if stage3_code != 0:
+                    fail(f"Stage 3 (AI Consistency Check) failed with code {stage3_code}")
+                    return
+
+                # STAGE 4: Inject AI Consistency Check to Excel
+                log("[API] >> STAGE 4: Injecting AI Consistency Check results into final spreadsheet...")
+
+                cmd4 = ["python3", "-u", "/home/clawdbot/.openclaw/workspace/aljeel/scripts/inject_fraud_to_excel.py", batch_id]
+                stage4_code = _run_logged_command(cmd4, log_handle, env=env_copy)
+
+                if stage4_code != 0:
+                    fail(f"Stage 4 (Excel Injection) failed with code {stage4_code}")
+                    return
+
+                # STAGE 4.5: Rebuild portal review JSON
+                log("[API] >> STAGE 4.5: Rebuilding portal review JSON from v30 spreadsheet...")
+                cmd45 = ["python3", "-u", str(SCRIPTS / "build_j788_review_v30.py"), "--batch", batch_id, "--raw-dir", str(raw_dir)]
+                if no_cache:
+                    cmd45.append("--no-cache")
+                stage45_code = _run_logged_command(cmd45, log_handle, env=env_copy)
+
+                if stage45_code != 0:
+                    fail(f"Stage 4.5 (Portal Review JSON) failed with code {stage45_code}")
+                    return
+                log("[API] Stage 4.5 complete: portal review JSON rebuilt.")
+
+                # STAGE 5: Multi-employee row splitter (final stage)
+                log("[API] >> STAGE 5: Splitting multi-employee rows into separate output file...")
+                output_path = f"/home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-{batch_id}/output/Spreadsheet-{batch_id}-FILLED-v30.xlsx"
+                split_output = output_path.replace("-v30.xlsx", "-v30-SPLIT.xlsx")
+                cmd5 = ["python3", "-u", str(SCRIPTS / "split_multi_emp.py"), output_path, split_output]
+                stage5_code = _run_logged_command(cmd5, log_handle, env=env_copy)
+                if stage5_code != 0:
+                    fail(f"Stage 5 (Multi-Emp Splitter) failed with code {stage5_code}")
+                    return
+                log(f"[API] [STAGE 5] Split complete: {Path(split_output).name}")
+
+                # COPY EXCEL TO PUBLIC OUTPUTS SO IT CAN BE DOWNLOADED!
+                src_xlsx = output_path
+                dst_xlsx = f"/home/clawdbot/.openclaw/workspace/aljeel/dashboard/public/outputs/Spreadsheet-{batch_id}-FILLED-v30.xlsx"
+                if os.path.exists(src_xlsx):
+                    _atomic_copy(src_xlsx, dst_xlsx)
+                    log(f"[API] Copied {batch_id} spreadsheet to public outputs.")
+                if os.path.exists(split_output):
+                    _atomic_copy(split_output, dst_xlsx.replace("-v30.xlsx", "-v30-SPLIT.xlsx"))
+                    log(f"[API] Copied {batch_id} SPLIT spreadsheet to public outputs.")
+
+                review_json = ROOT / "dashboard/public/data" / f"{batch_id.lower().replace('-', '')}-rows-v30.json"
+                if review_json.exists():
+                    # The review page fetches the legacy short name (j26788 -> j788),
+                    # same convention as qa_agent._portal_json_path
+                    short_name = re.sub(r"^j26", "j", review_json.name)
+                    if short_name != review_json.name:
+                        _atomic_copy(review_json, review_json.parent / short_name)
+                        log(f"[API] Promoted {review_json.name} to public data as {short_name}.")
+
+                log("[API] Pipeline finished! Updating Audit DB...")
+                subprocess.run(["python3", str(SCRIPTS / "seed_audit_db.py"), "--batch", batch_id])
+                subprocess.run(["python3", str(SCRIPTS / "export_audit_json.py"), "--batch", batch_id])
+
+                # Prevent Cloudflare 25MB deploy limit crash
+                if os.path.exists("/home/clawdbot/.openclaw/workspace/aljeel/dashboard/public/data/audit_runs.db"):
+                    os.remove("/home/clawdbot/.openclaw/workspace/aljeel/dashboard/public/data/audit_runs.db")
+
+                log("[API] Deploying updated data to Cloudflare...")
+
+                deploy_cmd = ["npx", "wrangler", "pages", "deploy", "public/"]
+                deploy_code = _run_logged_command(
+                    deploy_cmd,
+                    log_handle,
+                    cwd="/home/clawdbot/.openclaw/workspace/aljeel/dashboard",
+                )
+                if deploy_code != 0:
+                    fail(f"Deploy failed with code {deploy_code}")
+                    return
+
+                pipeline_success = True
+                log("[API] Deploy complete! Refreshing UI in 3 seconds...")
+            except Exception as exc:
+                fail(f"ERROR: pipeline worker crashed: {exc}")
+            finally:
+                if pipeline_success:
+                    log("[PIPELINE_SUCCESS]")
+                else:
+                    log(f"[PIPELINE_FAILED: {failure_reason}]")
+                log("[END]")
+    finally:
+        _release_run_lock(lock_fd)
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    return jsonify({"status": "ok"})
+
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify(_read_lock_status())
+
+@app.route('/files/<batch_id>', methods=['GET'])
+@app.route('/api/files/<batch_id>', methods=['GET'])
+def batch_files(batch_id):
+    """Report which output spreadsheets exist for a batch (full / split)."""
+    batch_id = batch_id.strip().upper()
+    if not re.match(r"^J26-\d+$", batch_id):
+        return jsonify({"error": "invalid batch id"}), 400
+    out_dir = ROOT / "batches" / f"jawal-{batch_id}" / "output"
+    pub_dir = ROOT / "dashboard" / "public" / "outputs"
+    files = {}
+    for key, name in (
+        ("full", f"Spreadsheet-{batch_id}-FILLED-v30.xlsx"),
+        ("split", f"Spreadsheet-{batch_id}-FILLED-v30-SPLIT.xlsx"),
+    ):
+        files[key] = {
+            "name": name,
+            "exists": (out_dir / name).exists() or (pub_dir / name).exists(),
+        }
+    return jsonify({"batch_id": batch_id, "files": files})
+
+@app.route('/download/<batch_id>/<kind>', methods=['GET'])
+@app.route('/api/download/<batch_id>/<kind>', methods=['GET'])
+def download_output(batch_id, kind):
+    """Serve the pipeline output spreadsheet straight from the batch dir on disk,
+    so downloads never depend on a Cloudflare Pages deploy having completed."""
+    batch_id = batch_id.strip().upper()
+    if not re.match(r"^[A-Z0-9-]+$", batch_id):
+        return jsonify({"error": "invalid batch id"}), 400
+    if kind == "full":
+        name = f"Spreadsheet-{batch_id}-FILLED-v30.xlsx"
+    elif kind == "split":
+        name = f"Spreadsheet-{batch_id}-FILLED-v30-SPLIT.xlsx"
+    else:
+        return jsonify({"error": "invalid kind, expected 'full' or 'split'"}), 400
+    file_path = ROOT / "batches" / f"jawal-{batch_id}" / "output" / name
+    if not file_path.is_file():
+        return jsonify({"error": "file not found"}), 404
+    return send_file(file_path, as_attachment=True, download_name=name)
+
+@app.route('/batches', methods=['GET'])
+@app.route('/api/batches', methods=['GET'])
+def batches():
+    batches_dir = ROOT / "batches"
+    batch_candidates = {}
+    deadline = time.monotonic() + 5
+
+    def remember_batch(batch_id, evidence_dir, source):
+        if source != "volume" and batch_id in batch_candidates:
+            return
+        batch_candidates[batch_id] = {
+            "evidence_dir": evidence_dir,
+            "source": source,
+        }
+
+    try:
+        volume_entries = list(os.scandir(VOLUME_BASE))
+    except FileNotFoundError:
+        volume_entries = []
+
+    for entry in volume_entries:
+        if not entry.is_dir(follow_symlinks=False):
+            continue
+        match = re.match(r"^J26-\d+$", entry.name, re.IGNORECASE)
+        if not match:
+            continue
+
+        batch_id = entry.name.upper()
+        evidence_dir = _resolve_volume_evidence_root(batch_id)
+        if evidence_dir is None:
+            continue
+        remember_batch(batch_id, evidence_dir, "volume")
+
+    try:
+        batch_entries = list(os.scandir(batches_dir))
+    except FileNotFoundError:
+        batch_entries = []
+
+    for entry in batch_entries:
+        if not entry.is_dir(follow_symlinks=False):
+            continue
+        match = re.match(r"^jawal-(J26-\d+)$", entry.name, re.IGNORECASE)
+        if not match:
+            continue
+
+        batch_id = match.group(1).upper()
+        if batch_id in batch_candidates:
+            continue
+        candidates = sorted(_batch_evidence_candidates(batch_id), key=_evidence_candidate_sort_key)
+        if candidates:
+            remember_batch(batch_id, candidates[0][3], "batches")
+
+    results = []
+    for batch_id, candidate in batch_candidates.items():
+        evidence_dir = candidate["evidence_dir"]
+
+        size_bytes = 0
+        item_count = 0
+        if time.monotonic() <= deadline:
+            try:
+                size_bytes, item_count = _scan_size_and_count(evidence_dir, deadline)
+            except TimeoutError:
+                size_bytes = 0
+                item_count = 0
+
+        try:
+            modified_ts = evidence_dir.stat().st_mtime
+        except OSError:
+            modified_ts = 0
+
+        results.append({
+            "id": batch_id,
+            "size_bytes": size_bytes,
+            "size_label": _format_batch_size(size_bytes),
+            "item_count": item_count,
+            "modified": datetime.fromtimestamp(modified_ts).strftime("%d %b %Y") if modified_ts else "",
+            "evidence_path": _relative_to_root(evidence_dir),
+            "source": candidate["source"],
+        })
+
+    results.sort(key=lambda item: (_batch_sort_key(item["id"]), item["id"]), reverse=True)
+    return jsonify({"batches": results})
+
+@app.route('/preflight-scan', methods=['GET'])
+@app.route('/api/preflight-scan', methods=['GET'])
+def preflight_scan():
+    batch_id = request.args.get('batch_id', '').strip()
+    raw_dir = request.args.get('raw_dir', '').strip() or None
+    if not batch_id:
+        return jsonify({"error": "batch_id required"}), 400
+
+    try:
+        from preflight_scan import run_scan
+        return jsonify(run_scan(batch_id, raw_dir=raw_dir, emit_lines=False))
+    except Exception as exc:
+        return jsonify({"error": str(exc), "batch_id": _normalize_batch_id(batch_id)}), 500
+
+@app.route('/current-run', methods=['GET'])
+@app.route('/api/current-run', methods=['GET'])
+def current_run():
+    status = _read_lock_status()
+    if status["locked"] and _maybe_clear_stale_lock(status):
+        return jsonify({"run_id": None, "since": None, "locked": False, "cleared_stale": True})
+    return jsonify(status)
+
+@app.route('/api/last-run', methods=['GET'])
+@app.route('/last-run', methods=['GET'])
+def last_run():
+    result = {"run_id": None, "batch_id": None, "succeeded": False, "failed": False, "ended": False}
+    try:
+        logs = list(PIPELINE_LOGS_DIR.glob("*-*.log"))
+        if not logs:
+            return jsonify(result)
+        log_path = max(logs, key=lambda path: path.stat().st_mtime)
+    except Exception:
+        return jsonify(result)
+
+    try:
+        match = re.search(r"-([a-f0-9]{8})\.log$", log_path.name)
+        if match:
+            result["run_id"] = match.group(1)
+    except Exception:
+        pass
+
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return jsonify(result)
+
+    try:
+        lines = content.splitlines()
+        search_lines = lines[:5]
+        if lines:
+            match = re.search(r"for\s+([A-Z0-9-]+)\.\.\.", lines[0])
+            if match:
+                result["batch_id"] = match.group(1)
+        if not result["batch_id"]:
+            for line in search_lines:
+                match = re.search(r"\bBATCH:\s*([A-Z0-9-]+)\b", line)
+                if not match:
+                    match = re.search(r"\bfor\s+(J26-[A-Z0-9-]+)", line)
+                if match:
+                    result["batch_id"] = match.group(1)
+                    break
+    except Exception:
+        pass
+
+    try:
+        result["succeeded"] = "[PIPELINE_SUCCESS]" in content
+        result["failed"] = "[PIPELINE_FAILED]" in content
+        result["ended"] = result["succeeded"] or result["failed"]
+    except Exception:
+        pass
+
+    return jsonify(result)
+
+@app.route('/clear-lock', methods=['POST'])
+@app.route('/api/clear-lock', methods=['POST'])
+def clear_lock():
+    """Emergency lock clear - safe because pipeline activity is checked first."""
+    status = _read_lock_status()
+    if not status["locked"]:
+        return jsonify({"cleared": False, "reason": "not locked"})
+
+    run_id = status.get("run_id")
+    log_age = _run_log_age_seconds(run_id)
+    if log_age is not None and log_age < 30:
+        return jsonify({"cleared": False, "reason": "pipeline appears active (log modified <30s ago)"})
+
+    _clear_run_lock_files()
+    return jsonify({"cleared": True})
+
+@app.route('/run-log', methods=['GET'])
+@app.route('/api/run-log', methods=['GET'])
+def run_log():
+    run_id = request.args.get('run_id', '').strip()
+    log_path = _find_run_log_path(run_id)
+    if log_path is None:
+        return jsonify({"error": "run_id not found"}), 404
+    return Response(_stream_run_log(run_id, log_path), mimetype='text/event-stream', headers=_sse_headers())
+
+@app.route('/evidence/tree', methods=['GET'])
+def evidence_tree():
+    batch_id = request.args.get('batch_id', '').strip()
+    batch_dir = _evidence_raw_dir(batch_id)
+    if not batch_dir.exists():
+        return jsonify({"error": "batch not found"}), 404
+
+    folders = []
+    for dirpath, dirnames, filenames in os.walk(batch_dir):
+        path = Path(dirpath)
+        rel_folder = "" if path == batch_dir else path.relative_to(batch_dir).as_posix()
+        files = []
+        for filename in sorted(filenames, key=str.lower):
+            file_path = path / filename
+            rel_file = file_path.relative_to(batch_dir).as_posix()
+            files.append({
+                "name": filename,
+                "ext": file_path.suffix.lower().lstrip("."),
+                "size": file_path.stat().st_size,
+                "rel": rel_file,
+            })
+        if not files and dirnames:
+            continue
+        folders.append({"folder": rel_folder, "files": files})
+
+    folders.sort(key=lambda item: item["folder"].lower())
+    return jsonify({"batch_id": batch_id, "raw_dir": str(batch_dir), "folders": folders})
+
+@app.route('/evidence/file', methods=['GET'])
+def evidence_file():
+    batch_id = request.args.get('batch_id', '').strip()
+    rel = request.args.get('rel', '').strip()
+    _raw_dir, file_path = _resolve_evidence_path(batch_id, rel)
+    if file_path is None:
+        return jsonify({"error": "invalid path"}), 400
+    if not file_path.exists() or not file_path.is_file():
+        return jsonify({"error": "file not found"}), 404
+
+    ext = file_path.suffix.lower()
+    if ext == ".msg":
+        return jsonify(_parse_msg_payload(file_path))
+    if ext == ".eml":
+        return jsonify(_parse_eml_payload(file_path))
+
+    mimetype = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
+    return send_file(file_path, mimetype=mimetype, as_attachment=False)
+
+@app.route('/evidence/msg-attachment', methods=['GET'])
+def evidence_msg_attachment():
+    batch_id = request.args.get('batch_id', '').strip()
+    rel = request.args.get('rel', '').strip()
+    try:
+        attachment_index = int(request.args.get('attachment', '0'))
+    except ValueError:
+        return jsonify({"error": "invalid attachment index"}), 400
+
+    _raw_dir, file_path = _resolve_evidence_path(batch_id, rel)
+    if file_path is None:
+        return jsonify({"error": "invalid path"}), 400
+    if not file_path.exists() or not file_path.is_file():
+        return jsonify({"error": "file not found"}), 404
+    if file_path.suffix.lower() != ".msg":
+        return jsonify({"error": "not a msg file"}), 400
+
+    attachment = _msg_attachment(file_path, attachment_index)
+    if attachment is None:
+        return jsonify({"error": "attachment not found"}), 404
+
+    name, data = attachment
+    mimetype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    return send_file(
+        BytesIO(data),
+        mimetype=mimetype,
+        as_attachment=False,
+        download_name=name,
+    )
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Receive an uploaded file from the portal and save it to a temp upload dir.
+    Returns {"path": "<absolute path on droplet>"} for portal display/comparison use.
+    Files are scoped to a per-upload UUID so concurrent uploads never collide.
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in request"}), 400
+    f = request.files['file']
+    if not f.filename:
+        return jsonify({"error": "Empty filename"}), 400
+    safe_name = secure_filename(f.filename)
+    if not safe_name:
+        return jsonify({"error": "Invalid filename"}), 400
+    if Path(safe_name).suffix.lower() not in (".xlsx", ".xls"):
+        return jsonify({"error": "Only Excel files accepted"}), 400
+    upload_id = uuid.uuid4().hex[:12]
+    dest_dir = UPLOADS_DIR / upload_id
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = dest_dir / safe_name
+    f.save(str(dest_path))
+    print(f"[upload] Saved {safe_name} -> {dest_path}", flush=True)
+    return jsonify({"path": str(dest_path), "filename": safe_name})
+
+@app.route('/process', methods=['GET'])
+def process_batch():
+    batch_id = request.args.get('batch_id', 'J26-550')
+    no_cache = request.args.get('no_cache', 'false').lower() in ('1', 'true', 'yes', 'on')
+    invoice_path = request.args.get('invoice_path')
+
+    _maybe_clear_stale_lock()
+
+    run_id = uuid.uuid4().hex[:8]
+    try:
+        lock_fd = os.open(RUN_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        return Response(
+            iter([
+                "data: [API] ERROR: A pipeline run is already in progress. Please wait for it to finish.\n\n",
+                "data: [END]\n\n",
+            ]),
+            mimetype='text/event-stream',
+            headers=_sse_headers(),
+        )
+
+    started_at = datetime.now(timezone.utc).isoformat()
+    try:
+        os.write(lock_fd, f"{run_id}\n".encode("utf-8"))
+        RUN_LOCK_TS.write_text(json.dumps({"since": started_at, "run_id": run_id}), encoding="utf-8")
+
+        PIPELINE_LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        log_path = PIPELINE_LOGS_DIR / f"{started_at.replace(':', '').replace('+', 'Z')}-{run_id}.log"
+        log_path.touch()
+
+        worker = threading.Thread(
+            target=_run_pipeline_worker,
+            args=(batch_id, no_cache, invoice_path, log_path, lock_fd),
+            daemon=True,
+        )
+        worker.start()
+    except Exception:
+        _release_run_lock(lock_fd)
+        raise
+
+    return Response(_stream_run_log(run_id, log_path), mimetype='text/event-stream', headers=_sse_headers())
+
+@app.route('/qa-run', methods=['POST'])
+def qa_run():
+    body = request.get_json(silent=True) or {}
+    batch_id = request.args.get('batch_id') or body.get('batch_id', '')
+    if not batch_id:
+        return jsonify({"error": "batch_id required"}), 400
+
+    run_id = uuid.uuid4().hex[:8]
+    started_at = datetime.now(timezone.utc).isoformat()
+    PIPELINE_LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = PIPELINE_LOGS_DIR / f"qa-{started_at.replace(':', '').replace('+', 'Z')}-{run_id}.log"
+    log_path.touch()
+
+    def _stream():
+        ended = False
+        with log_path.open('a', encoding='utf-8', buffering=1) as log_handle:
+            if RUN_LOCK.exists():
+                warning = "[API] WARNING: A pipeline run appears active; QA is read-only and will continue."
+                _write_pipeline_log(log_handle, warning)
+                yield f"data: {warning}\n\n"
+
+            proc = subprocess.Popen(
+                [sys.executable, str(ROOT / 'scripts' / 'qa_agent.py'), '--batch-id', batch_id],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=str(ROOT),
+                bufsize=1,
+            )
+            for line in iter(proc.stdout.readline, ''):
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                _write_pipeline_log(log_handle, stripped)
+                yield f"data: {stripped}\n\n"
+                if stripped.startswith("Saved raw JSON: "):
+                    report_path = stripped.split("Saved raw JSON: ", 1)[1].strip()
+                    yield f"data: [QA_REPORT_PATH] {report_path}\n\n"
+                if stripped == "[END]":
+                    ended = True
+            proc.wait()
+            if not ended:
+                _write_pipeline_log(log_handle, "[END]")
+                yield "data: [END]\n\n"
+
+    return Response(_stream(), mimetype='text/event-stream', headers=_sse_headers())
+
+def _json_report_to_md(report: dict, report_path: Path) -> str:
+    stem = report_path.stem
+    if stem.startswith("qa-report-"):
+        stem_stripped = stem[len("qa-report-"):]
+    else:
+        stem_stripped = stem
+    parts = stem_stripped.rsplit("-", 1)
+    batch_label = parts[0] if len(parts) == 2 else stem_stripped
+    timestamp_raw = parts[1] if len(parts) == 2 else ""
+
+    lines = []
+    lines.append(f"# QA Report — {batch_label}")
+    lines.append(f"**Generated:** {timestamp_raw}  ")
+    lines.append(f"**Model:** {report.get('model_used', 'gemini-3.1-pro-preview')}  ")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Summary")
+    lines.append("")
+    lines.append(report.get("summary", ""))
+    lines.append("")
+    lines.append(f"**Total issues found:** {report.get('total_issues_found', len(report.get('issues', [])))}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Issues")
+    lines.append("")
+
+    severity_icons = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢", "INFO": "ℹ️"}
+
+    for i, issue in enumerate(report.get("issues", []), 1):
+        sev = issue.get("severity", "INFO")
+        icon = severity_icons.get(sev, "•")
+        lines.append(f"### {icon} Issue {i} — {issue.get('title', '')} ({sev})")
+        lines.append(f"**Category:** {issue.get('category', '')}  ")
+        rows = issue.get("rows_affected", [])
+        if rows:
+            lines.append(f"**Rows affected:** {rows}  ")
+        lines.append("")
+        lines.append(issue.get("detail", ""))
+        lines.append("")
+        action = issue.get("recommended_action", "")
+        if action:
+            lines.append(f"**Recommended action:** {action}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    cross = report.get("cross_row_patterns", [])
+    if cross:
+        lines.append("## Cross-Row Patterns")
+        lines.append("")
+        for p in cross:
+            if isinstance(p, dict):
+                desc = p.get("description", str(p))
+                rows = p.get("rows_affected", [])
+                lines.append(f"- **{p.get('pattern_type','')}**: {desc}" + (f" (rows: {rows})" if rows else ""))
+            else:
+                lines.append(f"- {p}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    clean = report.get("clean_notes", []) or report.get("clean_signal", "")
+    if clean:
+        lines.append("## ✅ Clean / Confirmed OK")
+        lines.append("")
+        if isinstance(clean, list):
+            for n in clean:
+                lines.append(f"- {n}")
+        else:
+            lines.append(f"- {clean}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+@app.route('/qa-report-download', methods=['GET'])
+def qa_report_download():
+    raw_path = request.args.get('path', '')
+    if not raw_path:
+        return jsonify({"error": "path required"}), 400
+
+    requested_path = Path(raw_path)
+    if requested_path.suffix != '.json':
+        return jsonify({"error": "must be .json"}), 400
+
+    allowed_prefix = (ROOT / "batches").resolve()
+    p = requested_path.resolve(strict=False)
+    try:
+        p.relative_to(allowed_prefix)
+    except ValueError:
+        return jsonify({"error": "forbidden path"}), 400
+
+    if not p.is_file():
+        return jsonify({"error": "not found"}), 404
+
+    try:
+        report = json.loads(p.read_text(encoding='utf-8'))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    md_content = _json_report_to_md(report, p)
+    md_filename = p.stem + ".md"
+    return Response(
+        md_content,
+        mimetype='text/markdown',
+        headers={"Content-Disposition": f'attachment; filename="{md_filename}"'}
+    )
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, threaded=True)

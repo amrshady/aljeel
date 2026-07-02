@@ -1,0 +1,5 @@
+Both fixes are implemented and compile cleanly. The pipeline is now running on J26-870 in the background (fresh LLM calls, takes a few minutes) — I'll validate and report as soon as it finishes.
+
+What changed in `scripts/run_v30.py`:
+- **Fix A (stage 3j, before the combo build):** re-asserts the cascade's `Trip Account Override` onto the row's final account when Trip Purpose confidence ≥ 0.7, skipping `family_annual_locked` rows. Cascade-method rows are promoted to the write path so the new account and rebuilt combo actually reach the sheet; rows get a `TRIP_ACCOUNT_OVERRIDE_APPLIED` flag. In this batch only BUKHARI/AMR qualifies (override 60308009 vs final 21070229).
+- **Fix D (stage 5.6, after GL-desc sync):** prefixes `{OPEX_SERIAL}-` onto Description for sponsorship rows (account=60307021 or blank/multi emp_no) with a real serial — skipping MISSING/N/A and already-prefixed rows. I placed it *after* stage 5 rather than right at `[v30-serial]` because booking-group detection parses Description; the prefix must be the last Description mutation. 17 rows should get prefixes.

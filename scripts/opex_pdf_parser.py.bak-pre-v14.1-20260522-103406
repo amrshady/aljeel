@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""
+OPEX PDF Parser — Extract structured data from OPEX PDF attachments
+in event/symposium emails (CRM-XXXX, EP-2026-XX, IEPC, OPEX).
+
+Uses LiteLLM proxy with Gemini 2.5 Flash for PDF analysis.
+Caches results by SHA256 to avoid re-processing.
+"""
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Optional
+
+import extract_msg
+
+CACHE_DIR = Path("/home/clawdbot/.openclaw/workspace/aljeel/extracted/opex-pdf-cache")
+LITELLM_URL = "http://143.198.136.126:4000"
+LITELLM_KEY = None  # Loaded from config
+
+
+def _get_litellm_key():
+    global LITELLM_KEY
+    if LITELLM_KEY:
+        return LITELLM_KEY
+    config_path = Path("/home/clawdbot/.openclaw/openclaw.json")
+    if config_path.exists():
+        with open(config_path) as f:
+            cfg = json.load(f)
+        LITELLM_KEY = cfg.get("models", {}).get("providers", {}).get("litellm", {}).get("apiKey", "")
+    return LITELLM_KEY
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _extract_pdfs_from_msg(msg_path: str) -> list[tuple[str, bytes]]:
+    """Extract PDF attachments from a .msg file."""
+    pdfs = []
+    try:
+        msg = extract_msg.Message(msg_path)
+        try:
+            if hasattr(msg, "attachments"):
+                for att in msg.attachments:
+                    name = getattr(att, "longFilename", None) or getattr(att, "shortFilename", None) or ""
+                    if name.lower().endswith(".pdf"):
+                        data = att.data
+                        if data:
+                            pdfs.append((name, data))
+        finally:
+            msg.close()
+    except Exception:
+        pass
+    return pdfs
+
+
+def _extract_pdfs_from_zip_in_msg(msg_path: str) -> list[tuple[str, bytes]]:
+    """Extract PDFs from ZIP attachments inside .msg files."""
+    import zipfile
+    import io
+    pdfs = []
+    try:
+        msg = extract_msg.Message(msg_path)
+        try:
+            if hasattr(msg, "attachments"):
+                for att in msg.attachments:
+                    name = getattr(att, "longFilename", None) or getattr(att, "shortFilename", None) or ""
+                    if name.lower().endswith(".zip"):
+                        data = att.data
+                        if data:
+                            try:
+                                zf = zipfile.ZipFile(io.BytesIO(data))
+                                for zi in zf.namelist():
+                                    if zi.lower().endswith(".pdf"):
+                                        pdfs.append((zi, zf.read(zi)))
+                            except Exception:
+                                pass
+        finally:
+            msg.close()
+    except Exception:
+        pass
+    return pdfs
+
+
+def parse_opex_pdf(pdf_data: bytes, pdf_name: str = "opex.pdf") -> Optional[dict]:
+    """Parse an OPEX PDF using Gemini via LiteLLM proxy.
+    
+    Returns structured dict or None.
+    """
+    import urllib.request
+    
+    sha = _sha256_bytes(pdf_data)
+    
+    # Check cache
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_file = CACHE_DIR / f"{sha}.json"
+    if cache_file.exists():
+        with open(cache_file) as f:
+            return json.load(f)
+    
+    api_key = _get_litellm_key()
+    if not api_key:
+        return None
+    
+    # Encode PDF as base64
+    pdf_b64 = base64.b64encode(pdf_data).decode("ascii")
+    
+    prompt = """Analyze this OPEX (Operating Expense) approval PDF from Al Jeel Medical Company.
+Extract the following fields in JSON format:
+{
+  "division": "the Division code (numeric)",
+  "agency": "the Agency code (numeric)",
+  "solution": "the Solution code (numeric)",
+  "cost_center": "the Cost Center code (numeric)",
+  "amount_sar": 0.0,
+  "currency": "SAR",
+  "approver_name": "name of the approver",
+  "project_id": "project ID if present",
+  "event_name": "event/conference name if visible",
+  "participants": ["list of participant names if visible"],
+  "opex_type": "type of expense (travel/event/symposium/etc)",
+  "notes": "any other relevant info"
+}
+
+Return ONLY the JSON. If a field is not found, use null.
+Look for Division/Agency/Solution/Cost Center codes in the expense breakdown or approval form sections."""
+
+    payload = {
+        "model": "google/gemini-2.5-flash",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:application/pdf;base64,{pdf_b64}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 2000,
+        "temperature": 0.1,
+    }
+    
+    try:
+        req = urllib.request.Request(
+            f"{LITELLM_URL}/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+        )
+        
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read())
+        
+        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        # Extract JSON from response
+        # Try to parse directly
+        content = content.strip()
+        if content.startswith("```"):
+            # Strip markdown code block
+            content = content.split("\n", 1)[1] if "\n" in content else content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+        
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError:
+            # Try to find JSON in the response
+            import re
+            m = re.search(r"\{[^{}]*\}", content, re.DOTALL)
+            if m:
+                try:
+                    parsed = json.loads(m.group())
+                except json.JSONDecodeError:
+                    return None
+            else:
+                return None
+        
+        result_dict = {
+            "form_type": "event_opex",
+            "pdf_source": pdf_name,
+            "pdf_sha256": sha,
+            "form_division": str(parsed.get("division")) if parsed.get("division") else None,
+            "form_agency": str(parsed.get("agency")) if parsed.get("agency") else None,
+            "form_solution": str(parsed.get("solution")) if parsed.get("solution") else None,
+            "form_cost_center": str(parsed.get("cost_center")) if parsed.get("cost_center") else None,
+            "value_sar": parsed.get("amount_sar"),
+            "approver_name": parsed.get("approver_name"),
+            "event_name": parsed.get("event_name"),
+            "participants": parsed.get("participants"),
+            "opex_type": parsed.get("opex_type"),
+            "notes": parsed.get("notes"),
+            "form_extraction_confidence": 0.7,  # LLM-based, moderate confidence
+        }
+        
+        # Cache
+        with open(cache_file, "w") as f:
+            json.dump(result_dict, f, indent=2, ensure_ascii=False)
+        
+        return result_dict
+        
+    except Exception as e:
+        return None
+
+
+def parse_opex_from_msg(msg_path: str) -> Optional[dict]:
+    """Extract and parse OPEX PDFs from a .msg file."""
+    pdfs = _extract_pdfs_from_msg(msg_path)
+    
+    # Also try ZIPs containing PDFs
+    if not pdfs:
+        pdfs = _extract_pdfs_from_zip_in_msg(msg_path)
+    
+    if not pdfs:
+        return None
+    
+    # Parse first PDF found (usually the OPEX form)
+    for name, data in pdfs:
+        result = parse_opex_pdf(data, name)
+        if result:
+            return result
+    
+    return None
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python3 opex_pdf_parser.py <msg_file_path>")
+        sys.exit(1)
+    result = parse_opex_from_msg(sys.argv[1])
+    print(json.dumps(result, indent=2, ensure_ascii=False, default=str))

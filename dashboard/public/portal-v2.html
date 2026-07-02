@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <title>AlJeel AP — Reconciliation Portal v2</title>
+
+  <!-- Inter — the only Accord typeface (weights 300–700) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Design-system foundation: Accord brand tokens -->
+  <link rel="stylesheet" href="/v2/tokens.css" />
+</head>
+<body>
+  <!-- Console shell: persistent navy sidebar + light top breadcrumb bar.
+       The sidebar nav items are decorated with icons + active-state by app.js
+       (setupNav / setActiveNav). On narrow widths the sidebar is off-canvas and
+       the topbar toggle opens it. -->
+  <div class="shell" id="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <div class="sidebar__brand">
+        <a href="#/" class="sidebar__wordmark">Accord Partners</a>
+        <span class="sidebar__product">AlJeel AP Reconciliation</span>
+      </div>
+      <nav class="sidebar__nav">
+        <span class="sidebar__label">Console</span>
+        <a href="#/"         class="sidenav__item" data-nav="batches"  data-icon="layers">Batches</a>
+        <a href="#/runs"     class="sidenav__item" data-nav="runs"     data-icon="clock">Runs</a>
+        <a href="#/evidence" class="sidenav__item" data-nav="evidence" data-icon="folder">Evidence</a>
+      </nav>
+    </aside>
+    <div class="shell__scrim" id="navScrim" aria-hidden="true"></div>
+
+    <div class="shell__main">
+      <header class="topbar">
+        <button class="topbar__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-expanded="false"></button>
+        <ol class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb"></ol>
+      </header>
+      <main id="view" class="view" aria-live="polite"></main>
+    </div>
+  </div>
+
+  <!-- Vanilla ES modules — no build step -->
+  <script type="module" src="/v2/app.js"></script>
+</body>
+</html>

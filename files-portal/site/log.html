@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-brand="regent">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Files Change Log — Regent</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fbfaf6; --paper: #fff; --text: #0e0e0e; --soft: #2a2a2a;
+      --muted: #5a5a5a; --dim: #8a8a8a; --line: #e6e2d6;
+      --accent: #8a6d3a; --accent-tint: #f5efe0;
+    }
+    html[data-brand="accord"] {
+      --accent: #1f3b6e; --accent-tint: #eaf0fa; --line: #dee3eb;
+      --bg: #f7f8fa; --text: #0e1a2e;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; }
+    .topbar {
+      background:#0e0e0e; color:#fff; padding:0.85rem 1.75rem;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    html[data-brand="accord"] .topbar { background:var(--accent); }
+    .brand { font-family:'Playfair Display',serif; font-size:1.15rem; font-weight:700; }
+    .nav-links a { color:rgba(255,255,255,0.85); text-decoration:none; margin-left:1.25rem; font-size:0.85rem; }
+    .nav-links a:hover { color:#fff; }
+    .main { max-width:1100px; margin:0 auto; padding:2rem 1.75rem; }
+    h1 { font-family:'Playfair Display',serif; font-size:1.7rem; margin-bottom:0.4rem; }
+    .sub { color:var(--muted); margin-bottom:1.5rem; font-size:0.88rem; }
+    .tenant-tabs { display:flex; gap:0; margin-bottom:1rem; border-bottom:1px solid var(--line); }
+    .tenant-tab { background:transparent; border:none; padding:0.7rem 1.2rem; font-family:inherit; font-size:0.88rem; color:var(--muted); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px; }
+    .tenant-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+    .event { background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:0.9rem 1.2rem; margin-bottom:0.5rem; display:grid; grid-template-columns:auto 1fr auto; gap:1rem; align-items:center; }
+    .event-kind { font-size:0.62rem; letter-spacing:1.8px; text-transform:uppercase; font-weight:700; padding:0.25rem 0.7rem; border-radius:100px; border:1px solid; }
+    .kind-upload { color:var(--accent); border-color:var(--accent); background:var(--accent-tint); }
+    .kind-archive { color:#c0392b; border-color:#c0392b; background:#fbeaea; }
+    .kind-restore { color:#2a7a3a; border-color:#2a7a3a; background:#eaf5ec; }
+    .kind-sync { color:#5a5a5a; border-color:#bbb; background:#f0f0f0; }
+    .event-detail { font-size:0.88rem; }
+    .event-detail .key { font-weight:500; }
+    .event-detail .meta { color:var(--muted); font-size:0.78rem; margin-top:0.15rem; }
+    .event-time { font-size:0.78rem; color:var(--muted); text-align:right; }
+    .empty { text-align:center; color:var(--muted); padding:3rem; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Regent · Change Log</div>
+    <div class="nav-links">
+      <a href="/">← Files</a>
+    </div>
+  </div>
+  <div class="main">
+    <h1>Knowledge Base Change Log</h1>
+    <p class="sub">Every upload, archive, restore, and KB sync — 30-day rolling history per tenant.</p>
+    <div class="tenant-tabs" id="tabs"></div>
+    <div id="list" class="empty">Loading…</div>
+  </div>
+<script>
+const TENANTS_REGENT = [['maher','Maher (HR)'], ['marwan','Marwan (KAM)']];
+const TENANTS_ACCORD = [['aljeel-ap','Aljeel AP']];
+const TENANTS = location.hostname.includes('accordpartners') ? TENANTS_ACCORD : TENANTS_REGENT;
+if (location.hostname.includes('accordpartners')) document.documentElement.dataset.brand = 'accord';
+let activeTenant = TENANTS[0][0];
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = TENANTS.map(([t,label]) =>
+    `<button class="tenant-tab ${t===activeTenant?'active':''}" data-t="${t}">${label}</button>`
+  ).join('');
+  tabs.querySelectorAll('.tenant-tab').forEach(b => b.onclick = () => { activeTenant = b.dataset.t; renderTabs(); load(); });
+}
+async function load() {
+  const list = document.getElementById('list');
+  list.className = 'empty'; list.innerHTML = 'Loading…';
+  try {
+    const r = await fetch(`/api/events?tenant=${activeTenant}`, { credentials: 'include' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (!data.events || data.events.length === 0) {
+      list.innerHTML = '<div class="empty">No events yet for ' + activeTenant + '. Try uploading or archiving a file.</div>';
+      return;
+    }
+    list.className = '';
+    list.innerHTML = data.events.map(e => {
+      const kind = e.kind || 'event';
+      const when = e.at ? new Date(e.at).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+      const by = e.by || 'unknown';
+      return `<div class="event">
+        <span class="event-kind kind-${kind}">${kind}</span>
+        <div class="event-detail">
+          <div class="key">${e.key || e.hash || '(no key)'}</div>
+          <div class="meta">by ${by}${e.size ? ' · ' + (e.size/1024).toFixed(1)+' KB' : ''}</div>
+        </div>
+        <div class="event-time">${when}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+  }
+}
+renderTabs(); load();
+</script>
+</body>
+</html>

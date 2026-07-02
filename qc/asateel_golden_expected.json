@@ -1,0 +1,58 @@
+{
+  "_comment": "Golden regression gate: this snapshot must pass before trusting any Asateel pipeline change. Refresh only after an intentional, reviewed contract change.",
+  "command": [
+    "python3",
+    "pipelines/asateel.py",
+    "--folder",
+    "CENTRAL",
+    "--full"
+  ],
+  "allocation_lines": 188,
+  "row_status_counts": {
+    "GREEN": 7,
+    "YELLOW": 181,
+    "RED": 0
+  },
+  "blank_cost_center_rows": 6,
+  "blank_cost_center_invoices": [
+    "03045",
+    "03110",
+    "03149",
+    "03309"
+  ],
+  "blank_cost_center_row_keys": [
+    {
+      "invoice_no": "03045",
+      "line_no": 2,
+      "row_status": "YELLOW"
+    },
+    {
+      "invoice_no": "03110",
+      "line_no": 1,
+      "row_status": "YELLOW"
+    },
+    {
+      "invoice_no": "03149",
+      "line_no": 2,
+      "row_status": "YELLOW"
+    },
+    {
+      "invoice_no": "03149",
+      "line_no": 4,
+      "row_status": "YELLOW"
+    },
+    {
+      "invoice_no": "03149",
+      "line_no": 6,
+      "row_status": "YELLOW"
+    },
+    {
+      "invoice_no": "03309",
+      "line_no": 2,
+      "row_status": "YELLOW"
+    }
+  ],
+  "invoice_count": 92,
+  "reconciled_invoices": 92,
+  "mismatched_invoices": 0
+}

@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+#
+# AlJeel AP — Jawal Batch Processor v10 (canonical)
+#
+# Usage:
+#   bash PROCESS/run_jawal_batch.sh <BATCH_ID>
+#   e.g. bash PROCESS/run_jawal_batch.sh J26-789
+#
+# Process spec: see PROCESS/PROCESS.md
+# Lock date: 2026-05-21
+
+set -euo pipefail
+
+# -----------------------------------------------------------------------------
+# Constants — DO NOT EDIT without updating PROCESS.md
+# -----------------------------------------------------------------------------
+ALJEEL_HOME="/home/clawdbot/.openclaw/workspace/aljeel"
+PIPELINE_VERSION="v15.7"
+GOLDEN_TARGET_J640=110  # match rate target
+ENV_FILE="/home/clawdbot/.openclaw/.env"
+TELEGRAM_GROUP_CHAT_ID="-5136922690"  # Malik // Aljeel Finance
+
+# -----------------------------------------------------------------------------
+# Arg parsing
+# -----------------------------------------------------------------------------
+if [[ $# -lt 1 ]]; then
+  echo "ERROR: missing BATCH_ID"
+  echo "Usage: $0 <BATCH_ID>"
+  echo "Example: $0 J26-789"
+  exit 2
+fi
+BATCH_ID="$1"
+BATCH_DIR="$ALJEEL_HOME/batches/jawal-$BATCH_ID"
+TIMESTAMP=$(date -u +%Y%m%d-%H%M%SZ)
+RUN_LOG="$ALJEEL_HOME/qc/reports/run-${BATCH_ID}-${TIMESTAMP}.log"
+mkdir -p "$(dirname "$RUN_LOG")"
+
+log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "$RUN_LOG"; }
+die() { log "❌ FATAL: $*"; exit 1; }
+
+cd "$ALJEEL_HOME"
+
+log "═══════════════════════════════════════════════════════════════"
+log "AlJeel AP Jawal Batch Processor — version $PIPELINE_VERSION"
+log "Batch:     $BATCH_ID"
+log "Started:   $(date -u --iso-8601=seconds)"
+log "Workspace: $ALJEEL_HOME"
+log "Log:       $RUN_LOG"
+log "═══════════════════════════════════════════════════════════════"
+
+# -----------------------------------------------------------------------------
+# Pre-flight checks (Stage -1)
+# -----------------------------------------------------------------------------
+log ""
+log "── Stage -1: Pre-flight checks ──"
+
+[[ -d "$BATCH_DIR" ]] || die "batch dir missing: $BATCH_DIR"
+log "✓ batch dir exists"
+
+INVOICE_XLSX=$(find -L "$BATCH_DIR" -maxdepth 2 -name "${BATCH_ID}.xlsx" -type f | head -1)
+[[ -n "$INVOICE_XLSX" ]] || die "invoice xlsx missing: expected $BATCH_DIR/$BATCH_ID.xlsx"
+log "✓ invoice xlsx: $INVOICE_XLSX"
+
+[[ -d "$BATCH_DIR/raw" ]] || die "raw .msg corpus missing: $BATCH_DIR/raw/ — symlink or copy the .msg folder there"
+MSG_COUNT=$(find -L "$BATCH_DIR/raw" -name "*.msg" 2>/dev/null | wc -l)
+[[ "$MSG_COUNT" -ge 10 ]] || die "raw .msg corpus has only $MSG_COUNT files (expected ≥10); aborting"
+log "✓ raw corpus: $MSG_COUNT .msg files"
+
+[[ -f "$ALJEEL_HOME/qc/master-data/master-data-003.xlsx" ]] || die "master data missing"
+log "✓ master data present"
+
+[[ -f "$ALJEEL_HOME/qc/fixtures/golden-j640/jawal-J26-640-resolved.xlsx" ]] || die "reference golden missing"
+log "✓ reference golden present"
+
+[[ -f "$ENV_FILE" ]] || die "env file missing: $ENV_FILE"
+log "✓ env file present"
+
+# Ensure caches are writable by clawdbot
+for c in passenger_to_empno.json email_to_empno.json manpower_email_derived.json; do
+  if [[ -f "$ALJEEL_HOME/cache/$c" ]]; then
+    [[ -w "$ALJEEL_HOME/cache/$c" ]] || die "cache file not writable: $c (run as clawdbot or chown)"
+  fi
+done
+log "✓ cache files writable"
+
+# -----------------------------------------------------------------------------
+# Load env (Stage 0)
+# -----------------------------------------------------------------------------
+log ""
+log "── Stage 0: Loading environment ──"
+set -a
+source "$ENV_FILE"
+set +a
+[[ -n "${GEMINI_API_KEY:-}" ]] || die "GEMINI_API_KEY not in env"
+[[ -n "${ANTHROPIC_API_KEY:-}" ]] || log "⚠ ANTHROPIC_API_KEY not set (QC review layer skipped)"
+log "✓ env loaded"
+
+export PYTHONPATH="$ALJEEL_HOME/scripts:${PYTHONPATH:-}"
+
+# -----------------------------------------------------------------------------
+# Stage 1-7: Run the pipeline orchestrator
+# -----------------------------------------------------------------------------
+log ""
+log "── Stages 1-5: process_batch.py (full v10 pipeline) ──"
+log "Running: scripts/process_batch.py --batch $BATCH_DIR --raw-dir $BATCH_DIR/raw --suffix $PIPELINE_VERSION"
+
+# Archive any prior v10 output for this batch (idempotency)
+OUTPUT_DIR="$BATCH_DIR/output"
+mkdir -p "$OUTPUT_DIR/archive"
+if compgen -G "$OUTPUT_DIR/Spreadsheet-${BATCH_ID}-FILLED-${PIPELINE_VERSION}*.xlsx" > /dev/null; then
+  log "  archiving prior $PIPELINE_VERSION outputs to $OUTPUT_DIR/archive/"
+  mv "$OUTPUT_DIR"/Spreadsheet-${BATCH_ID}-FILLED-${PIPELINE_VERSION}*.xlsx "$OUTPUT_DIR/archive/" 2>/dev/null || true
+fi
+
+python3 -u "$ALJEEL_HOME/scripts/process_batch.py" \
+  --batch "$BATCH_DIR" \
+  --raw-dir "$BATCH_DIR/raw" \
+  --suffix "$PIPELINE_VERSION" 2>&1 | tee -a "$RUN_LOG"
+PIPELINE_EXIT=${PIPESTATUS[0]}
+[[ "$PIPELINE_EXIT" -eq 0 ]] || die "process_batch.py exited $PIPELINE_EXIT"
+
+# -----------------------------------------------------------------------------
+# Stage 6: Golden regression check
+# -----------------------------------------------------------------------------
+log ""
+log "── Stage 6: Golden fixture regression check ──"
+if [[ -x "$ALJEEL_HOME/scripts/validate_golden.py" ]] || python3 -c "import sys; sys.path.insert(0, '$ALJEEL_HOME/scripts')" 2>/dev/null; then
+  python3 "$ALJEEL_HOME/scripts/validate_golden.py" 2>&1 | tee -a "$RUN_LOG" || log "⚠ golden regression check returned non-zero (review log)"
+else
+  log "⚠ validate_golden.py not executable — skipped"
+fi
+
+# -----------------------------------------------------------------------------
+# Stage 7: Post-run verification
+# -----------------------------------------------------------------------------
+log ""
+log "── Stage 7: Post-run verification ──"
+
+OUTPUT_XLSX=$(find "$OUTPUT_DIR" -maxdepth 1 -name "Spreadsheet-${BATCH_ID}-FILLED-${PIPELINE_VERSION}*.xlsx" -type f | head -1)
+[[ -n "$OUTPUT_XLSX" ]] || die "output xlsx not produced"
+[[ -s "$OUTPUT_XLSX" ]] || die "output xlsx is empty"
+log "✓ output xlsx: $OUTPUT_XLSX"
+
+SUMMARY_JSON="$OUTPUT_DIR/summary-${PIPELINE_VERSION}.json"
+if [[ -f "$SUMMARY_JSON" ]]; then
+  HARD_FAILS=$(python3 -c "import json; d=json.load(open('$SUMMARY_JSON')); print(d.get('hard_failures', 'unknown'))" 2>/dev/null || echo "unknown")
+  TOTAL_LINES=$(python3 -c "import json; d=json.load(open('$SUMMARY_JSON')); print(d.get('total_lines', 'unknown'))" 2>/dev/null || echo "unknown")
+  CLEAN_LINES=$(python3 -c "import json; d=json.load(open('$SUMMARY_JSON')); print(d.get('clean_lines', 'unknown'))" 2>/dev/null || echo "unknown")
+  SOFT_FLAGS=$(python3 -c "import json; d=json.load(open('$SUMMARY_JSON')); print(d.get('soft_flags', 'unknown'))" 2>/dev/null || echo "unknown")
+
+  log "✓ summary written"
+  log "  total lines:    $TOTAL_LINES"
+  log "  clean (post):   $CLEAN_LINES"
+  log "  soft flags:     $SOFT_FLAGS"
+  log "  hard failures:  $HARD_FAILS"
+
+  # QC enrichment reporting
+  _QC_OUT=$(python3 "$ALJEEL_HOME/scripts/read_qc_summary.py" "$SUMMARY_JSON" 2>/dev/null)
+  ROW_GREEN=$(echo "$_QC_OUT" | sed -n 1p)
+  ROW_YELLOW=$(echo "$_QC_OUT" | sed -n 2p)
+  ROW_RED=$(echo "$_QC_OUT" | sed -n 3p)
+  WITHIN_CATCHES=$(echo "$_QC_OUT" | sed -n 4p)
+  CROSS_CATCHES=$(echo "$_QC_OUT" | sed -n 5p)
+  log "  row status:     🟢 $ROW_GREEN  🟡 $ROW_YELLOW  🔴 $ROW_RED"
+  log "  QC catches:     $WITHIN_CATCHES within-batch, $CROSS_CATCHES cross-batch"
+
+  if [[ "$HARD_FAILS" != "0" && "$HARD_FAILS" != "unknown" ]]; then
+    log "🔴 HARD FAILURES present — DO NOT post to Fusion. Inspect halt-queue."
+  fi
+else
+  log "⚠ summary json missing"
+fi
+
+HALT_QUEUE="$OUTPUT_DIR/halt-queue.json"
+if [[ -f "$HALT_QUEUE" ]] && [[ -s "$HALT_QUEUE" ]]; then
+  HALT_COUNT=$(python3 -c "import json; print(len(json.load(open('$HALT_QUEUE'))))" 2>/dev/null || echo "?")
+  log "🔴 halt queue: $HALT_COUNT line(s) — see $HALT_QUEUE"
+fi
+
+# -----------------------------------------------------------------------------
+# Done
+# -----------------------------------------------------------------------------
+log ""
+log "═══════════════════════════════════════════════════════════════"
+log "✅ DONE — Batch $BATCH_ID processed via $PIPELINE_VERSION"
+log "Output:  $OUTPUT_XLSX"
+log "Summary: $SUMMARY_JSON"
+log "Log:     $RUN_LOG"
+log "═══════════════════════════════════════════════════════════════"
+
+# Print a one-paragraph summary suitable for forwarding
+echo ""
+echo "SUMMARY FOR TELEGRAM:"
+echo "Batch $BATCH_ID processed via v10."
+echo "  $TOTAL_LINES lines | $HARD_FAILS hard fails | $SOFT_FLAGS soft flags"
+echo "  Output: $OUTPUT_XLSX"

@@ -1,0 +1,7233 @@
+{
+  "tickets": {
+    "6905264364": {
+      "batch": "J26-640",
+      "passenger": "MERHEB/MOHAMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 5080.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905264365": {
+      "batch": "J26-640",
+      "passenger": "ALWAKEEL/AMR MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-06",
+      "amount": 5000.0,
+      "route_corridor": [
+        "JED",
+        "ATH",
+        "JED"
+      ]
+    },
+    "6905264382": {
+      "batch": "J26-640",
+      "passenger": "ALAJMI/MANNAA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 1250.0,
+      "route_corridor": [
+        "RUH",
+        "AHB"
+      ]
+    },
+    "6905264384": {
+      "batch": "J26-640",
+      "passenger": "RATL/CHARLES MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 800.0,
+      "route_corridor": [
+        "RUH",
+        "GIZ",
+        "RUH"
+      ]
+    },
+    "6905264385": {
+      "batch": "J26-640",
+      "passenger": "BAGHLAF/MOAYAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1995.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "6905264386": {
+      "batch": "J26-640",
+      "passenger": "HUSSEIN/AHMAD JUMAH KHALEEL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 2040.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905264387": {
+      "batch": "J26-640",
+      "passenger": "HUSSEIN/AHMAD JUMAH KHALEEL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 3484.99,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905264389": {
+      "batch": "J26-640",
+      "passenger": "ALATTAR/ABDULLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 3980.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905264402": {
+      "batch": "J26-640",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 2080.01,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905264403": {
+      "batch": "J26-640",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1530.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905264409": {
+      "batch": "J26-640",
+      "passenger": "EL SHARKAWY/HASSAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 480.0,
+      "route_corridor": [
+        "RUH",
+        "DMM"
+      ]
+    },
+    "6905264410": {
+      "batch": "J26-640",
+      "passenger": "EL SHARKAWY/HASSAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 510.0,
+      "route_corridor": [
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905264411": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/NJOUD MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1320.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905264412": {
+      "batch": "J26-640",
+      "passenger": "SWEILEM/MOHAMMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1150.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905264413": {
+      "batch": "J26-640",
+      "passenger": "ALBAZ/AHMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1230.01,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905264414": {
+      "batch": "J26-640",
+      "passenger": "MUSTAFA/WASEEM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 2775.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905264421": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 690.0,
+      "route_corridor": [
+        "RUH",
+        "TUU"
+      ]
+    },
+    "6905264422": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 770.0,
+      "route_corridor": [
+        "TUU",
+        "RUH"
+      ]
+    },
+    "6905264424": {
+      "batch": "J26-640",
+      "passenger": "ALBALBESI/NASSER MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 390.0,
+      "route_corridor": [
+        "JED",
+        "MED"
+      ]
+    },
+    "6905318838": {
+      "batch": "J26-640",
+      "passenger": "ADOLAY/MOHAMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 2150.0,
+      "route_corridor": [
+        "RUH",
+        "DOH",
+        "MUC",
+        "DOH",
+        "RUH"
+      ]
+    },
+    "6905318848": {
+      "batch": "J26-640",
+      "passenger": "AHMED/AHMED MOHAMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-02",
+      "amount": 3000.0,
+      "route_corridor": [
+        "CAI",
+        "RUH",
+        "HAS"
+      ]
+    },
+    "6905318870": {
+      "batch": "J26-640",
+      "passenger": "ALHAZZAA/KADI MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 2750.0,
+      "route_corridor": [
+        "RUH",
+        "TIF",
+        "RUH"
+      ]
+    },
+    "6905318871": {
+      "batch": "J26-640",
+      "passenger": "MAZIED/ISSAM ENG",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1400.0,
+      "route_corridor": [
+        "RUH",
+        "HAS",
+        "RUH"
+      ]
+    },
+    "6905318872": {
+      "batch": "J26-640",
+      "passenger": "ALENAZI/ABDULAZIZ MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1600.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905318873": {
+      "batch": "J26-640",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 865.0,
+      "route_corridor": [
+        "RUH",
+        "AHB"
+      ]
+    },
+    "6905318874": {
+      "batch": "J26-640",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 585.01,
+      "route_corridor": [
+        "AHB",
+        "RUH"
+      ]
+    },
+    "1936040338": {
+      "batch": "J26-640",
+      "passenger": "RATL/CHARLES MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 250.0,
+      "route_corridor": [
+        "RUH",
+        "GIZ",
+        "RUH"
+      ]
+    },
+    "1936040471": {
+      "batch": "J26-640",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 200.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905318901": {
+      "batch": "J26-640",
+      "passenger": "AL DIGHRIR/YOUSEF MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1020.0,
+      "route_corridor": [
+        "JED",
+        "ABT",
+        "JED"
+      ]
+    },
+    "6905318904": {
+      "batch": "J26-640",
+      "passenger": "ALQAHTANI/YAZEED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 2000.0,
+      "route_corridor": [
+        "RUH",
+        "HAS",
+        "RUH"
+      ]
+    },
+    "6905318921": {
+      "batch": "J26-640",
+      "passenger": "BIN MUDHIAN/FAISAL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 2170.0,
+      "route_corridor": [
+        "RUH",
+        "HAS",
+        "RUH"
+      ]
+    },
+    "6905341951": {
+      "batch": "J26-640",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 800.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "6905341953": {
+      "batch": "J26-640",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 450.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905341954": {
+      "batch": "J26-640",
+      "passenger": "ALZAHRANI/ALI MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1790.0,
+      "route_corridor": [
+        "RUH",
+        "YNB",
+        "RUH"
+      ]
+    },
+    "6905341955": {
+      "batch": "J26-640",
+      "passenger": "ALHAJJ/HUSAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1315.0,
+      "route_corridor": [
+        "JED",
+        "ABT",
+        "JED"
+      ]
+    },
+    "6905341972": {
+      "batch": "J26-640",
+      "passenger": "SHARAWY/SALMA MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-01",
+      "amount": 909.99,
+      "route_corridor": [
+        "CAI",
+        "RUH"
+      ]
+    },
+    "6905341979": {
+      "batch": "J26-640",
+      "passenger": "ALI/HOSNY MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-21",
+      "amount": 3660.0,
+      "route_corridor": [
+        "RUH",
+        "HMB",
+        "RUH"
+      ]
+    },
+    "6905341980": {
+      "batch": "J26-640",
+      "passenger": "SOBHI/ALAAELDIN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-21",
+      "amount": 3660.0,
+      "route_corridor": [
+        "RUH",
+        "HMB",
+        "RUH"
+      ]
+    },
+    "6905341981": {
+      "batch": "J26-640",
+      "passenger": "OTHMAN/HOSSAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 1260.0,
+      "route_corridor": [
+        "JED",
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905342008": {
+      "batch": "J26-640",
+      "passenger": "QUBAISI/EBTIHAL AHMED MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 2485.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905342010": {
+      "batch": "J26-640",
+      "passenger": "ELSHAZLI/OMAR MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 3000.01,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "6905342011": {
+      "batch": "J26-640",
+      "passenger": "MAHMOUD/BELAL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1800.0,
+      "route_corridor": [
+        "RUH",
+        "TIF"
+      ]
+    },
+    "6905342015": {
+      "batch": "J26-640",
+      "passenger": "HADDAD/HAMZAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 3240.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905369277": {
+      "batch": "J26-640",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1010.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "6905369278": {
+      "batch": "J26-640",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1350.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905369300": {
+      "batch": "J26-640",
+      "passenger": "ABU DOGHMEH/SULTAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 4619.99,
+      "route_corridor": [
+        "RUH",
+        "AUH",
+        "BCN",
+        "AUH",
+        "RUH"
+      ]
+    },
+    "6905369301": {
+      "batch": "J26-640",
+      "passenger": "AMER/MOSTAFA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 4619.99,
+      "route_corridor": [
+        "RUH",
+        "AUH",
+        "BCN",
+        "AUH",
+        "RUH"
+      ]
+    },
+    "6905369305": {
+      "batch": "J26-640",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 470.01,
+      "route_corridor": [
+        "RUH",
+        "DMM"
+      ]
+    },
+    "6905369306": {
+      "batch": "J26-640",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1140.0,
+      "route_corridor": [
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905369315": {
+      "batch": "J26-640",
+      "passenger": "ELHAG/ALI ENG",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "6905369316": {
+      "batch": "J26-640",
+      "passenger": "ADOLAY/MOHAMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1260.0,
+      "route_corridor": [
+        "RUH",
+        "ELQ",
+        "RUH"
+      ]
+    },
+    "6905369322": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 750.0,
+      "route_corridor": [
+        "RUH",
+        "MED"
+      ]
+    },
+    "6905369323": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 730.0,
+      "route_corridor": [
+        "MED",
+        "RUH"
+      ]
+    },
+    "6905369328": {
+      "batch": "J26-640",
+      "passenger": "AHMED/NAGMALDIN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 970.0,
+      "route_corridor": [
+        "HAS",
+        "RUH"
+      ]
+    },
+    "6905369352": {
+      "batch": "J26-640",
+      "passenger": "ALHAWSAWI/HISHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 870.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "6905369353": {
+      "batch": "J26-640",
+      "passenger": "ALKHATIB/YAZAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1430.0,
+      "route_corridor": [
+        "JED",
+        "EAM"
+      ]
+    },
+    "6905369354": {
+      "batch": "J26-640",
+      "passenger": "ALKHATIB/YAZAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1630.0,
+      "route_corridor": [
+        "EAM",
+        "JED"
+      ]
+    },
+    "6905369361": {
+      "batch": "J26-640",
+      "passenger": "AL KHUDHAYR/AHMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1060.0,
+      "route_corridor": [
+        "DMM",
+        "RUH",
+        "AQI"
+      ]
+    },
+    "6905369362": {
+      "batch": "J26-640",
+      "passenger": "HINAIDI/ABDULLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1060.0,
+      "route_corridor": [
+        "DMM",
+        "RUH",
+        "AQI"
+      ]
+    },
+    "6905369363": {
+      "batch": "J26-640",
+      "passenger": "HASHAD/TAREK MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1200.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905369370": {
+      "batch": "J26-640",
+      "passenger": "ALAJMI/MANNAA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 810.0,
+      "route_corridor": [
+        "AHB",
+        "RUH"
+      ]
+    },
+    "6905369371": {
+      "batch": "J26-640",
+      "passenger": "ALGHAMDI/ISMAIL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905369372": {
+      "batch": "J26-640",
+      "passenger": "BAGARESH/ORJWAN",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905369373": {
+      "batch": "J26-640",
+      "passenger": "BAKHSH/ABEER MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905397690": {
+      "batch": "J26-640",
+      "passenger": "ALSABRI/GHAIDAA MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 4000.0,
+      "route_corridor": [
+        "JED",
+        "DOH",
+        "CDG",
+        "VIE",
+        "DOH"
+      ]
+    },
+    "6905397692": {
+      "batch": "J26-640",
+      "passenger": "ALSABRI/GHAIDAA MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 2400.0,
+      "route_corridor": [
+        "CDG",
+        "VIE"
+      ]
+    },
+    "6905397694": {
+      "batch": "J26-640",
+      "passenger": "AL MAHROUQ/ADNAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-01",
+      "amount": 7500.0,
+      "route_corridor": [
+        "RUH",
+        "DOH",
+        "ORD",
+        "DOH",
+        "RUH"
+      ]
+    },
+    "6905397711": {
+      "batch": "J26-640",
+      "passenger": "ALHAWSAWI/HISHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1050.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905397722": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1560.0,
+      "route_corridor": [
+        "RUH",
+        "TUU"
+      ]
+    },
+    "6905397723": {
+      "batch": "J26-640",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1640.0,
+      "route_corridor": [
+        "TUU",
+        "RUH"
+      ]
+    },
+    "6905397736": {
+      "batch": "J26-640",
+      "passenger": "ELATTAR/AHMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 1800.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905397737": {
+      "batch": "J26-640",
+      "passenger": "AYYASH/MOHAMMAD ENG",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-02",
+      "amount": 2410.0,
+      "route_corridor": [
+        "JED",
+        "RSI",
+        "JED"
+      ]
+    },
+    "6905397738": {
+      "batch": "J26-640",
+      "passenger": "ELSHAMALY/MAHMOUD MOFEED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1940.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905397741": {
+      "batch": "J26-640",
+      "passenger": "ELKILO/ABDELRAHMAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1940.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905397747": {
+      "batch": "J26-640",
+      "passenger": "ALBALBESI/NASSER MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 630.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "6905397748": {
+      "batch": "J26-640",
+      "passenger": "ALBALBESI/NASSER MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 400.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905397749": {
+      "batch": "J26-640",
+      "passenger": "AL DIGHRIR/YOUSEF MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1480.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "6905397750": {
+      "batch": "J26-640",
+      "passenger": "AL DIGHRIR/YOUSEF MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 500.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905397761": {
+      "batch": "J26-640",
+      "passenger": "MAHMOUD/MOHAMMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-02",
+      "amount": 1400.0,
+      "route_corridor": [
+        "JED",
+        "YNB",
+        "JED"
+      ]
+    },
+    "6905397766": {
+      "batch": "J26-640",
+      "passenger": "ALBASIRI/SALEH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-08",
+      "amount": 6700.0,
+      "route_corridor": [
+        "BRU",
+        "BCN"
+      ]
+    },
+    "6905397767": {
+      "batch": "J26-640",
+      "passenger": "ALBASIRI/SALEH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-12",
+      "amount": 15800.0,
+      "route_corridor": [
+        "BCN",
+        "DOH",
+        "RUH"
+      ]
+    },
+    "6905397773": {
+      "batch": "J26-640",
+      "passenger": "FEHRI/OUSAMA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1700.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905428792": {
+      "batch": "J26-640",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1050.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "6905428793": {
+      "batch": "J26-640",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 1400.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905428796": {
+      "batch": "J26-640",
+      "passenger": "BURHAN/HAMMAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 1299.99,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905428812": {
+      "batch": "J26-640",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 10970.0,
+      "route_corridor": [
+        "RUH",
+        "CMN"
+      ]
+    },
+    "6905428813": {
+      "batch": "J26-640",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-10",
+      "amount": 7950.0,
+      "route_corridor": [
+        "CMN",
+        "IST",
+        "RUH"
+      ]
+    },
+    "6905428827": {
+      "batch": "J26-788",
+      "passenger": "ELZAIM/AHMAD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 700.01,
+      "route_corridor": [
+        "RUH",
+        "AJF"
+      ]
+    },
+    "6905428828": {
+      "batch": "J26-788",
+      "passenger": "ELZAIM/AHMAD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1000.01,
+      "route_corridor": [
+        "AJF",
+        "RUH"
+      ]
+    },
+    "6905428829": {
+      "batch": "J26-788",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2800.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "6905428830": {
+      "batch": "J26-788",
+      "passenger": "MAHMOUD/BELAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1700.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905428831": {
+      "batch": "J26-788",
+      "passenger": "ALBASIRI/SALEH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 19500.0,
+      "route_corridor": [
+        "RUH",
+        "CDG",
+        "ZYR"
+      ]
+    },
+    "6905428837": {
+      "batch": "J26-788",
+      "passenger": "AMOUDI/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1200.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "1936046286": {
+      "batch": "J26-788",
+      "passenger": "MAHMOUD/BELAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 138.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905428852": {
+      "batch": "J26-788",
+      "passenger": "ALANAZI/YOUSEF MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2590.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "6905428853": {
+      "batch": "J26-788",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1490.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905428854": {
+      "batch": "J26-788",
+      "passenger": "AHMED/AHMED MOHAMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2000.0,
+      "route_corridor": [
+        "RUH",
+        "HAS"
+      ]
+    },
+    "6905478406": {
+      "batch": "J26-788",
+      "passenger": "BAHKALI/ARIEJ MS",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1790.0,
+      "route_corridor": [
+        "JED",
+        "DMM",
+        "JED"
+      ]
+    },
+    "6905478418": {
+      "batch": "J26-788",
+      "passenger": "BATAWEEL/WALEED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 560.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "6905478419": {
+      "batch": "J26-788",
+      "passenger": "BATAWEEL/WALEED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 470.01,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905478421": {
+      "batch": "J26-788",
+      "passenger": "ALJAROUD/MUSTAFA MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 600.0,
+      "route_corridor": [
+        "DMM",
+        "JED"
+      ]
+    },
+    "6905478422": {
+      "batch": "J26-788",
+      "passenger": "ALJAROUD/MUSTAFA MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1100.0,
+      "route_corridor": [
+        "JED",
+        "DMM"
+      ]
+    },
+    "6905478425": {
+      "batch": "J26-788",
+      "passenger": "ALANAZI/ABDULAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1250.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905478426": {
+      "batch": "J26-788",
+      "passenger": "ALHAJJ/HUSAM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1830.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905478428": {
+      "batch": "J26-788",
+      "passenger": "SALEH/MARIAM MS(CHD)",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2690.0,
+      "route_corridor": [
+        "RUH",
+        "AMM",
+        "RUH"
+      ]
+    },
+    "6905478429": {
+      "batch": "J26-788",
+      "passenger": "SALEH/FARAH MRS",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 3330.0,
+      "route_corridor": [
+        "RUH",
+        "AMM",
+        "RUH"
+      ]
+    },
+    "6905478431": {
+      "batch": "J26-788",
+      "passenger": "SALEH/EKREMA MR(CHD)",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2690.0,
+      "route_corridor": [
+        "RUH",
+        "AMM",
+        "RUH"
+      ]
+    },
+    "6905478435": {
+      "batch": "J26-788",
+      "passenger": "HADDAD/HAMZAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 570.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905478438": {
+      "batch": "J26-788",
+      "passenger": "ALGHAMDI/ABDULLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1850.01,
+      "route_corridor": [
+        "RUH",
+        "YNB",
+        "RUH"
+      ]
+    },
+    "6905478459": {
+      "batch": "J26-788",
+      "passenger": "BIN MUDHIAN/FAISAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1270.0,
+      "route_corridor": [
+        "RUH",
+        "WAE",
+        "RUH"
+      ]
+    },
+    "6905478461": {
+      "batch": "J26-788",
+      "passenger": "ISMAIEL/YASIN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1640.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905478467": {
+      "batch": "J26-788",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 510.0,
+      "route_corridor": [
+        "RUH",
+        "DMM"
+      ]
+    },
+    "6905478468": {
+      "batch": "J26-788",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 440.0,
+      "route_corridor": [
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905495636": {
+      "batch": "J26-788",
+      "passenger": "ALMUSAYFIR/ABDULLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1960.0,
+      "route_corridor": [
+        "RUH",
+        "YNB",
+        "RUH"
+      ]
+    },
+    "6905495637": {
+      "batch": "J26-788",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1770.0,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "6905495639": {
+      "batch": "J26-788",
+      "passenger": "ALFAR/BARA ENG",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 460.0,
+      "route_corridor": [
+        "JED",
+        "TUU"
+      ]
+    },
+    "6905495640": {
+      "batch": "J26-788",
+      "passenger": "ALFAR/BARA ENG",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1360.0,
+      "route_corridor": [
+        "TUU",
+        "JED"
+      ]
+    },
+    "6905495641": {
+      "batch": "J26-788",
+      "passenger": "ABOUSEWILAM/AMR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1470.0,
+      "route_corridor": [
+        "RUH",
+        "AJF"
+      ]
+    },
+    "6905495642": {
+      "batch": "J26-788",
+      "passenger": "ABOUSEWILAM/AMR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 470.01,
+      "route_corridor": [
+        "AJF",
+        "RUH"
+      ]
+    },
+    "6905495644": {
+      "batch": "J26-788",
+      "passenger": "OMER/WALAA MS",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1069.99,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905495648": {
+      "batch": "J26-788",
+      "passenger": "MOSA/MAHAMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1065.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905495649": {
+      "batch": "J26-788",
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 917.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905495650": {
+      "batch": "J26-788",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 560.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905495651": {
+      "batch": "J26-788",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 540.01,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905495656": {
+      "batch": "J26-788",
+      "passenger": "ISMAIEL/YASIN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1115.01,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905495661": {
+      "batch": "J26-788",
+      "passenger": "TAGRA/REYNAND JESUS MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1830.0,
+      "route_corridor": [
+        "RUH",
+        "TUI",
+        "RUH"
+      ]
+    },
+    "6905495665": {
+      "batch": "J26-788",
+      "passenger": "ABU ABED/IBRAHIM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1830.0,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "6905495666": {
+      "batch": "J26-788",
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1190.0,
+      "route_corridor": [
+        "RUH",
+        "RAE"
+      ]
+    },
+    "6905495667": {
+      "batch": "J26-788",
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 550.0,
+      "route_corridor": [
+        "RAE",
+        "RUH"
+      ]
+    },
+    "6905495692": {
+      "batch": "J26-788",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2250.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "6905495693": {
+      "batch": "J26-788",
+      "passenger": "AHMED/NAGMALDIN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1069.99,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905495703": {
+      "batch": "J26-788",
+      "passenger": "WADI/MAHMOUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1115.01,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905495711": {
+      "batch": "J26-788",
+      "passenger": "ALASIRI/ABDULAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1310.0,
+      "route_corridor": [
+        "RUH",
+        "AHB",
+        "RUH"
+      ]
+    },
+    "6905495712": {
+      "batch": "J26-788",
+      "passenger": "ELKAHLOUT/NABEL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1180.0,
+      "route_corridor": [
+        "RUH",
+        "AHB",
+        "RUH"
+      ]
+    },
+    "6905533279": {
+      "batch": "J26-788",
+      "passenger": "ELATTAR/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1800.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905533283": {
+      "batch": "J26-788",
+      "passenger": "ABU ABED/IBRAHIM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1735.01,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "6905533324": {
+      "batch": "J26-788",
+      "passenger": "ELHAG/ALI ENG",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "6905533338": {
+      "batch": "J26-788",
+      "passenger": "KHADER/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1100.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905533340": {
+      "batch": "J26-788",
+      "passenger": "ALHATO/ABDULHADI MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1400.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "6905533341": {
+      "batch": "J26-788",
+      "passenger": "ALHATO/ABDULHADI MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 400.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905533352": {
+      "batch": "J26-788",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1115.01,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905533359": {
+      "batch": "J26-788",
+      "passenger": "HADDAD/HAMZAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 520.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905569429": {
+      "batch": "J26-788",
+      "passenger": "KONDO/MBWANA HAMISI MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 3850.0,
+      "route_corridor": [
+        "RUH",
+        "DXB",
+        "MBA",
+        "DXB",
+        "RUH"
+      ]
+    },
+    "6905569438": {
+      "batch": "J26-788",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 430.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "6905569439": {
+      "batch": "J26-788",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 420.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905569440": {
+      "batch": "J26-788",
+      "passenger": "ALMADHUN/ABDULRAHMAN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1460.01,
+      "route_corridor": [
+        "JED",
+        "ABT",
+        "JED"
+      ]
+    },
+    "6905569445": {
+      "batch": "J26-788",
+      "passenger": "GASEEM/MOHAMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1165.0,
+      "route_corridor": [
+        "JED",
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905569475": {
+      "batch": "J26-788",
+      "passenger": "ELSHAZLI/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905569485": {
+      "batch": "J26-788",
+      "passenger": "ASIRI/FAISAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 510.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "6905569493": {
+      "batch": "J26-788",
+      "passenger": "HUSSIN/ABDALAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2020.0,
+      "route_corridor": [
+        "DMM",
+        "DOH",
+        "MUC",
+        "DOH",
+        "DMM"
+      ]
+    },
+    "6905569509": {
+      "batch": "J26-788",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 600.0,
+      "route_corridor": [
+        "AHB",
+        "RUH"
+      ]
+    },
+    "6905569510": {
+      "batch": "J26-788",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 570.0,
+      "route_corridor": [
+        "RUH",
+        "GIZ"
+      ]
+    },
+    "6905569511": {
+      "batch": "J26-788",
+      "passenger": "KALTHOUM/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1350.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905569512": {
+      "batch": "J26-788",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 202.4,
+      "route_corridor": [
+        "RUH",
+        "GIZ"
+      ]
+    },
+    "6905569515": {
+      "batch": "J26-788",
+      "passenger": "ABDULLATIF/SALEM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "6905569516": {
+      "batch": "J26-788",
+      "passenger": "FADHEL/NABEL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "6905569517": {
+      "batch": "J26-788",
+      "passenger": "TAFESH/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1440.0,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "6905569519": {
+      "batch": "J26-788",
+      "passenger": "ALI/SAID MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1250.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905569521": {
+      "batch": "J26-788",
+      "passenger": "ALANAZI/ABDULAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1250.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905569523": {
+      "batch": "J26-788",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1050.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905569525": {
+      "batch": "J26-788",
+      "passenger": "JAMAL/ABDULMALIK MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 650.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905569526": {
+      "batch": "J26-788",
+      "passenger": "JAMAL/ABDULMALIK MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 650.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "6905600591": {
+      "batch": "J26-788",
+      "passenger": "SAAD/ASHRAF MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1685.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905600592": {
+      "batch": "J26-788",
+      "passenger": "WADI/MAHMOUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1685.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "6905600626": {
+      "batch": "J26-788",
+      "passenger": "ALJAMAL/MOHAMMED ABDULMAJEED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2385.0,
+      "route_corridor": [
+        "RUH",
+        "AJF",
+        "RUH"
+      ]
+    },
+    "6905600631": {
+      "batch": "J26-788",
+      "passenger": "RATL/CHARLES MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1510.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "6905600632": {
+      "batch": "J26-788",
+      "passenger": "AMOUDI/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 875.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "6905600633": {
+      "batch": "J26-788",
+      "passenger": "ALHMEDI/TARIQ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1795.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    }
+  },
+  "passenger_trips": {
+    "J26-640:6905264364": {
+      "batch": "J26-640",
+      "ticket_no": "6905264364",
+      "passenger": "MERHEB/MOHAMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 5080.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264365": {
+      "batch": "J26-640",
+      "ticket_no": "6905264365",
+      "passenger": "ALWAKEEL/AMR MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-06",
+      "amount": 5000.0,
+      "route_corridor": [
+        "JED",
+        "ATH",
+        "JED"
+      ]
+    },
+    "J26-640:6905264382": {
+      "batch": "J26-640",
+      "ticket_no": "6905264382",
+      "passenger": "ALAJMI/MANNAA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 1250.0,
+      "route_corridor": [
+        "RUH",
+        "AHB"
+      ]
+    },
+    "J26-640:6905264384": {
+      "batch": "J26-640",
+      "ticket_no": "6905264384",
+      "passenger": "RATL/CHARLES MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 800.0,
+      "route_corridor": [
+        "RUH",
+        "GIZ",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264385": {
+      "batch": "J26-640",
+      "ticket_no": "6905264385",
+      "passenger": "BAGHLAF/MOAYAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1995.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264386": {
+      "batch": "J26-640",
+      "ticket_no": "6905264386",
+      "passenger": "HUSSEIN/AHMAD JUMAH KHALEEL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 2040.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905264387": {
+      "batch": "J26-640",
+      "ticket_no": "6905264387",
+      "passenger": "HUSSEIN/AHMAD JUMAH KHALEEL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 3484.99,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264389": {
+      "batch": "J26-640",
+      "ticket_no": "6905264389",
+      "passenger": "ALATTAR/ABDULLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 3980.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264402": {
+      "batch": "J26-640",
+      "ticket_no": "6905264402",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 2080.01,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905264403": {
+      "batch": "J26-640",
+      "ticket_no": "6905264403",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1530.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264409": {
+      "batch": "J26-640",
+      "ticket_no": "6905264409",
+      "passenger": "EL SHARKAWY/HASSAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 480.0,
+      "route_corridor": [
+        "RUH",
+        "DMM"
+      ]
+    },
+    "J26-640:6905264410": {
+      "batch": "J26-640",
+      "ticket_no": "6905264410",
+      "passenger": "EL SHARKAWY/HASSAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 510.0,
+      "route_corridor": [
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264411": {
+      "batch": "J26-640",
+      "ticket_no": "6905264411",
+      "passenger": "ALANAZI/NJOUD MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1320.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264412": {
+      "batch": "J26-640",
+      "ticket_no": "6905264412",
+      "passenger": "SWEILEM/MOHAMMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1150.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264413": {
+      "batch": "J26-640",
+      "ticket_no": "6905264413",
+      "passenger": "ALBAZ/AHMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1230.01,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264414": {
+      "batch": "J26-640",
+      "ticket_no": "6905264414",
+      "passenger": "MUSTAFA/WASEEM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 2775.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905264421": {
+      "batch": "J26-640",
+      "ticket_no": "6905264421",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 690.0,
+      "route_corridor": [
+        "RUH",
+        "TUU"
+      ]
+    },
+    "J26-640:6905264422": {
+      "batch": "J26-640",
+      "ticket_no": "6905264422",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 770.0,
+      "route_corridor": [
+        "TUU",
+        "RUH"
+      ]
+    },
+    "J26-640:6905264424": {
+      "batch": "J26-640",
+      "ticket_no": "6905264424",
+      "passenger": "ALBALBESI/NASSER MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 390.0,
+      "route_corridor": [
+        "JED",
+        "MED"
+      ]
+    },
+    "J26-640:6905318838": {
+      "batch": "J26-640",
+      "ticket_no": "6905318838",
+      "passenger": "ADOLAY/MOHAMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 2150.0,
+      "route_corridor": [
+        "RUH",
+        "DOH",
+        "MUC",
+        "DOH",
+        "RUH"
+      ]
+    },
+    "J26-640:6905318848": {
+      "batch": "J26-640",
+      "ticket_no": "6905318848",
+      "passenger": "AHMED/AHMED MOHAMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-02",
+      "amount": 3000.0,
+      "route_corridor": [
+        "CAI",
+        "RUH",
+        "HAS"
+      ]
+    },
+    "J26-640:6905318870": {
+      "batch": "J26-640",
+      "ticket_no": "6905318870",
+      "passenger": "ALHAZZAA/KADI MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 2750.0,
+      "route_corridor": [
+        "RUH",
+        "TIF",
+        "RUH"
+      ]
+    },
+    "J26-640:6905318871": {
+      "batch": "J26-640",
+      "ticket_no": "6905318871",
+      "passenger": "MAZIED/ISSAM ENG",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1400.0,
+      "route_corridor": [
+        "RUH",
+        "HAS",
+        "RUH"
+      ]
+    },
+    "J26-640:6905318872": {
+      "batch": "J26-640",
+      "ticket_no": "6905318872",
+      "passenger": "ALENAZI/ABDULAZIZ MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 1600.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-640:6905318873": {
+      "batch": "J26-640",
+      "ticket_no": "6905318873",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 865.0,
+      "route_corridor": [
+        "RUH",
+        "AHB"
+      ]
+    },
+    "J26-640:6905318874": {
+      "batch": "J26-640",
+      "ticket_no": "6905318874",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 585.01,
+      "route_corridor": [
+        "AHB",
+        "RUH"
+      ]
+    },
+    "J26-640:1936040338": {
+      "batch": "J26-640",
+      "ticket_no": "1936040338",
+      "passenger": "RATL/CHARLES MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 250.0,
+      "route_corridor": [
+        "RUH",
+        "GIZ",
+        "RUH"
+      ]
+    },
+    "J26-640:1936040471": {
+      "batch": "J26-640",
+      "ticket_no": "1936040471",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-26",
+      "amount": 200.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905318901": {
+      "batch": "J26-640",
+      "ticket_no": "6905318901",
+      "passenger": "AL DIGHRIR/YOUSEF MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1020.0,
+      "route_corridor": [
+        "JED",
+        "ABT",
+        "JED"
+      ]
+    },
+    "J26-640:6905318904": {
+      "batch": "J26-640",
+      "ticket_no": "6905318904",
+      "passenger": "ALQAHTANI/YAZEED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 2000.0,
+      "route_corridor": [
+        "RUH",
+        "HAS",
+        "RUH"
+      ]
+    },
+    "J26-640:6905318921": {
+      "batch": "J26-640",
+      "ticket_no": "6905318921",
+      "passenger": "BIN MUDHIAN/FAISAL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-27",
+      "amount": 2170.0,
+      "route_corridor": [
+        "RUH",
+        "HAS",
+        "RUH"
+      ]
+    },
+    "J26-640:6905341951": {
+      "batch": "J26-640",
+      "ticket_no": "6905341951",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 800.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "J26-640:6905341953": {
+      "batch": "J26-640",
+      "ticket_no": "6905341953",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 450.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-640:6905341954": {
+      "batch": "J26-640",
+      "ticket_no": "6905341954",
+      "passenger": "ALZAHRANI/ALI MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1790.0,
+      "route_corridor": [
+        "RUH",
+        "YNB",
+        "RUH"
+      ]
+    },
+    "J26-640:6905341955": {
+      "batch": "J26-640",
+      "ticket_no": "6905341955",
+      "passenger": "ALHAJJ/HUSAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1315.0,
+      "route_corridor": [
+        "JED",
+        "ABT",
+        "JED"
+      ]
+    },
+    "J26-640:6905341972": {
+      "batch": "J26-640",
+      "ticket_no": "6905341972",
+      "passenger": "SHARAWY/SALMA MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-01",
+      "amount": 909.99,
+      "route_corridor": [
+        "CAI",
+        "RUH"
+      ]
+    },
+    "J26-640:6905341979": {
+      "batch": "J26-640",
+      "ticket_no": "6905341979",
+      "passenger": "ALI/HOSNY MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-21",
+      "amount": 3660.0,
+      "route_corridor": [
+        "RUH",
+        "HMB",
+        "RUH"
+      ]
+    },
+    "J26-640:6905341980": {
+      "batch": "J26-640",
+      "ticket_no": "6905341980",
+      "passenger": "SOBHI/ALAAELDIN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-21",
+      "amount": 3660.0,
+      "route_corridor": [
+        "RUH",
+        "HMB",
+        "RUH"
+      ]
+    },
+    "J26-640:6905341981": {
+      "batch": "J26-640",
+      "ticket_no": "6905341981",
+      "passenger": "OTHMAN/HOSSAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 1260.0,
+      "route_corridor": [
+        "JED",
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-640:6905342008": {
+      "batch": "J26-640",
+      "ticket_no": "6905342008",
+      "passenger": "QUBAISI/EBTIHAL AHMED MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 2485.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905342010": {
+      "batch": "J26-640",
+      "ticket_no": "6905342010",
+      "passenger": "ELSHAZLI/OMAR MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 3000.01,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "J26-640:6905342011": {
+      "batch": "J26-640",
+      "ticket_no": "6905342011",
+      "passenger": "MAHMOUD/BELAL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 1800.0,
+      "route_corridor": [
+        "RUH",
+        "TIF"
+      ]
+    },
+    "J26-640:6905342015": {
+      "batch": "J26-640",
+      "ticket_no": "6905342015",
+      "passenger": "HADDAD/HAMZAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 3240.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369277": {
+      "batch": "J26-640",
+      "ticket_no": "6905369277",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1010.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "J26-640:6905369278": {
+      "batch": "J26-640",
+      "ticket_no": "6905369278",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1350.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-640:6905369300": {
+      "batch": "J26-640",
+      "ticket_no": "6905369300",
+      "passenger": "ABU DOGHMEH/SULTAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 4619.99,
+      "route_corridor": [
+        "RUH",
+        "AUH",
+        "BCN",
+        "AUH",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369301": {
+      "batch": "J26-640",
+      "ticket_no": "6905369301",
+      "passenger": "AMER/MOSTAFA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 4619.99,
+      "route_corridor": [
+        "RUH",
+        "AUH",
+        "BCN",
+        "AUH",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369305": {
+      "batch": "J26-640",
+      "ticket_no": "6905369305",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-28",
+      "amount": 470.01,
+      "route_corridor": [
+        "RUH",
+        "DMM"
+      ]
+    },
+    "J26-640:6905369306": {
+      "batch": "J26-640",
+      "ticket_no": "6905369306",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1140.0,
+      "route_corridor": [
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369315": {
+      "batch": "J26-640",
+      "ticket_no": "6905369315",
+      "passenger": "ELHAG/ALI ENG",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "J26-640:6905369316": {
+      "batch": "J26-640",
+      "ticket_no": "6905369316",
+      "passenger": "ADOLAY/MOHAMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 1260.0,
+      "route_corridor": [
+        "RUH",
+        "ELQ",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369322": {
+      "batch": "J26-640",
+      "ticket_no": "6905369322",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 750.0,
+      "route_corridor": [
+        "RUH",
+        "MED"
+      ]
+    },
+    "J26-640:6905369323": {
+      "batch": "J26-640",
+      "ticket_no": "6905369323",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 730.0,
+      "route_corridor": [
+        "MED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369328": {
+      "batch": "J26-640",
+      "ticket_no": "6905369328",
+      "passenger": "AHMED/NAGMALDIN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 970.0,
+      "route_corridor": [
+        "HAS",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369352": {
+      "batch": "J26-640",
+      "ticket_no": "6905369352",
+      "passenger": "ALHAWSAWI/HISHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-29",
+      "amount": 870.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "J26-640:6905369353": {
+      "batch": "J26-640",
+      "ticket_no": "6905369353",
+      "passenger": "ALKHATIB/YAZAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1430.0,
+      "route_corridor": [
+        "JED",
+        "EAM"
+      ]
+    },
+    "J26-640:6905369354": {
+      "batch": "J26-640",
+      "ticket_no": "6905369354",
+      "passenger": "ALKHATIB/YAZAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1630.0,
+      "route_corridor": [
+        "EAM",
+        "JED"
+      ]
+    },
+    "J26-640:6905369361": {
+      "batch": "J26-640",
+      "ticket_no": "6905369361",
+      "passenger": "AL KHUDHAYR/AHMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1060.0,
+      "route_corridor": [
+        "DMM",
+        "RUH",
+        "AQI"
+      ]
+    },
+    "J26-640:6905369362": {
+      "batch": "J26-640",
+      "ticket_no": "6905369362",
+      "passenger": "HINAIDI/ABDULLAH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1060.0,
+      "route_corridor": [
+        "DMM",
+        "RUH",
+        "AQI"
+      ]
+    },
+    "J26-640:6905369363": {
+      "batch": "J26-640",
+      "ticket_no": "6905369363",
+      "passenger": "HASHAD/TAREK MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1200.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-640:6905369370": {
+      "batch": "J26-640",
+      "ticket_no": "6905369370",
+      "passenger": "ALAJMI/MANNAA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 810.0,
+      "route_corridor": [
+        "AHB",
+        "RUH"
+      ]
+    },
+    "J26-640:6905369371": {
+      "batch": "J26-640",
+      "ticket_no": "6905369371",
+      "passenger": "ALGHAMDI/ISMAIL MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905369372": {
+      "batch": "J26-640",
+      "ticket_no": "6905369372",
+      "passenger": "BAGARESH/ORJWAN",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905369373": {
+      "batch": "J26-640",
+      "ticket_no": "6905369373",
+      "passenger": "BAKHSH/ABEER MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905397690": {
+      "batch": "J26-640",
+      "ticket_no": "6905397690",
+      "passenger": "ALSABRI/GHAIDAA MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 4000.0,
+      "route_corridor": [
+        "JED",
+        "DOH",
+        "CDG",
+        "VIE",
+        "DOH"
+      ]
+    },
+    "J26-640:6905397692": {
+      "batch": "J26-640",
+      "ticket_no": "6905397692",
+      "passenger": "ALSABRI/GHAIDAA MS",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 2400.0,
+      "route_corridor": [
+        "CDG",
+        "VIE"
+      ]
+    },
+    "J26-640:6905397694": {
+      "batch": "J26-640",
+      "ticket_no": "6905397694",
+      "passenger": "AL MAHROUQ/ADNAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-01",
+      "amount": 7500.0,
+      "route_corridor": [
+        "RUH",
+        "DOH",
+        "ORD",
+        "DOH",
+        "RUH"
+      ]
+    },
+    "J26-640:6905397711": {
+      "batch": "J26-640",
+      "ticket_no": "6905397711",
+      "passenger": "ALHAWSAWI/HISHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1050.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-640:6905397722": {
+      "batch": "J26-640",
+      "ticket_no": "6905397722",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1560.0,
+      "route_corridor": [
+        "RUH",
+        "TUU"
+      ]
+    },
+    "J26-640:6905397723": {
+      "batch": "J26-640",
+      "ticket_no": "6905397723",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-04-30",
+      "amount": 1640.0,
+      "route_corridor": [
+        "TUU",
+        "RUH"
+      ]
+    },
+    "J26-640:6905397736": {
+      "batch": "J26-640",
+      "ticket_no": "6905397736",
+      "passenger": "ELATTAR/AHMED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 1800.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-640:6905397737": {
+      "batch": "J26-640",
+      "ticket_no": "6905397737",
+      "passenger": "AYYASH/MOHAMMAD ENG",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-02",
+      "amount": 2410.0,
+      "route_corridor": [
+        "JED",
+        "RSI",
+        "JED"
+      ]
+    },
+    "J26-640:6905397738": {
+      "batch": "J26-640",
+      "ticket_no": "6905397738",
+      "passenger": "ELSHAMALY/MAHMOUD MOFEED MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1940.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905397741": {
+      "batch": "J26-640",
+      "ticket_no": "6905397741",
+      "passenger": "ELKILO/ABDELRAHMAN MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1940.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-640:6905397747": {
+      "batch": "J26-640",
+      "ticket_no": "6905397747",
+      "passenger": "ALBALBESI/NASSER MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 630.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "J26-640:6905397748": {
+      "batch": "J26-640",
+      "ticket_no": "6905397748",
+      "passenger": "ALBALBESI/NASSER MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 400.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-640:6905397749": {
+      "batch": "J26-640",
+      "ticket_no": "6905397749",
+      "passenger": "AL DIGHRIR/YOUSEF MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1480.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "J26-640:6905397750": {
+      "batch": "J26-640",
+      "ticket_no": "6905397750",
+      "passenger": "AL DIGHRIR/YOUSEF MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 500.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-640:6905397761": {
+      "batch": "J26-640",
+      "ticket_no": "6905397761",
+      "passenger": "MAHMOUD/MOHAMMAD MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-02",
+      "amount": 1400.0,
+      "route_corridor": [
+        "JED",
+        "YNB",
+        "JED"
+      ]
+    },
+    "J26-640:6905397766": {
+      "batch": "J26-640",
+      "ticket_no": "6905397766",
+      "passenger": "ALBASIRI/SALEH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-08",
+      "amount": 6700.0,
+      "route_corridor": [
+        "BRU",
+        "BCN"
+      ]
+    },
+    "J26-640:6905397767": {
+      "batch": "J26-640",
+      "ticket_no": "6905397767",
+      "passenger": "ALBASIRI/SALEH MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-12",
+      "amount": 15800.0,
+      "route_corridor": [
+        "BCN",
+        "DOH",
+        "RUH"
+      ]
+    },
+    "J26-640:6905397773": {
+      "batch": "J26-640",
+      "ticket_no": "6905397773",
+      "passenger": "FEHRI/OUSAMA MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1700.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905428792": {
+      "batch": "J26-640",
+      "ticket_no": "6905428792",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-03",
+      "amount": 1050.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "J26-640:6905428793": {
+      "batch": "J26-640",
+      "ticket_no": "6905428793",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 1400.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-640:6905428796": {
+      "batch": "J26-640",
+      "ticket_no": "6905428796",
+      "passenger": "BURHAN/HAMMAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-04",
+      "amount": 1299.99,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-640:6905428812": {
+      "batch": "J26-640",
+      "ticket_no": "6905428812",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-05",
+      "amount": 10970.0,
+      "route_corridor": [
+        "RUH",
+        "CMN"
+      ]
+    },
+    "J26-640:6905428813": {
+      "batch": "J26-640",
+      "ticket_no": "6905428813",
+      "passenger": "ALI/HESHAM MR",
+      "inv_date": "2026-04-24",
+      "service_date": "2026-05-10",
+      "amount": 7950.0,
+      "route_corridor": [
+        "CMN",
+        "IST",
+        "RUH"
+      ]
+    },
+    "J26-788:6905428827": {
+      "batch": "J26-788",
+      "ticket_no": "6905428827",
+      "passenger": "ELZAIM/AHMAD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 700.01,
+      "route_corridor": [
+        "RUH",
+        "AJF"
+      ]
+    },
+    "J26-788:6905428828": {
+      "batch": "J26-788",
+      "ticket_no": "6905428828",
+      "passenger": "ELZAIM/AHMAD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1000.01,
+      "route_corridor": [
+        "AJF",
+        "RUH"
+      ]
+    },
+    "J26-788:6905428829": {
+      "batch": "J26-788",
+      "ticket_no": "6905428829",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2800.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "J26-788:6905428830": {
+      "batch": "J26-788",
+      "ticket_no": "6905428830",
+      "passenger": "MAHMOUD/BELAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1700.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905428831": {
+      "batch": "J26-788",
+      "ticket_no": "6905428831",
+      "passenger": "ALBASIRI/SALEH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 19500.0,
+      "route_corridor": [
+        "RUH",
+        "CDG",
+        "ZYR"
+      ]
+    },
+    "J26-788:6905428837": {
+      "batch": "J26-788",
+      "ticket_no": "6905428837",
+      "passenger": "AMOUDI/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1200.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "J26-788:1936046286": {
+      "batch": "J26-788",
+      "ticket_no": "1936046286",
+      "passenger": "MAHMOUD/BELAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 138.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905428852": {
+      "batch": "J26-788",
+      "ticket_no": "6905428852",
+      "passenger": "ALANAZI/YOUSEF MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2590.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "J26-788:6905428853": {
+      "batch": "J26-788",
+      "ticket_no": "6905428853",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1490.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905428854": {
+      "batch": "J26-788",
+      "ticket_no": "6905428854",
+      "passenger": "AHMED/AHMED MOHAMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2000.0,
+      "route_corridor": [
+        "RUH",
+        "HAS"
+      ]
+    },
+    "J26-788:6905478406": {
+      "batch": "J26-788",
+      "ticket_no": "6905478406",
+      "passenger": "BAHKALI/ARIEJ MS",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1790.0,
+      "route_corridor": [
+        "JED",
+        "DMM",
+        "JED"
+      ]
+    },
+    "J26-788:6905478418": {
+      "batch": "J26-788",
+      "ticket_no": "6905478418",
+      "passenger": "BATAWEEL/WALEED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 560.0,
+      "route_corridor": [
+        "JED",
+        "AHB"
+      ]
+    },
+    "J26-788:6905478419": {
+      "batch": "J26-788",
+      "ticket_no": "6905478419",
+      "passenger": "BATAWEEL/WALEED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 470.01,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-788:6905478421": {
+      "batch": "J26-788",
+      "ticket_no": "6905478421",
+      "passenger": "ALJAROUD/MUSTAFA MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 600.0,
+      "route_corridor": [
+        "DMM",
+        "JED"
+      ]
+    },
+    "J26-788:6905478422": {
+      "batch": "J26-788",
+      "ticket_no": "6905478422",
+      "passenger": "ALJAROUD/MUSTAFA MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1100.0,
+      "route_corridor": [
+        "JED",
+        "DMM"
+      ]
+    },
+    "J26-788:6905478425": {
+      "batch": "J26-788",
+      "ticket_no": "6905478425",
+      "passenger": "ALANAZI/ABDULAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1250.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905478426": {
+      "batch": "J26-788",
+      "ticket_no": "6905478426",
+      "passenger": "ALHAJJ/HUSAM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1830.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905478428": {
+      "batch": "J26-788",
+      "ticket_no": "6905478428",
+      "passenger": "SALEH/MARIAM MS(CHD)",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2690.0,
+      "route_corridor": [
+        "RUH",
+        "AMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905478429": {
+      "batch": "J26-788",
+      "ticket_no": "6905478429",
+      "passenger": "SALEH/FARAH MRS",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 3330.0,
+      "route_corridor": [
+        "RUH",
+        "AMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905478431": {
+      "batch": "J26-788",
+      "ticket_no": "6905478431",
+      "passenger": "SALEH/EKREMA MR(CHD)",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2690.0,
+      "route_corridor": [
+        "RUH",
+        "AMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905478435": {
+      "batch": "J26-788",
+      "ticket_no": "6905478435",
+      "passenger": "HADDAD/HAMZAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 570.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905478438": {
+      "batch": "J26-788",
+      "ticket_no": "6905478438",
+      "passenger": "ALGHAMDI/ABDULLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1850.01,
+      "route_corridor": [
+        "RUH",
+        "YNB",
+        "RUH"
+      ]
+    },
+    "J26-788:6905478459": {
+      "batch": "J26-788",
+      "ticket_no": "6905478459",
+      "passenger": "BIN MUDHIAN/FAISAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1270.0,
+      "route_corridor": [
+        "RUH",
+        "WAE",
+        "RUH"
+      ]
+    },
+    "J26-788:6905478461": {
+      "batch": "J26-788",
+      "ticket_no": "6905478461",
+      "passenger": "ISMAIEL/YASIN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1640.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905478467": {
+      "batch": "J26-788",
+      "ticket_no": "6905478467",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 510.0,
+      "route_corridor": [
+        "RUH",
+        "DMM"
+      ]
+    },
+    "J26-788:6905478468": {
+      "batch": "J26-788",
+      "ticket_no": "6905478468",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 440.0,
+      "route_corridor": [
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495636": {
+      "batch": "J26-788",
+      "ticket_no": "6905495636",
+      "passenger": "ALMUSAYFIR/ABDULLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1960.0,
+      "route_corridor": [
+        "RUH",
+        "YNB",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495637": {
+      "batch": "J26-788",
+      "ticket_no": "6905495637",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1770.0,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "J26-788:6905495639": {
+      "batch": "J26-788",
+      "ticket_no": "6905495639",
+      "passenger": "ALFAR/BARA ENG",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 460.0,
+      "route_corridor": [
+        "JED",
+        "TUU"
+      ]
+    },
+    "J26-788:6905495640": {
+      "batch": "J26-788",
+      "ticket_no": "6905495640",
+      "passenger": "ALFAR/BARA ENG",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1360.0,
+      "route_corridor": [
+        "TUU",
+        "JED"
+      ]
+    },
+    "J26-788:6905495641": {
+      "batch": "J26-788",
+      "ticket_no": "6905495641",
+      "passenger": "ABOUSEWILAM/AMR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1470.0,
+      "route_corridor": [
+        "RUH",
+        "AJF"
+      ]
+    },
+    "J26-788:6905495642": {
+      "batch": "J26-788",
+      "ticket_no": "6905495642",
+      "passenger": "ABOUSEWILAM/AMR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 470.01,
+      "route_corridor": [
+        "AJF",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495644": {
+      "batch": "J26-788",
+      "ticket_no": "6905495644",
+      "passenger": "OMER/WALAA MS",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1069.99,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905495648": {
+      "batch": "J26-788",
+      "ticket_no": "6905495648",
+      "passenger": "MOSA/MAHAMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1065.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495649": {
+      "batch": "J26-788",
+      "ticket_no": "6905495649",
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 917.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495650": {
+      "batch": "J26-788",
+      "ticket_no": "6905495650",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 560.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495651": {
+      "batch": "J26-788",
+      "ticket_no": "6905495651",
+      "passenger": "ALEM/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 540.01,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905495656": {
+      "batch": "J26-788",
+      "ticket_no": "6905495656",
+      "passenger": "ISMAIEL/YASIN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1115.01,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495661": {
+      "batch": "J26-788",
+      "ticket_no": "6905495661",
+      "passenger": "TAGRA/REYNAND JESUS MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1830.0,
+      "route_corridor": [
+        "RUH",
+        "TUI",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495665": {
+      "batch": "J26-788",
+      "ticket_no": "6905495665",
+      "passenger": "ABU ABED/IBRAHIM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1830.0,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "J26-788:6905495666": {
+      "batch": "J26-788",
+      "ticket_no": "6905495666",
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1190.0,
+      "route_corridor": [
+        "RUH",
+        "RAE"
+      ]
+    },
+    "J26-788:6905495667": {
+      "batch": "J26-788",
+      "ticket_no": "6905495667",
+      "passenger": "ABO NOUFAL/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 550.0,
+      "route_corridor": [
+        "RAE",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495692": {
+      "batch": "J26-788",
+      "ticket_no": "6905495692",
+      "passenger": "ALANAZI/FARHAN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2250.0,
+      "route_corridor": [
+        "RUH",
+        "TUU",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495693": {
+      "batch": "J26-788",
+      "ticket_no": "6905495693",
+      "passenger": "AHMED/NAGMALDIN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1069.99,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495703": {
+      "batch": "J26-788",
+      "ticket_no": "6905495703",
+      "passenger": "WADI/MAHMOUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1115.01,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905495711": {
+      "batch": "J26-788",
+      "ticket_no": "6905495711",
+      "passenger": "ALASIRI/ABDULAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1310.0,
+      "route_corridor": [
+        "RUH",
+        "AHB",
+        "RUH"
+      ]
+    },
+    "J26-788:6905495712": {
+      "batch": "J26-788",
+      "ticket_no": "6905495712",
+      "passenger": "ELKAHLOUT/NABEL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1180.0,
+      "route_corridor": [
+        "RUH",
+        "AHB",
+        "RUH"
+      ]
+    },
+    "J26-788:6905533279": {
+      "batch": "J26-788",
+      "ticket_no": "6905533279",
+      "passenger": "ELATTAR/AHMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1800.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905533283": {
+      "batch": "J26-788",
+      "ticket_no": "6905533283",
+      "passenger": "ABU ABED/IBRAHIM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1735.01,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "J26-788:6905533324": {
+      "batch": "J26-788",
+      "ticket_no": "6905533324",
+      "passenger": "ELHAG/ALI ENG",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "J26-788:6905533338": {
+      "batch": "J26-788",
+      "ticket_no": "6905533338",
+      "passenger": "KHADER/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1100.0,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905533340": {
+      "batch": "J26-788",
+      "ticket_no": "6905533340",
+      "passenger": "ALHATO/ABDULHADI MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1400.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "J26-788:6905533341": {
+      "batch": "J26-788",
+      "ticket_no": "6905533341",
+      "passenger": "ALHATO/ABDULHADI MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 400.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905533352": {
+      "batch": "J26-788",
+      "ticket_no": "6905533352",
+      "passenger": "BABAKR/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1115.01,
+      "route_corridor": [
+        "RUH",
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905533359": {
+      "batch": "J26-788",
+      "ticket_no": "6905533359",
+      "passenger": "HADDAD/HAMZAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 520.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905569429": {
+      "batch": "J26-788",
+      "ticket_no": "6905569429",
+      "passenger": "KONDO/MBWANA HAMISI MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 3850.0,
+      "route_corridor": [
+        "RUH",
+        "DXB",
+        "MBA",
+        "DXB",
+        "RUH"
+      ]
+    },
+    "J26-788:6905569438": {
+      "batch": "J26-788",
+      "ticket_no": "6905569438",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 430.0,
+      "route_corridor": [
+        "JED",
+        "GIZ"
+      ]
+    },
+    "J26-788:6905569439": {
+      "batch": "J26-788",
+      "ticket_no": "6905569439",
+      "passenger": "ALBALAWI/SAUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 420.0,
+      "route_corridor": [
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905569440": {
+      "batch": "J26-788",
+      "ticket_no": "6905569440",
+      "passenger": "ALMADHUN/ABDULRAHMAN MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1460.01,
+      "route_corridor": [
+        "JED",
+        "ABT",
+        "JED"
+      ]
+    },
+    "J26-788:6905569445": {
+      "batch": "J26-788",
+      "ticket_no": "6905569445",
+      "passenger": "GASEEM/MOHAMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1165.0,
+      "route_corridor": [
+        "JED",
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-788:6905569475": {
+      "batch": "J26-788",
+      "ticket_no": "6905569475",
+      "passenger": "ELSHAZLI/OMAR MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1900.0,
+      "route_corridor": [
+        "JED",
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-788:6905569485": {
+      "batch": "J26-788",
+      "ticket_no": "6905569485",
+      "passenger": "ASIRI/FAISAL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 510.0,
+      "route_corridor": [
+        "AHB",
+        "JED"
+      ]
+    },
+    "J26-788:6905569493": {
+      "batch": "J26-788",
+      "ticket_no": "6905569493",
+      "passenger": "HUSSIN/ABDALAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2020.0,
+      "route_corridor": [
+        "DMM",
+        "DOH",
+        "MUC",
+        "DOH",
+        "DMM"
+      ]
+    },
+    "J26-788:6905569509": {
+      "batch": "J26-788",
+      "ticket_no": "6905569509",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 600.0,
+      "route_corridor": [
+        "AHB",
+        "RUH"
+      ]
+    },
+    "J26-788:6905569510": {
+      "batch": "J26-788",
+      "ticket_no": "6905569510",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 570.0,
+      "route_corridor": [
+        "RUH",
+        "GIZ"
+      ]
+    },
+    "J26-788:6905569511": {
+      "batch": "J26-788",
+      "ticket_no": "6905569511",
+      "passenger": "KALTHOUM/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1350.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905569512": {
+      "batch": "J26-788",
+      "ticket_no": "6905569512",
+      "passenger": "SHAYEB/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 202.4,
+      "route_corridor": [
+        "RUH",
+        "GIZ"
+      ]
+    },
+    "J26-788:6905569515": {
+      "batch": "J26-788",
+      "ticket_no": "6905569515",
+      "passenger": "ABDULLATIF/SALEM MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "J26-788:6905569516": {
+      "batch": "J26-788",
+      "ticket_no": "6905569516",
+      "passenger": "FADHEL/NABEL MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1080.0,
+      "route_corridor": [
+        "JED",
+        "MED",
+        "JED"
+      ]
+    },
+    "J26-788:6905569517": {
+      "batch": "J26-788",
+      "ticket_no": "6905569517",
+      "passenger": "TAFESH/MOHAMMED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1440.0,
+      "route_corridor": [
+        "JED",
+        "EAM",
+        "JED"
+      ]
+    },
+    "J26-788:6905569519": {
+      "batch": "J26-788",
+      "ticket_no": "6905569519",
+      "passenger": "ALI/SAID MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1250.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905569521": {
+      "batch": "J26-788",
+      "ticket_no": "6905569521",
+      "passenger": "ALANAZI/ABDULAZIZ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1250.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905569523": {
+      "batch": "J26-788",
+      "ticket_no": "6905569523",
+      "passenger": "BIN RAJAB/FERAS MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1050.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905569525": {
+      "batch": "J26-788",
+      "ticket_no": "6905569525",
+      "passenger": "JAMAL/ABDULMALIK MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 650.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905569526": {
+      "batch": "J26-788",
+      "ticket_no": "6905569526",
+      "passenger": "JAMAL/ABDULMALIK MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 650.0,
+      "route_corridor": [
+        "RUH",
+        "JED"
+      ]
+    },
+    "J26-788:6905600591": {
+      "batch": "J26-788",
+      "ticket_no": "6905600591",
+      "passenger": "SAAD/ASHRAF MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1685.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905600592": {
+      "batch": "J26-788",
+      "ticket_no": "6905600592",
+      "passenger": "WADI/MAHMOUD MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1685.0,
+      "route_corridor": [
+        "JED",
+        "GIZ",
+        "JED"
+      ]
+    },
+    "J26-788:6905600626": {
+      "batch": "J26-788",
+      "ticket_no": "6905600626",
+      "passenger": "ALJAMAL/MOHAMMED ABDULMAJEED MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 2385.0,
+      "route_corridor": [
+        "RUH",
+        "AJF",
+        "RUH"
+      ]
+    },
+    "J26-788:6905600631": {
+      "batch": "J26-788",
+      "ticket_no": "6905600631",
+      "passenger": "RATL/CHARLES MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1510.0,
+      "route_corridor": [
+        "RUH",
+        "DMM",
+        "RUH"
+      ]
+    },
+    "J26-788:6905600632": {
+      "batch": "J26-788",
+      "ticket_no": "6905600632",
+      "passenger": "AMOUDI/ABDALLAH MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 875.0,
+      "route_corridor": [
+        "JED",
+        "RUH"
+      ]
+    },
+    "J26-788:6905600633": {
+      "batch": "J26-788",
+      "ticket_no": "6905600633",
+      "passenger": "ALHMEDI/TARIQ MR",
+      "inv_date": "2026-05-07",
+      "service_date": "",
+      "amount": 1795.0,
+      "route_corridor": [
+        "JED",
+        "RUH",
+        "JED"
+      ]
+    }
+  },
+  "annual_budget_used": {
+    "1002576": {
+      "YTD_total": 10160.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 5080.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5080.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001422": {
+      "YTD_total": 27550.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 5000.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2775.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 6000.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5000.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2775.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 6000.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000925": {
+      "YTD_total": 4120.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1250.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 810.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1250.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 810.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002405": {
+      "YTD_total": 6630.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 250.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 250.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1510.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002442": {
+      "YTD_total": 3990.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1995.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1995.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000430": {
+      "YTD_total": 11049.98,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2040.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3484.99,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2040.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3484.99,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002146": {
+      "YTD_total": 7960.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 3980.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3980.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002575": {
+      "YTD_total": 45460.020000000004,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2080.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1530.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 200.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 10970.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 7950.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2080.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1530.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 200.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 10970.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 7950.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002376": {
+      "YTD_total": 4280.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 480.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 510.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1150.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 480.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 510.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1150.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001061": {
+      "YTD_total": 2640.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1320.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1320.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000375": {
+      "YTD_total": 2460.02,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1230.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1230.01,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000407": {
+      "YTD_total": 27430.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 690.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 770.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 730.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1560.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1640.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2800.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 690.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 770.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 730.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1560.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1640.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2800.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2800.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2250.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002119": {
+      "YTD_total": 2840.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 390.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 630.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 390.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 630.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 400.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000379": {
+      "YTD_total": 6820.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2150.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1260.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2150.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1260.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000087": {
+      "YTD_total": 6000.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 3000.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3000.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001811": {
+      "YTD_total": 18580.03,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1490.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1770.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 560.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 540.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1490.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1770.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 560.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 540.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1490.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1770.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 560.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 540.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000256": {
+      "YTD_total": 2800.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1400.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000668": {
+      "YTD_total": 12245.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1600.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 515.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1600.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 515.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 515.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000640": {
+      "YTD_total": 46830.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 11800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 915.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 9900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 11800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 915.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 9900.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002308": {
+      "YTD_total": 6000.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1020.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1480.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 500.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1020.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1480.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 500.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000688": {
+      "YTD_total": 4000.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2000.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2000.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002340": {
+      "YTD_total": 8150.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2170.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1270.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2170.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1270.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1270.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000789": {
+      "YTD_total": 6250.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 450.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 430.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 420.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 450.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 430.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 420.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 430.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 420.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001923": {
+      "YTD_total": 3580.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1790.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1790.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000394": {
+      "YTD_total": 2630.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1315.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1315.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000665": {
+      "YTD_total": 14640.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 3660.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3660.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3660.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3660.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000265": {
+      "YTD_total": 2520.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1260.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1260.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001864": {
+      "YTD_total": 4970.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2485.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2485.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002484": {
+      "YTD_total": 11700.02,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 3000.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1900.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3000.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1900.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1900.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002427": {
+      "YTD_total": 3600.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1800.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000820": {
+      "YTD_total": 77700.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 750.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 5100.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001288": {
+      "YTD_total": 3300.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 250.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 250.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1400.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000529": {
+      "YTD_total": 6480.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 3240.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 3240.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002217": {
+      "YTD_total": 12770.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1010.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1350.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1050.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1050.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1010.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1350.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1050.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1050.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1050.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000182": {
+      "YTD_total": 22019.96,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 4619.99,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 4619.99,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1180.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 4619.99,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 4619.99,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1180.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1180.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002378": {
+      "YTD_total": 3220.02,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 470.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1140.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 470.01,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1140.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000490": {
+      "YTD_total": 5400.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1080.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1080.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002294": {
+      "YTD_total": 5149.969999999999,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 970.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1069.99,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 970.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1069.99,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1069.99,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001684": {
+      "YTD_total": 3840.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 870.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1050.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 870.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1050.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002317": {
+      "YTD_total": 6120.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1430.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1630.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1430.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1630.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000377": {
+      "YTD_total": 13250.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2208.34,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2208.33,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2208.33,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2208.34,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2208.33,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2208.33,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001059": {
+      "YTD_total": 2120.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1060.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1060.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000803": {
+      "YTD_total": 2120.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1060.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1060.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1002144": {
+      "YTD_total": 5460.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1200.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1200.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000119": {
+      "YTD_total": 3800.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1900.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000444": {
+      "YTD_total": 6800.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1000.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1000.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1000.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000633": {
+      "YTD_total": 5120.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1440.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 400.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1440.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1440.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000398": {
+      "YTD_total": 9000.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1800.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1800.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1800.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000368": {
+      "YTD_total": 4820.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 2410.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 2410.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1001906": {
+      "YTD_total": 3880.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1940.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1940.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000467": {
+      "YTD_total": 3880.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1940.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1940.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000074": {
+      "YTD_total": 113490.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 6700.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 15800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 19500.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 3330.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 6700.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 15800.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 19500.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 3330.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 19500.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 3330.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000702": {
+      "YTD_total": 3400.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1700.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1700.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000611": {
+      "YTD_total": 2599.98,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 1299.99,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 1299.99,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000433": {
+      "YTD_total": 53400.0,
+      "trips": [
+        {
+          "batch": "J26-640",
+          "amount": 8900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 8900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 8900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 8900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 8900.0,
+          "date": "2026-04-24"
+        },
+        {
+          "batch": "J26-640",
+          "amount": 8900.0,
+          "date": "2026-04-24"
+        }
+      ]
+    },
+    "1000539": {
+      "YTD_total": 5100.06,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 700.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1000.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 700.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1000.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 700.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1000.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000450": {
+      "YTD_total": 5514.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1700.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 138.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1700.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 138.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1700.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 138.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002169": {
+      "YTD_total": 6225.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1200.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 875.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1200.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 875.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1200.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 875.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001202": {
+      "YTD_total": 7770.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 2590.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2590.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2590.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000222": {
+      "YTD_total": 6000.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 2000.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2000.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2000.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002469": {
+      "YTD_total": 5370.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1790.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1790.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1790.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001008": {
+      "YTD_total": 3090.0299999999997,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 560.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 470.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 560.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 470.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 560.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 470.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000361": {
+      "YTD_total": 5100.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 600.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1100.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 600.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1100.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 600.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1100.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000233": {
+      "YTD_total": 5490.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002066": {
+      "YTD_total": 16140.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 2690.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2690.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2690.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2690.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2690.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2690.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000226": {
+      "YTD_total": 3270.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 570.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 520.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 570.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 520.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 570.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 520.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002338": {
+      "YTD_total": 5550.03,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1850.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1850.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1850.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001406": {
+      "YTD_total": 8265.03,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1640.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1640.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1640.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000030": {
+      "YTD_total": 11250.03,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 440.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1685.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 440.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1685.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 510.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 440.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1685.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000927": {
+      "YTD_total": 1005.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 335.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 335.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 335.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000198": {
+      "YTD_total": 1380.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 460.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 460.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 460.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000615": {
+      "YTD_total": 840.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 160.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 120.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 160.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 120.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 160.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 120.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000764": {
+      "YTD_total": 5880.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1960.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1960.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1960.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000219": {
+      "YTD_total": 5460.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 460.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1360.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 460.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1360.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 460.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1360.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002412": {
+      "YTD_total": 5820.030000000001,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1470.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 470.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1470.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 470.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1470.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 470.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002096": {
+      "YTD_total": 3209.9700000000003,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1069.99,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1069.99,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1069.99,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002312": {
+      "YTD_total": 3195.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1065.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1065.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1065.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002345": {
+      "YTD_total": 7971.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 917.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1190.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 550.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 917.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1190.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 550.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 917.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1190.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 550.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000055": {
+      "YTD_total": 5490.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000328": {
+      "YTD_total": 10695.03,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1735.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1735.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1830.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1735.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001011": {
+      "YTD_total": 8400.03,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1685.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1685.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1115.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1685.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000975": {
+      "YTD_total": 3930.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1310.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1310.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1310.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000453": {
+      "YTD_total": 3300.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1100.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1100.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1100.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000596": {
+      "YTD_total": 5400.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002091": {
+      "YTD_total": 26850.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 6300.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 6300.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 6300.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2650.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000995": {
+      "YTD_total": 26850.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 6300.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 6300.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 6300.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2650.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000100": {
+      "YTD_total": 1545.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 265.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 265.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 265.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 250.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000666": {
+      "YTD_total": 3660.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1220.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1220.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1220.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000320": {
+      "YTD_total": 3075.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1025.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1025.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1025.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000575": {
+      "YTD_total": 11550.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 3850.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 3850.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 3850.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000354": {
+      "YTD_total": 4380.03,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1460.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1460.01,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1460.01,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001986": {
+      "YTD_total": 3495.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1165.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1165.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1165.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002057": {
+      "YTD_total": 15300.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 5100.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 5100.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 5100.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000985": {
+      "YTD_total": 1200.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 400.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000624": {
+      "YTD_total": 6060.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 2020.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2020.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2020.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000473": {
+      "YTD_total": 8167.199999999999,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 600.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 570.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1350.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 202.4,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 600.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 570.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1350.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 202.4,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 600.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 570.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1350.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 202.4,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000463": {
+      "YTD_total": 3240.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002078": {
+      "YTD_total": 3240.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1080.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000414": {
+      "YTD_total": 3750.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1250.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001799": {
+      "YTD_total": 3900.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 650.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 650.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000196": {
+      "YTD_total": 7155.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 2385.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2385.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 2385.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1000389": {
+      "YTD_total": 5385.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 1795.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1795.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 1795.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1002437": {
+      "YTD_total": 1230.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": 410.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 410.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": 410.0,
+          "date": "2026-05-07"
+        }
+      ]
+    },
+    "1001103": {
+      "YTD_total": -28761.0,
+      "trips": [
+        {
+          "batch": "J26-788",
+          "amount": -9587.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": -9587.0,
+          "date": "2026-05-07"
+        },
+        {
+          "batch": "J26-788",
+          "amount": -9587.0,
+          "date": "2026-05-07"
+        }
+      ]
+    }
+  },
+  "batches_processed": [
+    "J26-640",
+    "J26-788"
+  ]
+}

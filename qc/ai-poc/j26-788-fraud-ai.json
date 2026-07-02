@@ -1,0 +1,833 @@
+{
+  "batch_id": "J26-788",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "832c1aad90716b0d19ec5809b604dfafcbafbcce212529920d0e9b3c47566a69",
+  "usage": {
+    "prompt_tokens": 798700,
+    "completion_tokens": 6984,
+    "total_tokens": 840423
+  },
+  "validation_errors": [],
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "YELLOW",
+        "categories": [
+          "c"
+        ],
+        "reasoning": "Frequent travel on the same route within a short period (see row 47).",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "RED",
+        "categories": [
+          "a",
+          "b"
+        ],
+        "reasoning": "No approval email found for this exceptionally high-value international ticket.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No explicit approval email found for this seat selection fee.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "YELLOW",
+        "categories": [
+          "a",
+          "b"
+        ],
+        "reasoning": "No approval email found for this family travel ticket with an exact round number amount.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "YELLOW",
+        "categories": [
+          "a",
+          "b"
+        ],
+        "reasoning": "No approval email found for this family travel ticket with an exact round number amount.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "YELLOW",
+        "categories": [
+          "a",
+          "b"
+        ],
+        "reasoning": "No approval email found for this family travel ticket with an exact round number amount.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "RED",
+        "categories": [
+          "c",
+          "d"
+        ],
+        "reasoning": "Duplicate billing/rebooking fraud. Same passenger, route, and dates as row 55 but with a different amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "YELLOW",
+        "categories": [
+          "c"
+        ],
+        "reasoning": "Frequent travel on the same route within a short period (see row 3).",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "RED",
+        "categories": [
+          "c",
+          "d"
+        ],
+        "reasoning": "Duplicate billing/rebooking fraud. Same passenger, route, and dates as row 44 but with a different amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "RED",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Massive overcharge for hotel. Billed amount is significantly higher than the approved amount in the email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "RED",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Massive overcharge for hotel. Billed amount is significantly higher than the approved amount in the email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "RED",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Massive overcharge for hotel. Billed amount is significantly higher than the approved amount in the email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "RED",
+        "categories": [
+          "b"
+        ],
+        "reasoning": "Massive overcharge for hotel. Billed amount is significantly higher than the approved amount in the email.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "YELLOW",
+        "categories": [
+          "a"
+        ],
+        "reasoning": "No approval email found for this ticket.",
+        "confidence": "medium"
+      },
+      {
+        "sl_no": 68,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 69,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 70,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 71,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 72,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 73,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 74,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 75,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 76,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 77,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 79,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 80,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 81,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 82,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 83,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 84,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 85,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 86,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 87,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 88,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 89,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 90,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 91,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 92,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 93,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 94,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 95,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 96,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 97,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 98,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 99,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      },
+      {
+        "sl_no": 100,
+        "verdict": "CLEAN",
+        "categories": [],
+        "reasoning": "Valid approval email found matching the ticket and amount.",
+        "confidence": "high"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_no": [
+          60,
+          61,
+          62,
+          63
+        ],
+        "headline": "Massive Hotel Overcharge / Falsified Billing",
+        "full_reasoning": "The invoice bills 17,900 SAR for Kimpton Vividora Barcelona (6300 + 2650 per person). However, the email explicitly states the hotel cost is 2760 SAR for 3 rooms. This is a severe overcharge and potential fraud.",
+        "recommended_action": "Reject the invoice rows, demand a refund for the overcharged amount, and investigate the agency's billing practices."
+      },
+      {
+        "rank": 2,
+        "sl_no": [
+          44,
+          55
+        ],
+        "headline": "Duplicate Billing / Rebooking Fraud",
+        "full_reasoning": "Two tickets were issued for Ibrahim Mohammad Abu Abed for the exact same route (JED EAM JED) and dates (05MAY-06MAY), but with different amounts (1830 SAR and 1735 SAR). This indicates potential refund arbitrage or duplicate billing.",
+        "recommended_action": "Reject the duplicate ticket, verify if one was refunded, and audit the agency for rebooking fraud."
+      },
+      {
+        "rank": 3,
+        "sl_no": 5,
+        "headline": "Unapproved High-Value International Ticket",
+        "full_reasoning": "A ticket for ALBASIRI/SALEH MR (RUH CDG ZYR) was billed at 19,500 SAR with no matching approval email. The amount is exceptionally high and VAT is 0%, suggesting a potential sponsorship misclassification or unauthorized travel.",
+        "recommended_action": "Reject the invoice row, require explicit management approval, and verify the business purpose of the trip."
+      },
+      {
+        "rank": 4,
+        "sl_no": [
+          18,
+          19,
+          20
+        ],
+        "headline": "Unapproved Family Travel",
+        "full_reasoning": "Tickets for family members (SALEH/MARIAM, SALEH/FARAH, SALEH/EKREMA) were billed at exact round numbers (2690, 3330, 2690) with 0% VAT and no approval emails. This appears to be personal travel improperly billed to the company.",
+        "recommended_action": "Reject the invoice rows, confirm if this is an approved expat annual ticket, and ensure it is deducted from the employee's allowance if applicable."
+      },
+      {
+        "rank": 5,
+        "sl_no": [
+          3,
+          47
+        ],
+        "headline": "Suspiciously Frequent Travel on Same Route",
+        "full_reasoning": "Farhan Modhsher Alenazy has two round trips to Tabuk (RUH TUU RUH) within 2 days (May 3 and May 5), both at high amounts (2800 SAR and 2250 SAR). While both have approvals, the frequency and cost are highly anomalous.",
+        "recommended_action": "Flag for manager review to confirm the business necessity of back-to-back trips to the same destination and investigate the high fares."
+      }
+    ],
+    "batch_summary": {
+      "red_count": 7,
+      "yellow_count": 13,
+      "clean_count": 80,
+      "total_rows": 100,
+      "key_themes": [
+        "Massive overcharging on international hotel bookings",
+        "Duplicate billing and potential refund arbitrage on domestic flights",
+        "Unapproved high-value international travel",
+        "Unapproved family travel billed to the company",
+        "Missing approval emails for several domestic flights and train tickets"
+      ]
+    }
+  },
+  "v1511_summary_catches": {
+    "NO_APPROVAL": 30,
+    "DUP_ROUTE_STRICT": 4,
+    "POTENTIAL_REBOOKING_FRAUD": 1
+  },
+  "generated_at": "2026-05-23T04:52:04.647301Z"
+}

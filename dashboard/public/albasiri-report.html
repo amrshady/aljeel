@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AlJeel AP - Rerun Discrepancy Report (v28)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy: '#1E40AF', action: '#2563EB', gold: '#B8860B', gold2: '#D4A93A',
+          sage: '#F0F4F3', ink: '#111827', ink2: '#6B7280', muted: '#9CA3AF',
+          line: '#E5E7EB', ok: '#16A34A', warn: '#D97706', alert: '#EA580C', err: '#DC2626'
+        },
+        fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['ui-monospace', 'monospace'] }
+      }
+    }
+  }
+</script>
+<style>
+  body { background-color: #F0F4F3; color: #111827; }
+  .card { background-color: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body class="p-8">
+
+<div class="max-w-5xl mx-auto">
+  <div class="mb-8 flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-navy mb-2">Batch J26-788 Rerun (v28) — Discrepancies</h1>
+      <p class="text-ink2">Comparing pipeline v28 against Ground Truth (v26 base + Labadi overrides)</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-4 gap-4 mb-8">
+    <div class="card p-4 border-t-4 border-navy">
+      <div class="text-sm font-semibold text-ink2 uppercase">Total Rows</div>
+      <div class="text-3xl font-bold text-ink mt-1">99</div>
+    </div>
+    <div class="card p-4 border-t-4 border-ok">
+      <div class="text-sm font-semibold text-ink2 uppercase">Exact Matches</div>
+      <div class="text-3xl font-bold text-ink mt-1">94</div>
+    </div>
+    <div class="card p-4 border-t-4 border-err">
+      <div class="text-sm font-semibold text-ink2 uppercase">Mismatches</div>
+      <div class="text-3xl font-bold text-ink mt-1">5</div>
+    </div>
+    <div class="card p-4 border-t-4 border-gold">
+      <div class="text-sm font-semibold text-ink2 uppercase">Accuracy</div>
+      <div class="text-3xl font-bold text-ink mt-1">94.9%</div>
+    </div>
+  </div>
+
+  <div class="card p-6 mb-6">
+    <h2 class="text-xl font-bold text-navy mb-4 border-b border-line pb-2">Analysis: The ALBASIRI Case (Sponsorship)</h2>
+    <p class="mb-4"><strong>Is the LLM supposed to capture the employee number?</strong> Yes. Because Albasiri is an external guest (sponsorship), Oracle still requires a valid AlJeel employee number on the row—specifically, the employee who <em>requested or sponsored</em> the travel.</p>
+    <p class="mb-4"><strong>What happened in v28?</strong> The LLM correctly identified it as a Sponsorship (Account <code>60307021</code>), but instead of pulling <code>1000433</code> (the actual sponsor), it pulled <code>1000074</code>. This is a classic LLM "distractor" error: when scanning the approval email thread, the LLM latched onto a different employee's number (an approver or CC'd person) instead of the primary sponsor.</p>
+  </div>
+
+  <div class="card p-0 overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-navy text-white text-sm uppercase">
+          <th class="p-4 font-semibold">Row / Passenger</th>
+          <th class="p-4 font-semibold text-center w-32">Truth Account</th>
+          <th class="p-4 font-semibold text-center w-32">v28 Account</th>
+          <th class="p-4 font-semibold text-center w-32">Truth Emp No</th>
+          <th class="p-4 font-semibold text-center w-32">v28 Emp No</th>
+          <th class="p-4 font-semibold">Error Type</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-line text-sm">
+        
+        <tr class="hover:bg-sage transition-colors">
+          <td class="p-4">
+            <div class="font-mono text-xs text-ink2 mb-1">6905428831</div>
+            <div class="font-medium text-ink">ALBASIRI/SALEH MR</div>
+            <div class="text-xs text-muted mt-1">Sponsorship</div>
+          </td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">60307021</span></td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">60307021</span></td>
+          <td class="p-4 text-center font-mono">1000433</td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">1000074</span></td>
+          <td class="p-4 text-ink2">Pulled incorrect sponsor Emp No from evidence</td>
+        </tr>
+
+        <tr class="hover:bg-sage transition-colors">
+          <td class="p-4">
+            <div class="font-mono text-xs text-ink2 mb-1">6905428854</div>
+            <div class="font-medium text-ink">AHMED/AHMED MOHAMED MR</div>
+            <div class="text-xs text-muted mt-1">Personal Contribution</div>
+          </td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">21070229</span></td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">21070229</span></td>
+          <td class="p-4 text-center font-mono">1000640</td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">1000222</span></td>
+          <td class="p-4 text-ink2">Failed to inherit primary Emp No from PC owner</td>
+        </tr>
+
+        <tr class="hover:bg-sage transition-colors">
+          <td class="p-4">
+            <div class="font-mono text-xs text-ink2 mb-1">6905478429</div>
+            <div class="font-medium text-ink">SALEH/FARAH MRS</div>
+            <div class="text-xs text-muted mt-1">Family Dependent (PC)</div>
+          </td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">21070229</span></td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">21070229</span></td>
+          <td class="p-4 text-center font-mono">1002066</td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">1000074</span></td>
+          <td class="p-4 text-ink2">Family cluster inheritance failed on this specific row</td>
+        </tr>
+
+        <tr class="hover:bg-sage transition-colors">
+          <td class="p-4">
+            <div class="font-mono text-xs text-ink2 mb-1">26-744</div>
+            <div class="font-medium text-ink">ABEER BAKHSH</div>
+            <div class="text-xs text-muted mt-1">Standard Travel</div>
+          </td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">60301003</span></td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-ok/10 text-ok rounded font-mono">60301003</span></td>
+          <td class="p-4 text-center font-mono">1002483</td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">1000444</span></td>
+          <td class="p-4 text-ink2">Pulled incorrect Emp No from transfer evidence</td>
+        </tr>
+
+        <tr class="hover:bg-sage transition-colors">
+          <td class="p-4">
+            <div class="font-mono text-xs text-ink2 mb-1">26-743</div>
+            <div class="font-medium text-ink">AMMAR CHAUDHARY</div>
+            <div class="text-xs text-muted mt-1">Training Registration</div>
+          </td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">60308009</span></td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">60307021</span></td>
+          <td class="p-4 text-center font-mono">1000820</td>
+          <td class="p-4 text-center"><span class="px-2 py-1 bg-err/10 text-err font-bold rounded font-mono">1002057</span></td>
+          <td class="p-4 text-ink2">Missed Training logic entirely; defaulted to Sponsorship</td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

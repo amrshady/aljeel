@@ -1,0 +1,1061 @@
+#!/usr/bin/env python3
+"""
+Batch Processor v5 — Full 10-segment Distribution Combination.
+
+Reads an Oracle Fusion upload template (Spreadsheet.xlsx) with columns:
+  [0]  *Invoice Header Identifier
+  [1]  *Business Unit
+  [2]  *Invoice Number
+  [3]  *Invoice Currency
+  [4]  *Invoice Amount
+  [5]  *Invoice Date
+  [6]  **Supplier[..]
+  [7]  **Supplier Number
+  [8]  *Supplier Site[..]
+  [9]  Invoice Type
+  [10] Description
+  [11] *Type
+  [12] *Amount
+  [13] Distribution Combination[..]  ← WE FILL THIS
+  [14] Tax Classification Code[..]
+  [15] Employee No
+
+Resolves each line to the full 10-segment combo per cost-center-rulebook-v1.md.
+
+Usage:
+    python3 scripts/process_batch.py --batch batches/jawal-J26-788
+    python3 scripts/process_batch.py --batch batches/jawal-J26-788 --master-data qc/master-data/master-data-003.xlsx
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import os
+import math
+import shutil
+from pathlib import Path
+from datetime import datetime, timezone
+from collections import Counter
+
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
+from openpyxl.utils import get_column_letter
+
+# Add scripts/ to path
+ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "qc"))
+
+from cost_center_resolver import (
+    load_master_data, resolve_line, ResolvedLine, MasterData, build_combo,
+    classify_account, _fuzzy_name_match
+)
+from qc_gates import validate_line, GateResult
+from allocation_resolver import resolve_allocation
+from msg_parser import parse_msg, find_msgs_for_ticket
+from oracle_form_parser import parse_form
+from sponsorship_detector import detect_sponsorship
+from employee_resolver_v2 import resolve_employee, enrich_cache, _normalize_gds_name, ResolutionResult
+from trip_purpose_classifier import classify_trip, detect_family_clusters, TripClassification
+from email_resolver import (
+    extract_employee_email, enrich_email_cache, detect_manpower_email_column,
+    generate_email_report, update_derived_batch, _load_derived_cache,
+)
+
+
+# ---------------------------------------------------------------------------
+# Styles
+# ---------------------------------------------------------------------------
+GREEN_FILL  = PatternFill("solid", fgColor="C6EFCE")
+AMBER_FILL  = PatternFill("solid", fgColor="FFEB9C")
+RED_FILL    = PatternFill("solid", fgColor="FFC7CE")
+GREY_FILL   = PatternFill("solid", fgColor="F2F2F2")
+HDR_FILL    = PatternFill("solid", fgColor="1E40AF")
+HDR_FONT    = Font(color="FFFFFF", bold=True, size=10)
+BORDER_THIN = Border(
+    left=Side(style="thin", color="D0D0D0"),
+    right=Side(style="thin", color="D0D0D0"),
+    top=Side(style="thin", color="D0D0D0"),
+    bottom=Side(style="thin", color="D0D0D0"),
+)
+
+# ---------------------------------------------------------------------------
+# Column indices in the Oracle template (0-based, header at row 2)
+# ---------------------------------------------------------------------------
+COL_HEADER_ID   = 0   # A
+COL_BU          = 1   # B
+COL_INV_NO      = 2   # C
+COL_CURRENCY    = 3   # D
+COL_AMOUNT_HDR  = 4   # E
+COL_INV_DATE    = 5   # F
+COL_SUPPLIER    = 6   # G
+COL_SUPP_NO     = 7   # H
+COL_SUPP_SITE   = 8   # I
+COL_INV_TYPE    = 9   # J
+COL_DESC        = 10  # K
+COL_TYPE        = 11  # L
+COL_AMOUNT      = 12  # M
+COL_DIST_COMBO  = 13  # N  ← target
+COL_TAX_CLASS   = 14  # O
+COL_EMP_NO      = 15  # P
+HEADER_ROW      = 2   # 0-indexed; row 3 in Excel (1-indexed)
+DATA_START_ROW  = 3   # 0-indexed; row 4 in Excel
+
+
+def _safe_float(v, default=0.0):
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return default
+    try:
+        return float(str(v).replace(",", ""))
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_int(v, default=None):
+    if v is None:
+        return default
+    try:
+        return int(float(str(v).strip()))
+    except (ValueError, TypeError):
+        return default
+
+
+def _extract_empno_from_desc(desc: str) -> int | None:
+    """Try to extract 7-digit emp_no from Description field parenthetical."""
+    if not desc:
+        return None
+    # Pattern: (1000539) or similar 7-digit in parens
+    m = re.search(r"\((\d{7,8})\)", desc)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+
+
+def _find_msgs_for_line(ticket_no, description, raw_dir):
+    """Find .msg files for a line by ticket number or folder name."""
+    if not raw_dir:
+        return []
+    from pathlib import Path
+    raw_dir = Path(raw_dir)
+    results = []
+    
+    # By ticket number
+    if ticket_no:
+        results = find_msgs_for_ticket(ticket_no, raw_dir)
+    
+    # If no results, try broader search by folder name patterns
+    if not results and description:
+        # Extract potential folder-name identifiers from description
+        import os
+        for dirpath, dirnames, filenames in os.walk(raw_dir):
+            for f in filenames:
+                if f.lower().endswith(".msg"):
+                    results.append(Path(dirpath) / f)
+    
+    return results
+
+
+def _validate_with_email_form(resolved, description, ticket_no, amount, raw_dir, md):
+    """Run email-as-validator: parse Oracle form from .msg, compare with Manpower-derived segments.
+    
+    Returns dict with validator columns.
+    """
+    result = {
+        "emp_match_source": "manpower",
+        "form_emp_no": None,
+        "form_approver": None,
+        "form_division": None,
+        "form_agency": None,
+        "form_solution": None,
+        "form_cost_center_ref": None,
+        "validator_status": "FORM_MISSING",
+        "discrepancy_detail": "",
+        "form_value_sar": None,
+        "form_trip_goal": None,
+        "form_travel_method": None,
+        "form_from_city": None,
+        "form_to_city": None,
+        "form_perdiem_class": None,
+        "form_job_title": None,
+        "form_grade": None,
+    }
+    
+    if not raw_dir:
+        return result, []
+    
+    flags = []
+    
+    # Find .msg files for this line
+    msg_files = []
+    if ticket_no:
+        msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+    
+    if not msg_files:
+        return result, ["FORM_NOT_FOUND_IN_EMAIL"]
+    
+    # Try to parse Oracle form from each .msg
+    form_data = None
+    for mf in msg_files:
+        parsed_msg = parse_msg(mf, use_cache=True)
+        if parsed_msg.get("parse_method") == "failed":
+            continue
+        body = parsed_msg.get("body_text", "")
+        form = parse_form(body)
+        if form:
+            form_data = form
+            break
+    
+    if not form_data:
+        # Try OPEX PDF parsing (import here to avoid circular at module level)
+        try:
+            from opex_pdf_parser import parse_opex_from_msg
+            for mf in msg_files:
+                opex = parse_opex_from_msg(str(mf))
+                if opex:
+                    form_data = opex
+                    flags.append("OPEX_PDF_PARSED")
+                    break
+        except Exception:
+            pass
+    
+    if not form_data:
+        # Try sponsorship detection
+        for mf in msg_files:
+            parsed_msg = parse_msg(mf, use_cache=True)
+            if parsed_msg.get("parse_method") == "failed":
+                continue
+            body = parsed_msg.get("body_text", "")
+            subject = parsed_msg.get("subject", "")
+            atts = parsed_msg.get("attachment_names", [])
+            
+            spons = detect_sponsorship(
+                msg_body=body,
+                subject=subject,
+                attachment_names=atts,
+                emp_no_from_form=None,
+                emp_no_from_manpower=resolved.emp_no,
+                has_oracle_form=False,
+                has_opex_pdf=False,
+            )
+            if spons:
+                result["validator_status"] = "SPONSORSHIP_DETECTED"
+                result["discrepancy_detail"] = f"confidence={spons.get('confidence',0):.2f}, host_hint={spons.get('host_name_hint','?')}"
+                flags.append("SPONSORSHIP_DETECTED")
+                return result, flags
+        
+        flags.append("FORM_NOT_FOUND_IN_EMAIL")
+        return result, flags
+    
+    # Populate form fields
+    result["form_emp_no"] = form_data.get("emp_no")
+    result["form_approver"] = form_data.get("approver_name")
+    result["form_division"] = form_data.get("form_division")
+    result["form_agency"] = form_data.get("form_agency")
+    result["form_solution"] = form_data.get("form_solution")
+    result["form_cost_center_ref"] = form_data.get("trip_cost_for") or form_data.get("form_cost_center")
+    result["form_value_sar"] = form_data.get("value_sar")
+    result["form_trip_goal"] = form_data.get("trip_goal")
+    result["form_travel_method"] = form_data.get("travel_method")
+    result["form_from_city"] = form_data.get("from_city")
+    result["form_to_city"] = form_data.get("to_city")
+    result["form_perdiem_class"] = form_data.get("perdiem_class")
+    result["form_job_title"] = form_data.get("job_title")
+    result["form_grade"] = form_data.get("grade")
+    
+    # === VALIDATION COMPARISONS ===
+    discrepancies = []
+    
+    # 1. Employee number match
+    form_emp = form_data.get("emp_no")
+    if form_emp and resolved.emp_no:
+        if str(form_emp) == str(resolved.emp_no):
+            result["emp_match_source"] = "both"
+        else:
+            result["emp_match_source"] = "form_disagrees"
+            discrepancies.append(f"emp_no: form={form_emp} / manpower={resolved.emp_no}")
+            flags.append("FORM_EMP_NO_MISMATCH")
+    elif form_emp:
+        result["emp_match_source"] = "form"
+    
+    # 2. Approver vs line manager
+    if form_data.get("approver_name") and resolved.emp_no:
+        emp = md.employees.get(resolved.emp_no)
+        if emp and hasattr(emp, "manager_name") and emp.manager_name:
+            from cost_center_resolver import _fuzzy_name_match
+            if not _fuzzy_name_match(form_data["approver_name"], emp.manager_name):
+                discrepancies.append(f"approver: form={form_data['approver_name']} / manpower_mgr={emp.manager_name}")
+                flags.append("FORM_APPROVER_NOT_LINE_MANAGER")
+    
+    # 3. Trip value vs invoice amount
+    form_value = form_data.get("value_sar")
+    if form_value and amount and abs(form_value - amount) > 1.0:
+        discrepancies.append(f"value: form={form_value} / invoice={amount}")
+        flags.append("FORM_TRIP_VALUE_DIFFERS")
+    
+    # 4. Log Fusion internal codes (no gate, just informational)
+    if form_data.get("form_division") or form_data.get("form_agency") or form_data.get("form_solution"):
+        flags.append("FORM_FUSION_CODES_LOGGED")
+    
+    # Set validator status
+    if discrepancies:
+        result["validator_status"] = "FORM_DISAGREES"
+        result["discrepancy_detail"] = " | ".join(discrepancies)
+    else:
+        result["validator_status"] = "FORM_AGREES"
+        flags.append("FORM_AGREES_WITH_MANPOWER")
+    
+    return result, flags
+
+
+def process_batch(
+    batch_dir: Path,
+    master_data_path: Path,
+    reference_path: Path,
+    output_suffix: str = "v5-rulebook",
+    raw_dir: Path = None,
+) -> dict:
+    """Process a Jawal batch end-to-end.
+
+    Args:
+        batch_dir: Path to the batch directory (e.g., batches/jawal-J26-788)
+        master_data_path: Path to Master Data (003).xlsx
+        reference_path: Path to J26-640-resolved.xlsx (reference tabs)
+        output_suffix: suffix for output filename
+
+    Returns:
+        dict with summary stats
+    """
+    # --- Find the Spreadsheet template ---
+    # Prefer the most recent FILLED version as input (it has emp_no + descriptions)
+    filled_candidates = sorted(batch_dir.glob("output/Spreadsheet-*-FILLED-v4*.xlsx"), reverse=True)
+    if filled_candidates:
+        spreadsheet = filled_candidates[0]
+    elif (batch_dir / "Spreadsheet-v4-input.xlsx").exists():
+        spreadsheet = batch_dir / "Spreadsheet-v4-input.xlsx"
+    elif (batch_dir / "Spreadsheet.xlsx").exists():
+        spreadsheet = batch_dir / "Spreadsheet.xlsx"
+    else:
+        candidates = list(batch_dir.glob("Spreadsheet*.xlsx"))
+        if not candidates:
+            raise FileNotFoundError(f"No Spreadsheet.xlsx found in {batch_dir}")
+        spreadsheet = candidates[0]
+
+    print(f"[process_batch] Loading master data from {master_data_path.name}...")
+    md = load_master_data(master_data_path, reference_path)
+    print(f"  {len(md.employees)} employees loaded")
+    # Detect Manpower Email column
+    manpower_emails = detect_manpower_email_column(master_data_path)
+    if manpower_emails:
+        print(f"  Manpower Email column detected: {len(manpower_emails)} emails")
+    else:
+        print(f"  No Manpower Email column — using learned email cache")
+
+    print(f"  {len(md.valid_accounts)} valid accounts, {len(md.valid_divs)} DIVs, "
+          f"{len(md.valid_agencies)} agencies, {len(md.valid_solutions)} solutions, "
+          f"{len(md.valid_cost_centers)} cost centers")
+
+    # --- Read the spreadsheet ---
+    print(f"[process_batch] Reading {spreadsheet.name}...")
+    df = pd.read_excel(spreadsheet, sheet_name=0, header=None)
+
+    # Find header row (contains "*Invoice Header Identifier")
+    header_row_idx = None
+    for i in range(min(10, len(df))):
+        cell_val = str(df.iloc[i, 0]).strip()
+        if "Invoice Header Identifier" in cell_val:
+            header_row_idx = i
+            break
+    if header_row_idx is None:
+        raise ValueError("Cannot find header row with *Invoice Header Identifier")
+
+    print(f"  Header at row {header_row_idx}, data starts at row {header_row_idx + 1}")
+
+    # --- Process each data row ---
+    results = []
+    gate_results = []
+    halt_queue = []
+
+    _cache_enrichment_pairs = []
+    _trip_batch_lines = []
+    _email_enrichment_pairs = []
+    _email_extraction_log = []
+
+    for i in range(header_row_idx + 1, len(df)):
+        row = df.iloc[i]
+        header_id = row.iloc[COL_HEADER_ID]
+        if pd.isna(header_id):
+            continue
+
+        sl_no = _safe_int(header_id, 0)
+        description = str(row.iloc[COL_DESC]) if pd.notna(row.iloc[COL_DESC]) else ""
+        amount = _safe_float(row.iloc[COL_AMOUNT])
+        emp_no_raw = _safe_int(row.iloc[COL_EMP_NO])
+
+        # Also try extracting emp_no from description if not in col P
+        if emp_no_raw is None:
+            emp_no_raw = _extract_empno_from_desc(description)
+        
+        # Try ticket number from description for context
+        ticket_match = re.search(r"\((\d{10})\)", description or "")
+        ticket_no = ticket_match.group(1) if ticket_match else None
+
+        # Read existing Distribution Combination from v4 (Account.CC format)
+        existing_combo = str(row.iloc[COL_DIST_COMBO]) if pd.notna(row.iloc[COL_DIST_COMBO]) else ""
+        existing_account = None
+        if "." in existing_combo:
+            parts = existing_combo.split(".")
+            if len(parts[0]) == 8 and parts[0].isdigit():
+                existing_account = parts[0]
+
+        # Extract passenger name from Description
+        # Format: "LASTNAME/FIRSTNAME TITLE - ROUTE (TICKET)"
+        passenger = ""
+        if description:
+            # Take everything before the first " - " as passenger
+            dash_idx = description.find(" - ")
+            if dash_idx > 0:
+                passenger = description[:dash_idx].strip()
+            else:
+                passenger = description.strip()
+
+        # --- Email extraction from .msg ---
+        extracted_email = None
+        email_extract_reason = "no_msg_files"
+        if raw_dir and ticket_no:
+            from msg_parser import find_msgs_for_ticket
+            email_msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+            for mf in email_msg_files:
+                parsed_for_email = parse_msg(mf, use_cache=True)
+                if parsed_for_email.get("parse_method") == "failed":
+                    continue
+                body_for_email = parsed_for_email.get("body_text", "")
+                extracted_email = extract_employee_email(
+                    msg_body=body_for_email,
+                    msg_sender=parsed_for_email.get("sender", ""),
+                    msg_to=parsed_for_email.get("to", []),
+                )
+                if extracted_email:
+                    email_extract_reason = "extracted"
+                    break
+            if not extracted_email and email_msg_files:
+                email_extract_reason = "no_employee_email_in_msg"
+
+        # --- Employee Resolution v2 (9-layer cascade) ---
+        # First, get form data if available (for L1, L7)
+        v2_form_emp = None
+        v2_form_approver = None
+        v2_msg_filenames = []
+        if raw_dir and ticket_no:
+            v2_msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+            v2_msg_filenames = [str(f) for f in v2_msg_files]
+            # Try parsing Oracle form from msgs for form_emp_no
+            for mf in v2_msg_files:
+                parsed = parse_msg(mf, use_cache=True)
+                if parsed.get("parse_method") == "failed":
+                    continue
+                body = parsed.get("body_text", "")
+                form = parse_form(body)
+                if form:
+                    v2_form_emp = form.get("emp_no")
+                    v2_form_approver = form.get("approver_name")
+                    break
+            # Also try OPEX PDF for form emp_no
+            if not v2_form_emp:
+                try:
+                    from opex_pdf_parser import parse_opex_from_msg
+                    for mf in v2_msg_files:
+                        opex = parse_opex_from_msg(str(mf))
+                        if opex and opex.get("emp_no"):
+                            v2_form_emp = opex["emp_no"]
+                            break
+                except Exception:
+                    pass
+        
+        # Run the 10-layer cascade (L0-L9 including L1.5 email)
+        v2_result = resolve_employee(
+            passenger_name=passenger,
+            description=description,
+            emp_no_raw=emp_no_raw,
+            form_emp_no=v2_form_emp,
+            form_approver=v2_form_approver,
+            msg_filenames=v2_msg_filenames,
+            ticket_no=ticket_no,
+            raw_dir=raw_dir,
+            md=md,
+            extracted_email=extracted_email,
+            manpower_emails=manpower_emails,
+        )
+        
+        # Use v2 result for emp_no resolution
+        resolved_emp_no = v2_result.emp_no if v2_result.emp_no else emp_no_raw
+        
+        # Resolve the line with the v2-resolved emp_no
+        resolved = resolve_line(
+            sl_no=sl_no,
+            description=description,
+            emp_no_raw=resolved_emp_no,
+            passenger_name=passenger,
+            amount=amount,
+            md=md,
+        )
+        
+        # Override match method with v2 layer info
+        if v2_result.layer != "not_resolved" and v2_result.layer != "L0":
+            resolved.emp_match_method = f"v2_{v2_result.layer}"
+            resolved.routing_reason = v2_result.trace
+        
+        # Handle sponsorship auto-routing from L9
+        if v2_result.is_sponsorship and v2_result.sponsorship_meta:
+            resolved.account = v2_result.sponsorship_meta.get("auto_account", "60307021")
+            resolved.account_rule = f"v2_L9_sponsorship: {v2_result.sponsorship_meta.get('reason', 'auto')}"
+            resolved.combo = build_combo(
+                resolved.company, resolved.location, resolved.account,
+                resolved.cost_center, resolved.div, resolved.solution,
+                resolved.agency, resolved.project, resolved.intercompany,
+                resolved.future1,
+            )
+            if v2_result.flag_code:
+                resolved.flags.append(v2_result.flag_code)
+        elif v2_result.flag_code == "NEW_EMPLOYEE_NOT_IN_MASTER":
+            resolved.flags.append("NEW_EMPLOYEE_NOT_IN_MASTER")
+        elif v2_result.flag_code and v2_result.flag_code not in resolved.flags:
+            resolved.flags.append(v2_result.flag_code)
+        
+        # Store v2 resolution metadata for Excel output
+        resolved._v2_layer = v2_result.layer
+        resolved._v2_confidence = v2_result.confidence
+        resolved._v2_trace = v2_result.trace
+        resolved._v2_flag = v2_result.flag_code or ""
+        
+        # Track email extraction for report + cache enrichment
+        _email_extraction_log.append({
+            "sl_no": sl_no,
+            "passenger": passenger,
+            "extracted_email": extracted_email,
+            "resolved_via_email": v2_result.layer == "L1.5",
+            "emp_no": v2_result.emp_no,
+            "no_email_reason": email_extract_reason if not extracted_email else None,
+        })
+        
+        # Enrich email cache: if resolved AND email extracted, pair them
+        if v2_result.emp_no and extracted_email:
+            _email_enrichment_pairs.append((
+                extracted_email, v2_result.emp_no,
+                f"msg_body_via_{v2_result.layer}", v2_result.confidence,
+            ))
+        
+        # Also store matched_email on resolved line for Excel output
+        resolved._v2_email = extracted_email or (v2_result.matched_email if hasattr(v2_result, 'matched_email') else "")
+        
+        # Track for cache enrichment
+        if v2_result.emp_no:
+            given, surname = _normalize_gds_name(passenger)
+            _cache_enrichment_pairs.append((f"{given} {surname}".strip().upper(), v2_result.emp_no))
+
+        # If our classifier defaulted (Rule 6/99) but v4 had a specific account,
+        # trust the v4 account (it was derived with more context)
+        if existing_account and existing_account in md.valid_accounts:
+            if "Rule 6" in resolved.account_rule or "Rule 99" in resolved.account_rule:
+                resolved.account = existing_account
+                resolved.account_rule = f"v4_preserved: {existing_account}"
+                # Rebuild combo with corrected account
+                resolved.combo = build_combo(
+                    resolved.company, resolved.location, resolved.account,
+                    resolved.cost_center, resolved.div, resolved.solution,
+                    resolved.agency, resolved.project, resolved.intercompany,
+                    resolved.future1,
+                )
+
+        # --- Allocation resolution for "Need to allocate" employees ---
+        allocation_result = None
+        if "ALLOCATION_TARGET_MISSING" in resolved.flags and resolved.emp_no:
+            # Find .msg files for this ticket
+            msg_bodies = []
+            if raw_dir and ticket_no:
+                msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+                for mf in msg_files:
+                    parsed = parse_msg(mf)
+                    if parsed.get("body_text"):
+                        msg_bodies.append(parsed["body_text"])
+
+            alloc = resolve_allocation(msg_bodies, resolved.emp_no, md)
+            allocation_result = alloc
+
+            if alloc.resolved and alloc.subordinate_emp_no:
+                # Rebuild combo using subordinate's Manpower data
+                sub_emp = md.employees.get(alloc.subordinate_emp_no)
+                if sub_emp:
+                    sub_account, sub_account_rule = classify_account(description, sub_emp, md)
+                    resolved.location = str(sub_emp.location).zfill(5)
+                    resolved.cost_center = str(sub_emp.cost_center).zfill(6)
+                    resolved.div = str(sub_emp.div_code).zfill(3)
+                    resolved.agency = str(sub_emp.agency_code).zfill(5)
+                    resolved.account = sub_account
+                    resolved.account_rule = f"allocation_to_{sub_emp.emp_no}: {sub_account_rule} (mgr={resolved.emp_no})"
+                    resolved.emp_match_method = f"allocation_email_subordinate ({alloc.method})"
+
+                    # Resolve solution for subordinate
+                    from cost_center_resolver import resolve_solution_code
+                    sub_sol, sub_sol_flags = resolve_solution_code(sub_emp)
+                    resolved.solution = sub_sol
+
+                    resolved.combo = build_combo(
+                        resolved.company, resolved.location, resolved.account,
+                        resolved.cost_center, resolved.div, resolved.solution,
+                        resolved.agency, resolved.project, resolved.intercompany,
+                        resolved.future1,
+                    )
+                    # Replace ALLOCATION_TARGET_MISSING with the resolution flag
+                    resolved.flags = [f for f in resolved.flags if f != "ALLOCATION_TARGET_MISSING"]
+                    resolved.flags.append(alloc.flag_code)
+            elif alloc.flag_code == "MULTI_ALLOCATION_PENDING_REVIEW":
+                resolved.flags = [f for f in resolved.flags if f != "ALLOCATION_TARGET_MISSING"]
+                resolved.flags.append("MULTI_ALLOCATION_PENDING_REVIEW")
+            elif alloc.flag_code == "ALLOCATION_LOOP_DETECTED":
+                resolved.flags = [f for f in resolved.flags if f != "ALLOCATION_TARGET_MISSING"]
+                resolved.flags.append("ALLOCATION_LOOP_DETECTED")
+            # else: keep ALLOCATION_TARGET_MISSING (no regression)
+
+
+        # --- Email Validator Step (A4) ---
+        validator_result = {}
+        validator_flags = []
+        if raw_dir:
+            validator_result, validator_flags = _validate_with_email_form(
+                resolved, description, ticket_no, amount, raw_dir, md
+            )
+            for vf in validator_flags:
+                if vf not in resolved.flags:
+                    resolved.flags.append(vf)
+
+
+        # --- Trip Purpose Classification (Step between resolver and QC gates) ---
+        trip_cls = None
+        trip_subject = ""
+        trip_body = ""
+        trip_form = None
+        
+        if raw_dir and ticket_no:
+            trip_msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+            for mf in trip_msg_files:
+                trip_parsed = parse_msg(mf, use_cache=True)
+                if trip_parsed.get("parse_method") == "failed":
+                    continue
+                trip_subject = trip_parsed.get("subject", "")
+                trip_body = trip_parsed.get("body_text", "")
+                trip_form_candidate = parse_form(trip_body)
+                if trip_form_candidate:
+                    trip_form = trip_form_candidate
+                if trip_subject:
+                    break  # Use first msg with a subject
+        
+        trip_cls = classify_trip(
+            subject=trip_subject,
+            body=trip_body,
+            form_data=trip_form,
+            description=description,
+            passenger_name=passenger,
+        )
+        
+        # Store classification on resolved line
+        resolved._trip_purpose = trip_cls.trip_purpose
+        resolved._trip_confidence = trip_cls.confidence
+        resolved._trip_signals = ", ".join(trip_cls.signals_used)
+        resolved._trip_trace = trip_cls.trace
+        resolved._trip_account_override = trip_cls.account_override or ""
+        
+        # Apply account override if classifier has high enough confidence
+        if trip_cls.account_override and trip_cls.confidence >= 0.7:
+            old_account = resolved.account
+            resolved.account = trip_cls.account_override
+            resolved.account_rule = f"trip_classifier_{trip_cls.trip_purpose}: {trip_cls.trace[:80]}"
+            # Rebuild combo with new account
+            resolved.combo = build_combo(
+                resolved.company, resolved.location, resolved.account,
+                resolved.cost_center, resolved.div, resolved.solution,
+                resolved.agency, resolved.project, resolved.intercompany,
+                resolved.future1,
+            )
+            resolved.flags.append("ACCOUNT_OVERRIDE_APPLIED")
+            
+            # Check for mismatch between subject and form
+            if trip_form:
+                form_type = trip_form.get("form_type", "")
+                perdiem = trip_form.get("perdiem_class", "") or ""
+                if trip_cls.trip_purpose == "PERSONAL" and form_type == "business_trip" and ".Personal" not in perdiem:
+                    resolved.flags.append("TRIP_PURPOSE_MISMATCH")
+                elif trip_cls.trip_purpose == "BUSINESS_TRIP" and ".Personal" in perdiem:
+                    resolved.flags.append("TRIP_PURPOSE_MISMATCH")
+            
+            # Check for low confidence personal
+            if trip_cls.trip_purpose == "PERSONAL" and trip_cls.confidence < 0.8 and len(trip_cls.signals_used) <= 1:
+                resolved.flags.append("PERSONAL_LOW_CONFIDENCE")
+        
+        elif trip_cls.trip_purpose == "UNKNOWN":
+            resolved.flags.append("TRIP_PURPOSE_UNKNOWN")
+
+        # Collect for family cluster detection
+        _trip_batch_lines.append({
+            "sl_no": sl_no,
+            "passenger_name": passenger,
+            "description": description,
+            "trip_purpose": trip_cls.trip_purpose if trip_cls else "UNKNOWN",
+            "idx": len(results),  # index into results list (before append)
+        })
+
+        # Save trip classifier flags before gate reset
+        _pre_gate_trip_flags = [f for f in resolved.flags if f in (
+            "ACCOUNT_OVERRIDE_APPLIED", "TRIP_PURPOSE_MISMATCH",
+            "PERSONAL_LOW_CONFIDENCE", "TRIP_PURPOSE_UNKNOWN",
+            "FAMILY_CLUSTER_DETECTED", "MIXED_FAMILY_CLUSTER",
+            "EMPLOYEE_AS_SPONSORED_HARD",
+        )]
+
+        # Run QC gates
+        gate = validate_line(resolved, md)
+        gate_results.append(gate)
+
+        # Override the line's action/flags with gate results
+        resolved.flags = []  # Reset — gates are authoritative
+        for _, code in gate.hard_failures:
+            resolved.flags.append(code)
+        for _, code in gate.soft_flags:
+            resolved.flags.append(code)
+        # Re-add trip classifier flags (survived gate reset)
+        for tf in _pre_gate_trip_flags:
+            if tf not in resolved.flags:
+                resolved.flags.append(tf)
+        resolved.action = gate.action
+
+        results.append(resolved)
+        # Store validator result for Excel output
+        if not hasattr(resolved, '_validator'):
+            resolved._validator = validator_result
+
+        if not gate.passed_hard:
+            halt_queue.append({
+                "sl_no": sl_no,
+                "passenger": passenger,
+                "description": description,
+                "amount": amount,
+                "combo": resolved.combo,
+                "failures": [(gid, code) for gid, code in gate.hard_failures],
+            })
+
+
+    # --- Family Cluster Detection ---
+    family_clusters = detect_family_clusters(_trip_batch_lines)
+    for sl_no, cluster_info in family_clusters.items():
+        for idx, r in enumerate(results):
+            if r.sl_no == sl_no:
+                if cluster_info.get("mixed"):
+                    r.flags.append("MIXED_FAMILY_CLUSTER")
+                else:
+                    r.flags.append("FAMILY_CLUSTER_DETECTED")
+                    # Force PERSONAL if not already
+                    if getattr(r, "_trip_purpose", "") != "PERSONAL":
+                        r.account = "11034013"
+                        r.account_rule = f"family_cluster_{cluster_info['cluster_id']}: auto-PERSONAL"
+                        r.combo = build_combo(
+                            r.company, r.location, r.account,
+                            r.cost_center, r.div, r.solution,
+                            r.agency, r.project, r.intercompany,
+                            r.future1,
+                        )
+                        r._trip_purpose = "PERSONAL"
+                        r._trip_confidence = 0.9
+                        r._trip_signals = "family_cluster"
+                        r._trip_trace = f"family cluster {cluster_info['cluster_id']}"
+                        r._trip_account_override = "11034013"
+                        r.flags.append("ACCOUNT_OVERRIDE_APPLIED")
+                break
+
+    # --- Enrich cross-batch cache ---
+    if _cache_enrichment_pairs:
+        enrich_cache(_cache_enrichment_pairs)
+
+    # --- Write output Excel ---
+    output_dir = batch_dir / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Derive invoice number from the data
+    inv_no = ""
+    for i in range(header_row_idx + 1, min(header_row_idx + 5, len(df))):
+        v = df.iloc[i, COL_INV_NO]
+        if pd.notna(v) and str(v).strip():
+            inv_no = str(v).strip()
+            break
+
+    out_filename = f"Spreadsheet-{inv_no}-FILLED-{output_suffix}.xlsx" if inv_no else f"Spreadsheet-FILLED-{output_suffix}.xlsx"
+    out_path = output_dir / out_filename
+
+    # --- Enrich email cache ---
+    if _email_enrichment_pairs:
+        enrich_email_cache(_email_enrichment_pairs)
+        if inv_no:
+            update_derived_batch(inv_no)
+
+    # --- Generate email report ---
+    report_dir = ROOT / "qc" / "reports" / "2026-05-21-resolver-v2"
+    email_report_stats = generate_email_report(
+        extraction_log=_email_extraction_log,
+        derived_cache=_load_derived_cache(),
+        report_dir=report_dir,
+        batch_ids=[inv_no or "unknown"],
+    )
+    print(f"  Email report: {report_dir}")
+    print(f"    Emails extracted: {email_report_stats['with_email']}/{email_report_stats['total_lines']}")
+    print(f"    Resolved via email (L1.5): {email_report_stats['resolved_via_email']}")
+    print(f"    Unique derived emails: {email_report_stats['unique_derived']}")
+
+    # Copy original and modify
+    shutil.copy(spreadsheet, out_path)
+    wb = load_workbook(out_path)
+    ws = wb.active
+
+    # openpyxl is 1-indexed
+    excel_header_row = header_row_idx + 1  # 1-indexed
+
+    # Add extra columns for agent annotations
+    max_col = ws.max_column
+    agent_flags_col = max_col + 1
+    agent_action_col = max_col + 2
+    agent_emp_col = max_col + 3
+    agent_match_col = max_col + 4
+    agent_account_rule_col = max_col + 5
+    agent_segments_col = max_col + 6
+
+    # Validator columns
+    val_emp_source_col = agent_segments_col + 1
+    val_form_emp_col = agent_segments_col + 2
+    val_form_approver_col = agent_segments_col + 3
+    val_form_div_col = agent_segments_col + 4
+    val_form_ag_col = agent_segments_col + 5
+    val_form_sol_col = agent_segments_col + 6
+    val_form_cc_col = agent_segments_col + 7
+    val_status_col = agent_segments_col + 8
+    val_discrepancy_col = agent_segments_col + 9
+
+    # V2 resolver columns
+    v2_layer_col = val_discrepancy_col + 1
+    v2_confidence_col = val_discrepancy_col + 2
+    v2_trace_col = val_discrepancy_col + 3
+    v2_flag_col = val_discrepancy_col + 4
+    v2_email_col = val_discrepancy_col + 5
+
+
+    # Trip purpose columns
+    trip_purpose_col = v2_email_col + 1
+    trip_confidence_col = v2_email_col + 2
+    trip_signals_col = v2_email_col + 3
+    trip_trace_col = v2_email_col + 4
+    trip_override_col = v2_email_col + 5
+
+    # Write agent column headers
+    for col, label in [
+        (agent_flags_col, "Agent Flags"),
+        (agent_action_col, "Agent Action"),
+        (agent_emp_col, "Agent Emp Match"),
+        (agent_match_col, "Agent Match Method"),
+        (agent_account_rule_col, "Agent Account Rule"),
+        (agent_segments_col, "Agent Segments Breakdown"),
+        (val_emp_source_col, "Agent Emp Match Source"),
+        (val_form_emp_col, "Form Emp No"),
+        (val_form_approver_col, "Form Approver"),
+        (val_form_div_col, "Form Division"),
+        (val_form_ag_col, "Form Agency"),
+        (val_form_sol_col, "Form Solution"),
+        (val_form_cc_col, "Form Cost-Center-Ref"),
+        (val_status_col, "Validator Status"),
+        (val_discrepancy_col, "Discrepancy Detail"),
+        (v2_layer_col, "Resolution Layer"),
+        (v2_confidence_col, "Resolution Confidence"),
+        (v2_trace_col, "Resolution Trace"),
+        (v2_flag_col, "Resolution Flag"),
+        (v2_email_col, "Email Match"),
+        (trip_purpose_col, "Trip Purpose"),
+        (trip_confidence_col, "Trip Purpose Confidence"),
+        (trip_signals_col, "Trip Purpose Signals"),
+        (trip_trace_col, "Trip Purpose Trace"),
+        (trip_override_col, "Trip Account Override"),
+    ]:
+        cell = ws.cell(row=excel_header_row, column=col, value=label)
+        cell.fill = HDR_FILL
+        cell.font = HDR_FONT
+        cell.alignment = Alignment(horizontal="center")
+
+    # Fill data rows
+    data_row_idx = 0
+    for excel_row in range(excel_header_row + 1, ws.max_row + 1):
+        header_id = ws.cell(row=excel_row, column=COL_HEADER_ID + 1).value
+        if header_id is None:
+            continue
+        if data_row_idx >= len(results):
+            break
+
+        r = results[data_row_idx]
+        g = gate_results[data_row_idx]
+        data_row_idx += 1
+
+        # Write the Distribution Combination
+        ws.cell(row=excel_row, column=COL_DIST_COMBO + 1, value=r.combo)
+
+        # Write Employee No if we resolved it and it wasn't already there
+        existing_emp = ws.cell(row=excel_row, column=COL_EMP_NO + 1).value
+        if r.emp_no and (existing_emp is None or str(existing_emp).strip() == "" or str(existing_emp).strip() == "nan"):
+            ws.cell(row=excel_row, column=COL_EMP_NO + 1, value=r.emp_no)
+
+        # Write agent annotations
+        flag_str = g.flag_string
+        action_str = g.action
+
+        # Color coding
+        if not g.passed_hard:
+            fill = RED_FILL
+        elif g.soft_flags:
+            fill = AMBER_FILL
+        else:
+            fill = GREEN_FILL
+
+        for col in range(COL_DIST_COMBO + 1, agent_segments_col + 1):
+            ws.cell(row=excel_row, column=col).fill = fill
+            ws.cell(row=excel_row, column=col).border = BORDER_THIN
+
+        ws.cell(row=excel_row, column=agent_flags_col, value=flag_str)
+        ws.cell(row=excel_row, column=agent_action_col, value=action_str)
+        ws.cell(row=excel_row, column=agent_emp_col, value=str(r.emp_no) if r.emp_no else "NOT FOUND")
+        ws.cell(row=excel_row, column=agent_match_col, value=r.emp_match_method)
+        ws.cell(row=excel_row, column=agent_account_rule_col, value=r.account_rule)
+
+        # Segments breakdown for debugging
+        segments_str = (
+            f"Co={r.company} Loc={r.location} Acc={r.account} "
+            f"CC={r.cost_center} DIV={r.div} Sol={r.solution} "
+            f"Ag={r.agency} Proj={r.project} IC={r.intercompany} F1={r.future1}"
+        )
+        ws.cell(row=excel_row, column=agent_segments_col, value=segments_str)
+
+        # Write v2 resolver columns
+        ws.cell(row=excel_row, column=v2_layer_col, value=getattr(r, '_v2_layer', ''))
+        ws.cell(row=excel_row, column=v2_confidence_col, value=getattr(r, '_v2_confidence', ''))
+        ws.cell(row=excel_row, column=v2_trace_col, value=getattr(r, '_v2_trace', ''))
+        ws.cell(row=excel_row, column=v2_flag_col, value=getattr(r, '_v2_flag', ''))
+        ws.cell(row=excel_row, column=v2_email_col, value=getattr(r, '_v2_email', ''))
+
+        # Write trip purpose columns
+        ws.cell(row=excel_row, column=trip_purpose_col, value=getattr(r, '_trip_purpose', ''))
+        ws.cell(row=excel_row, column=trip_confidence_col, value=getattr(r, '_trip_confidence', ''))
+        ws.cell(row=excel_row, column=trip_signals_col, value=getattr(r, '_trip_signals', ''))
+        ws.cell(row=excel_row, column=trip_trace_col, value=getattr(r, '_trip_trace', ''))
+        ws.cell(row=excel_row, column=trip_override_col, value=getattr(r, '_trip_account_override', ''))
+
+        # Write validator columns
+        vr = getattr(r, '_validator', {})
+        if vr:
+            ws.cell(row=excel_row, column=val_emp_source_col, value=vr.get("emp_match_source", ""))
+            ws.cell(row=excel_row, column=val_form_emp_col, value=vr.get("form_emp_no", ""))
+            ws.cell(row=excel_row, column=val_form_approver_col, value=vr.get("form_approver", ""))
+            ws.cell(row=excel_row, column=val_form_div_col, value=vr.get("form_division", ""))
+            ws.cell(row=excel_row, column=val_form_ag_col, value=vr.get("form_agency", ""))
+            ws.cell(row=excel_row, column=val_form_sol_col, value=vr.get("form_solution", ""))
+            ws.cell(row=excel_row, column=val_form_cc_col, value=vr.get("form_cost_center_ref", ""))
+            ws.cell(row=excel_row, column=val_status_col, value=vr.get("validator_status", ""))
+            ws.cell(row=excel_row, column=val_discrepancy_col, value=vr.get("discrepancy_detail", ""))
+
+    # Auto-size columns
+    for col in range(agent_flags_col, trip_override_col + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 28
+    # Widen the Distribution Combination column
+    ws.column_dimensions[get_column_letter(COL_DIST_COMBO + 1)].width = 58
+
+    wb.save(out_path)
+    print(f"\n[process_batch] Output: {out_path}")
+    print(f"  {out_path.stat().st_size} bytes")
+
+    # --- Write halt queue ---
+    if halt_queue:
+        halt_path = ROOT / "qc" / "halt-queue"
+        halt_path.mkdir(parents=True, exist_ok=True)
+        halt_file = halt_path / f"{inv_no or 'batch'}.json"
+        with open(halt_file, "w") as f:
+            json.dump(halt_queue, f, indent=2, default=str)
+        print(f"  Halt queue: {halt_file} ({len(halt_queue)} lines)")
+
+    # --- Summary ---
+    n_total = len(results)
+    n_clean = sum(1 for g in gate_results if g.flag_string == "CLEAN")
+    n_hard_fail = sum(1 for g in gate_results if not g.passed_hard)
+    n_soft_flag = sum(1 for g in gate_results if g.passed_hard and g.soft_flags)
+    flag_counter = Counter()
+    for g in gate_results:
+        for _, code in g.hard_failures + g.soft_flags:
+            flag_counter[code] += 1
+
+    match_counter = Counter(r.emp_match_method for r in results)
+    account_counter = Counter(r.account for r in results)
+
+    summary = {
+        "invoice_no": inv_no,
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "total_lines": n_total,
+        "clean_lines": n_clean,
+        "hard_failures": n_hard_fail,
+        "soft_flags": n_soft_flag,
+        "flag_breakdown": dict(flag_counter.most_common()),
+        "match_method_breakdown": dict(match_counter),
+        "account_breakdown": dict(account_counter),
+        "output_file": str(out_path),
+        "halt_queue_count": len(halt_queue),
+    }
+
+    summary_path = output_dir / f"summary-{output_suffix}.json"
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"  Summary: {summary_path}")
+
+    print(f"\n=== BATCH SUMMARY ===")
+    print(f"  Total lines:    {n_total}")
+    print(f"  Clean (Post):   {n_clean}")
+    print(f"  Hard failures:  {n_hard_fail}")
+    print(f"  Soft flags:     {n_soft_flag}")
+    print(f"  Flag breakdown: {dict(flag_counter.most_common())}")
+    print(f"  Match methods:  {dict(match_counter)}")
+
+    return summary
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Process Jawal batch with full 10-segment combo")
+    parser.add_argument("--batch", required=True, help="Path to batch directory")
+    parser.add_argument("--master-data", default=str(ROOT / "qc" / "master-data" / "master-data-003.xlsx"),
+                        help="Path to Master Data xlsx")
+    parser.add_argument("--reference", default=str(ROOT / "qc" / "fixtures" / "golden-j640" / "jawal-J26-640-resolved.xlsx"),
+                        help="Path to reference xlsx (INDEX/DIV/Agency/Solution/CC tabs)")
+    parser.add_argument("--suffix", default="v5-rulebook", help="Output filename suffix")
+    parser.add_argument("--raw-dir", default=None, help="Path to raw .msg files directory (for allocation resolution)")
+    args = parser.parse_args()
+
+    batch_dir = Path(args.batch)
+    if not batch_dir.is_absolute():
+        batch_dir = ROOT / batch_dir
+
+    raw_dir = Path(args.raw_dir) if args.raw_dir else None
+    if raw_dir and not raw_dir.is_absolute():
+        raw_dir = ROOT / raw_dir
+
+    process_batch(
+        batch_dir=batch_dir,
+        master_data_path=Path(args.master_data),
+        reference_path=Path(args.reference),
+        output_suffix=args.suffix,
+        raw_dir=raw_dir,
+    )
+
+
+if __name__ == "__main__":
+    main()

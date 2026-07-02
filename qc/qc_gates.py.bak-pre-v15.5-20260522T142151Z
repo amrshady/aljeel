@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+"""
+QC Gates - 13 hard gates + 14 soft gates per cost-center-rulebook-v1.md Section 4.
+
+Hard gates: REJECT - do not post to GL.
+Soft gates: FLAG - post to HOLD queue for human review.
+
+Usage:
+    from qc.qc_gates import validate_line, GateResult
+    result = validate_line(resolved_line, master_data)
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Optional
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from cost_center_resolver import ResolvedLine, MasterData, SEGMENT_WIDTHS, SEGMENT_NAMES
+
+
+@dataclass
+class GateResult:
+    hard_failures: list = field(default_factory=list)
+    soft_flags: list = field(default_factory=list)
+
+    @property
+    def passed_hard(self):
+        return len(self.hard_failures) == 0
+
+    @property
+    def action(self):
+        if self.hard_failures:
+            codes = [f[1] for f in self.hard_failures]
+            return "REJECT - " + " | ".join(codes)
+        elif self.soft_flags:
+            codes = [f[1] for f in self.soft_flags]
+            return "HOLD - " + " | ".join(codes)
+        else:
+            return "Post to GL"
+
+    @property
+    def flag_string(self):
+        all_codes = [f[1] for f in self.hard_failures] + [f[1] for f in self.soft_flags]
+        if not all_codes:
+            return "CLEAN"
+        return " | ".join(all_codes)
+
+
+def validate_line(line, md):
+    """Run all 13 hard + 14 soft gates on a resolved line."""
+    result = GateResult()
+
+    segments = line.combo.split("-")
+
+    # === HARD GATES ===
+
+    # H1: Combo segment count != 10
+    if len(segments) != 10:
+        result.hard_failures.append(("H1", "INVALID_COMBO_STRUCTURE"))
+
+    # H2: Any segment is N/A, blank, or non-numeric
+    for i, seg in enumerate(segments):
+        name = SEGMENT_NAMES[i] if i < len(SEGMENT_NAMES) else str(i)
+        if not seg or seg.lower() in ("n/a", "nan", "none", ""):
+            result.hard_failures.append(("H2", "NON_NUMERIC_SEGMENT_" + name))
+        elif not seg.isdigit():
+            result.hard_failures.append(("H2", "NON_NUMERIC_SEGMENT_" + name))
+
+    # H3: Company != 03
+    if line.company != "03":
+        result.hard_failures.append(("H3", "INVALID_COMPANY"))
+
+    # H4: Location not in valid set
+    if line.location not in md.valid_locations:
+        result.hard_failures.append(("H4", "UNKNOWN_LOCATION"))
+
+    # H5: Account not in INDEX valid set
+    if line.account not in md.valid_accounts:
+        result.hard_failures.append(("H5", "UNKNOWN_ACCOUNT"))
+
+    # H6: Cost Center not in Cost Center Segment master
+    if line.cost_center not in md.valid_cost_centers:
+        if line.cost_center != "999999":
+            result.hard_failures.append(("H6", "UNKNOWN_COST_CENTER"))
+
+    # H7: DIV not in DIV master (192/194/196 are soft, not hard)
+    if line.div not in md.valid_divs:
+        if line.div not in {"192", "194", "196"}:
+            result.hard_failures.append(("H7", "UNKNOWN_DIV"))
+
+    # H8: Agency not in Agency master
+    if line.agency not in md.valid_agencies:
+        if line.agency != "00000":
+            result.hard_failures.append(("H8", "UNKNOWN_AGENCY"))
+
+    # H9: Solution not in Solution master AND != 00000
+    if line.solution != "00000" and line.solution not in md.valid_solutions:
+        result.hard_failures.append(("H9", "UNKNOWN_SOLUTION"))
+
+    # H10: Project != 00000
+    if line.project != "00000":
+        result.hard_failures.append(("H10", "BAD_PROJECT_PADDING"))
+
+    # H11: Intercompany != 00
+    if line.intercompany != "00":
+        result.hard_failures.append(("H11", "BAD_INTERCOMPANY_PADDING"))
+
+    # H12: Future 1 != 000000
+    if line.future1 != "000000":
+        result.hard_failures.append(("H12", "BAD_FUTURE_PADDING"))
+
+    # H13: Segment width mismatch
+    if len(segments) == 10:
+        for i, (seg, expected_width) in enumerate(zip(segments, SEGMENT_WIDTHS)):
+            if len(seg) != expected_width:
+                name = SEGMENT_NAMES[i] if i < len(SEGMENT_NAMES) else str(i)
+                result.hard_failures.append(("H13", f"BAD_SEGMENT_WIDTH_{name}_{len(seg)}_vs_{expected_width}"))
+
+    # === SOFT GATES ===
+
+    # S1: Need to allocate and no subordinate found (original)
+    if "ALLOCATION_TARGET_MISSING" in line.flags:
+        result.soft_flags.append(("S1", "ALLOCATION_TARGET_MISSING"))
+
+    # S1a: Allocation resolved via deterministic .msg parsing
+    if "ALLOCATION_RESOLVED_DETERMINISTIC" in line.flags:
+        result.soft_flags.append(("S1a", "ALLOCATION_RESOLVED_DETERMINISTIC"))
+
+    # S1b: Allocation resolved via LLM
+    if "ALLOCATION_RESOLVED_LLM" in line.flags:
+        result.soft_flags.append(("S1b", "ALLOCATION_RESOLVED_LLM"))
+
+    # S1c: Allocation resolved via hierarchy (single subordinate)
+    if "ALLOCATION_RESOLVED_HIERARCHY" in line.flags:
+        result.soft_flags.append(("S1c", "ALLOCATION_RESOLVED_HIERARCHY"))
+
+    # S1d: Multiple allocation candidates pending review
+    if "MULTI_ALLOCATION_PENDING_REVIEW" in line.flags:
+        result.soft_flags.append(("S1d", "MULTI_ALLOCATION_PENDING_REVIEW"))
+
+    # S2: Charge to Medsource
+    if "MEDSOURCE_ROUTE" in line.flags:
+        result.soft_flags.append(("S2", "MEDSOURCE_ROUTE"))
+
+    # S3: Erbe exception and Agency != 10043
+    if "ERBE_EXCEPTION" in line.flags:
+        if line.agency != "10043":
+            result.soft_flags.append(("S3", "ERBE_EXCEPTION"))
+
+    # S4: Account = 60301003 default but DIV = 888 (G&A)
+    if line.account == "60301003" and line.div == "888":
+        result.soft_flags.append(("S4", "MAYBE_60301004_GA"))
+
+    # S5: Sponsoring account but pax is a known employee
+    if line.account == "60307021" and line.emp_no is not None:
+        result.soft_flags.append(("S5", "EMPLOYEE_AS_SPONSORED"))
+
+    # S6: Credit memo without matching original - handled at batch level
+
+    # S7: Employee not found
+    if "EMPLOYEE_NOT_IN_MASTER" in line.flags:
+        result.soft_flags.append(("S7", "EMPLOYEE_NOT_IN_MASTER"))
+
+    # S8: DIV in Manpower but not in DIV master (192/194/196)
+    if "MANPOWER_DIV_NOT_IN_MASTER" in line.flags:
+        result.soft_flags.append(("S8", "MANPOWER_DIV_NOT_IN_MASTER"))
+
+    # S9: Solution code pending (EP)
+    if "SOLUTION_CODE_PENDING" in line.flags:
+        result.soft_flags.append(("S9", "SOLUTION_CODE_PENDING"))
+
+    # S10: Manager-level pax traveling without explicit allocation
+    if line.div == "888" and line.emp_no is not None:
+        emp = md.employees.get(line.emp_no)
+        if emp:
+            manages_others = any(e.manager_no == line.emp_no for e in md.employees.values())
+            if manages_others and line.sol_flag == "Can Be used":
+                result.soft_flags.append(("S10", "MANAGER_NOT_REALLOCATED"))
+
+    # S11: Allocation loop detected (target is also "Need to allocate")
+    if "ALLOCATION_LOOP_DETECTED" in line.flags:
+        result.hard_failures.append(("H14", "ALLOCATION_LOOP_DETECTED"))
+
+    # Also flag ACCOUNT_DEFAULT_FALLBACK
+    if "Rule 99" in line.account_rule:
+        result.soft_flags.append(("S99", "ACCOUNT_DEFAULT_FALLBACK"))
+
+
+    # === EMAIL VALIDATOR GATES (A5) ===
+
+    # S12: Form found and agrees with Manpower
+    if "FORM_AGREES_WITH_MANPOWER" in line.flags:
+        result.soft_flags.append(("S12", "FORM_AGREES_WITH_MANPOWER"))
+
+    # S13: Form employee number mismatch vs Manpower
+    if "FORM_EMP_NO_MISMATCH" in line.flags:
+        result.soft_flags.append(("S13", "FORM_EMP_NO_MISMATCH"))
+
+    # S14: Form approver is not line manager per Manpower
+    if "FORM_APPROVER_NOT_LINE_MANAGER" in line.flags:
+        result.soft_flags.append(("S14", "FORM_APPROVER_NOT_LINE_MANAGER"))
+
+    # S15: Form trip value differs from invoice amount
+    if "FORM_TRIP_VALUE_DIFFERS" in line.flags:
+        result.soft_flags.append(("S15", "FORM_TRIP_VALUE_DIFFERS"))
+
+    # S16: No Oracle form found in email
+    if "FORM_NOT_FOUND_IN_EMAIL" in line.flags:
+        result.soft_flags.append(("S16", "FORM_NOT_FOUND_IN_EMAIL"))
+
+    # S17: Fusion internal codes vs Manpower mismatch (placeholder)
+    if "FORM_FUSION_CODES_LOGGED" in line.flags:
+        result.soft_flags.append(("S17", "FORM_FUSION_CODES_LOGGED"))
+
+    # S18: OPEX PDF parsed
+    if "OPEX_PDF_PARSED" in line.flags:
+        result.soft_flags.append(("S18", "OPEX_PDF_PARSED"))
+
+    # S19: Sponsorship detected
+    if "SPONSORSHIP_DETECTED" in line.flags:
+        result.soft_flags.append(("S19", "SPONSORSHIP_DETECTED"))
+
+
+    # === TRIP PURPOSE CLASSIFIER GATES (S20-S25) ===
+
+    # S20: Trip purpose mismatch — subject says one thing, form says another
+    if "TRIP_PURPOSE_MISMATCH" in line.flags:
+        result.soft_flags.append(("S20", "TRIP_PURPOSE_MISMATCH"))
+
+    # S21: Personal classified with low confidence (only one signal)
+    if "PERSONAL_LOW_CONFIDENCE" in line.flags:
+        result.soft_flags.append(("S21", "PERSONAL_LOW_CONFIDENCE"))
+
+    # S22: Family cluster detected (auto-routes to Personal)
+    if "FAMILY_CLUSTER_DETECTED" in line.flags:
+        result.soft_flags.append(("S22", "FAMILY_CLUSTER_DETECTED"))
+
+    # S23: Mixed family cluster (some business, some personal — needs review)
+    if "MIXED_FAMILY_CLUSTER" in line.flags:
+        result.soft_flags.append(("S23", "MIXED_FAMILY_CLUSTER"))
+
+    # S24: Trip purpose unknown — no classification signal at all
+    if "TRIP_PURPOSE_UNKNOWN" in line.flags:
+        result.soft_flags.append(("S24", "TRIP_PURPOSE_UNKNOWN"))
+
+    # S25: Account override applied by trip classifier
+    if "ACCOUNT_OVERRIDE_APPLIED" in line.flags:
+        result.soft_flags.append(("S25", "ACCOUNT_OVERRIDE_APPLIED"))
+
+    # S26: Employee posted as sponsored but is in Manpower (potential misclass)
+    if "EMPLOYEE_AS_SPONSORED_HARD" in line.flags:
+        result.soft_flags.append(("S26", "EMPLOYEE_AS_SPONSORED_HARD"))
+
+    # S27: LLM checked the approval email and found NO explicit allocation coding.
+    # Means no Person Number, no CC code in the email body — human review needed.
+    if "ALLOCATION_MISSING_FROM_EMAIL" in line.flags:
+        result.soft_flags.append(("S27", "ALLOCATION_MISSING_FROM_EMAIL"))
+
+    # === v15.3 LOCATION GATES ===
+
+    # S28a: Location resolved via employee Manpower (L0) - informational
+    if "LOCATION_FROM_EMPLOYEE_MANPOWER" in line.flags:
+        result.soft_flags.append(("S28a", "LOCATION_FROM_EMPLOYEE_MANPOWER"))
+
+    # S28: International travel — location flagged for review (no KSA code written)
+    if "LOCATION_INTERNATIONAL" in line.flags:
+        result.soft_flags.append(("S28", "LOCATION_INTERNATIONAL"))
+
+    # S28b: Location resolved via email LLM (L1) - informational
+    if "LOCATION_FROM_EMAIL_LLM" in line.flags:
+        result.soft_flags.append(("S28b", "LOCATION_FROM_EMAIL_LLM"))
+
+    # S28c: Location resolved via IATA map (L2) - informational
+    if "LOCATION_FROM_IATA_MAP" in line.flags:
+        result.soft_flags.append(("S28c", "LOCATION_FROM_IATA_MAP"))
+
+    # S29: Location resolved via LLM classification (informational)
+    if "LOCATION_FROM_LLM_CITY_CLASS" in line.flags:
+        result.soft_flags.append(("S29", "LOCATION_FROM_LLM_CITY_CLASS"))
+
+    # S30: Location fell back to employee home (no IATA parseable)
+    if "LOCATION_FALLBACK_TO_EMPLOYEE_HOME" in line.flags:
+        result.soft_flags.append(("S30", "LOCATION_FALLBACK_TO_EMPLOYEE_HOME"))
+
+    # S31: Location unmappable — all cascade layers failed, used Central as last resort
+    if "LOCATION_UNMAPPABLE" in line.flags:
+        result.soft_flags.append(("S31", "LOCATION_UNMAPPABLE"))
+
+    # === v15.4 SPONSORSHIP ORIGIN LOCATION GATES ===
+
+    # S32a: Sponsorship location resolved from ORIGIN IATA (informational/green)
+    if "LOCATION_SPONSOR_FROM_ORIGIN_IATA" in line.flags:
+        result.soft_flags.append(("S32a", "LOCATION_SPONSOR_FROM_ORIGIN_IATA"))
+
+    # S32b: Sponsorship location resolved from event-ref sibling row (informational/green)
+    if "LOCATION_SPONSOR_FROM_EVENT_REF" in line.flags:
+        result.soft_flags.append(("S32b", "LOCATION_SPONSOR_FROM_EVENT_REF"))
+
+    # S32c: Sponsorship origin is international — sentinel 99999 written, human review needed (YELLOW)
+    if "LOCATION_SPONSOR_ORIGIN_INTERNATIONAL" in line.flags:
+        result.soft_flags.append(("S32c", "LOCATION_SPONSOR_ORIGIN_INTERNATIONAL"))
+
+    # S28: Manager CC Fallback found fragmented cost centers across subordinates.
+    # Manager emp_no was identified but subordinates span multiple CCs.
+    # Cannot auto-allocate -- manual review needed.
+    if "MANAGER_CC_FRAGMENTED" in line.flags:
+        result.soft_flags.append(("S28", "MANAGER_CC_FRAGMENTED"))
+
+    # S29: Manager CC Fallback resolved unanimously (informational, green-OK).
+    if "RESOLVED_VIA_MANAGER_CC_UNANIMOUS" in line.flags:
+        result.soft_flags.append(("S29", "RESOLVED_VIA_MANAGER_CC_UNANIMOUS"))
+
+    return result

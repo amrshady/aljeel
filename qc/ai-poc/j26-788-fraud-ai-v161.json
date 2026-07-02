@@ -1,0 +1,1640 @@
+{
+  "batch_id": "J26-788",
+  "schema_version": "v16.1",
+  "model_used": "gemini-3.1-pro-preview",
+  "cache_hit": false,
+  "sha256": "c9c2d4283b6938eb3137c6897e8eb678e615f408f7de7fa66330dcbdc60e2c32",
+  "usage": {
+    "prompt_tokens": 798609,
+    "completion_tokens": 14699,
+    "total_tokens": 844056
+  },
+  "validation_errors": [],
+  "pydantic_valid": true,
+  "ai_result": {
+    "per_row_verdicts": [
+      {
+        "sl_no": 1,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELZAIM AHMAD|AJF-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 2,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELZAIM AHMAD|AJF-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 3,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 4,
+        "verdict": "YELLOW",
+        "primary_category": "POLICY_VIOLATION",
+        "secondary_categories": [
+          "AMOUNT_MISMATCH_MARKET"
+        ],
+        "value_at_risk_sar": 1700.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 4",
+            "quote": "MAHMOUD/BELAL MR | JED RUH | 2026-05-02 | 1700.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "Re_ Approved_ Personal Contribution Approval Requested for Belal Issa Mahmoud (1000450) on 2026-04-27 by Belal Issa Mahmoud.msg",
+            "quote": "Trip Start Date 27-Apr-2026 | Trip End Date 30-Apr-2026"
+          }
+        ],
+        "reasoning": "The flight date (02-May) falls outside the approved trip dates (27-Apr to 30-Apr). Additionally, 1700 SAR for a one-way domestic flight is unusually high.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAHMOUD BELAL|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 5,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 19500.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 5",
+            "quote": "ALBASIRI/SALEH MR | RUH CDG ZYR | 19500.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905428831 or passenger ALBASIRI/SALEH MR."
+          }
+        ],
+        "reasoning": "A high-value international flight (19,500 SAR) was booked without any corresponding approval email in the provided batch.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBASIRI SALEH|CDG-RUH|lte20000|2026-05"
+      },
+      {
+        "sl_no": 6,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMOUDI ABDALLAH|JED-MED|lte500|2026-05"
+      },
+      {
+        "sl_no": 7,
+        "verdict": "YELLOW",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 138.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 7",
+            "quote": "MAHMOUD/BELAL MR | JED RUH | 138.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 1936046286."
+          }
+        ],
+        "reasoning": "This appears to be a seat selection fee, but no explicit approval was found for this specific ticket number.",
+        "confidence": "medium",
+        "other_label": null,
+        "entity_key": "MAHMOUD BELAL|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 8,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI YOUSEF|RUH-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 9,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALEM AHMED|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 10,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 10",
+            "quote": "AHMED/AHMED MOHAMED MR | RUH HAS | 2000.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905428854."
+          }
+        ],
+        "reasoning": "No approval email was found for this flight.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED AHMED MOHAMED|HAS-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 11,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BAHKALI ARIEJ|DMM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 12,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BATAWEEL WALEED|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 13,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BATAWEEL WALEED|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 14,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAROUD MUSTAFA|DMM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 15,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAROUD MUSTAFA|DMM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 16,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 17,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1830.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 17",
+            "quote": "ALHAJJ/HUSAM MR | JED GIZ JED | 1830.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_  طلب حجز_حسام علوي الحاج_ من (جدة - جازان -  جدة).msg",
+            "quote": "Subject: RE:  طلب حجز/حسام علوي الحاج/ من (جدة - جازان -  جدة)"
+          }
+        ],
+        "reasoning": "The email provided is a booking request, but no official ERP Prod approval block was found.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHAJJ HUSAM|GIZ-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 18,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 2690.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 18",
+            "quote": "SALEH/MARIAM MS(CHD) | RUH AMM RUH | 2690.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for these family members."
+          }
+        ],
+        "reasoning": "Ticket booked for a family member without any documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEH MARIAM CHD|AMM-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 19,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 3330.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 19",
+            "quote": "SALEH/FARAH MRS | RUH AMM RUH | 3330.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for these family members."
+          }
+        ],
+        "reasoning": "Ticket booked for a family member without any documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEH FARAH|AMM-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 20,
+        "verdict": "RED",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "secondary_categories": [
+          "APPROVAL_MISSING"
+        ],
+        "value_at_risk_sar": 2690.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 20",
+            "quote": "SALEH/EKREMA MR(CHD) | RUH AMM RUH | 2690.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for these family members."
+          }
+        ],
+        "reasoning": "Ticket booked for a family member without any documented approval.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SALEH EKREMA CHD|AMM-RUH|lte5000|2026-06"
+      },
+      {
+        "sl_no": 21,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HADDAD HAMZAH|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 22,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALGHAMDI ABDULLAH|RUH-YNB|lte500|2026-05"
+      },
+      {
+        "sl_no": 23,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN MUDHIAN FAISAL|RUH-WAE|lte500|2026-05"
+      },
+      {
+        "sl_no": 24,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIEL YASIN|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 25,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 510.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 25",
+            "quote": "BABAKR/MOHAMMED MR | RUH DMM | 510.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905478467."
+          }
+        ],
+        "reasoning": "No approval email was found for this flight.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BABAKR MOHAMMED|DMM-RUH|lte1000|2026-05"
+      },
+      {
+        "sl_no": 26,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 440.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 26",
+            "quote": "BABAKR/MOHAMMED MR | DMM RUH | 440.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905478468."
+          }
+        ],
+        "reasoning": "No approval email was found for this flight.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BABAKR MOHAMMED|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 27,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALI ALQAHTANI|TRAIN SERVICE|lte500|2026-05"
+      },
+      {
+        "sl_no": 28,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMAD ALZAHRANI|TRAIN SERVICE|lte500|2026-05"
+      },
+      {
+        "sl_no": 29,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AAMIR ABDELLATIF SHARIF|TRAIN SERVICE|lte500|2026-05"
+      },
+      {
+        "sl_no": 30,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AAMIR ABDELLATIF SHARIF|TRAIN SERVICE|lte500|2026-05"
+      },
+      {
+        "sl_no": 31,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALMUSAYFIR ABDULLAH|RUH-YNB|lte500|2026-05"
+      },
+      {
+        "sl_no": 32,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALEM AHMED|EAM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 33,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALFAR BARA|JED-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 34,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALFAR BARA|JED-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 35,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABOUSEWILAM AMR|AJF-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 36,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABOUSEWILAM AMR|AJF-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 37,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1069.99,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 37",
+            "quote": "OMER/WALAA MS | JED RUH JED | 1069.99"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Riyadh Business Trip.msg",
+            "quote": "Subject: RE: Riyadh Business Trip"
+          }
+        ],
+        "reasoning": "The email provided is a booking request, but no official ERP Prod approval block was found.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "OMER WALAA|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 38,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSA MAHAMED|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 39,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABO NOUFAL OMAR|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 40,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALEM AHMED|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 41,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALEM AHMED|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 42,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ISMAIEL YASIN|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 43,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "TAGRA REYNAND JESUS|RUH-TUI|lte500|2026-05"
+      },
+      {
+        "sl_no": 44,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [
+          "REBOOKING_FRAUD"
+        ],
+        "value_at_risk_sar": 1830.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 44",
+            "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 2026-05-05 | 1830.0"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 55",
+            "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 2026-05-05 | 1735.01"
+          }
+        ],
+        "reasoning": "Two separate tickets were issued for the same passenger on the same route and date with different amounts, indicating duplicate billing or rebooking fraud.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABU ABED IBRAHIM|EAM-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 45,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABO NOUFAL OMAR|RAE-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 46,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABO NOUFAL OMAR|RAE-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 47,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI FARHAN|RUH-TUU|lte500|2026-05"
+      },
+      {
+        "sl_no": 48,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED NAGMALDIN|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 49,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "WADI MAHMOUD|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 50,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALASIRI ABDULAZIZ|AHB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 51,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELKAHLOUT NABEL|AHB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 52,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SAUD ALBALAWI|TRAIN TICKET|lte500|2026-05"
+      },
+      {
+        "sl_no": 53,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|TRAIN SERVICE|lte500|2026-05"
+      },
+      {
+        "sl_no": 54,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELATTAR AHMED|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 55,
+        "verdict": "RED",
+        "primary_category": "DUPLICATE_BILLING",
+        "secondary_categories": [
+          "REBOOKING_FRAUD"
+        ],
+        "value_at_risk_sar": 1735.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 44",
+            "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 2026-05-05 | 1830.0"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 55",
+            "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 2026-05-05 | 1735.01"
+          }
+        ],
+        "reasoning": "Two separate tickets were issued for the same passenger on the same route and date with different amounts, indicating duplicate billing or rebooking fraud.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABU ABED IBRAHIM|EAM-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 56,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELHAG ALI|JED-MED|lte500|2026-05"
+      },
+      {
+        "sl_no": 57,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KHADER OMAR|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 58,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 58",
+            "quote": "ALHATO/ABDULHADI MR | JED GIZ | 1400.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905533340."
+          }
+        ],
+        "reasoning": "No approval email was found for this flight.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHATO ABDULHADI|GIZ-JED|lte2000|2026-05"
+      },
+      {
+        "sl_no": 59,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 400.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 59",
+            "quote": "ALHATO/ABDULHADI MR | GIZ JED | 400.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905533341."
+          }
+        ],
+        "reasoning": "No approval email was found for this flight.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHATO ABDULHADI|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 60,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [
+          "AMOUNT_MISMATCH_MARKET"
+        ],
+        "value_at_risk_sar": 6300.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 60",
+            "quote": "Kimpton Vividora Barcelona - 1 NTS. | 6300.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ IMPORTANT_ Sakura Forum “Growing Together” _ Welcome & what to expect in Barcelona.msg",
+            "quote": "I have received confirmation from the hotel that the nightly rate is 440 euros."
+          }
+        ],
+        "reasoning": "Hotel accommodation was billed as a flight ticket, and the amount significantly exceeds the approved nightly rate.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSTAFA AMER|KIMPTON VIVIDORA BAR|lte10000|2026-05"
+      },
+      {
+        "sl_no": 61,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [
+          "AMOUNT_MISMATCH_MARKET"
+        ],
+        "value_at_risk_sar": 2650.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 61",
+            "quote": "Kimpton Vividora Barcelona - 1 NTS. | 2650.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ IMPORTANT_ Sakura Forum “Growing Together” _ Welcome & what to expect in Barcelona.msg",
+            "quote": "I have received confirmation from the hotel that the nightly rate is 440 euros."
+          }
+        ],
+        "reasoning": "Hotel accommodation was billed as a flight ticket, and the amount significantly exceeds the approved nightly rate.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MOSTAFA AMER|KIMPTON VIVIDORA BAR|lte5000|2026-05"
+      },
+      {
+        "sl_no": 62,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [
+          "AMOUNT_MISMATCH_MARKET"
+        ],
+        "value_at_risk_sar": 6300.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 62",
+            "quote": "Kimpton Vividora Barcelona - 1 NTS. | 6300.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ IMPORTANT_ Sakura Forum “Growing Together” _ Welcome & what to expect in Barcelona.msg",
+            "quote": "I have received confirmation from the hotel that the nightly rate is 440 euros."
+          }
+        ],
+        "reasoning": "Hotel accommodation was billed as a flight ticket, and the amount significantly exceeds the approved nightly rate.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SULTAN ABU DOGHMEH|KIMPTON VIVIDORA BAR|lte10000|2026-05"
+      },
+      {
+        "sl_no": 63,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [
+          "AMOUNT_MISMATCH_MARKET"
+        ],
+        "value_at_risk_sar": 2650.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 63",
+            "quote": "Kimpton Vividora Barcelona - 1 NTS. | 2650.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ IMPORTANT_ Sakura Forum “Growing Together” _ Welcome & what to expect in Barcelona.msg",
+            "quote": "I have received confirmation from the hotel that the nightly rate is 440 euros."
+          }
+        ],
+        "reasoning": "Hotel accommodation was billed as a flight ticket, and the amount significantly exceeds the approved nightly rate.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SULTAN ABU DOGHMEH|KIMPTON VIVIDORA BAR|lte5000|2026-05"
+      },
+      {
+        "sl_no": 64,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "YOUSEF AL DIGHRIR|TRAIN SERVICE|lte500|2026-05"
+      },
+      {
+        "sl_no": 65,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMR BUKHARI|EAM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 66,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AYED ZEIADH|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 67,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1115.01,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 67",
+            "quote": "BABAKR/MOHAMMED MR | RUH JED RUH | 1115.01"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905533352."
+          }
+        ],
+        "reasoning": "No approval email was found for this flight.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BABAKR MOHAMMED|JED-RUH|lte2000|2026-05"
+      },
+      {
+        "sl_no": 68,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HADDAD HAMZAH|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 69,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KONDO MBWANA HAMISI|DXB-RUH|lte500|2026-08"
+      },
+      {
+        "sl_no": 70,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALAWI SAUD|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 71,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALBALAWI SAUD|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 72,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALMADHUN ABDULRAHMAN|ABT-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 73,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "GASEEM MOHAMED|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 74,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ELSHAZLI OMAR|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 75,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 1000.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 75",
+            "quote": "RETURN AIRPORT TRANSPORTATION | 1000.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ Riyadh Reservation - May.msg",
+            "quote": "Car is available 1000/-sar / 01 gmc / two ways"
+          }
+        ],
+        "reasoning": "Car transportation was billed as a flight ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABEER BAKHSH|RETURN AIRPORT TRANS|lte1000|2026-05"
+      },
+      {
+        "sl_no": 76,
+        "verdict": "RED",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "secondary_categories": [],
+        "value_at_risk_sar": 5100.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 76",
+            "quote": "Heart Failure 2026, Barcelona Registrati | 5100.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "FW_ OPEX _ KFSH-J _ HF-2026-18.msg",
+            "quote": "Please proceed with the registration for Dr Ammar Choudary. ( only Online Registration )"
+          }
+        ],
+        "reasoning": "Event registration fee was billed as a flight ticket.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMMAR CHAUDHARY|HEART FAILURE 2026, |lte10000|2026-05"
+      },
+      {
+        "sl_no": 77,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "MAZEN KARALI|TRAIN TICKET|lte500|2026-05"
+      },
+      {
+        "sl_no": 78,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "YOUSEF AL DIGHRIR|TRAIN TICKET|lte500|2026-05"
+      },
+      {
+        "sl_no": 79,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ASIRI FAISAL|AHB-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 80,
+        "verdict": "RED",
+        "primary_category": "APPROVAL_MISSING",
+        "secondary_categories": [],
+        "value_at_risk_sar": 2020.0,
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 80",
+            "quote": "HUSSIN/ABDALAZIZ MR | DMM DOH MUC DOH DMM | 2020.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ اصدار تذاكر طيران .msg",
+            "quote": "مرفق لكم الموافقات علي الانتداب وخطاب الدعوة اضافة الي جواز السفر"
+          }
+        ],
+        "reasoning": "The email mentions an attached approval, but no official ERP Prod approval block was found in the email body.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "HUSSIN ABDALAZIZ|DMM-DOH|lte5000|2026-05"
+      },
+      {
+        "sl_no": 81,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHAYEB ABDALLAH|AHB-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 82,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHAYEB ABDALLAH|GIZ-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 83,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "KALTHOUM ABDALLAH|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 84,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SHAYEB ABDALLAH|GIZ-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 85,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ABDULLATIF SALEM|JED-MED|lte500|2026-05"
+      },
+      {
+        "sl_no": 86,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FADHEL NABEL|JED-MED|lte500|2026-05"
+      },
+      {
+        "sl_no": 87,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "TAFESH MOHAMMED|EAM-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 88,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALI SAID|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 89,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALANAZI ABDULAZIZ|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 90,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "BIN RAJAB FERAS|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 91,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "JAMAL ABDULMALIK|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 92,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "JAMAL ABDULMALIK|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 93,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "SAAD ASHRAF|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 94,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "WADI MAHMOUD|GIZ-JED|lte500|2026-05"
+      },
+      {
+        "sl_no": 95,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALJAMAL MOHAMMED ABDULMAJEED|AJF-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 96,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "RATL CHARLES|DMM-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 97,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AMOUDI ABDALLAH|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 98,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "ALHMEDI TARIQ|JED-RUH|lte500|2026-05"
+      },
+      {
+        "sl_no": 99,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "AHMED ABDELHAKIM ELSAYED|TRAIN BOOKING HHR|lte500|2026-05"
+      },
+      {
+        "sl_no": 100,
+        "verdict": "CLEAN",
+        "primary_category": "NONE",
+        "secondary_categories": [],
+        "value_at_risk_sar": 0.0,
+        "evidence": [],
+        "reasoning": "Valid approval found and matches invoice details.",
+        "confidence": "high",
+        "other_label": null,
+        "entity_key": "FAISAL ASIRI|GIZ-JED|lte500|2026-05"
+      }
+    ],
+    "top_5_cases": [
+      {
+        "rank": 1,
+        "sl_nos": [
+          5
+        ],
+        "headline": "Unapproved High-Value International Flight",
+        "primary_category": "APPROVAL_MISSING",
+        "total_value_at_risk_sar": 19500.0,
+        "full_reasoning": "A high-value international flight (19,500 SAR) was booked for Saleh Albasiri without any corresponding approval email in the provided batch.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 5",
+            "quote": "ALBASIRI/SALEH MR | RUH CDG ZYR | 19500.0"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for ticket 6905428831 or passenger ALBASIRI/SALEH MR."
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 2,
+        "sl_nos": [
+          60,
+          61,
+          62,
+          63
+        ],
+        "headline": "Hotel Accommodation Billed as Flight Tickets with Inflated Amounts",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "total_value_at_risk_sar": 17900.0,
+        "full_reasoning": "Hotel accommodations at Kimpton Vividora Barcelona were billed as flight tickets. Furthermore, the amounts billed (6300 and 2650 SAR per person) significantly exceed the hotel rate mentioned in the email (440 euros, approx. 1800 SAR).",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 60, 61, 62, 63",
+            "quote": "Kimpton Vividora Barcelona - 1 NTS."
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "RE_ IMPORTANT_ Sakura Forum “Growing Together” _ Welcome & what to expect in Barcelona.msg",
+            "quote": "I have received confirmation from the hotel that the nightly rate is 440 euros."
+          }
+        ],
+        "recommended_action": "FORWARD_TO_AUDIT"
+      },
+      {
+        "rank": 3,
+        "sl_nos": [
+          18,
+          19,
+          20
+        ],
+        "headline": "Unapproved Family Travel",
+        "primary_category": "UNAPPROVED_FAMILY",
+        "total_value_at_risk_sar": 8710.0,
+        "full_reasoning": "Three tickets were booked for family members of employee 1002066 (Hussein Abdulkareem Hussein Saleh) without any documented approval.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 18, 19, 20",
+            "quote": "SALEH/MARIAM MS(CHD) | SALEH/FARAH MRS | SALEH/EKREMA MR(CHD)"
+          },
+          {
+            "source": "computed",
+            "pointer": "approval_emails",
+            "quote": "No approval email found for these family members."
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      },
+      {
+        "rank": 4,
+        "sl_nos": [
+          76
+        ],
+        "headline": "Event Registration Billed as Flight Ticket",
+        "primary_category": "EXPENSE_MISCLASSIFICATION",
+        "total_value_at_risk_sar": 5100.0,
+        "full_reasoning": "An event registration fee for \"Heart Failure 2026, Barcelona\" was billed as a flight ticket.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 76",
+            "quote": "Heart Failure 2026, Barcelona Registrati | 5100.0"
+          },
+          {
+            "source": "approval_msg",
+            "pointer": "FW_ OPEX _ KFSH-J _ HF-2026-18.msg",
+            "quote": "Please proceed with the registration for Dr Ammar Choudary. ( only Online Registration )"
+          }
+        ],
+        "recommended_action": "REJECT_INVOICE_ROW"
+      },
+      {
+        "rank": 5,
+        "sl_nos": [
+          44,
+          55
+        ],
+        "headline": "Duplicate Billing for Same Route and Date",
+        "primary_category": "DUPLICATE_BILLING",
+        "total_value_at_risk_sar": 3565.01,
+        "full_reasoning": "Two separate tickets were issued for Ibrahim Abu Abed for the same route (JED EAM JED) on the same date (05-May-2026) with different amounts (1830.0 and 1735.01 SAR), indicating duplicate billing or rebooking fraud.",
+        "evidence": [
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 44",
+            "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 2026-05-05 | 1830.0"
+          },
+          {
+            "source": "invoice_row",
+            "pointer": "sl_no: 55",
+            "quote": "ABU ABED/IBRAHIM MR | JED EAM JED | 2026-05-05 | 1735.01"
+          }
+        ],
+        "recommended_action": "REQUEST_REFUND"
+      }
+    ],
+    "batch_summary": {
+      "red_count": 21,
+      "yellow_count": 2,
+      "clean_count": 77,
+      "total_rows": 100,
+      "total_value_at_risk_sar": 66398.01,
+      "catches_by_category": {
+        "APPROVAL_MISSING": 12,
+        "POLICY_VIOLATION": 1,
+        "UNAPPROVED_FAMILY": 3,
+        "DUPLICATE_BILLING": 2,
+        "EXPENSE_MISCLASSIFICATION": 6
+      },
+      "key_themes": [
+        "Multiple instances of hotel accommodations and event registrations being billed as flight tickets.",
+        "Unapproved family travel booked without corresponding approval emails.",
+        "Duplicate billing for the same passenger on the same route and date.",
+        "Several high-value tickets missing approval documentation."
+      ]
+    }
+  },
+  "v1511_summary_catches": {
+    "NO_APPROVAL": 30,
+    "DUP_ROUTE_STRICT": 4,
+    "POTENTIAL_REBOOKING_FRAUD": 1
+  },
+  "generated_at": "2026-05-23T05:49:05.411975Z"
+}

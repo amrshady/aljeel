@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""
+Code-to-Name Lookup Module for AlJeel AP.
+
+Loads 5 lookup tables from the reference golden (jawal-J26-640-resolved.xlsx):
+  - INDEX: Account code → GL name
+  - Cost Center Segment: CC code → CC name
+  - DIV: DIV code → Division name
+  - Solution: Solution code → Solution name
+  - Agency: Agency code → Agency name
+
+Returns '#N/A' (literal text) when lookup fails — matches the user's
+screenshot convention.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from functools import lru_cache
+from typing import Dict, Optional
+
+import openpyxl
+
+# Default reference file
+DEFAULT_REF = Path("/home/clawdbot/.openclaw/workspace/aljeel/qc/fixtures/golden-j640/jawal-J26-640-resolved.xlsx")
+
+NA = "#N/A"
+
+
+class CodeNameLookup:
+    """Loads all 5 lookup tables once and exposes per-segment lookup methods."""
+
+    def __init__(self, reference_path: Path | str = DEFAULT_REF):
+        self.reference_path = Path(reference_path)
+        self._account_to_gl: Dict[str, str] = {}
+        self._cc_to_name: Dict[str, str] = {}
+        self._div_to_name: Dict[str, str] = {}
+        self._solution_to_name: Dict[str, str] = {}
+        self._agency_to_name: Dict[str, str] = {}
+        self._loaded = False
+
+    def _ensure_loaded(self):
+        if self._loaded:
+            return
+        wb = openpyxl.load_workbook(self.reference_path, data_only=True, read_only=True)
+        self._load_index(wb)
+        self._load_cost_center(wb)
+        self._load_div(wb)
+        self._load_solution(wb)
+        self._load_agency(wb)
+        wb.close()
+        self._loaded = True
+
+    def _load_index(self, wb):
+        """INDEX tab: col B = Account code, col C = GL name (rows 2-10 per spec)."""
+        ws = wb["INDEX"]
+        for r in range(2, ws.max_row + 1):
+            code = ws.cell(r, 2).value
+            name = ws.cell(r, 3).value
+            if code is None or name is None:
+                continue
+            code_str = str(code).strip()
+            # Some INDEX entries have extra info in col D (e.g. "for GE")
+            extra = ws.cell(r, 4).value
+            full_name = str(name).strip()
+            if extra:
+                full_name = f"{full_name} ({str(extra).strip()})"
+            # Stop at the supplier header row
+            if code_str.startswith("**"):
+                break
+            self._account_to_gl[code_str] = full_name
+
+    def _load_cost_center(self, wb):
+        """Cost Center Segment tab: col A = CC code, col B = description (from row 2)."""
+        ws = wb["Cost Center Segment"]
+        for r in range(2, ws.max_row + 1):
+            code = ws.cell(r, 1).value
+            desc = ws.cell(r, 2).value
+            if code is not None and desc is not None:
+                self._cc_to_name[str(code).strip()] = str(desc).strip()
+
+    def _load_div(self, wb):
+        """DIV tab: col C = DIV code, col D = description (from row 3)."""
+        ws = wb["DIV"]
+        for r in range(3, ws.max_row + 1):
+            code = ws.cell(r, 3).value
+            desc = ws.cell(r, 4).value
+            if code is not None and desc is not None:
+                self._div_to_name[str(code).strip()] = str(desc).strip()
+
+    def _load_solution(self, wb):
+        """Solution tab: col A = Solution code, col B = description (from row 2 header, data from row 3)."""
+        ws = wb["Solution"]
+        for r in range(3, ws.max_row + 1):
+            code = ws.cell(r, 1).value
+            desc = ws.cell(r, 2).value
+            if code is not None and desc is not None:
+                self._solution_to_name[str(code).strip()] = str(desc).strip()
+        # Also include row 2 if it has data (header row says SOL/DESCRIPTION but row 2 might be header)
+        # Check if row 2 has actual data vs header
+        r2_code = ws.cell(2, 1).value
+        r2_desc = ws.cell(2, 2).value
+        if r2_code is not None and r2_desc is not None:
+            code_str = str(r2_code).strip()
+            if code_str not in ("SOL", "Solution") and code_str.isdigit():
+                self._solution_to_name[code_str] = str(r2_desc).strip()
+
+    def _load_agency(self, wb):
+        """Agency tab: col B = Agency code, col C = description (from row 2)."""
+        ws = wb["Agency"]
+        for r in range(2, ws.max_row + 1):
+            code = ws.cell(r, 2).value
+            desc = ws.cell(r, 3).value
+            if code is not None and desc is not None:
+                self._agency_to_name[str(code).strip()] = str(desc).strip()
+
+    # ---- Public lookup methods ----
+
+    def account_to_gl(self, code: str) -> str:
+        self._ensure_loaded()
+        return self._account_to_gl.get(str(code).strip(), NA)
+
+    def cc_to_name(self, code: str) -> str:
+        self._ensure_loaded()
+        return self._cc_to_name.get(str(code).strip(), NA)
+
+    def div_to_name(self, code: str) -> str:
+        self._ensure_loaded()
+        return self._div_to_name.get(str(code).strip(), NA)
+
+    def solution_to_name(self, code: str) -> str:
+        self._ensure_loaded()
+        return self._solution_to_name.get(str(code).strip(), NA)
+
+    def agency_to_name(self, code: str) -> str:
+        self._ensure_loaded()
+        return self._agency_to_name.get(str(code).strip(), NA)
+
+    def _div_name_with_fallback(self, div_code: str, resolved_line=None) -> str:
+        """v12 Fix C: Use Manpower div_name as primary source, fall back to DIV master tab."""
+        self._ensure_loaded()
+        # Primary: Manpower col 10 (div_name on the resolved line)
+        if resolved_line is not None and hasattr(resolved_line, 'manpower_div_name'):
+            mp_name = resolved_line.manpower_div_name
+            if mp_name and mp_name.strip():
+                return mp_name.strip()
+        # Fallback: DIV master tab
+        return self._div_to_name.get(str(div_code).strip(), NA)
+
+    def expand_combo(self, combo: str, resolved_line=None) -> dict:
+        """
+        Expand a 49-char distribution combo OR use a ResolvedLine's individual
+        segment fields to produce all 15 expansion columns.
+
+        Returns a dict with keys matching the Block 2 column headers.
+        """
+        self._ensure_loaded()
+
+        if resolved_line is not None:
+            # Use the already-parsed segments from ResolvedLine
+            company = str(resolved_line.company)
+            location = str(resolved_line.location)
+            account = str(resolved_line.account)
+            cost_center = str(resolved_line.cost_center)
+            div_code = str(resolved_line.div)
+            solution = str(resolved_line.solution)
+            agency = str(resolved_line.agency)
+            project = str(resolved_line.project)
+            intercompany = str(resolved_line.intercompany)
+            future1 = str(resolved_line.future1)
+        elif combo and len(combo) >= 49:
+            # Parse from combo string: CC-LLLLL-AAAAAAAA-CCCCCC-DDD-SSSSS-AAAAA-PPPPP-II-FFFFFF
+            parts = combo.split("-")
+            if len(parts) >= 10:
+                company = parts[0]
+                location = parts[1]
+                account = parts[2]
+                cost_center = parts[3]
+                div_code = parts[4]
+                solution = parts[5]
+                agency = parts[6]
+                project = parts[7]
+                intercompany = parts[8]
+                future1 = parts[9]
+            else:
+                return self._empty_expansion()
+        else:
+            return self._empty_expansion()
+
+        return {
+            "Company": company,
+            "Location": location,
+            "Account": account,
+            "GL": self.account_to_gl(account),
+            "Cost Center": cost_center,
+            "Cost Name": self.cc_to_name(cost_center),
+            "DIV": div_code,
+            "Contribution": self._div_name_with_fallback(div_code, resolved_line),
+            "Solution": solution,
+            "Solution Name": self.solution_to_name(solution),
+            "Agency": agency,
+            "Agency Name": self.agency_to_name(agency),
+            "Project": project,
+            "Intercompany": intercompany,
+            "Future 1": future1,
+        }
+
+    def _empty_expansion(self) -> dict:
+        return {
+            "Company": "", "Location": "", "Account": "", "GL": NA,
+            "Cost Center": "", "Cost Name": NA, "DIV": "", "Contribution": NA,
+            "Solution": "", "Solution Name": NA, "Agency": "", "Agency Name": NA,
+            "Project": "", "Intercompany": "", "Future 1": "",
+        }
+
+    def stats(self) -> dict:
+        """Return counts of loaded lookup entries."""
+        self._ensure_loaded()
+        return {
+            "account_to_gl": len(self._account_to_gl),
+            "cc_to_name": len(self._cc_to_name),
+            "div_to_name": len(self._div_to_name),
+            "solution_to_name": len(self._solution_to_name),
+            "agency_to_name": len(self._agency_to_name),
+        }
+
+
+# Module-level singleton for convenience
+_default_lookup: Optional[CodeNameLookup] = None
+
+
+def get_lookup(reference_path: Path | str = DEFAULT_REF) -> CodeNameLookup:
+    global _default_lookup
+    if _default_lookup is None or _default_lookup.reference_path != Path(reference_path):
+        _default_lookup = CodeNameLookup(reference_path)
+    return _default_lookup
+
+
+if __name__ == "__main__":
+    # Self-test with the known codes from the task spec
+    lookup = CodeNameLookup()
+    print("Lookup table sizes:", lookup.stats())
+    print()
+
+    tests = {
+        "account_to_gl": [
+            ("60301003", "Travel Tickets Expense"),
+            ("60307021", "Sponsoring Expenses"),
+            ("60301004", "Travel Cost Expense G&A"),
+            ("11034013", None),  # lowercase "personal" in sheet
+            ("21070229", "Accrued Employee Annual Tickets"),
+        ],
+        "div_to_name": [
+            ("192", "#N/A"),  # not in master
+            ("888", "G&A"),
+            ("190", "S&M"),
+            ("170", "Contribution"),
+        ],
+        "solution_to_name": [
+            ("00000", "General"),
+            ("10017", "CRM"),
+            ("10050", "HF"),
+        ],
+        "agency_to_name": [
+            ("10072", "Abbott"),
+            ("10081", "GE"),
+            ("88888", "G&A"),
+        ],
+        "cc_to_name": [
+            ("160013", "#N/A"),
+            ("250010", "Technical Services HO"),
+            ("140020", "Operation"),
+        ],
+    }
+
+    all_pass = True
+    for method_name, cases in tests.items():
+        method = getattr(lookup, method_name)
+        for code, expected in cases:
+            result = method(code)
+            if expected is not None:
+                status = "✓" if result == expected else "✗"
+                if result != expected:
+                    all_pass = False
+                print(f"  {status} {method_name}({code}) = {result!r} (expected {expected!r})")
+            else:
+                print(f"  ? {method_name}({code}) = {result!r}")
+
+    print()
+    print("ALL PASS" if all_pass else "SOME FAILURES")

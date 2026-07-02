@@ -1,0 +1,184 @@
+[
+  {
+    "sl_no": 54,
+    "passenger": "ABOELAMAIM/AHMED MR",
+    "description": "ABOELAMAIM/AHMED MR - RUH CAI RUH (6905874690)",
+    "amount": 2150.0,
+    "combo": "03-10100-60301004-140020-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 55,
+    "passenger": "ABOELAMAIM/YASMIN MS(CHD)",
+    "description": "ABOELAMAIM/YASMIN MS(CHD) - RUH CAI RUH (6905874691)",
+    "amount": 3015.01,
+    "combo": "03-10100-60301004-140020-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 56,
+    "passenger": "ABOELAMAIM/YOUSSEF MR(CHD)",
+    "description": "ABOELAMAIM/YOUSSEF MR(CHD) - RUH CAI RUH (6905874692)",
+    "amount": 3015.01,
+    "combo": "03-10100-60301004-140020-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 57,
+    "passenger": "YOUNES/HAGAR MRS",
+    "description": "YOUNES/HAGAR MRS - RUH CAI RUH (6905874693)",
+    "amount": 3720.01,
+    "combo": "03-10100-60301004-140020-190-00000-10200-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 58,
+    "passenger": "ALFARIS/ESRAA MAHMOUD MS",
+    "description": "ALFARIS/ESRAA MAHMOUD MS - RUH AMM RUH (6905874700)",
+    "amount": 1800.0,
+    "combo": "03-10100-60301003-160012-194-00000-10153-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 69,
+    "passenger": "GARA/HANEEN ZIAD MRS",
+    "description": "GARA/HANEEN ZIAD MRS - RUH AMM RUH (6905874749)",
+    "amount": 1820.0,
+    "combo": "03-10100-60301003-160013-192-00000-10005-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 72,
+    "passenger": "BAZRBASHI/HEBAH MRS",
+    "description": "BAZRBASHI/HEBAH MRS - DMM DXB DAM DXB DMM (6905874756)",
+    "amount": 2130.0,
+    "combo": "03-30100-60301003-160013-192-00000-10202-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 75,
+    "passenger": "SDEK/YAZAN MR(CHD)",
+    "description": "SDEK/YAZAN MR(CHD) - DMM DXB DAM DXB DMM (6905874759)",
+    "amount": 2130.0,
+    "combo": "03-30100-60301003-160013-192-00000-10202-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 76,
+    "passenger": "ARAR/LIANA NADEEM MS",
+    "description": "ARAR/LIANA NADEEM MS - RUH AMM RUH (6905874760)",
+    "amount": 2550.0,
+    "combo": "03-10100-60301003-160014-170-00000-10239-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 81,
+    "passenger": "MOSA/MOHAMED MR",
+    "description": "MOSA/MOHAMED MR - RUH CAI (6905901533)",
+    "amount": 490.01,
+    "combo": "03-10100-60301003-160012-194-00000-10153-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 82,
+    "passenger": "YOUSSEF/HAMSA MRS",
+    "description": "YOUSSEF/HAMSA MRS - RUH CAI (6905901534)",
+    "amount": 490.01,
+    "combo": "03-10100-60301003-160012-194-00000-10153-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 83,
+    "passenger": "MOSA/BARAA MR(CHD)",
+    "description": "MOSA/BARAA MR(CHD) - CAI RUH (6905901535)",
+    "amount": 1430.0,
+    "combo": "03-10100-60301003-160012-194-00000-10153-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 84,
+    "passenger": "MOSA/FATEMAH MS(CHD)",
+    "description": "MOSA/FATEMAH MS(CHD) - CAI RUH (6905901536)",
+    "amount": 1430.0,
+    "combo": "03-10100-60301003-160012-194-00000-10153-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  },
+  {
+    "sl_no": 86,
+    "passenger": "YOUSSEF/HAMSA MRS",
+    "description": "YOUSSEF/HAMSA MRS - CAI RUH (6905901538)",
+    "amount": 1460.0,
+    "combo": "03-10100-60301003-160012-194-00000-10153-00000-00-000000",
+    "failures": [
+      [
+        "H6",
+        "UNKNOWN_COST_CENTER"
+      ]
+    ]
+  }
+]

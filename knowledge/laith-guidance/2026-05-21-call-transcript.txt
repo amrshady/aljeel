@@ -1,0 +1,956 @@
+[00:14] [Amr] ألو؟
+[Hello?]
+[00:19] [Amr] السلام عليكم.
+[Peace be upon you.]
+[00:20] [Laith] وعليكم السلام.
+[And upon you, peace.]
+[00:21] [Amr] كيف حالك؟
+[How are you?]
+[00:22] [Laith] السلام ورحمة الله.
+[Peace and God's mercy.]
+[00:23] [Amr] أخباركم إيه؟ إزيك ليث؟ أخبارك محمد؟ كله كويس؟
+[How are you all? How are you, Laith? How are you, Mohammed? Is everything good?]
+[00:26] [Laith] الحمد لله يسلمك. الحمد لله.
+[Praise be to God, thank you. Praise be to God.]
+[00:29] [Laith] الحمد لله، كيف حالك؟
+[Praise be to God, how are you?]
+[00:30] [Amr] والله الحمد لله، فرصة سعيدة جدًا، تشرفنا.
+[By God, praise be to God. It's a great pleasure, we are honored.]
+[00:35] [Amr] طيب، إحنا...
+[Okay, we...]
+[00:36] [Laith] أنا حكون، حكون أنا وليث على جهاز واحد، تمام؟
+[I will be, Laith and I will be on one device, okay?]
+[00:40] [Amr] أوكيه، خلاص.
+[Okay, fine.]
+[00:41] [Laith] عشان نحكي من نفس المكان.
+[So we can talk from the same place.]
+[00:44] [Amr] خلاص، أوكيه.
+[Fine, okay.]
+[00:51] [Amr] إيه، طيب.
+[Uh, okay.]
+[00:53] [Amr] جاهزين يا جماعة؟
+[Are you ready, guys?]
+[00:55] [Laith] إحنا جاهزين، بس أعطيني دقيقة.
+[We are ready, just give me a minute.]
+[00:57] [Amr] خلاص أوكيه، براحتك.
+[Fine, okay, take your time.]
+[01:15] [Amr] سامعني؟
+[Can you hear me?]
+[01:16] [Laith] أه. سامع.
+[Yes. I can hear you.]
+[01:17] [Amr] سامع، أه تمام.
+[I can hear you, yes, okay.]
+[01:24] [Laith] أنا بس بدي أطلع الإيميل اللي أنت بعثته آخر إشي في ال...
+[I just want to pull up the email you sent last in the...]
+[01:29] [Amr] أيوه.
+[Yes.]
+[01:29] [Laith] التسجيل عملته، تمام؟
+[The recording you made, okay?]
+[01:31] [Amr] تمام.
+[Okay.]
+[01:34] [Laith] شوي بس كمان.
+[Just a moment more.]
+[01:43] [Laith] تمام، هلأ إيه...
+[Okay, now, uh...]
+[01:45] [Laith] بس أول حاجة كنا إحنا حابين نحكي فيها، أول شي موضوع الكومبينيشن للإنتري.
+[The first thing we wanted to talk about is the topic of the combination for the entry.]
+[01:51] [Amr] أيوه.
+[Yes.]
+[01:52] [Laith] عشان الإنتري عندنا في أكثر من سيجمنت فيه، عشان يصير كامل يعني الديستريبيوشن هذا، كومبينيشن أوكيه؟ لازم يكون فيه إيريا، لوكيشن، كومباني، إيه...
+[Because the entry we have has more than one segment in it, for this distribution to be complete, the combination, okay? It must have area, location, company, uh...]
+[02:05] [Laith] كوست سنتر، إيه ديفيجن، سوليوشن.
+[cost center, uh, division, solution.]
+[02:09] [Laith] بدون هاي الأشياء كلها ما بيكتمل الإنتري عندي، تمام؟
+[Without all these things, the entry is not complete for me, okay?]
+[02:11] [Amr] طيب.
+[Okay.]
+[02:12] [Amr] في بس هي دي... في أي سامبلز للديستريبيوشنز اللي اتعملت قبل كده ولا لأ؟
+[But is this... are there any samples of the distributions that were done before or not?]
+[02:18] [Laith] يس، اللي بعثته معك أول مرة إذا بتتذكر.
+[Yes, the one I sent you the first time, if you remember.]
+[02:21] [Laith] في أول إنتري أنت عملته، إيه طلع تقريبًا مطابق كثير للإنتري اللي إحنا عاملينه، عشان هيك المرة الثانية ما أنا ما بعثت فيها إنتري من عندنا.
+[In the first entry you made, uh, it came out almost identical to the entry we have, that's why the second time I didn't send an entry from our side.]
+[02:30] [Amr] أوكيه.
+[Okay.]
+[02:30] [Laith] عشان أشوف كيف حيعمل السيستم الإنتري هذا.
+[To see how the system would create this entry.]
+[02:33] [Amr] طيب أوكيه.
+[Okay, okay.]
+[02:33] [Laith] فهلأ هون، الظاهر هون إنه الكومبينيشن هون موجود محطوط بس الكوست سنتر، الأكاونت اللي هو ال...
+[So now here, it appears here that the combination here is set with only the cost center, the account which is the...]
+[02:42] [Laith] الإكسبنس أكاونت زائد الكوست سنتر بس، تمام؟
+[The expense account plus the cost center only, okay?]
+[02:46] [Amr] أمم.
+[Mm-hmm.]
+[02:47] [Laith] ما كمل كل التفاصيل.
+[It didn't complete all the details.]
+[02:50] [Amr] خليني، خليني...
+[Let me, let me...]
+[02:51] [Laith] فهلأ هاي بس بعدين نيجي نبعث لك...
+[So now this, but later we'll send you...]
+[02:53] [Laith] نقول لك...
+[We'll tell you...]
+[02:55] [Laith] الإنتري...
+[The entry...]
+[02:58] [Amr] لأ معلش صوتك راح.
+[No, sorry, your audio cut out.]
+[03:02] [Amr] ليث معايا ولا؟
+[Laith, are you with me or?]
+[03:04] [Laith] أنا أنا بدي بس أورجيك ال...
+[I just want to show you the...]
+[03:06] [Laith] نوريك الإنتري كيف بكون عندنا.
+[Show you what the entry looks like on our end.]
+[03:09] [Amr] أيوه أيوه.
+[Yes, yes.]
+[03:11] [Laith] لسا اليوم عامل واحد.
+[I just made one today.]
+[03:16] [Laith] لو تشوف هون الكومبينيشن اللي عاملينه.
+[If you look here at the combination we've made.]
+[03:18] [Amr] أنا مش...
+[I'm not...]
+[03:19] [Laith] في 10 سيجمنت.
+[There are 10 segments.]
+[03:20] [Amr] هو في سكرين بس عاملة لوج إن كده فوق الإكسل شيت.
+[There's a screen, but it has a login window on top of the Excel sheet.]
+[03:26] [Laith] نعم؟
+[What?]
+[03:27] [Amr] في في سكرين كده مخبية شاشة الإكسل شيت، مكتوب عليها لوج إن.
+[There's a screen that's hiding the Excel sheet screen, it says "Login" on it.]
+[03:33] [Laith] ولا هو بيعمل لودينج؟
+[Or is it loading?]
+[03:37] [Laith] لأ المفروض ما بعمل لودينج، ثواني لأشوف.
+[No, it shouldn't be loading. One second, let me see.]
+[03:39] [Amr] أمم يبقى هو لسه يمكن عندي ما... أه ظهر دلوقتي خلاص، أوكيه، فهمت قصدك.
+[Hmm, so it's still maybe on my end it hasn't... ah, it appeared now, okay. Okay, I see what you mean.]
+[03:45] [Amr] تمام.
+[Okay.]
+[03:48] [Laith] فلو تشوف الكومبينيشن اللي بعثت لنا إياه آخر إشي مع الكومبينيشن اللي إحنا بنقبله بالسيستم، أو السيستم اللي بيقبله عفوًا، فمختلف تمامًا، فما بقدر أستخدمه.
+[So if you look at the combination you sent us last, compared to the combination we accept in the system, or that the system accepts, sorry, it's completely different, so I can't use it.]
+[03:57] [Amr] أيوه أيوه، أيوه أكيد أكيد.
+[Yes, yes, yes, of course, of course.]
+[03:59] [Amr] طيب بس أنا إحنا عايز أشوف إحنا فين أنا الجي إل القديمة ما جاتليش يمكن ال...
+[Okay, but I want to see where we are. I don't think I received the old GL, maybe the...]
+[04:05] [Amr] خليني أشوف أنهي واحدة.
+[Let me see which one.]
+[04:08] [Amr] الجي إل...
+[The GL...]
+[04:10] [Amr] الجوال قصدي، الجوال القديمة...
+[Jawal, I mean, the old Jawal...]
+[04:15] [Amr] هي دي؟
+[Is it this one?]
+[04:18] [Amr] بس أنا يمكن، عايز أكونفيرم بس، هو الفايل ده اسمه إيه معلش؟
+[But maybe I... I just want to confirm, what's the name of this file, please?]
+[04:23] [Amr] ده الفايل جالنا إحنا قبل كده؟
+[Did we receive this file before?]
+[04:27] [Laith] الفايل أنت العينة الأولى اللي عملتها كانت مطابق للكومبينيشن اللي أنت شايفه الآن. الكومبينيشن الثاني اللي أنت عملته كان لأ مختلف.
+[The file, the first sample you made was identical to the combination you see now. The second combination you made was, no, different.]
+[04:37] [Amr] أيوه. أنا بس عايز أشوف الأول...
+[Yes. I just want to see the first one...]
+[04:38] [Laith] فهي الشيت الثانية اللي وصلتني، وصلتني وأنت عاملها. هون الإختلاف تمامًا ما بيشبهوا بعض، لكن في الأولى كان صح.
+[So this is the second sheet that I received, I received it and you had made it. Here the difference is complete, they don't resemble each other, but the first one was correct.]
+[04:47] [Amr] من حيث المبدأ.
+[In principle.]
+[04:48] [Amr] طيب خليني أفتح الداشبورد بتاعتنا، بتاعت الجيل.
+[Okay, let me open our dashboard, for AlJeel.]
+[05:02] [Other] أيوه.
+[Yes.]
+[05:04] [Other] معلش أسألك بس سؤال، حابين بس نفهم أول حاجة عشان نسهل عليك ويكون الموضوع أسهل علينا كمان.
+[Sorry to ask you a question, we just want to understand first to make it easier for you and for the process to be easier for us as well.]
+[05:10] [Amr] أكيد.
+[Of course.]
+[05:11] [Other] نفهم إحنا كيف السيستم هذا بيشتغل.
+[We want to understand how this system works.]
+[05:14] [Other] يعني هذا الإي آي اليوم لما هو بيجي بيعمل إنتري وبيسحب الداتا هاي كلها، حابين تفهمنا بس تعطينا هيك بريف صغير، تحكيلنا كيف هو بيقدر يقرأ أو كيف هو بيقدر يحدد من الإيميل، من التيكتس، الأشياء هاي، كلها ويسحبها الداتا ويحطها في لاين واحد أو في إنتري واحد.
+[I mean, this AI today, when it comes and creates an entry and pulls all this data, we'd like you to explain, just give us a small brief, tell us how it's able to read or how it's able to determine from the email, from the tickets, these things, and pull all this data and put it in one line or in one entry.]
+[05:33] [Amr] طيب خليني، خليني أشير معاك، يعني...
+[Okay, let me, let me share with you, I mean...]
+[05:37] [Amr] طيب هو طبعًا إيه...
+[Okay, of course, uh...]
+[05:40] [Amr] أول حاجة طيب خليني أعمل شيرينج للسكرين كده وأتأكد إن إحنا باصين كلنا على نفس الحاجة.
+[First thing, okay, let me share the screen and make sure we are all looking at the same thing.]
+[05:47] [Amr] جوال، فيلد.
+[Jawal, filled.]
+[05:53] [Amr] بس...
+[But...]
+[05:56] [Amr] عايز أكونفيرم، إحنا الإنتري اللي إحنا عملناها قبل كده أكشلي كانت...
+[I want to confirm, the entry that we did before was actually...]
+[06:57] [Amr] فده أول أناليسيس اتعمل.
+[So this was the first analysis that was done.]
+[07:01] [Amr] لما بصيت عليه دلوقتي أكشلي الأوتبوت لأ، هو الأوتبوت يمكن قصدك البريك داون الثاني.
+[When I looked at it now, actually the output, no, the output, maybe you mean the second breakdown.]
+[07:07] [Amr] كان إحنا في تو أوتبوتس عملناهم.
+[We had two outputs that we made.]
+[07:10] [Amr] وخلينا نبص عليهم سريعًا.
+[And let's look at them quickly.]
+[07:13] [Amr] ده مثلًا هنا كده.
+[This, for example, here.]
+[07:15] [Amr] يا ترى شايف السكرين لسه؟
+[Can you still see the screen?]
+[07:17] [Laith] وشايف شيت كده إكسل شيت سريعة؟
+[And you see a quick Excel sheet like that?]
+[07:20] [Amr] زي بريفيو لشيت. هي دي كده كويك بريفيو بتاعت الشيت اللي إحنا طلعناها، هي طالعة أكشلي بنفس الديستريبيوشن كومبينيشن.
+[Like a preview of a sheet. This is a quick preview of the sheet we generated. It actually came out with the same distribution combination.]
+[07:29] [Amr] إحنا دي اللي أنا بعتها أكشلي ل... لقاسم.
+[This is the one I actually sent to... to Qasim.]
+[07:34] [Amr] وفي شيت تانية فيها اللي هي...
+[And there's another sheet that has the...]
+[07:37] [Amr] ال...
+[The...]
+[07:39] [Amr] تقريبًا أنت قصدك على...
+[You probably mean...]
+[07:46] [Amr] في الديتيلز هنا، قصدك هي دي الشيت اللي فيها البريك داون والكوست ألوكيشن؟
+[In the details here, do you mean this is the sheet that has the breakdown and the cost allocation?]
+[07:52] [Amr] مظبوط؟
+[Correct?]
+[07:54] [Amr] اللي هو كومباني، لوكيشن، أكاونت، جي إل، كوست سنتر، كوست نيم، ديفيجن، كونتربيوشن، سوليوشن، صح؟ هل الموضوع ده، هل هو ده اللي أنت قصدك عليه ستراكشر بتاع الديستريبيوشن ولا لأ؟
+[Which is company, location, account, GL, cost center, cost name, division, contribution, solution, right? Is this topic, is this the structure you mean for the distribution or not?]
+[08:08] [Amr] هو ده؟
+[Is this it?]
+[08:12] [Amr] معايا يا جماعة ولا لأ؟
+[Are you with me, guys, or not?]
+[08:14] [Laith] يس يس معاك، بس...
+[Yes, yes, with you, but...]
+[08:16] [Amr] مش باين حاجة؟
+[You can't see anything?]
+[08:17] [Laith] السوليوشن هذا قصدك؟
+[You mean this solution?]
+[08:20] [Laith] لأ أنا شايف هلأ، بس أنا بحكي قاعد على الكومبينيشن لما كان طالع.
+[No, I can see now, but I was talking about the combination when it was displayed.]
+[08:27] [Amr] أه، ما أنا عايز أطلع الشيت هي التانية.
+[Ah, well I want to pull up the other sheet.]
+[08:34] [Amr] هي دي الشيت اللي كانت جاتلنا قبل كده، مظبوط؟
+[This is the sheet that we received before, correct?]
+[08:38] [Amr] فيها، فيها الأيتمز دول.
+[It has, it has these items.]
+[08:41] [Amr] فده فيها الأكاونت، كومباني، لوكيشن، أكاونت، جي إل، كوست سنتر، كوست سنتر نيم، كذا كذا كذا. هل ده الستراكشر اللي أنت كان قصدك عليه معلش؟
+[So this has the account, company, location, account, GL, cost center, cost center name, etc., etc. Is this the structure you were referring to, please?]
+[08:56] [Laith] أنا...
+[I...]
+[08:58] [Laith] يس، اللي هم السيجمنت اللي شفت لك إياهم هلأ.
+[Yes, the segments that I showed you just now.]
+[09:02] [Amr] أه، بس...
+[Ah, but...]
+[09:03] [Amr] يعني هل دول كلهم دي ميرج بعدين فين؟ أصل أنا يمكن ما جاليش أنا الشيت، أنا مش عارف أنهي شيت بنتكلم عليها.
+[I mean, do all of these get merged later, and where? Because maybe I didn't get the sheet, I don't know which sheet we're talking about.]
+[09:11] [Amr] قصدك اللي هي دي؟ اللي هو ده اللي إحنا في الآخر عاملين الميرج هنا، صح؟
+[You mean this one? This is the one where we did the merge at the end, right?]
+[09:15] [Laith] هو ده، صح؟
+[This is it, right?]
+[09:16] [Amr] مظبوط؟
+[Correct?]
+[09:20] [Laith] قصدي إنه يعني اليوم، هلأ هذا، هلأ هذا هون عندك مثلًا، أنت الفاتورة اللي فاتحها هاي تاعت اللي هي أساطيل، مظبوط؟
+[I mean that today, now this, now this here you have, for example, the invoice you have open is for Asateel, correct?]
+[09:27] [Amr] دي... دي جوال.
+[This... this is Jawal.]
+[09:29] [Laith] امشي هيك على عندك شوف أول واحد هون.
+[Go like this to your side, look at the first one here.]
+[09:32] [Laith] يس.
+[Yes.]
+[09:33] [Laith] هذا اللي كله أصفار شايفه؟
+[This one that's all zeros, you see it?]
+[09:35] [Amr] أيوه.
+[Yes.]
+[09:35] [Laith] هذا هو الجي إل إنتري.
+[This is the GL entry.]
+[09:37] [Amr] أه.
+[Ah.]
+[09:38] [Laith] فأنتم...
+[So you guys...]
+[09:39] [Laith] أوكيه. أنت قصدك...
+[Okay. You mean...]
+[09:40] [Laith] هذا كامل هيك لازم يكون الجي إل عندنا هيك.
+[This is complete, this is how the GL should be for us.]
+[09:43] [Amr] ماشي، بس أنت محتاج الكولومز دي ولا مش محتاجها؟ يعني إحنا شفنا السامبل بتاعة الأبلود فيها بس الكولوم ده، مش كده؟ صح؟ أنت بس محتاج ده ولا محتاج إيه؟
+[Okay, but do you need these columns or not? I mean, we saw the upload sample, it only has this column, right? Correct? You just need this one, or what do you need?]
+[09:57] [Laith] هلأ عادي لو كانوا مقسمين زي ما أنت مقسمهم قبل شوي بعدين عاملهم في كولوم واحد زي هيك.
+[Now, it's fine if they were separated like you had them separated a moment ago and then you put them in one column like this.]
+[10:03] [Laith] ماشي؟ والديسكريبشن تبع الجي إل جنبه بكون كثير كويس. يعني مثلًا شوف هون مثلًا كيف معمول، الكوست سنتر مثلًا...
+[Okay? And the description of the GL next to it would be very good. For example, look here how it's done, the cost center for example...]
+[10:11] [Laith] خليك هون بس هون، شوف كوست أند ترافل كوست إكسبنس جي أند إي.
+[Stay here, just here, look at Cost and Travel Cost Expense G&A.]
+[10:15] [Laith] اللي بعدها مثلًا كوليكشن جي أند إي، جنرال جي أند إي، هيك عشان يكون الجي إل لما بقرأه أنا مثلًا بيعطيني السيجمنت كاملين، سواء نص أو رقم.
+[The next one, for example, Collection G&A, General G&A, like this, so that when I read the GL, for example, it gives me the complete segments, whether text or number.]
+[12:18] [Laith] هي الإيجنت هي كلها إكستيرنال، إنتيرنال، إيه نيو هايرينج، عرفت علي؟ كل شي.
+[This agent is for everything: external, internal, uh, new hiring, you know? Everything.]
+[12:27] [Amr] أه لأ أنا فاهم.
+[Ah, no, I understand.]
+[12:27] [Laith] يعني هي ون إيجنت بتشتغل على كل شي ترافل بالشركة.
+[I mean, it's one agent that works on all travel in the company.]
+[12:32] [Amr] أه بس أنا بنقسمهم برضه شوية بسبيشلايزيشن، لكن النهارده فواتير جوال سبيسيفيكلي بتيجي عاملة إزاي؟ بتيجي لإيه؟ ده وات تايب؟ مينلي وات كايند أوف إكسبنس؟
+[Ah, but we also divide them a bit by specialization. But today, specifically, how do Jawal invoices come? What are they for? What type? Mainly what kind of expense?]
+[12:45] [Laith] جوال، جوال سبيسيفيكلي.
+[Jawal, Jawal specifically.]
+[12:46] [Amr] ترافل إكسبنس؟
+[Travel expense?]
+[12:47] [Laith] جوال ترافل إكسبنس.
+[Jawal travel expense.]
+[12:49] [Amr] طبعًا ما فيهوش...
+[Of course, it doesn't have...]
+[12:50] [Laith] بس هي، بس هي يس، بس بس هي بتفرق يعني الترافل عندي في أكثر من من سيكشن للموضوع، يعني ممكن تكون عندي رحلات مثلًا اللي هم رحلات داخلية، ماشي؟ اللي هم بيطلعوا الموظفين فور...
+[But it, but it, yes, but but it differs, I mean, travel for me has more than one section to the topic. I mean, I might have trips, for example, that are domestic trips, okay? Where the employees go out for...]
+[13:06] [Laith] إيه على بروجيكت مثلًا، تمام؟ إكستيرنال ممكن يكون عندي أكثر من شي، يا إما إنه هاير مثلًا، يا إما إنه أنيوال ليف، تمام؟
+[Uh, on a project, for example, okay? External, I might have more than one thing, either it's a hire, for example, or it's an annual leave, okay?]
+[13:16] [Laith] سبونسرينج نفس الشي، ممكن يكون عندي إنتيرنال وإكستيرنال، أنا بعمل قاعد سبونسرينج، ماشي؟ ممكن أحجز لدكتور مثلًا طيارة جوا السعودية، ممكن أحجز له إياها لبرا.
+[Sponsoring is the same thing. I might have internal and external. I'm doing sponsoring, okay? I might book a flight for a doctor, for example, inside Saudi Arabia, or I might book it for him abroad.]
+[13:25] [Laith] صح.
+[Right.]
+[13:26] [Amr] تمام.
+[Okay.]
+[13:27] [Laith] وأبوت إكسبنس سيم.
+[And Abbott expense, same.]
+[13:31] [Amr] أوكيه، فاهم قصدك. فآبوت إكسبنس ده حتى شود بي إتس، إتس سيبريت، صح؟
+[Okay, I see what you mean. So Abbott expense should even be its, it's separate, right?]
+[13:36] [Laith] يس يس.
+[Yes, yes.]
+[13:38] [Amr] طيب.
+[Okay.]
+[13:42] [Amr] أنا دلوقتي بس محتاج، عشان زي ما أنت شايف الإندكس فاضي، ما فيهوش الديتيلز دي.
+[Right now I just need, because as you can see the index is empty, it doesn't have these details.]
+[13:49] [Laith] شايف الإندكس إزاي فاضي؟ فاضي.
+[You see how the index is empty? Empty.]
+[13:53] [Amr] فأنا محتاج الإندكس بتاع الحاجة دي على أساس ما يبقاش عندي إن إي خالص، صح؟ كل دول مش المفروض يبقى فيهم إن إي.
+[So I need the index for this thing so that I don't have any N/A at all, right? All of these shouldn't have N/A.]
+[14:01] [Amr] مش كده؟
+[Right?]
+[14:03] [Laith] يس، أنا هطلع لك ده، بس هو بس يعني أنا ممكن أطلع ده، بس هي الكوست نيم مش هتبقى طالعة للأسف.
+[Yes, I'll get that for you, but it's just, I mean, I can get this, but the cost name won't be included, unfortunately.]
+[14:10] [Amr] عايزين نظبطها على أساس إن الكوست نيم يبقى الحاجة هتبقى كلها كاملة بالشكل ده.
+[We want to adjust it so that the cost name, the thing will be completely whole in this format.]
+[14:16] [Amr] ممكن أعمل لك ران تاني، بس غالبًا مش هيبقى عندنا التفاصيل دي فهتبقى مش كاملة.
+[I can do another run for you, but most likely we won't have these details, so it will be incomplete.]
+[14:24] [Laith] يعني ليه مثلًا، ليه مثلًا حاجة زي كده...
+[I mean, for example, why for example something like this...]
+[14:26] [Amr] أنت تعطيني أنت الفاينال فايل.
+[You give me the final file.]
+[14:29] [Amr] نعم؟
+[What?]
+[14:31] [Amr] ده ده الفايل القديم ده، أنا بس عايز أعرف منك حاجة، هو ليه مثلًا، ليه حاجة زي كده ممكن تكون إن إي؟ يعني هو إيه الكوست سنتر اللي اسمه...
+[This is the old file. I just want to know something from you. Why, for example, why could something like this be N/A? I mean, what is the cost center named...]
+[14:43] [Amr] هو ده الكومباني، لوكيشن، هو اللوكيشنز دي ستاندز فور إيه؟
+[This is the company, location. What do these locations stand for?]
+[14:47] [Amr] اللوكيشن ده بتاع إيه؟
+[What is this location for?]
+[14:50] [Amr] لوكيشن السفر يعني ولا إيه؟ ولا لوكيشن ال...
+[The travel location, you mean, or what? Or the location of the...]
+[14:52] [Amr] الشخص؟
+[Person?]
+[14:55] [Laith] وينه بالضبط؟ أي لوكيشن؟ معلش ورجيني الكولوم.
+[Where exactly? Which location? Show me the column, please.]
+[14:58] [Amr] كومباني، لوكيشن، ده اللي جالي.
+[Company, location, this is what I got.]
+[15:02] [Amr] كومباني 03.
+[Company 03.]
+[15:04] [Amr] كومباني 03 دي إحنا يعني خلاص دي شكلها ما بتتغيرش، دايمًا 03.
+[Company 03, we, I mean, it seems this one doesn't change, it's always 03.]
+[15:08] [Laith] يس، هلأ إحنا إحنا جروب، إحنا جروب، تمام؟ إحنا جروب يعني في عندنا الجيل، عجو، أرديكو مثلًا، إحنا الجيل 3، إحنا بنشتغل على الجيل الآن، تمام؟ عشان هيك الكومباني 3.
+[Yes, now we are a group, we are a group, okay? We are a group, meaning we have AlJeel, Ajou, Ardico for example. We are AlJeel 3, we are working on AlJeel now, okay? That's why the company is 3.]
+[15:17] [Amr] حلو.
+[Great.]
+[15:17] [Laith] سو كل التيكتس المفروض تيجي هلأ بالنسبة للفايل اللي برفعه حتكون الكومباني 3، تمام؟
+[So all the tickets that are supposed to come now for the file I'm uploading will be company 3, okay?]
+[15:23] [Amr] حلو. اللوكيشن بقى ده إيه؟
+[Great. Now, what is this location?]
+[15:25] [Laith] اللي بعده، اللوكيشن اللي هو مثلًا إذا كانت مثلًا، إحنا مقسمين الشركة على 3 لوكيشن.
+[The next one, the location, which is, for example, if it was, for example, we have divided the company into 3 locations.]
+[15:33] [Laith] رياض، جدة، الدمام، تمام؟
+[Riyadh, Jeddah, Dammam, okay?]
+[15:36] [Amr] طيب.
+[Okay.]
+[15:38] [Laith] هلأ الموظف اللي موجود في جدة بيطلع اللوكيشن تبعه لجدة مثلًا، اللي موجود مثلًا اللي هو مثلًا أربعة. اثنين اللي هي الرياض، ثلاث اللي هي دمام مثلًا. فكل موظف حسب الإيريا تبعه بيحط اللوكيشن.
+[Now, the employee who is in Jeddah, his location comes out as Jeddah, for example. The one who is, for example, which is, for example, four. Two is Riyadh, three is Dammam, for example. So each employee, according to his area, sets the location.]
+[15:52] [Amr] طيب والديتا بتاعة كل موظف دي فين؟
+[Okay, and where is the data for each employee?]
+[15:56] [Laith] بتشدوها منين؟
+[Where do you pull it from?]
+[15:57] [Laith] ال... بنشدها بالشيت اللي أعطيتك إياها اللي هي الموجودة المان باور.
+[The... we pull it from the sheet I gave you, the one that's there, the Manpower.]
+[16:02] [Amr] أوكيه.
+[Okay.]
+[16:05] [Amr] مان باور...
+[Manpower...]
+[16:07] [Amr] ماشي، هطلعها، هبص عليها هي فين، بس...
+[Okay, I'll pull it up, I'll look for it, but...]
+[16:12] [Laith] يس.
+[Yes.]
+[16:23] [Laith] كانت في الشير فولدر.
+[It was in the shared folder.]
+[16:24] [Amr] كانت في الشير فولدر، طيب أوكيه.
+[It was in the shared folder, okay, okay.]
+[16:27] [Amr] حلو.
+[Great.]
+[16:28] [Amr] طيب، وخلاص دي فيها اللوكيشن بتاع كل موظف، وبعدين عندك الأكاونت، الأكاونت دي كلها شكلها موجودة جوه الإندكس ده، صح؟ فالإندكس ده ما فيهوش إن إيز خالص، فالإندكس ده كامل مظبوط لويتش أكاونت أو ويتش سبيند، صح؟
+[Okay, and that has the location for each employee. Then you have the account. All these accounts seem to be inside this index, right? So this index has no N/As at all. So this index is complete and correct for which account or which spend, right?]
+[16:46] [Laith] أها.
+[Uh-huh.]
+[16:47] [Amr] تمام.
+[Okay.]
+[16:48] [Amr] وبعدين...
+[And then...]
+[16:51] [Amr] ده بيشد من الأكاونت، وبعدين الكوست سنتر بقى، ده...
+[This pulls from the account. And then the cost center, this...]
+[16:58] [Laith] الكوست سنتر حسب كل ديبارتمنت، يعني...
+[The cost center is according to each department, meaning...]
+[17:02] [Laith] إتش آر، إتش آر، تكنيكال سيرفيس لقسم المينتننس، أوبريشن للأوبريشن، فاينانس للفاينانس، وبعديها عندك كل موظف بالكوس سنتر تبعه اللي هي ال...
+[HR, HR. Technical service for the maintenance department. Operation for operation. Finance for finance. And then you have each employee with their cost center, which is the...]
+[17:13] [Laith] الإيجنسي اللي هو أو إذا كان مثلًا كونتربيوشن أو كان سيلزمان، يعني هيك.
+[The agency, or if it was, for example, contribution or a salesman, something like that.]
+[17:21] [Amr] أوكيه. وده كانت...
+[Okay. And this was...]
+[17:25] [Amr] دلوقتي الأكسس فين؟
+[Now, where is the access?]
+[17:33] [Amr] ده الفايل، بس أكسس دينايد، ما أعرفش هم غيروا الأكسس لينا ولا إيه.
+[This is the file, but access denied. I don't know if they changed our access or what.]
+[17:46] [Laith] كنت أنت بعته تقريبًا يا ليث، مش كده؟
+[You sent it, I think, Laith, right?]
+[17:48] [Laith] يس.
+[Yes.]
+[17:50] [Amr] مش كده؟
+[Right?]
+[17:51] [Laith] يس يس.
+[Yes, yes.]
+[17:52] [Amr] أوكيه.
+[Okay.]
+[17:54] [Amr] طيب، اللي هو...
+[Okay, which is...]
+[18:05] [Amr] اللي هو...
+[Which is...]
+[18:11] [Amr] هي دي الماستر ديتا، صح؟
+[This is the master data, right?]
+[18:19] [Amr] يس، المان باور هاي، اطلع فوق للأول.
+[Yes, this Manpower, go up to the top.]
+[18:24] [Amr] يس، هذه هي.
+[Yes, this is it.]
+[18:26] [Amr] فيها أسماء الموظفين كلهم.
+[It has the names of all the employees.]
+[18:29] [Laith] أه.
+[Ah.]
+[18:30] [Amr] كل واحد إيش الكوست سنتر والديفيجن اللي هاي. فأي واحد بينحجز له تيكت، وحاطين لك كمان وقتها مين اللي بيتسجل عليه ومين اللي ما بيتسجل عليه. يعني لو كان مانجر ما بيتسجل عليه، بيتسجل على الموظفين اللي تحته، خاصة إحنا نتكلم عن سيلز مثلًا، تمام؟
+[Each one, what is the cost center and the division. So anyone who gets a ticket booked, and we've also put for you at that time who it gets recorded against and who it doesn't. Meaning, if it was a manager, it's not recorded against him, it's recorded against the employees under him, especially since we're talking about sales, for example, okay?]
+[18:55] [Amr] أمم.
+[Mm-hmm.]
+[18:56] [Laith] يعني إذا كان كوميرشال مانجر، الكوميرشال مانجر ما بيتسجل عليه شي، بس بيتسجل على السيلزمان اللي تحته.
+[Meaning, if it was a commercial manager, nothing is recorded against the commercial manager, but it's recorded against the salesman under him.]
+[19:05] [Amr] أه لأ، يعني إن كيس لو مثلًا الكوميرشال طلع مثلًا من الرياض على جدة على يزور مثلًا مستشفى، فالإكسبنس هذا ما بيتحمل على الكوميرشال، بيتحمل على ال...
+[Ah no, I mean, in case, for example, the commercial manager went from Riyadh to Jeddah to visit, for example, a hospital, this expense is not charged to the commercial manager, it's charged to the...]
+[19:14] [Amr] السيلزمان اللي تحته، ليش؟ لأنه هي بول، يعني إحنا بنشوف كل موظف مبيعات بيتم عليه إكسبنس بالسنة. هلأ هذا الشي بيفيدنا بال... بالكوميشن وبالإنسنتف آخر السنة، تمام؟
+[The salesman under him. Why? Because it's a pool. Meaning, we look at every sales employee and an expense is incurred for them per year. Now, this thing helps us with the... the commission and the incentive at the end of the year, okay?]
+[19:26] [Amr] يعني إذا واحد عنده بدجت مثلًا، يجي بنقول والله مثلًا البياع رقم إيه عنده إكسبنس هلقد مقابل البدجت تبعه على الألف، فبيطلع له مثلًا بونص هيك مثلًا، تمام؟
+[Meaning, if someone has a budget, for example, we come and say, "Okay, for example, salesman number A has this much expense against his budget of a thousand," so he gets, for example, a bonus like this, for example, okay?]
+[19:35] [Amr] أمم.
+[Mm-hmm.]
+[19:35] [Laith] هلأ الكوميرشال بكون عنده كمان هو تارجت، بكون عنده كي بي آي هو كمان، بس هو بيتحاسب على الجروب اللي تحته، عشان هيك إحنا ما بنسجل على الكوميرشال.
+[Now, the commercial manager also has a target, he also has a KPI, but he is held accountable for the group under him, that's why we don't record against the commercial manager.]
+[19:44] [Amr] فهمت.
+[I understand.]
+[19:44] [Laith] فهمت؟
+[You understand?]
+[19:45] [Amr] أمم أمم أمم.
+[Mm-hmm, mm-hmm, mm-hmm.]
+[19:46] [Laith] يعني الكوميرشال بيتحاسب مجموع الإكسبنس تبعه هو توتال الخمس موظفين اللي تحته. بس كل موظف من الموظفين اللي تحته بيتحاسب على نفسه بس.
+[Meaning, the commercial manager is held accountable for the total expense of the five employees under him. But each of the employees under him is held accountable for himself only.]
+[19:56] [Amr] فاهم.
+[I understand.]
+[19:56] [Amr] فإحنا النهارده واتس ذا، الإكزامبل زي إيه مثلًا؟ مين اللاين مان... يعني مين المانجر؟
+[So today, what's the, the example is like what, for example? Who is the line man... I mean, who is the manager?]
+[20:02] [Amr] زي مين مثلًا الكيس هنا؟
+[Like who, for example, is the case here?]
+[20:05] [Laith] يعني هون مثلًا شوف عندك إيه وبي وسي ودي، تمام؟
+[I mean here, for example, look, you have A, B, C, and D, okay?]
+[20:10] [Amr] فين؟
+[Where?]
+[20:12] [Laith] إيه وبي وسي ودي، اللاين مانجر تبعهم موجود جنبهم اللي هم الإي والإف والجي.
+[A, B, C, and D, their line manager is next to them, which are E, F, and G.]
+[20:17] [Amr] المانجر نمبر واللاين مانجر، طيب.
+[The manager number and the line manager, okay.]
+[20:21] [Amr] تمام.
+[Okay.]
+[20:23] [Laith] فأنت قصدك لو لاين مانجر...
+[So you mean if a line manager...]
+[20:26] [Laith] يس، يعني أنت باللاين مانجر ممكن تشوف واحد من المانجر هو مانجر على أكثر من إيجنسي.
+[Yes, I mean, in the line manager, you might see one of the managers is a manager for more than one agency.]
+[20:34] [Amr] مظبوط.
+[Correct.]
+[20:36] [Amr] ماشي. ولو ده مسافر، لو...
+[Okay. And if this person is traveling, if...]
+[20:38] [Laith] لأنه عندك هي شوف هون بعدها عندك الكود والديفيجن، يعني الكود تبع الديفيجن وإيش اسم الديفيجن، والكود والإيجنسي تبع الكود.
+[Because you have, look here, after it you have the code and the division. Meaning, the code for the division and what the name of the division is, and the code and the agency for the code.]
+[20:47] [Amr] أه.
+[Ah.]
+[20:47] [Laith] ماشي؟ وبعديها كمان الكوست سنتر وهيك.
+[Okay? And after that also the cost center and so on.]
+[20:51] [Amr] طيب ولو حد من دول...
+[Okay, and if one of these...]
+[20:51] [Laith] اليوم لما بيجي بيحجز مثلًا، لنفرض مثلًا الموظف مثلًا اسمه ثامر مثلًا.
+[Today, when he comes to book, for example, let's assume the employee's name is Thamer, for example.]
+[20:57] [Amr] أمم.
+[Mm-hmm.]
+[20:58] [Amr] ثامر؟
+[Thamer?]
+[21:01] [Laith] أه، فبقول لك مثلًا لما بيجي بيحجز موظف مثلًا، فبنروح بنقول إحنا والله مثلًا الكومباني 3، اللوكيشن سنترال مثلًا، الكوست سنتر هيك، الإيجنسي هيك، الديفيجن هيك، وبيكمل الإنتري معنا، فهيك إحنا بنكون مظبوط.
+[Yes, so I'm telling you, for example, when an employee comes to book, for example, we go and say, "Okay, for example, company 3, location central, for example, the cost center is this, the agency is this, the division is this," and the entry continues with us, so this way we are correct.]
+[21:14] [Amr] أمم.
+[Mm-hmm.]
+[21:16] [Amr] الرول، بس الرول ده مش يعني...
+[The rule, but this rule isn't, I mean...]
+[21:18] [Amr] أنت النهارده عندك حد مسافر زي زي ده.
+[Today you have someone traveling like, like this one.]
+[21:23] [Amr] ماشي.
+[Okay.]
+[21:26] [Laith] مثلًا ثامر هذا، يس.
+[For example, this Thamer, yes.]
+[21:28] [Amr] ماشي.
+[Okay.]
+[21:31] [Laith] هلأ هذا ما عنده، هلأ هذا موظف إتش آر مثلًا، تمام؟
+[Now, this one doesn't have, now this is an HR employee, for example, okay?]
+[21:34] [Amr] أه.
+[Ah.]
+[21:35] [Laith] هذا موظف إتش آر، إن كيس لو صار في عليه تيكت، ماشي؟ حنحط إحنا الكوست تبعه، هي عندك هون مثلًا شوف، عندك هون مثلًا الديفيجن والإيجنسي موجودة، الكوست سنتر موجود تبعه.
+[This is an HR employee. In case a ticket is issued for him, okay? We will put his cost. You have here, for example, look, you have here, for example, the division and the agency are present, his cost center is present.]
+[21:48] [Amr] تمام.
+[Okay.]
+[21:49] [Laith] بس زي مثلًا موظفين الإتش آر نادرًا ما يطلعوا أو شي زي هيك.
+[But like, for example, HR employees rarely travel or something like that.]
+[21:52] [Amr] ماشي، عايزين حد تاني مثلًا، تكنيكال سيرفيسز مثلًا ده.
+[Okay, we want someone else, for example, technical services, for example, this one.]
+[21:56] [Amr] أحمد مثلًا، أحمد فتحي.
+[Ahmed, for example, Ahmed Fathi.]
+[21:58] [Laith] يس.
+[Yes.]
+[21:58] [Amr] خلاص.
+[Okay.]
+[22:00] [Amr] أحمد فتحي دايمًا هينزل بالديتا دي، ما فيش بقى تغيير، صح؟
+[Ahmed Fathi will always be entered with this data, there's no change, right?]
+[22:04] [Amr] خلاص أحمد...
+[Okay, Ahmed...]
+[22:05] [Laith] يس.
+[Yes.]
+[22:05] [Amr] إز ألوكيتد على الديتا دي، ما فيهاش كلام كتير.
+[is allocated to this data, there's not much to discuss.]
+[22:09] [Laith] يس.
+[Yes.]
+[22:09] [Amr] كده؟
+[Like that?]
+[22:12] [Amr] طيب، ولو في حد مش موجود هنا وعبارة عن لاين مانجر، يعني هنا اللاين مانجرز مش نازلين هنا أصلًا، صح؟ في المان باور.
+[Okay, and if there's someone who isn't here and is a line manager, I mean, the line managers aren't listed here at all, right? In the Manpower.]
+[22:21] [Laith] لأ، يوم المانجرز نازلين هون بالكولوم، هلأ حتلاقيهم فعلًا حتلاقيهم موجودين هون.
+[No, the managers are listed here in the column. Now, you will actually find them here.]
+[22:27] [Laith] بالكولوم هذا حتلاقيهم موجودين، وحتلاقي هم ريبورتينج لمين.
+[In this column, you will find them, and you will find who they report to.]
+[22:31] [Laith] بس المفروض في عندك اللي هو الكولوم اللي بعد إن.
+[But you should have the column after N.]
+[22:35] [Amr] أه، مازن أهو.
+[Ah, Mazen is here.]
+[22:36] [Laith] تمام.
+[Okay.]
+[22:38] [Laith] فمازن هيبقى...
+[So Mazen will be...]
+[22:40] [Laith] بس مازن عنده كذا حد...
+[But Mazen has several people...]
+[22:41] [Laith] لأ، روح روح على واي، روح على واي، آخر كولوم.
+[No, go, go to Y, go to Y, the last column.]
+[22:45] [Amr] أيوه.
+[Yes.]
+[22:46] [Amr] ما فيش كولوم واي.
+[There is no column Y.]
+[22:48] [Laith] آخر شي، آخر شي، الكولوم الأخير.
+[The last thing, the last thing, the last column.]
+[22:50] [Amr] كان بي يوزد دي؟ أه.
+[Can be used, this one? Ah.]
+[22:52] [Laith] يس، هلأ شوف هذا، كان بي يوزد أو نيد تو ألوكيتد. نيد تو ألوكيتد يعني هذا ما بيتسجل عليه، وي نيد تو ألوكيت فور أنذر ون. هلأ بالإيميل المفروض هو يكون كاتب لك إنه مثلًا هذا التيكت يتسجل على فلان مثلًا.
+[Yes, now look at this, "Can be used" or "Need to allocate". "Need to allocate" means this is not recorded against him, we need to allocate for another one. Now, in the email, he should have written that, for example, this ticket should be recorded against so-and-so, for example.]
+[23:07] [Amr] في الإيميل نفسه.
+[In the email itself.]
+[23:08] [Laith] أمم.
+[Mm-hmm.]
+[23:11] [Laith] أي واحد كان، كان بي يوزد، معناته هذا فينا نسجل عليه دايركت، خلص، ونس إنه التيكت في اسمه، بنقدر نسجل عليه على طول.
+[Anyone who was, "Can be used," that means we can record against him directly, that's it. Once the ticket is in his name, we can record against him right away.]
+[23:19] [Amr] فاهم.
+[I understand.]
+[23:22] [Amr] لو في حد موجود نيد تو ألوكيت، يبقى هي دي اللي محتاجين نبص عليها، صح?
+[If there's someone who is "Need to allocate," then that's the one we need to look at, right?]
+[23:28] [Amr] مش كده؟
+[Right?]
+[23:29] [Laith] يس، نيد تو ألوكيت لازم يكون ما بيتسجل عليه، لازم يتسجل على حد تاني.
+[Yes, "Need to allocate" must not be recorded against him, it must be recorded against someone else.]
+[23:37] [Amr] وهيبان إزاي؟ هيبان في الإيميل؟
+[And how will that be apparent? Will it be in the email?]
+[23:40] [Laith] يس.
+[Yes.]
+[23:41] [Amr] في معظم الكيس بيبقى موجود في الإيميل ولا لازم نقعد نجري وراهم وكده ساعات؟
+[In most cases, is it in the email, or do we have to chase after them and so on sometimes?]
+[23:47] [Laith] هلأ مبدئيًا إحنا بنجري وراهم، بس يعني إذا في تمبلت، اسمع شوف، إذا في شي ممكن تعمل لي إياه تقول لي إذا بيعبوا لي هذه الورقة مثلًا، فيني أعمل لك الإنتري بسهولة، بكون أحسن.
+[Now, initially, we chase after them, but I mean, if there's a template, listen, look, if there's something you can do for me, tell me if they fill out this form for me, for example, I can create the entry for you easily, it would be better.]
+[24:07] [Amr] أوكيه.
+[Okay.]
+[24:08] [Laith] فيني أبعث لهم إياها أقول لهم...
+[I can send it to them and tell them...]
+[24:10] [Amr] طيب.
+[Okay.]
+[24:11] [Laith] ويشتغلوا عليها ستارتد من الشهر الجاي مثلًا.
+[And they can start working on it starting next month, for example.]
+[24:14] [Amr] أوكيه، فهمت قصدك.
+[Okay, I see what you mean.]
+[24:16] [Amr] أوكيه، حلو. فإحنا دلوقتي...
+[Okay, great. So we now...]
+[24:18] [Laith] نعم؟
+[What?]
+[24:18] [Amr] كنت بقترح هيك ممكن يكون أحسن شي لأنه...
+[I was suggesting this might be the best thing because...]
+[24:22] [Laith] فبقول كنت بدي أقترح إنه هيك أحسن شي لو في تمبلت نخليهم يعبوه يكون أتاش بالإيميل، فيصير عندك السيستم يقرأ دايركتلي من التمبلت هاي بكون أحسن.
+[So I was saying I wanted to suggest that this is the best thing, if there's a template we can have them fill out and attach to the email, then your system can read directly from this template, it would be better.]
+[24:31] [Amr] أوكيه أوكيه، فاهم قصدك.
+[Okay, okay, I see what you mean.]
+[24:33] [Amr] خلاص، خلينا نشوف كده أي أحسن طريقة، بس إحنا دلوقتي فهمت يعني أنت دلوقتي عايز الحاجة دي، الحاجة دي بتتكتب، ونس إن هي جت كده بتتكتب كده، 03 كذا كذا، بيعمل زي كونكاتينيشن لكل حاجة، صح؟
+[Okay, let's see which is the best way. But right now, I understand, I mean, you want this thing. This thing gets written, once it comes like this, it's written like this: 03, so-and-so, it does like a concatenation of everything, right?]
+[24:48] [Amr] فعندك الكوست سنتر، والديفيجن والسوليوشن، هل دي في الماستر ديتا برضه؟
+[So you have the cost center, and the division and solution, are these also in the master data?]
+[24:55] [Laith] يس، السيجمنت اللي فوق هذول كلهم لازم يتعبوا.
+[Yes, all those segments above must be filled.]
+[24:59] [Amr] أيوه، بس هو دلوقتي...
+[Yes, but right now...]
+[25:00] [Laith] يعني مثلًا مثلًا، عندك الكولوم إي إي هذا، البروجيكت، أنا ما عندي بروجيكت وما بنستخدم البروجيكت هون، والإنتر كومباني اللي بعدها كمان ما بنستخدمه، فهذا دايمًا زيرو زيرو زيرو.
+[I mean, for example, for example, you have column AA, this one, Project. I don't have a project and we don't use Project here. And the Intercompany after it, we also don't use it, so this is always zero, zero, zero.]
+[25:11] [Laith] وفي عندك الكولوم إي سي كمان، هذا كمان دايمًا زيرو، يعني ما بنستخدمهم هذول.
+[And you have column AC as well, this is also always zero, meaning we don't use these.]
+[25:16] [Laith] هي الفيشرز بالسيستم إحنا ما بنستخدمها.
+[These are features in the system that we don't use.]
+[25:18] [Amr] أه، يعني عندك...
+[Ah, so you have...]
+[25:18] [Laith] فهذول دايمًا زيرو، وما دون ذلك كله لازم يتعبى.
+[So these are always zero, and everything else must be filled.]
+[25:21] [Amr] أه، دول دايمًا زيرو.
+[Ah, these are always zero.]
+[25:23] [Laith] بس ما ينفع يكون في شي نت أبليكابل.
+[But there can't be anything not applicable.]
+[25:25] [Amr] والإيجنسي تتجاب منين؟
+[And where do we get the agency from?]
+[25:28] [Amr] يعني إيجنسي وسوليوشن وال... الكوست سنتر خلاص عرفت الكوست سنتر في الشيت اللي إحنا بصينا عليها مع بعض هنا، صح؟
+[I mean, agency and solution and the... the cost center, I already know the cost center is in the sheet we looked at together here, right?]
+[25:36] [Amr] هنا ال... أنا الإيجنسي هنا أشدها من هنا اللي هي...
+[Here the... I pull the agency from here, which is...]
+[25:42] [Amr] اللي هي، خلينا نشوف هنا، اللوكيشن خلاص، اللوكيشن موجودة هنا في الشيت بتاعتنا ولا لأ؟
+[Which is, let's see here, the location is done. Is the location here in our sheet or not?]
+[25:51] [Amr] اللوكيشن موجودة، صح؟ خلاص، الكومباني دايمًا 03، اللوكيشن هنا موجودة، هتبقى بيسد على الرقم ده.
+[The location is present, right? Okay, the company is always 03, the location is here, it will be based on this number.]
+[26:01] [Amr] مظبوط؟
+[Correct?]
+[26:02] [Laith] تمام هيك ولا في شي كمان؟
+[Is that okay, or is there something else?]
+[26:04] [Amr] لأ، سامعني؟ أنا أنا بتكلم، سامعني ولا لأ؟
+[No, can you hear me? I'm talking, can you hear me or not?]
+[26:07] [Laith] ألو؟
+[Hello?]
+[26:09] [Amr] ألو؟
+[Hello?]
+[26:11] [Amr] ألو؟
+[Hello?]
+[26:13] [Amr] ليث أنت على ميوت تقريبًا، صح؟
+[Laith, you're on mute, I think, right?]
+[26:22] [Amr] ألو؟
+[Hello?]
+[26:24] [Amr] ألو؟
+[Hello?]
+[26:29] [Amr] عمرو؟
+[Amr?]
+[26:30] [Amr] أيوه، كده سامعك.
+[Yes, I can hear you now.]
+[26:32] [Amr] ألو؟
+[Hello?]
+[26:35] [Amr] أيوه، سامعك.
+[Yes, I can hear you.]
+[26:37] [Amr] ألو؟
+[Hello?]
+[26:49] [Amr] ألو؟
+[Hello?]
+[26:50] [Amr] يس عمرو، سامعك.
+[Yes Amr, I can hear you.]
+[26:52] [Amr] أيوه.
+[Yes.]
+[26:53] [Amr] سامعني ولا؟
+[Can you hear me or?]
+[26:56] [Laith] فاينل...
+[Final...]
+[27:02] [Amr] طيب أوكيه. ممكن معلش بس نخلص الحتة دي عشان عشان بس نكونفيرم مع بعض.
+[Okay, okay. Can we please just finish this part so we can just confirm with each other.]
+[27:12] [Amr] أوكيه؟
+[Okay?]
+[27:13] [Laith] تمام.
+[Okay.]
+[27:14] [Amr] يس. بس آخر حتة بس، دلوقتي علشان بس نكونفيرم، أنا دلوقتي عندي خلاص اللوكيشن في الشيت، والأكاونت المفروض في الماستر ديتا شيت برضه، صح؟
+[Yes. Just the last part. Now, just to confirm, I now have the location in the sheet, and the account is supposed to be in the master data sheet as well, right?]
+[27:25] [Laith] يس يس.
+[Yes, yes.]
+[27:27] [Amr] الأكاونت هو...
+[The account is...]
+[27:31] [Amr] فين الأكاونت؟
+[Where is the account?]
+[27:36] [Laith] لأ، الأكاونت بعثنا لك إياهم، بالله روح على الإندكس.
+[No, the account, we sent it to you. Please go to the index.]
+[27:41] [Amr] أه، الأكاونت هو هو من الإندكس، صح.
+[Ah, the account is from the index, right.]
+[27:44] [Laith] يس.
+[Yes.]
+[27:44] [Amr] يس. الأكاونت إذا كان ريكروتمنت مثلًا، هي موجودة، إذا كان أنيوال، أنيوال تيكتس هيك، إذا كان مثلًا ترينينج، وهي الأشياء.
+[Yes. The account, if it was recruitment, for example, it's there. If it was annual, annual tickets like this, if it was, for example, training, and these things.]
+[27:55] [Amr] بيسد على كل ريكويست.
+[Based on every request.]
+[27:58] [Amr] حلو.
+[Great.]
+[27:59] [Amr] وبعدين عندك، عندك ال... فده الجي إل، وبعدين عندك الكوست سنتر، ده اللي إحنا اتكلمنا فيه دلوقتي، صح؟
+[And then you have, you have the... so this is the GL. And then you have the cost center, this is what we talked about just now, right?]
+[28:07] [Laith] أها.
+[Uh-huh.]
+[28:08] [Amr] كل اللي إحنا اتكلمنا فيه.
+[Everything we talked about.]
+[28:09] [Laith] الكوست سنتر موجود بالماستر شيت.
+[The cost center is in the master sheet.]
+[28:11] [Amr] اللي هو هنا، صح؟ اللي هو نستخدم الكوست سنتر، صح؟ ده.
+[Which is here, right? Which is, we use the cost center, right? This one.]
+[28:18] [Amr] تمام؟
+[Okay?]
+[28:19] [Laith] يس، كل واحد الكوست سنتر...
+[Yes, each one the cost center...]
+[28:21] [Amr] والديفيجن والإيجنسي موجود.
+[And the division and agency are present.]
+[28:23] [Amr] أه أوكيه.
+[Ah, okay.]
+[28:25] [Amr] هي الأكاونتس دي تبع إيه الأكاونتس اللي هي في المان باور شيت؟
+[These accounts, what are these accounts in the Manpower sheet for?]
+[28:32] [Laith] دي ده الأكاونت...
+[This is the account...]
+[28:32] [Laith] المان باور هي الأكاونت حاطط اللي هي تشارت أوف أكاونت حاططها، وهي نفسها موجودة في الإندكس اللي هم الحسابات اللي أنت أوريدي بتشتغل عليهم.
+[The Manpower, the account, he put the chart of accounts. And it's the same one that's in the index, which are the accounts you're already working on.]
+[28:39] [Amr] خلاص.
+[Okay.]
+[28:39] [Laith] يعني ما يحتاج هاي تطلع عليها، خلاص.
+[I mean, you don't need to look at this one, that's it.]
+[28:41] [Amr] خلاص أوكيه، مش مهم.
+[Okay, okay, it's not important.]
+[28:42] [Amr] طيب، والنيو كوست وال... والنيو إي... الإيجنسي، الكود ده ينطبق على النيو ديفيجن، والكود ده ينطبق على الإيجنسي، مظبوط؟
+[Okay, and the new cost and the... and the new a... the agency, this code applies to the new division, and this code applies to the agency, correct?]
+[28:54] [Amr] يعني ده...
+[I mean, this...]
+[28:55] [Laith] الكود الأول كود، أول كود بعده الديسكريبشن تبعه. يعني أول كود بعده ديفيجن، الكود الثاني بعده الإيجنسي، والكود الثالث اللي هو ال...
+[The first code is a code, the first code is followed by its description. Meaning, the first code is followed by division, the second code is followed by the agency, and the third code is the...]
+[29:07] [Amr] إحنا بس علشان أرجع...
+[We just, so I can go back...]
+[29:07] [Laith] الكوست سنتر.
+[Cost center.]
+[29:08] [Amr] حلو، يبقى إحنا كده عندنا الديفيجن، وعندنا الإيجنسي، والبروجيكت زيرو، والإنتر كومباني زيرو، والفيوتشر زيرو، وكده يبقى فاضل السوليوشن.
+[Great, so we have the division, and we have the agency, and project is zero, intercompany is zero, future is zero, and so that leaves the solution.]
+[29:17] [Laith] على فكرة هذا اللي عندك الكولوم هذا من أو لغاية إي سي، هذا هو الجي إل أكاونت كامل، يعني لازم يبلش بصفر ثلاث، بعديها اللوكيشن اللي هو أربعة صفر واحد صفر صفر أو اثنين صفر أو ثلاث صفر، بعديها الأكاونت اللي هو موجود بالإندكس، ماشي؟ بعديها الكوست سنتر، ديفيجن، سوليوشن، إيجنسي، اللي هم اللي موجودين بالشيت اللي شفناها من شوي اللي هي الماستر شيت. وآخر شي البروجيكت والإنكوم... الإنتر كومباني والكولوم إي سي، هذول دايمًا زي ما هم، دايمًا أصفار هذول.
+[By the way, this column you have from O to AC, this is the complete GL account. Meaning, it must start with 03, then the location which is 40100 or 20 or 30, then the account which is in the index, okay? Then the cost center, division, solution, agency, which are the ones in the sheet we saw a moment ago, the master sheet. And last thing, the project and the incom... the intercompany and column AC, these are always as they are, always zeros.]
+[29:50] [Amr] خلاص، حلو، جميل.
+[Okay, great, beautiful.]
+[29:52] [Amr] بس هي الفكرة...
+[But the idea is...]
+[29:52] [Laith] طبعًا عدد عدد عدد الزيرو اللي موجود مثلًا بالبروجيكت والموجود بالإنتر كومباني والموجود بال... الكولوم هذا إي سي، تمام؟ لازم يكون نفس عدد الأصفار هذول، تمام؟
+[Of course, the number, the number of zeros that are, for example, in the project and in the intercompany and in the... this column AC, okay? It must be the same number of zeros, okay?]
+[30:04] [Amr] أيوه أيوه أيوه أيوه أيوه.
+[Yes, yes, yes, yes, yes.]
+[30:06] [Amr] ال... بسأل عليه بقى دلوقتي السوليوشن، آخر حاجة، السوليوشن ألاقيه فين؟
+[The... what I'm asking about now is the solution, last thing. Where do I find the solution?]
+[30:13] [Laith] بالماستر شيت.
+[In the master sheet.]
+[30:15] [Amr] ارجع للماستر نشوف.
+[Go back to the master, let's see.]
+[30:17] [Laith] سوليوشن مش...
+[Solution is not...]
+[30:20] [Laith] السلام.
+[Peace.]
+[30:21] [Laith] السوليوشن، بالله في عندك هون كولوم هيو موجود بي.
+[The solution, please, you have a column here, it's P.]
+[30:25] [Laith] أنا السوليوشن مش مطلوب عندي، آخر شي، لو ترجع كمان يمين.
+[I don't require the solution, last thing, if you go further right.]
+[30:29] [Amr] أه، فاضي.
+[Ah, it's empty.]
+[30:30] [Laith] يمين، كولوم بي.
+[Right, column P.]
+[30:31] [Laith] هاي مكتوب هون سوليوشن، لأ، حتلاقيه، بالله اعمل فلتر يعني.
+[It says "solution" here. No, you'll find it. Please, just apply a filter.]
+[30:36] [Laith] أيوه، شوف هنا، حتلاقي في عندي يمكن اثنين أو ثلاث إيجنسي مطلوب عليهم السوليوشن، الثانيين مش مطلوب مني سوليوشن عليهم.
+[Yes, look here. You'll find I might have two or three agencies that require the solution. The others, I don't require a solution for them.]
+[30:44] [Amr] سي آر إم، افتح شوف في شي هنا؟
+[CRM, open it, see if there's anything here?]
+[30:45] [Laith] في بس...
+[There's only...]
+[30:46] [Laith] يس، بالضبط. هذول، هذول الأربعة سوليوشن اللي أنا محتاج يكون في عندي سوليوشن، الثانيين خلص، السوليوشن حيكون زيرو.
+[Yes, exactly. These, these four solutions are the ones I need to have a solution for. The others, that's it, the solution will be zero.]
+[30:53] [Amr] بالله شيل البلانك هون لو سمحت.
+[Please remove the blank here, if you don't mind.]
+[30:55] [Amr] بس كده؟
+[Just like that?]
+[30:58] [Laith] شيل البلانك.
+[Remove the blank.]
+[31:00] [Amr] أه، شلته.
+[Ah, I removed it.]
+[31:00] [Laith] خليني بس يطلع، أه بالضبط، شوف السوليوشن هذا اللي طلع عندي هون، نفسه هذا اللي هو نصًا هذا السوليوشن، تمام؟ أشوف يعني إذا في كودات بخليه لبعدين يبعث لك الكودز تبعهم، والباقيين خلص، السوليوشن حيكون فاضي، ما في شي. يعني ما يحتاج، ما بنستخدم السوليوشن إلا في إيجنسي واحدة اللي هي هاي اللي هي أبوت، ماشي؟
+[Let me just see it... ah, exactly. Look at this solution that came up here, it's the same one, literally this solution, okay? I'll see, I mean, if there are codes, I'll have him send you their codes later. And the rest, that's it, the solution will be empty, there's nothing. I mean, it's not needed, we don't use the solution except for one agency, which is this one, which is Abbott, okay?]
+[31:18] [Amr] أه.
+[Ah.]
+[31:19] [Laith] بتستخدمي لها السوليوشن، كل الأذر إيجنسيز إحنا ما بنستخدم لهم سوليوشن، سو بيقعد فاضي يعني، ما في مشكلة فيه.
+[You use the solution for it. All the other agencies, we don't use a solution for them, so it stays empty, I mean, there's no problem with it.]
+[31:25] [Amr] طيب، والسوليوشن دول أساميهم فين بقى ألاقيهم؟
+[Okay, and these solutions, where do I find their names?]
+[31:31] [Laith] إيه، لأ، السوليوشن خليني أخلي لبعدين يبعث لك إياهم أشوف بس سيستم إذا لهم كودز، يبعث لك إياهم، يقول لك السوليوشن كذا وكذا وكذا، هاي الكودات تبعهم.
+[Uh, no, the solution, let me have him send them to you later. I'll just check the system if they have codes, he'll send them to you, he'll tell you the solution is this, this, and this, these are their codes.]
+[31:39] [Amr] طيب.
+[Okay.]
+[31:40] [Laith] والباقيين كلهم زيرو حيكونوا.
+[And all the rest will be zero.]
+[31:42] [Amr] يعني أي شي سوليوشن قدامك هاي اللي ظاهرة عندك هون خمسة...
+[I mean, any solution in front of you, this one that's appearing here, five...]
+[31:46] [Laith] لأ، شوف هون، شوف هون، دقيقة، شوف شوف، شوف هي عندك كولوم رقمه 27، لاين...
+[No, look here, look here, one minute, look, look, look, you have a column number 27, line...]
+[31:50] [Amr] اثنين بس هم بس...
+[Only two, they are just...]
+[31:51] [Laith] أيوه، شايف هذول؟ هذول السوليوشن، بالضبط.
+[Yes, you see these? These are the solution, exactly.]
+[31:53] [Amr] بس في اثنين بس.
+[But there are only two.]
+[31:54] [Laith] هو أكثر، صح؟
+[It's more, right?]
+[31:55] [Laith] ماشي، لأنه لأنه التيكت اللي انحجزوا بس على التو، على الإيجنسي هاي على التو سوليوشن هذول.
+[Okay, because the tickets that were booked were only on the two, on this agency, on these two solutions.]
+[32:00] [Amr] خلاص، ممكن تبعث لي بس بقية السوليوشنز وأشتغل عليهم؟
+[Okay, can you just send me the rest of the solutions and I'll work on them?]
+[32:03] [Laith] ما في بقية، بس هم هذول.
+[There are no more, just these.]
+[32:04] [Amr] ما عندي غيرهم.
+[I don't have any others.]
+[32:05] [Laith] لأ، أنت هو...
+[No, you, it's...]
+[32:06] [Amr] هو في هنا، في أربعة هنا، صح؟ في...
+[There are here, there are four here, right? There's...]
+[32:11] [Laith] يس.
+[Yes.]
+[32:11] [Amr] سي آر إم، إي بي، إتش إف، وسوليوشن.
+[CRM, EP, HF, and Solution.]
+[32:14] [Laith] هي إحنا وي آر يوزينج السوليوشن فور ذيس إيجنسي أونلي.
+[We are using the solution for this agency only.]
+[32:29] [Laith] فور أول ذي أذر إتس زيرو، وي ديد نوت يوز ذا سوليوشن.
+[For all the other, it's zero. We did not use the solution.]
+[32:33] [Amr] أنا معك، بس أنا قصدي هم إي بي وسي آر إم وإتش إف.
+[I'm with you, but I mean they are EP, CRM, and HF.]
+[32:37] [Amr] أنا بقى عندي، أنا عندي هنا...
+[Now I have, I have here...]
+[32:39] [Amr] الحاجة، عندي سي آر إم وإتش إف، الحاجة الوحيدة اللي ناقصة هيكون الإي بي بس.
+[The thing, I have CRM and HF. The only thing missing will be the EP, that's it.]
+[32:46] [Laith] الإي بي لما يجي تيكت عندي بعدين، يعني مثلًا الإي بي عندك هون مثلًا نورة ومنال مثلًا، بس يحجزوا تيكت هذول، أه مثلًا، ماشي؟ بيطلع السوليوشن لهم. حاليًا بالتيكت هاي اللي انحجزوا، التو سوليوشن هذول ما انحجز لهم تيكتات.
+[The EP, when a ticket comes to me later, I mean, for example, the EP you have here is Noura and Manal, for example. As soon as they book a ticket, ah, for example, okay? The solution for them appears. Currently, in this ticket that was booked, these two solutions didn't have tickets booked for them.]
+[33:01] [Amr] أوكيه.
+[Okay.]
+[33:02] [Laith] فهمتني؟
+[You understand me?]
+[33:02] [Amr] فاهم قصدك.
+[I see what you mean.]
+[33:04] [Amr] بس قصدي لو جت هتبقى فلاجد إن هي ميسينج على فكرة.
+[But I mean, if it comes, it will be flagged as missing, by the way.]
+[33:07] [Laith] نعم؟
+[What?]
+[33:08] [Amr] يعني قصدي لو جت إن ذا فيوتشر، مش المرة دي، بس لو جت بعدين هتبقى ميسينج، يعني هيبان إن هي ميسينج.
+[I mean, if it comes in the future, not this time, but if it comes later, it will be missing, meaning it will appear as missing.]
+[33:14] [Laith] أوكيه.
+[Okay.]
+[33:14] [Laith] يس.
+[Yes.]
+[33:16] [Laith] يعني حتاخذ واحدة من السوليوشن، لو بعدين واحدة فيهم حجزت تيكت، السوليوشن تبعها حيكون مثلًا الإي بي زي ما أنت شفت.
+[I mean, it will take one of the solutions. If later one of them books a ticket, its solution will be, for example, the EP as you saw.]
+[33:23] [Amr] أوكيه.
+[Okay.]
+[33:25] [Amr] السوليوشن بتاعها...
+[Its solution...]
+[33:27] [Amr] أه أوكيه. قصدي هتبقى فلاجد إن هي ميسينج قصدي، عشان إحنا مش عندنا رقم السوليوشن.
+[Ah, okay. I mean, it will be flagged as missing, I mean, because we don't have the solution number.]
+[33:32] [Laith] لأ، هو السوليوشن، هي جسمه ما في له رقم أصلًا هو واحد، ماشي.
+[No, it's the solution, its name doesn't have a number, it's just one, okay.]
+[33:36] [Laith] لأ، ارجع ارجع بالله شوي عن ال...
+[No, go back, go back please a bit from the...]
+[33:38] [Laith] عن الإنتري اللي كنت عامله قبل شوي اللي فلترت عليه، الإكسل اللي فيه اللي بالأخضر.
+[from the entry you were doing a moment ago that you filtered, the Excel with the green.]
+[33:42] [Amr] أيوه، هي دي.
+[Yes, this is it.]
+[33:45] [Laith] أيوه، هي رقم الإيجنسي، ورقم السوليوشن هيو موجود قبل اللي هو بدبليو، كولوم دبليو.
+[Yes, this is the agency number, and the solution number is before it, which is in W, column W.]
+[33:50] [Laith] 100050.
+[100050.]
+[33:52] [Laith] أه، أنت بتضل قصدك إنه في في تو، في تو كودز ميسينج. أوكيه، ما في مشكلة، بجيب لك إياهم.
+[Ah, you still mean that there are two, there are two codes missing. Okay, no problem, I'll get them for you.]
+[33:57] [Amr] بس هو إت ون كود، صح؟ عشان هي...
+[But it's one code, right? Because it's...]
+[34:00] [Laith] إتس أوكيه، ما في مشكلة.
+[It's okay, no problem.]
+[34:01] [Amr] إي بي، عشان هم إي بي، سي آر إم، إي بي، وإتش إف، صح؟
+[EP, because they are EP, CRM, EP, and HF, right?]
+[34:06] [Laith] بضيفه، يس يس، بضيفه، ما في أي مشكلة.
+[I'll add it, yes yes, I'll add it, no problem at all.]
+[34:08] [Amr] فاضل واحد بس.
+[Only one is left.]
+[34:09] [Laith] يعني مش أزمة يعني.
+[I mean, it's not a crisis.]
+[34:10] [Amr] يس، ما في مشكلة. حتى لو بعثت لي إياه بالإيميل إتس فاين.
+[Yes, no problem. Even if you send it to me in an email, it's fine.]
+[34:13] [Amr] يعني حتى لو بعثت لي قول لي الكود بتاعها كذا في الإيميل، ذاتس فاين.
+[I mean, even if you send it to me and tell me its code is so-and-so in the email, that's fine.]
+[34:17] [Amr] خلاص أوكيه، أنا فهمت قصدك، كده تمام.
+[Okay, okay, I see what you mean. That's good.]
+[34:19] [Laith] ماشي، بس ابعث لي إياه، بس ابعث لي إياه، ابعث لي بس على الإيميل إيش اللي هي، وعشان أخلي لبعدين يرد عليك فيهم، تمام؟
+[Okay, just send it to me, just send it to me, just send me an email with what it is, so I can have him reply to you about them later, okay?]
+[34:24] [Amr] خلاص.
+[Okay.]
+[34:25] [Amr] أوكيه.
+[Okay.]
+[34:26] [Amr] خلاص أوكيه، ممتاز. كده كده كده واضح.
+[Okay, okay, excellent. This way, it's clear.]
+[34:29] [Laith] يس.
+[Yes.]
+[34:31] [Amr] إن شاء الله.
+[God willing.]
+[34:32] [Amr] خلاص أوكيه، هنعمل ران تاني ونراجعه مع بعض إن شاء الله.
+[Okay, okay. We'll do another run and review it together, God willing.]
+[34:35] [Laith] ونرجع نشوف مرة ثانية، يس، إن شاء الله المرة الجاية بكون لبعدين موجود معنا كمان، ففيه يعمل لنا أي أدد فاليو في الموضوع.
+[And we'll look again, yes. God willing, next time he will be with us as well, so he can add any value to the topic.]
+[34:43] [Amr] بقول لك ليث، أنت الواتساب بتاعك كام لو سمحت؟
+[I'm telling you, Laith, what's your WhatsApp number, please?]
+[34:49] [Laith] إيه، خذ رقم تليفوني.
+[Uh, take my phone number.]
+[34:52] [Laith] 0598...
+[0598...]
+[34:54] [Amr] دقيقة واحدة.
+[One minute.]
+[34:56] [Laith] بس أنت أه، عشان برا، بلس 966.
+[But you, ah, because you're outside, plus 966.]
+[34:59] [Amr] أيوه، بلس 966.
+[Yes, plus 966.]
+[35:03] [Laith] 598...
+[598...]
+[35:05] [Amr] 598...
+[598...]
+[35:06] [Laith] 737...
+[737...]
+[35:08] [Amr] 737...
+[737...]
+[35:10] [Laith] 501.
+[501.]
+[35:11] [Amr] 501.
+[501.]
+[35:13] [Amr] خلاص ممتاز، عشان لو في بس أي سؤال أو كلاريفيكيشن.
+[Okay, excellent. Just in case there's any question or clarification.]
+[35:16] [Amr] تمام.
+[Okay.]
+[35:17] [Amr] شكرًا.
+[Thank you.]
+[35:17] [Laith] على طول.
+[Right away.]
+[35:17] [Amr] الله يخليك، شكرًا، ممتاز.
+[May God keep you, thank you, excellent.]
+[35:19] [Laith] أهلًا وسهلا فيك.
+[You're welcome.]
+[35:19] [Amr] الله يسلمك.
+[May God keep you safe.]
+[35:20] [Laith] مع السلامة.
+[Goodbye.]
+[35:21] [Amr] مع السلامة.
+[Goodbye.]
+[35:22] [Laith] مع السلامة.
+[Goodbye.]

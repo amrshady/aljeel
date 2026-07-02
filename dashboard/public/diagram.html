@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accord OS — AP Pipeline Architecture Flow</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --brand-primary: #1E40AF;
+            --brand-action: #2563EB;
+            --brand-ink: #111827;
+            --brand-muted: #6B7280;
+            --brand-border: #E5E7EB;
+            --brand-bg-light: #F9FAFB;
+            --brand-sage: #F0F4F3;
+            --brand-success: #10B981;
+            --brand-warning: #F59E0B;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--brand-bg-light);
+            color: var(--brand-ink);
+            line-height: 1.5;
+        }
+
+        header {
+            background-color: white;
+            border-bottom: 1px solid var(--brand-border);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--brand-primary);
+        }
+
+        .logo-text span {
+            color: var(--brand-action);
+            font-weight: 300;
+        }
+
+        .header-meta {
+            font-size: 14px;
+            color: var(--brand-muted);
+            font-weight: 500;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 40px;
+        }
+
+        .intro {
+            margin-bottom: 40px;
+        }
+
+        .intro h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            color: var(--brand-ink);
+            letter-spacing: -0.02em;
+        }
+
+        .intro p {
+            font-size: 18px;
+            color: var(--brand-muted);
+            margin: 0;
+            font-weight: 400;
+            max-width: 800px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+
+        .card {
+            background-color: white;
+            border: 1px solid var(--brand-border);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--brand-border);
+            padding-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--brand-ink);
+        }
+
+        .badge {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-primary {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: var(--brand-action);
+        }
+
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--brand-success);
+        }
+
+        .badge-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--brand-warning);
+        }
+
+        /* Interactive Diagram Styles */
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: stretch;
+            gap: 24px;
+            background: white;
+            border: 1px solid var(--brand-border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .flow-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .step-number {
+            background-color: var(--brand-primary);
+            color: white;
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: 700;
+            border-right: 1px solid var(--brand-border);
+        }
+
+        .step-number span {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        .step-content {
+            padding: 24px;
+            flex-grow: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .step-text {
+            max-width: 450px;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--brand-ink);
+        }
+
+        .step-desc {
+            font-size: 14px;
+            color: var(--brand-muted);
+            margin: 0;
+        }
+
+        .step-viz {
+            flex-shrink: 0;
+            background-color: var(--brand-bg-light);
+            border: 1px solid var(--brand-border);
+            border-radius: 6px;
+            padding: 16px;
+            min-width: 320px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .flow-arrow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 24px;
+        }
+
+        .flow-arrow svg {
+            color: var(--brand-action);
+            fill: none;
+        }
+
+        .data-key {
+            color: #7C3AED;
+            font-weight: 600;
+        }
+
+        .data-val {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .data-hl {
+            background-color: #FEF3C7;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        /* Legend Footer */
+        .diagram-footer {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--brand-muted);
+            border-top: 1px solid var(--brand-border);
+            padding-top: 20px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Accent bar */
+        .content-slide {
+            border-left: 4px solid var(--brand-action);
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 19H22L12 2Z" stroke="#1E40AF" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M7 14H17" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <div class="logo-text">Accord <span>OS</span></div>
+        </div>
+        <div class="header-meta">AP Pipeline Automation · Version v30 · Live Specimen</div>
+    </header>
+
+    <main>
+        <div class="intro content-slide">
+            <h1>Sponsorship Processing Architecture</h1>
+            <p>A detailed step-by-step visual walk-through of how the v30 pipeline uses intelligent folder discovery, PDF ingestion, and LLM resolution to process complex AP records using the <strong>Abeer Bakhsh</strong> transaction as a sample.</p>
+        </div>
+
+        <div class="grid-container">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Sample Record Resolution: Abeer Bakhsh (Ticket 26-744)</h2>
+                    <span class="badge badge-success">100% Resolved</span>
+                </div>
+
+                <div class="diagram-container">
+                    
+                    <!-- STEP 1 -->
+                    <div class="flow-step">
+                        <div class="step-number">01<span>Input</span></div>
+                        <div class="step-content">
+                            <div class="step-text">
+                                <h3 class="step-title">Invoice Row Detection (Spreadsheet Baseline)</h3>
+                                <p class="step-desc">The pipeline reads the incoming invoice sheet. It detects a passenger row containing the description and a ticket reference, but is missing cost center and allocation details.</p>
+                            </div>
+                            <div class="step-viz">
+                                <div><strong>Passenger:</strong> <span class="data-val">"ABEER BAKHSH"</span></div>
+                                <div><strong>Description:</strong> <span class="data-val">"ABEER BAKHSH... (26-744)"</span></div>
+                                <div><strong>Amount:</strong> <span class="data-val">1,000 SAR</span></div>
+                                <div style="color: var(--brand-muted); margin-top: 8px;">* No ticket folder found matching name "26-744"</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow">
+                        <svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg>
+                    </div>
+
+                    <!-- STEP 2 -->
+                    <div class="flow-step">
+                        <div class="step-number">02<span>Scan</span></div>
+                        <div class="step-content">
+                            <div class="step-text">
+                                <h3 class="step-title">Deep PDF Ingestion & Reverse Indexing</h3>
+                                <p class="step-desc"><strong>New in v30:</strong> The scanner crawls all directories, opens PDF files, and indexes them. It parses the OPEX form inside a general directory named "Riyadh Reservation - May" and detects "Abeer Bakhsh" on the attendees line.</p>
+                            </div>
+                            <div class="step-viz">
+                                <div><strong>Evidence Folder:</strong> <span class="data-val">"06may/Riyadh Reservation - May"</span></div>
+                                <div><strong>Parsed File:</strong> <span class="data-val">"OPEX-HF-2026-17-J-2026-93.pdf"</span></div>
+                                <div><strong>Attendee Field:</strong> <span class="data-hl">"Attendees: Dr Abeer Bakhsh"</span></div>
+                                <div style="color: var(--brand-primary); margin-top: 8px;"><strong>Mapped Folder 26-744 ➔ "Riyadh Reservation - May"</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow">
+                        <svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg>
+                    </div>
+
+                    <!-- STEP 3 -->
+                    <div class="flow-step">
+                        <div class="step-number">03<span>Extract</span></div>
+                        <div class="step-content">
+                            <div class="step-text">
+                                <h3 class="step-title">Requester Identification Overlay</h3>
+                                <p class="step-desc">The pipeline scans the table of the validated OPEX PDF and extracts the responsible AlJeel employee (the requester) who sponsored the event.</p>
+                            </div>
+                            <div class="step-viz">
+                                <div><strong>OPEX Text Block:</strong></div>
+                                <div style="color: var(--brand-muted);">"Employee No | Name | Amount"</div>
+                                <div class="data-hl">"1002483 | Rawad Malaeb | 15,000.00"</div>
+                                <div style="color: var(--brand-primary); margin-top: 8px;"><strong>Classification Hint:</strong> requester_emp_no = "1002483"</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow">
+                        <svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg>
+                    </div>
+
+                    <!-- STEP 4 -->
+                    <div class="flow-step">
+                        <div class="step-number">04<span>LLM</span></div>
+                        <div class="step-content">
+                            <div class="step-text">
+                                <h3 class="step-title">Master Directory Lookup & LLM Resolution</h3>
+                                <p class="step-desc">Gemini Pro uses the extracted requester employee number (1002483) to fetch home allocation codes from the master database, applying Abbott HF (Heart Failure) rules.</p>
+                            </div>
+                            <div class="step-viz">
+                                <div><strong>Requester Master Record (1002483):</strong></div>
+                                <div>- Cost Center: <span class="data-val">"200010"</span> (Technical Services)</div>
+                                <div>- DIV: <span class="data-val">"120"</span> · Agency: <span class="data-val">"10206"</span></div>
+                                <div style="color: var(--brand-primary); margin-top: 8px;"><strong>LLM Output Combo:</strong> 03-20100-60301003-200010-120-00000-10206</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow">
+                        <svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg>
+                    </div>
+
+                    <!-- STEP 5 -->
+                    <div class="flow-step">
+                        <div class="step-number">05<span>Output</span></div>
+                        <div class="step-content">
+                            <div class="step-text">
+                                <h3 class="step-title">Post-Processing Overlay & Distribution Write</h3>
+                                <p class="step-desc">The pipeline writes the finalized Distribution Combination, sets the Employee No column, regenerates the readable text labels, and validates the row.</p>
+                            </div>
+                            <div class="step-viz">
+                                <div><strong>Distribution Combo:</strong> <span class="data-val">"03-20100-60301003-200010-120..."</span></div>
+                                <div><strong>Employee No:</strong> <span class="data-val">1002483</span> (Rawad Malaeb)</div>
+                                <div><strong>GL Description:</strong> <span class="data-val">"... · 00000 · 00 · 000000"</span></div>
+                                <div style="color: var(--brand-success); margin-top: 8px;"><strong>Row Status: GREEN (100% matched)</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="diagram-footer">
+                    <div>Accord Partners © 2026. Confidential & Proprietary.</div>
+                    <div class="legend">
+                        <div class="legend-item"><span class="legend-dot" style="background-color: var(--brand-primary);"></span>Parent Brand</div>
+                        <div class="legend-item"><span class="legend-dot" style="background-color: var(--brand-action);"></span>Action Blue</div>
+                        <div class="legend-item"><span class="legend-dot" style="background-color: var(--brand-success);"></span>Success Status</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

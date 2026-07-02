@@ -6,7 +6,8 @@ The canonical reference layer for AP processing. Six files, ~480 lines, no dupli
 
 | Question shape | Read |
 |---|---|
-| "How do I process a new J&J / Asateel / Jawal batch?" | vendor-handlers.md |
+| **"How do I RUN an Asateel batch?" (stage/run/verify/deliver)** | **asateel-runbook.md** (Asateel ONLY — not Jawal) |
+| "How do I process a new J&J / Asateel / Jawal batch?" (patterns/strategy) | vendor-handlers.md |
 | "What does catch category X mean? What's the severity?" | catch-rules.md |
 | "Why did v1/v2 over-flag X? What was fixed?" | known-issues.md |
 | "What vendor / cost-center / currency is this?" | master-data.md |
@@ -15,6 +16,7 @@ The canonical reference layer for AP processing. Six files, ~480 lines, no dupli
 
 ## File map
 
+- `asateel-runbook.md` — **Asateel-ONLY** canonical run procedure (stage → run → golden gate → deliver). Scoped so it never gets confused with Jawal or other vendors.
 - `vendor-handlers.md` — per-vendor file patterns, discovery, match strategy, benchmarks
 - `catch-rules.md` — exact catch logic, thresholds, severity assignments
 - `known-issues.md` — resolved bugs (v1 → v3) + open / known limits + process lessons

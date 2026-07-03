@@ -6,6 +6,7 @@ export const DocumentTypeSchema = z.enum([
   'GRN_COPY',
   'CONTRACT',
   'TIMESHEET',
+  'ORACLE_UPLOAD',
   'OTHER',
 ]);
 export type DocumentType = z.infer<typeof DocumentTypeSchema>;

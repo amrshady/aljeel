@@ -31,12 +31,6 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -45,6 +39,7 @@ export async function apiFetch<T>(
     response = await fetch(`${getBaseUrl()}${path}`, {
       ...init,
       headers,
+      credentials: init.credentials ?? 'include',
       signal: controller.signal,
     });
   } catch (error) {
@@ -88,14 +83,10 @@ export function getHealth() {
 
 async function fetchBinary(path: string): Promise<Blob> {
   const headers = new Headers();
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
 
   const response = await fetch(`${getBaseUrl()}${path}`, {
     headers,
+    credentials: 'include',
     redirect: 'follow',
   });
   if (!response.ok) {

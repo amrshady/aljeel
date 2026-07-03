@@ -33,6 +33,10 @@ function canAccessAnyInvoice(user: AuthUser): boolean {
   return AP_ROLES.has(user.role);
 }
 
+function isApUser(user: AuthUser): boolean {
+  return AP_ROLES.has(user.role);
+}
+
 interface UploadedFile {
   originalname: string;
   mimetype: string;
@@ -118,6 +122,7 @@ export class DocumentsService {
 
     const payload = DocumentCompleteUploadSchema.parse(body);
     const { storageKey, fileName, mimeType, sizeBytes, type } = payload;
+    this.assertSupplierUploadType(type);
 
     if (sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException({
@@ -184,6 +189,7 @@ export class DocumentsService {
     }
 
     const { type } = UploadDocumentMetaSchema.parse(meta ?? {});
+    this.assertSupplierUploadType(type);
     const supplierId = requireSupplierId(user);
     const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
     this.assertUploadAllowed(invoice.status);
@@ -218,7 +224,10 @@ export class DocumentsService {
   async list(user: AuthUser, invoiceId: string) {
     await this.assertInvoiceAccess(user, invoiceId);
     const docs = await this.prisma.document.findMany({
-      where: { invoiceId },
+      where: {
+        invoiceId,
+        ...(isApUser(user) ? {} : { type: { not: 'ORACLE_UPLOAD' as const } }),
+      },
       orderBy: { createdAt: 'asc' },
     });
     return docs.map(serializeDocument);
@@ -239,6 +248,7 @@ export class DocumentsService {
       throw this.documentNotFound();
     }
     await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
+    this.assertDocumentVisible(user, document);
 
     if (this.isKbStorageKey(document.storageKey)) {
       const url = await this.kb.createDownloadUrl(document.storageKey);
@@ -259,6 +269,7 @@ export class DocumentsService {
       throw this.documentNotFound();
     }
     await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
+    this.assertDocumentVisible(user, document);
 
     if (this.isKbStorageKey(document.storageKey)) {
       const url = await this.kb.createDownloadUrl(document.storageKey);
@@ -317,6 +328,21 @@ export class DocumentsService {
         message: 'Documents cannot be added once an invoice is approved or paid.',
         details: { status },
       });
+    }
+  }
+
+  private assertSupplierUploadType(type: string) {
+    if (type === 'ORACLE_UPLOAD') {
+      throw new UnprocessableEntityException({
+        code: 'DOCUMENT_TYPE_NOT_ALLOWED',
+        message: 'This document type is reserved for AP integrations.',
+      });
+    }
+  }
+
+  private assertDocumentVisible(user: AuthUser, document: DocumentRow) {
+    if (document.type === 'ORACLE_UPLOAD' && !isApUser(user)) {
+      throw this.documentNotFound();
     }
   }
 

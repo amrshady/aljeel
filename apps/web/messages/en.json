@@ -22,14 +22,11 @@
   "auth": {
     "title": "Sign in",
     "subtitle": "Self-service invoice submission and payment tracking for suppliers",
-    "email": "Email",
-    "password": "Password",
-    "login": "Continue",
-    "mfaHint": "Enter the 6-digit code from your authenticator (dev: 000000)",
-    "verify": "Verify",
-    "loginError": "Invalid email or password",
-    "mfaError": "Invalid MFA code",
-    "loading": "Signing in…"
+    "cloudflareSubtitle": "Cloudflare Access will verify your email and one-time code before opening the portal.",
+    "accessRequiredTitle": "Access required",
+    "accessRequiredBody": "Cloudflare Access must verify your email before this portal can load your account.",
+    "signInWithAccess": "Sign in with Cloudflare Access",
+    "loading": "Loading account…"
   },
   "dashboard": {
     "portalName": "Aljeel AP Portal",
@@ -110,6 +107,13 @@
     "filesHint": "Add all your files in one upload. Progress is shown for each file.",
     "filesDropTitle": "Drag & drop a folder or files here, or click to browse",
     "filesDropHint": "Upload a whole folder — every file inside will be listed and uploaded individually",
+    "asateelRegion": "Asateel region",
+    "asateelRegionPlaceholder": "Select region",
+    "asateelRegions": {
+      "CENTRAL": "Central",
+      "PROJECTS": "Projects",
+      "ADMIN": "Admin"
+    },
     "saveDraft": "Save draft",
     "submit": "Submit for review",
     "saving": "Saving…",
@@ -246,6 +250,25 @@
       "PAID": "Paid",
       "REJECTED": "Rejected",
       "ON_HOLD": "On hold"
+    }
+  },
+  "asateelReconciliation": {
+    "title": "Asateel reconciliation",
+    "download": "Download Oracle upload",
+    "rerun": "Re-run",
+    "rerunning": "Re-running…",
+    "rerunError": "Could not re-run reconciliation",
+    "downloadError": "Could not download Oracle upload",
+    "region": "Region: {region}",
+    "queuePosition": "Queue: {position}",
+    "lastChecked": "Checked: {value}",
+    "status": {
+      "QUEUED": "Queued",
+      "RUNNING": "Running",
+      "DONE": "Completed",
+      "DONE_EMAIL_FAILED": "Completed — email failed",
+      "FAILED": "Failed",
+      "STATUS_LOST": "Status lost — check ops / re-run"
     }
   },
   "footer": {

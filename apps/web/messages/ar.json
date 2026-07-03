@@ -22,14 +22,11 @@
   "auth": {
     "title": "تسجيل الدخول",
     "subtitle": "تقديم الفواتير وتتبع المدفوعات للموردين بشكل ذاتي",
-    "email": "البريد الإلكتروني",
-    "password": "كلمة المرور",
-    "login": "متابعة",
-    "mfaHint": "أدخل الرمز المكون من 6 أرقام (للتطوير: 000000)",
-    "verify": "تحقق",
-    "loginError": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-    "mfaError": "رمز التحقق غير صحيح",
-    "loading": "جاري تسجيل الدخول…"
+    "cloudflareSubtitle": "سيتحقق Cloudflare Access من بريدك الإلكتروني ورمز الدخول لمرة واحدة قبل فتح البوابة.",
+    "accessRequiredTitle": "يتطلب الوصول",
+    "accessRequiredBody": "يجب أن يتحقق Cloudflare Access من بريدك الإلكتروني قبل تحميل حسابك في البوابة.",
+    "signInWithAccess": "تسجيل الدخول عبر Cloudflare Access",
+    "loading": "جاري تحميل الحساب…"
   },
   "dashboard": {
     "portalName": "بوابة الجيل للموردين",
@@ -110,6 +107,13 @@
     "filesHint": "أضف كل ملفاتك في رفع واحد. يظهر تقدم كل ملف أثناء الرفع.",
     "filesDropTitle": "اسحب وأفلت مجلداً أو ملفات هنا، أو انقر للاختيار",
     "filesDropHint": "ارفع مجلداً كاملاً — سيُعرض كل ملف بداخله ويُرفع على حدة",
+    "asateelRegion": "منطقة أساطيل",
+    "asateelRegionPlaceholder": "اختر المنطقة",
+    "asateelRegions": {
+      "CENTRAL": "المركزية",
+      "PROJECTS": "المشاريع",
+      "ADMIN": "الإدارة"
+    },
     "saveDraft": "حفظ مسودة",
     "submit": "تقديم للمراجعة",
     "saving": "جاري الحفظ…",
@@ -246,6 +250,25 @@
       "PAID": "مدفوعة",
       "REJECTED": "مرفوضة",
       "ON_HOLD": "معلقة"
+    }
+  },
+  "asateelReconciliation": {
+    "title": "مطابقة أساطيل",
+    "download": "تنزيل ملف أوراكل",
+    "rerun": "إعادة التشغيل",
+    "rerunning": "جاري إعادة التشغيل…",
+    "rerunError": "تعذرت إعادة تشغيل المطابقة",
+    "downloadError": "تعذر تنزيل ملف أوراكل",
+    "region": "المنطقة: {region}",
+    "queuePosition": "الترتيب: {position}",
+    "lastChecked": "آخر تحقق: {value}",
+    "status": {
+      "QUEUED": "في الانتظار",
+      "RUNNING": "قيد التشغيل",
+      "DONE": "مكتملة",
+      "DONE_EMAIL_FAILED": "مكتملة — فشل إرسال البريد",
+      "FAILED": "فشلت",
+      "STATUS_LOST": "فُقدت الحالة — راجع التشغيل / أعد التشغيل"
     }
   },
   "footer": {

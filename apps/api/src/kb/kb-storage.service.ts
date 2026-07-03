@@ -12,6 +12,7 @@ import {
   invoiceDocumentKey,
   toFullObjectKey,
 } from '@aljeel/kb-upload/dist/server';
+import type { Readable } from 'node:stream';
 
 export interface KbPresignedPut {
   url: string;
@@ -82,6 +83,17 @@ export class KbStorageService {
     const objectKey = toFullObjectKey(this.prefix, storageKey);
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: objectKey });
     return getSignedUrl(this.client!, command, { expiresIn });
+  }
+
+  async createReadStream(storageKey: string): Promise<Readable> {
+    this.assertEnabled();
+    const objectKey = toFullObjectKey(this.prefix, storageKey);
+    const command = new GetObjectCommand({ Bucket: this.bucket, Key: objectKey });
+    const response = await this.client!.send(command);
+    if (!response.Body || !('pipe' in response.Body)) {
+      throw new Error('KB object response is not streamable.');
+    }
+    return response.Body as Readable;
   }
 
   async deleteObject(storageKey: string): Promise<void> {

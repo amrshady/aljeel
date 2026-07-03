@@ -1,12 +1,13 @@
 'use client';
 
-import type { UserRole } from '@aljeel/shared-types';
+import type { ApInvoiceDetail, UserRole } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApReviewActions } from '@/components/ap-review-actions';
+import { AsateelReconciliationPanel } from '@/components/asateel-reconciliation-panel';
 import { AppShell } from '@/components/app-shell';
 import { PageLoading } from '@/components/loading-spinner';
 import { useAuth } from '@/components/auth-provider';
@@ -92,6 +93,7 @@ function InvoiceDetailContent() {
   const canUploadDocs =
     !isApUser && !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
   const supplierName = 'supplierName' in invoice ? invoice.supplierName : undefined;
+  const apInvoice = isApUser ? (invoice as ApInvoiceDetail) : null;
 
   return (
     <AppShell>
@@ -127,8 +129,14 @@ function InvoiceDetailContent() {
       )}
 
       {isApUser && (
-        <div className="mt-6">
+        <div className="mt-6 space-y-4">
           <ApReviewActions invoiceId={invoice.id} status={invoice.status} />
+          {apInvoice && (
+            <AsateelReconciliationPanel
+              invoiceId={invoice.id}
+              initialStatus={apInvoice.reconciliation}
+            />
+          )}
         </div>
       )}
 

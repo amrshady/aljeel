@@ -16,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
 import { invoiceNotFound } from '../common/tenant.util';
 import { serializeInvoice, serializeTimelineEvent } from '../invoices/invoices.service';
+import { AsateelIntegrationService } from './asateel-integration.service';
 
 const EXCEPTION_STATUSES = ['UNDER_REVIEW', 'ON_HOLD'] as const;
 
@@ -24,6 +25,7 @@ export class ApService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly asateel: AsateelIntegrationService,
   ) {}
 
   async listExceptions(query: Record<string, string | undefined>) {
@@ -101,6 +103,7 @@ export class ApService {
     return {
       ...serializeInvoice(invoice),
       supplierName: invoice.supplier.legalName,
+      reconciliation: await this.asateel.getStatus(id),
       timeline: events.map(serializeTimelineEvent),
     };
   }
@@ -121,6 +124,14 @@ export class ApService {
 
   async resume(user: AuthUser, id: string) {
     return this.transition(user, id, 'UNDER_REVIEW');
+  }
+
+  getReconciliationStatus(id: string) {
+    return this.asateel.getStatus(id);
+  }
+
+  rerunReconciliation(user: AuthUser, id: string) {
+    return this.asateel.rerun(id, user.sub);
   }
 
   private async transition(
@@ -190,6 +201,20 @@ export class ApService {
       before: { status: invoice.status },
       after: { status: toStatus, ...(extra?.comment ? { comment: extra.comment } : {}) },
     });
+
+    if (toStatus === 'APPROVED') {
+      void this.asateel.dispatchAfterApproval(id, user.sub).catch((error) =>
+        this.audit.record({
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: id,
+          action: 'ASATEEL_DISPATCH_ERROR',
+          after: {
+            error: error instanceof Error ? error.message : 'Asateel dispatch failed.',
+          },
+        }),
+      );
+    }
 
     return { id, status: toStatus };
   }

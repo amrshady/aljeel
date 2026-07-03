@@ -3,6 +3,7 @@ import {
   ApExceptionListSchema,
   ApHoldRequestSchema,
   ApInvoiceDetailSchema,
+  ApReconciliationStatusSchema,
   ApRejectRequestSchema,
 } from '@aljeel/shared-types';
 import { apiFetch } from './api-client';
@@ -20,6 +21,12 @@ export function listApExceptions(params: Record<string, string | undefined> = {}
 
 export function getApInvoice(id: string) {
   return apiFetch(`/ap/invoices/${id}`, { schema: ApInvoiceDetailSchema });
+}
+
+export function getApReconciliationStatus(id: string) {
+  return apiFetch(`/ap/invoices/${id}/reconciliation`, {
+    schema: ApReconciliationStatusSchema,
+  });
 }
 
 export function approveInvoice(id: string) {
@@ -51,5 +58,12 @@ export function resumeInvoiceReview(id: string) {
   return apiFetch(`/ap/invoices/${id}/resume`, {
     method: 'POST',
     schema: ApActionResponseSchema,
+  });
+}
+
+export function rerunApReconciliation(id: string) {
+  return apiFetch(`/ap/invoices/${id}/reconciliation/rerun`, {
+    method: 'POST',
+    schema: ApReconciliationStatusSchema,
   });
 }

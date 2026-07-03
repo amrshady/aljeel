@@ -10,6 +10,7 @@ import {
   UpsertInvoiceDraftSchema,
   ArchiveInvoiceResponseSchema,
   type UpsertInvoiceDraft,
+  type AsateelRegion,
 } from '@aljeel/shared-types';
 import { z } from 'zod';
 import { apiFetch } from './api-client';
@@ -34,9 +35,9 @@ export function getInvoice(id: string) {
   return apiFetch(`/invoices/${id}`, { schema: InvoiceDetailSchema });
 }
 
-export function createInvoiceDraft(invoiceNumber?: string) {
+export function createInvoiceDraft(invoiceNumber?: string, asateelRegion?: AsateelRegion) {
   const payload = CreateInvoiceDraftSchema.parse(
-    invoiceNumber ? { invoiceNumber } : {},
+    invoiceNumber || asateelRegion ? { invoiceNumber, asateelRegion } : {},
   );
   return apiFetch('/invoices', {
     method: 'POST',
@@ -76,15 +77,9 @@ export function listInvoiceDocuments(invoiceId: string) {
 
 export async function getDocumentViewUrl(documentId: string) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  const headers: HeadersInit = {};
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${baseUrl}/documents/${documentId}/content`, {
-    headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {

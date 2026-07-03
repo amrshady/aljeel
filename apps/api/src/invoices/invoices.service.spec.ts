@@ -16,10 +16,11 @@ describe('InvoicesService tenant isolation', () => {
       service.getById(
         {
           sub: 'u1',
+          id: 'u1',
           email: 'a@test.com',
+          fullName: 'Supplier User',
           role: 'SUPPLIER_ADMIN',
           supplierId: 'supplier_a',
-          mfaVerified: true,
         },
         'inv_other',
       ),
@@ -37,10 +38,11 @@ describe('InvoicesService supplier scope', () => {
       service.list(
         {
           sub: 'clerk',
-          email: 'clerk@aljeel.test',
+          id: 'clerk',
+          email: 'clerk@aljeel.com',
+          fullName: 'AP Clerk',
           role: 'AP_CLERK',
           supplierId: null,
-          mfaVerified: true,
         },
         {},
       ),

@@ -1,3 +1,3 @@
-import type { JwtPayload } from '@aljeel/shared-types';
+import type { AuthIdentity } from '@aljeel/shared-types';
 
-export type AuthUser = JwtPayload & { sub: string };
+export type AuthUser = AuthIdentity & { id: string };

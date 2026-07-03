@@ -15,10 +15,6 @@ function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 }
 
-function getAuthToken(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-}
-
 function kbApi(invoiceId: string): KbUploadApi {
   return {
     requestUploadUrl: ({ fileName, sizeBytes, type }) =>
@@ -95,8 +91,7 @@ function uploadInvoiceDocumentMultipart(
     };
     xhr.onerror = () => reject(new ApiClientError('NETWORK_ERROR', 'Network error during upload', 'unknown'));
     xhr.open('POST', `${getBaseUrl()}/invoices/${invoiceId}/documents`);
-    const token = getAuthToken();
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.withCredentials = true;
     xhr.send(form);
   });
 }

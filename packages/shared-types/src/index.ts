@@ -33,6 +33,18 @@ export const InvoiceStatusSchema = z.enum([
 ]);
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;
 
+export const AsateelRegionSchema = z.enum(['CENTRAL', 'PROJECTS', 'ADMIN']);
+export type AsateelRegion = z.infer<typeof AsateelRegionSchema>;
+
+export const AsateelRunStatusSchema = z.enum([
+  'QUEUED',
+  'RUNNING',
+  'DONE',
+  'FAILED',
+  'STATUS_LOST',
+]);
+export type AsateelRunStatus = z.infer<typeof AsateelRunStatusSchema>;
+
 export const VerificationStatusSchema = z.enum(['PENDING', 'VERIFIED', 'REJECTED']);
 export type VerificationStatus = z.infer<typeof VerificationStatusSchema>;
 
@@ -84,6 +96,5 @@ export const AuthMeResponseSchema = z.object({
   fullName: z.string(),
   role: UserRoleSchema,
   supplierId: z.string().nullable(),
-  mfaEnabled: z.boolean(),
 });
 export type AuthMeResponse = z.infer<typeof AuthMeResponseSchema>;

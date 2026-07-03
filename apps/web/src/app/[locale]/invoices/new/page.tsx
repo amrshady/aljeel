@@ -1,5 +1,6 @@
 'use client';
 
+import type { AsateelRegion } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
 import { useTranslations } from 'next-intl';
 import { FormEvent, useRef, useState } from 'react';
@@ -29,6 +30,7 @@ function InvoiceUploadContent() {
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
   const [folderName, setFolderName] = useState<string | null>(null);
+  const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
   const [draftInvoiceId, setDraftInvoiceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -97,7 +99,10 @@ function InvoiceUploadContent() {
     try {
       let invoiceId = draftInvoiceId;
       if (!invoiceId) {
-        const invoice = await createInvoiceDraft(folderName ?? undefined);
+        const invoice = await createInvoiceDraft(
+          folderName ?? undefined,
+          asateelRegion || undefined,
+        );
         invoiceId = invoice.id;
         setDraftInvoiceId(invoice.id);
       }
@@ -168,6 +173,24 @@ function InvoiceUploadContent() {
                 hint={t('filesDropHint')}
               />
             </div>
+          </div>
+
+          <div className="max-w-xs">
+            <label className="text-sm font-medium">{t('asateelRegion')}</label>
+            <select
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              value={asateelRegion}
+              disabled={uploading}
+              onChange={(event) => {
+                setAsateelRegion(event.target.value as AsateelRegion | '');
+                setDraftInvoiceId(null);
+              }}
+            >
+              <option value="">{t('asateelRegionPlaceholder')}</option>
+              <option value="CENTRAL">{t('asateelRegions.CENTRAL')}</option>
+              <option value="PROJECTS">{t('asateelRegions.PROJECTS')}</option>
+              <option value="ADMIN">{t('asateelRegions.ADMIN')}</option>
+            </select>
           </div>
 
           {error && (

@@ -14,6 +14,11 @@ enum SupplierStatus {
   REJECTED
 }
 
+enum SupplierErpIntegration {
+  ASATEEL
+  JAWAL
+}
+
 enum UserRole {
   SUPPLIER_ADMIN
   SUPPLIER_USER
@@ -56,7 +61,22 @@ enum DocumentType {
   GRN_COPY
   CONTRACT
   TIMESHEET
+  ORACLE_UPLOAD
   OTHER
+}
+
+enum AsateelRegion {
+  CENTRAL
+  PROJECTS
+  ADMIN
+}
+
+enum AsateelRunStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+  STATUS_LOST
 }
 
 enum ScanStatus {
@@ -74,16 +94,17 @@ enum ApprovalAction {
 }
 
 model Supplier {
-  id              String         @id @default(cuid())
+  id              String                  @id @default(cuid())
   legalName       String
-  crNumber        String?        @unique
-  vatNumber       String?        @unique
-  status          SupplierStatus @default(PENDING)
+  crNumber        String?                 @unique
+  vatNumber       String?                 @unique
+  status          SupplierStatus          @default(PENDING)
   paymentTerms    String?
-  defaultCurrency String         @default("SAR")
-  erpVendorId     String?        @unique
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  defaultCurrency String                  @default("SAR")
+  erpVendorId     String?                 @unique
+  erpIntegration  SupplierErpIntegration?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
   users          SupplierUser[]
   bankAccounts   BankAccount[]
@@ -104,6 +125,16 @@ model SupplierUser {
   supplier Supplier @relation(fields: [supplierId], references: [id])
 
   @@index([supplierId])
+}
+
+model AppUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  fullName  String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model BankAccount {
@@ -166,22 +197,34 @@ model GoodsReceipt {
 }
 
 model Invoice {
-  id              String        @id @default(cuid())
-  supplierId      String
-  invoiceNumber   String
-  invoiceDate     DateTime
-  poId            String?
-  currency        String        @default("SAR")
-  subtotal        Decimal       @default(0)
-  vat             Decimal       @default(0)
-  total           Decimal       @default(0)
-  status          InvoiceStatus @default(DRAFT)
-  source          InvoiceSource @default(UPLOAD)
-  matchResult     Json?
-  rejectionReason String?
-  archivedAt      DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                      String            @id @default(cuid())
+  supplierId              String
+  invoiceNumber           String
+  invoiceDate             DateTime
+  poId                    String?
+  currency                String            @default("SAR")
+  subtotal                Decimal           @default(0)
+  vat                     Decimal           @default(0)
+  total                   Decimal           @default(0)
+  status                  InvoiceStatus     @default(DRAFT)
+  source                  InvoiceSource     @default(UPLOAD)
+  matchResult             Json?
+  rejectionReason         String?
+  archivedAt              DateTime?
+  asateelRunId            String?           @unique
+  asateelStatus           AsateelRunStatus?
+  asateelQueuePosition    Int?
+  asateelEmailSent        Boolean?
+  asateelError            String?
+  asateelRegion           AsateelRegion?
+  asateelFolderName       String?
+  asateelTriggeredAt      DateTime?
+  asateelStartedAt        DateTime?
+  asateelFinishedAt       DateTime?
+  asateelLastPolledAt     DateTime?
+  asateelOracleDocumentId String?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   supplier    Supplier            @relation(fields: [supplierId], references: [id])
   po          PurchaseOrder?      @relation(fields: [poId], references: [id])

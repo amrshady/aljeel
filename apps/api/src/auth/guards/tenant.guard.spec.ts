@@ -19,10 +19,11 @@ describe('TenantGuard', () => {
         getRequest: () => ({
           user: {
             sub: 'user_a',
+            id: 'user_a',
             email: 'a@test.com',
+            fullName: 'Supplier User',
             role: 'SUPPLIER_ADMIN',
             supplierId: 'supplier_a',
-            mfaVerified: true,
           },
           params: { supplierId: 'supplier_b' },
           query: {},
@@ -44,10 +45,11 @@ describe('TenantGuard', () => {
         getRequest: () => ({
           user: {
             sub: 'user_a',
+            id: 'user_a',
             email: 'a@test.com',
+            fullName: 'Supplier User',
             role: 'SUPPLIER_ADMIN',
             supplierId: 'supplier_a',
-            mfaVerified: true,
           },
           params: {},
           query: {},
@@ -64,10 +66,11 @@ describe('getSupplierScope', () => {
     expect(
       getSupplierScope({
         sub: 'u1',
+        id: 'u1',
         email: 'a@test.com',
+        fullName: 'Supplier User',
         role: 'SUPPLIER_USER',
         supplierId: 'supplier_a',
-        mfaVerified: true,
       }),
     ).toBe('supplier_a');
   });
@@ -76,10 +79,11 @@ describe('getSupplierScope', () => {
     expect(
       getSupplierScope({
         sub: 'u2',
-        email: 'clerk@aljeel.test',
+        id: 'u2',
+        email: 'clerk@aljeel.com',
+        fullName: 'AP Clerk',
         role: 'AP_CLERK',
         supplierId: null,
-        mfaVerified: true,
       }),
     ).toBeNull();
   });

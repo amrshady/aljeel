@@ -11,7 +11,7 @@ export default function middleware(request: NextRequest) {
 
   const match = pathname.match(localeRoot);
   if (match) {
-    return NextResponse.redirect(new URL(`/${match[1]}/login`, request.url));
+    return NextResponse.redirect(new URL(`/${match[1]}/dashboard`, request.url));
   }
 
   return intlMiddleware(request);

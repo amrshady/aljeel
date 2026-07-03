@@ -14,6 +14,7 @@ import {
   isPlaceholderInvoiceNumber,
   validateInvoiceMath,
   InvalidInvoiceTransitionError,
+  type CreateInvoiceDraft,
   type InvoiceListQuery,
   type UpsertInvoiceDraft,
 } from '@aljeel/shared-types';
@@ -40,6 +41,7 @@ export function serializeInvoice(
     source: invoice.source,
     rejectionReason: invoice.rejectionReason,
     archivedAt: invoice.archivedAt?.toISOString() ?? null,
+    asateelRegion: invoice.asateelRegion ?? null,
     createdAt: invoice.createdAt.toISOString(),
     updatedAt: invoice.updatedAt.toISOString(),
     lines: invoice.lines.map((line) => ({
@@ -81,7 +83,7 @@ export class InvoicesService {
   ) {}
 
   async createDraft(user: AuthUser, body: unknown) {
-    const dto = CreateInvoiceDraftSchema.parse(body ?? {});
+    const dto: CreateInvoiceDraft = CreateInvoiceDraftSchema.parse(body ?? {});
     const supplierId = requireSupplierId(user);
 
     if (dto.invoiceNumber) {
@@ -106,6 +108,7 @@ export class InvoicesService {
           `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
         invoiceDate: new Date(),
         currency: 'SAR',
+        asateelRegion: dto.asateelRegion ?? null,
         status: 'DRAFT',
       },
       include: { lines: true },
@@ -147,6 +150,7 @@ export class InvoicesService {
           invoiceDate: new Date(dto.invoiceDate),
           poId: dto.poId ?? null,
           currency: dto.currency,
+          asateelRegion: dto.asateelRegion ?? null,
           subtotal: totals.subtotal,
           vat: totals.vat,
           total: totals.total,

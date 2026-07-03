@@ -1,0 +1,29 @@
+[Unit]
+Description=Aljeel AP Vendor Platform - Web (Next.js)
+Documentation=https://github.com/aljeel/aljeel-repo
+# Start only after the API unit and the network are up.
+After=aljeel-api.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=clawdbot
+Group=clawdbot
+
+WorkingDirectory=/home/clawdbot/.openclaw/workspace/aljeel-repo
+
+Environment=NODE_ENV=production
+Environment=HOME=/home/clawdbot
+Environment=PATH=/home/clawdbot/.local/bin:/usr/bin:/bin
+
+ExecStart=/home/clawdbot/.local/bin/pnpm --dir /home/clawdbot/.openclaw/workspace/aljeel-repo --filter @aljeel/web start --port 3000 --hostname 0.0.0.0
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aljeel-web
+
+[Install]
+WantedBy=multi-user.target

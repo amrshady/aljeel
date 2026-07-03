@@ -28,8 +28,8 @@ export const KNOWN_DOCUMENT_MIME_TYPES = [
 /** @deprecated Use size-only validation; any file type is accepted. */
 export const ALLOWED_DOCUMENT_MIME_TYPES = KNOWN_DOCUMENT_MIME_TYPES;
 
-/** Matches workers/files-portal upload cap (50 MB per file). */
-export const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
+/** Keep under Cloudflare Free's 100 MB request-body limit until uploads go direct-to-Spaces. */
+export const MAX_DOCUMENT_SIZE_BYTES = 95 * 1024 * 1024;
 
 export const UploadDocumentMetaSchema = z.object({
   type: DocumentTypeSchema.default('INVOICE'),

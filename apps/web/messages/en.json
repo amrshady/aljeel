@@ -181,7 +181,7 @@
     "uploadCount": "Upload {count} file(s)",
     "uploadError": "Could not upload the file",
     "deleteError": "Could not remove the document",
-    "rejected": "Skipped (file too large): {files}",
+    "rejected": "Skipped (over 95 MB): {files}",
     "scan": {
       "PENDING": "Scan pending",
       "CLEAN": "Scanned",

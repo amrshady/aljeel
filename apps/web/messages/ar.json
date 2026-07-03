@@ -181,7 +181,7 @@
     "uploadCount": "رفع {count} ملف",
     "uploadError": "تعذر رفع الملف",
     "deleteError": "تعذر إزالة المستند",
-    "rejected": "تم التخطي (الملف كبير جداً): {files}",
+    "rejected": "تم التخطي (أكبر من 95 ميغابايت): {files}",
     "scan": {
       "PENDING": "بانتظار الفحص",
       "CLEAN": "تم الفحص",

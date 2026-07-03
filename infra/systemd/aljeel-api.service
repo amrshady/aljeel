@@ -1,0 +1,32 @@
+[Unit]
+Description=Aljeel AP Vendor Platform - API (NestJS)
+Documentation=https://github.com/aljeel/aljeel-repo
+# Wait for the network stack (and, in practice, PostgreSQL) to be up before starting.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=clawdbot
+Group=clawdbot
+
+WorkingDirectory=/home/clawdbot/.openclaw/workspace/aljeel-repo/apps/api
+
+# The app reads the rest of its config (secrets, DB URL, etc.) from apps/api/.env via dotenv,
+# so we only set the two variables that must be present in the process environment.
+Environment=NODE_ENV=production
+Environment=PORT=3002
+Environment=HOME=/home/clawdbot
+Environment=PATH=/home/clawdbot/.local/bin:/usr/bin:/bin
+
+ExecStart=/usr/bin/node dist/src/main.js
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aljeel-api
+
+[Install]
+WantedBy=multi-user.target

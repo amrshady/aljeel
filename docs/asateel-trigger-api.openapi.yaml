@@ -1,0 +1,297 @@
+openapi: 3.1.0
+info:
+  title: AlJeel Asateel Reconciliation Trigger API
+  version: "1.0.0"
+  x-audience: internal
+  x-agent-readable: true
+  description: |
+    Internal HTTP API to trigger the AlJeel **Asateel** (transportation / JQ allocation)
+    reconciliation pipeline and poll its status. Designed to be called by another
+    function or AI agent.
+
+    ## How it works (async job model)
+    1. `POST /asateel/run` enqueues a job and immediately returns a `run_id` with HTTP `202`.
+       The pipeline runs asynchronously on a single background worker (one job at a time,
+       FIFO). It stages inputs from the archive, runs the allocation engine + golden gate,
+       produces two Excel outputs (`*_Oracle-upload.xlsx` and `*_Missing-JQs.xlsx`), and
+       emails the report to the recipients (always cc `amr@accordpartners.ai`).
+    2. Poll `GET /asateel/run/{run_id}` until `status` is `done` or `failed`.
+
+    ## Authentication
+    Every request MUST include the header `X-Asateel-Trigger-Key: <secret>`.
+    Missing/incorrect key => `401 unauthorized`. The secret lives in the Flask service
+    environment (`ASATEEL_TRIGGER_KEY`); obtain it from the operator/secrets store — it is
+    never returned by the API.
+
+    ## Important operational notes for callers
+    - The job registry and queue are **in-memory**. If the Flask service restarts, queued
+      jobs are lost and `run_id`s from before the restart return `404`. Poll promptly and
+      do not assume long-term persistence of run history.
+    - `region` must be one of `CENTRAL`, `PROJECTS`, `ADMIN`.
+    - `archive_date` must be `YYYY-MM-DD`.
+    - `batch_id` must not contain path separators (`/` or `\`).
+    - Pipeline timeout is 3 hours; expect a long-running background job.
+
+servers:
+  - url: http://127.0.0.1:5000
+    description: On-droplet local (same host as the Flask service; preferred for internal callers)
+  - url: https://finance.aljeel.accordpartners.ai
+    description: >
+      Public host (Cloudflare Access protected). Note: the /asateel/* routes are served by
+      the Flask app on port 5000; reaching them via the public host depends on the current
+      proxy/tunnel routing. For agent-to-agent calls on the droplet, use the local server.
+
+tags:
+  - name: asateel
+    description: Asateel reconciliation pipeline trigger + status
+
+paths:
+  /asateel/openapi.json:
+    get:
+      tags: [asateel]
+      operationId: getOpenApiJson
+      summary: Fetch this OpenAPI spec as JSON (no auth)
+      description: Returns the live OpenAPI contract as JSON so consuming agents can self-discover the API. No auth required.
+      responses:
+        "200":
+          description: OpenAPI spec (JSON)
+          content:
+            application/json:
+              schema: { type: object }
+        "500":
+          description: Spec unavailable on server
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "openapi spec unavailable" }
+
+  /asateel/openapi.yaml:
+    get:
+      tags: [asateel]
+      operationId: getOpenApiYaml
+      summary: Fetch this OpenAPI spec as YAML (no auth)
+      description: Returns the raw YAML contract. No auth required.
+      responses:
+        "200":
+          description: OpenAPI spec (YAML)
+          content:
+            application/yaml:
+              schema: { type: string }
+        "500":
+          description: Spec unavailable on server
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /asateel/run:
+    post:
+      tags: [asateel]
+      operationId: enqueueAsateelRun
+      summary: Enqueue an Asateel reconciliation run
+      description: |
+        Validates the payload, enqueues a background job, and returns a `run_id`
+        to poll. Returns `202 Accepted` on success.
+      security:
+        - triggerKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunRequest'
+            examples:
+              central:
+                summary: Central region run
+                value:
+                  archive_date: "2026-07-03"
+                  folder_name: "Asateel-Central-July"
+                  region: "CENTRAL"
+                  batch_id: "AS26-014"
+                  recipients:
+                    - "ljaradat@aljeel.com"
+                    - "mlabadi@aljeel.com"
+              minimal:
+                summary: Minimal (recipients omitted -> falls back to ASATEEL_REPORT_RECIPIENTS / amr)
+                value:
+                  archive_date: "2026-07-03"
+                  folder_name: "Asateel-Projects-July"
+                  region: "PROJECTS"
+                  batch_id: "AS26-015"
+      responses:
+        "202":
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnqueueResponse'
+              example:
+                run_id: "9f2c1a4b7d6e4f0a8c3b2d1e5f6a7b8c"
+                status: "queued"
+                queue_position: 1
+        "400":
+          description: Invalid payload (bad date, region, missing fields, bad recipients)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                bad_region:
+                  value: { error: "region must be one of CENTRAL, PROJECTS, ADMIN" }
+                bad_date:
+                  value: { error: "archive_date must match YYYY-MM-DD" }
+        "401":
+          description: Missing or invalid trigger key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "unauthorized" }
+
+  /asateel/run/{run_id}:
+    get:
+      tags: [asateel]
+      operationId: getAsateelRun
+      summary: Get status of a run
+      description: |
+        Returns the current registry record for the run. Poll this until `status`
+        is `done` or `failed`. Recommended poll interval: 30-60s (pipeline can take
+        minutes to hours).
+      security:
+        - triggerKey: []
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string }
+          description: The `run_id` returned by POST /asateel/run
+      responses:
+        "200":
+          description: Run record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunStatus'
+              examples:
+                running:
+                  value:
+                    run_id: "9f2c1a4b7d6e4f0a8c3b2d1e5f6a7b8c"
+                    status: "running"
+                    region: "CENTRAL"
+                    batch_id: "AS26-014"
+                    created_at: "2026-07-03T07:40:00+00:00"
+                    started_at: "2026-07-03T07:40:05+00:00"
+                    finished_at: null
+                    email_sent: null
+                done:
+                  value:
+                    run_id: "9f2c1a4b7d6e4f0a8c3b2d1e5f6a7b8c"
+                    status: "done"
+                    region: "CENTRAL"
+                    batch_id: "AS26-014"
+                    created_at: "2026-07-03T07:40:00+00:00"
+                    started_at: "2026-07-03T07:40:05+00:00"
+                    finished_at: "2026-07-03T07:52:11+00:00"
+                    email_sent: true
+                failed:
+                  value:
+                    run_id: "9f2c1a4b7d6e4f0a8c3b2d1e5f6a7b8c"
+                    status: "failed"
+                    region: "CENTRAL"
+                    batch_id: "AS26-014"
+                    created_at: "2026-07-03T07:40:00+00:00"
+                    started_at: "2026-07-03T07:40:05+00:00"
+                    finished_at: "2026-07-03T07:41:00+00:00"
+                    email_sent: false
+                    error: "…tail of failure detail…"
+        "401":
+          description: Missing or invalid trigger key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "unauthorized" }
+        "404":
+          description: Unknown run_id (or lost after service restart)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "not found" }
+
+components:
+  securitySchemes:
+    triggerKey:
+      type: apiKey
+      in: header
+      name: X-Asateel-Trigger-Key
+      description: Shared secret from ASATEEL_TRIGGER_KEY in the Flask service environment.
+
+  schemas:
+    RunRequest:
+      type: object
+      required: [archive_date, folder_name, region, batch_id]
+      additionalProperties: false
+      properties:
+        archive_date:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Archive date to stage inputs from (YYYY-MM-DD).
+          example: "2026-07-03"
+        folder_name:
+          type: string
+          minLength: 1
+          description: Name of the archive folder containing the batch inputs.
+          example: "Asateel-Central-July"
+        region:
+          type: string
+          enum: [CENTRAL, PROJECTS, ADMIN]
+          description: Region. Case-insensitive on input (uppercased server-side).
+          example: "CENTRAL"
+        batch_id:
+          type: string
+          minLength: 1
+          description: Batch identifier. Must NOT contain path separators. Output filenames derive from region + trailing number in this id.
+          example: "AS26-014"
+        recipients:
+          type: array
+          description: >
+            Optional. Report recipients. If omitted, defaults to ASATEEL_REPORT_RECIPIENTS
+            (comma-separated env), else amr@accordpartners.ai. amr@accordpartners.ai is
+            ALWAYS cc'd regardless (house rule).
+          items:
+            type: string
+            format: email
+          example: ["ljaradat@aljeel.com", "mlabadi@aljeel.com"]
+
+    EnqueueResponse:
+      type: object
+      properties:
+        run_id:
+          type: string
+          description: "Poll handle for GET /asateel/run/{run_id}"
+        status:
+          type: string
+          enum: [queued]
+        queue_position:
+          type: integer
+          description: 1-based position in the FIFO queue at enqueue time
+
+    RunStatus:
+      type: object
+      properties:
+        run_id: { type: string }
+        status:
+          type: string
+          enum: [queued, running, done, failed]
+        region: { type: string, enum: [CENTRAL, PROJECTS, ADMIN] }
+        batch_id: { type: string }
+        created_at: { type: string, format: date-time }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        email_sent:
+          type: [boolean, "null"]
+          description: Whether the report email was sent (gog gmail send). null until terminal.
+        error:
+          type: string
+          description: Present only when status=failed; tail of the failure detail.
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }

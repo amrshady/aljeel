@@ -2,9 +2,12 @@
 
 import type { AsateelRegion } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
-import { useTranslations } from 'next-intl';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Clock, FileWarning } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { FormEvent, useRef, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { displayInvoiceName } from '@/components/invoice-folder-table';
 import {
   KbFileUploader,
   applyKbUploadProgress,
@@ -15,10 +18,14 @@ import {
 import { RequireAuth } from '@/components/require-auth';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
 import { formatClientError } from '@/lib/format-error';
-import { createInvoiceDraft, listInvoiceDocuments, submitInvoice } from '@/lib/invoices-api';
+import {
+  createInvoiceDraft,
+  listInvoiceDocuments,
+  listInvoices,
+  submitInvoice,
+} from '@/lib/invoices-api';
 import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
 import { Link, useRouter } from '@/i18n/routing';
-import { useQueryClient } from '@tanstack/react-query';
 
 const UPLOAD_CONCURRENCY = 6;
 const DONE_PAUSE_MS = 900;
@@ -26,6 +33,7 @@ const DONE_PAUSE_MS = 900;
 function InvoiceUploadContent() {
   const t = useTranslations('invoiceForm');
   const tDetail = useTranslations('invoiceDetail');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
@@ -36,6 +44,17 @@ function InvoiceUploadContent() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<'idle' | 'uploading' | 'submitting'>('idle');
+
+  const { data: draftInvoices } = useQuery({
+    queryKey: ['invoices', 'drafts', 'new-upload'],
+    queryFn: () =>
+      listInvoices({
+        status: 'DRAFT',
+        archived: 'false',
+        pageSize: '25',
+        sort: '-createdAt',
+      }),
+  });
 
   function validateForm(requireFiles: boolean): string | null {
     if (requireFiles && files.length === 0) {
@@ -164,6 +183,53 @@ function InvoiceUploadContent() {
         </Link>
         <h1 className="mt-2 text-2xl font-bold">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+
+        {draftInvoices && draftInvoices.data.length > 0 && (
+          <section className="mt-6 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[#1E40AF]/10 p-2 text-[#1E40AF]">
+                <FileWarning className="h-5 w-5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold text-[#1E40AF]">
+                  {t('unfinishedTitle', { count: draftInvoices.total })}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">{t('unfinishedHint')}</p>
+                <div className="mt-4 divide-y rounded-lg border border-[#E5E7EB]">
+                  {draftInvoices.data.map((draft) => (
+                    <div
+                      key={draft.id}
+                      className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {displayInvoiceName(draft.invoiceNumber)}
+                        </p>
+                        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span>{t('unfinishedFiles', { count: draft.documentCount })}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" aria-hidden />
+                            {t('unfinishedCreated', {
+                              date: new Intl.DateTimeFormat(locale, {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              }).format(new Date(draft.createdAt)),
+                            })}
+                          </span>
+                        </p>
+                      </div>
+                      <Link href={`/invoices/${draft.id}`} className="shrink-0">
+                        <Button type="button" size="sm">
+                          {t('resumeDraft')}
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         <form className="mt-8 space-y-8">
           <div>

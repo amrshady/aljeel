@@ -142,7 +142,9 @@ function InvoiceDetailContent() {
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t('documentsTitle')}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t('documentsHint')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {invoice.status === 'DRAFT' ? t('documentsDraftHint') : t('documentsHint')}
+        </p>
         <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:items-start">
           <InvoiceDocuments
             invoiceId={invoice.id}

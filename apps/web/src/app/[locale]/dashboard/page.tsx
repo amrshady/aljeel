@@ -139,7 +139,14 @@ function DashboardContent() {
             </div>
           </section>
         ) : (
-          <InvoiceListSection status={status} showArchived={showArchived} />
+          <InvoiceListSection
+            status={status}
+            showArchived={showArchived}
+            onShowDrafts={() => {
+              setShowArchived(false);
+              setStatus('DRAFT');
+            }}
+          />
         )}
       </div>
     </AppShell>

@@ -43,6 +43,7 @@ export const DocumentSchema = z.object({
   fileName: z.string(),
   mimeType: z.string(),
   sizeBytes: z.number().int().nonnegative(),
+  checksumSha256: z.string().optional().nullable(),
   virusScanStatus: ScanStatusSchema,
   createdAt: z.string(),
 });

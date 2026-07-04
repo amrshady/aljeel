@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ApiClientError } from '@/lib/api-client';
+import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
 import { deleteInvoiceDocument, listInvoiceDocuments } from '@/lib/invoices-api';
 import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
 import {
@@ -84,12 +85,25 @@ export function InvoiceDocuments({
             : f,
         ),
       );
-      for (const item of files) {
+      const latestDocuments = await listInvoiceDocuments(invoiceId);
+      const { nextQueue, uploadQueue } = await markAlreadyUploadedFiles(
+        files,
+        latestDocuments,
+      );
+      const byKey = new Map(nextQueue.map((item) => [kbFileKey(item), item]));
+      setPending((current) => current.map((file) => byKey.get(kbFileKey(file)) ?? file));
+
+      for (const item of uploadQueue) {
         const key = kbFileKey(item);
         setPending((current) => patchKbFile(current, key, { status: 'signing', progress: 0 }));
         try {
-          await uploadInvoiceDocumentViaKb(invoiceId, item.file, 'OTHER', (progress) =>
-            setPending((current) => applyKbUploadProgress(current, key, progress)),
+          await uploadInvoiceDocumentViaKb(
+            invoiceId,
+            item.file,
+            'OTHER',
+            (progress) =>
+              setPending((current) => applyKbUploadProgress(current, key, progress)),
+            item.checksumSha256,
           );
           setPending((current) => patchKbFile(current, key, { status: 'done', progress: 100 }));
         } catch (err) {
@@ -101,7 +115,7 @@ export function InvoiceDocuments({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['invoices', invoiceId, 'documents'] });
-      setPending([]);
+      setPending((current) => current.filter((file) => file.status === 'skipped'));
       setError(null);
     },
     onError: (err) => {

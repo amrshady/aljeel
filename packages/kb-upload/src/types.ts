@@ -21,6 +21,7 @@ export const DocumentCompleteUploadSchema = z.object({
   fileName: z.string().min(1),
   mimeType: z.string().min(1),
   sizeBytes: z.number().int().nonnegative(),
+  checksumSha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   type: DocumentTypeSchema.default('INVOICE'),
 });
 export type DocumentCompleteUpload = z.infer<typeof DocumentCompleteUploadSchema>;

@@ -19,6 +19,7 @@ export type KbFileStatus =
   | 'uploading'
   | 'finalizing'
   | 'done'
+  | 'skipped'
   | 'error';
 
 export interface KbQueuedFile {
@@ -27,6 +28,7 @@ export interface KbQueuedFile {
   relativePath?: string;
   progress: number;
   status: KbFileStatus;
+  checksumSha256?: string;
   error?: string;
 }
 
@@ -238,10 +240,14 @@ export function UploadProgressBar({
     );
   }
 
-  if (status === 'done') {
+  if (status === 'done' || status === 'skipped') {
     return (
       <div className={barClass}>
-        <div className="h-full w-full rounded-full bg-green-500/80" />
+        <div
+          className={`h-full w-full rounded-full ${
+            status === 'skipped' ? 'bg-[#2563EB]/60' : 'bg-green-500/80'
+          }`}
+        />
       </div>
     );
   }
@@ -273,6 +279,8 @@ export function uploadStatusText(
       return t('statusFinalizing');
     case 'done':
       return t('statusDone');
+    case 'skipped':
+      return t('statusSkipped');
     case 'error':
       return t('statusFailed');
     default:
@@ -357,13 +365,22 @@ export function KbUploadRow({
 }) {
   const active = ['queued', 'signing', 'uploading', 'finalizing'].includes(item.status);
   const isDone = item.status === 'done';
+  const isSkipped = item.status === 'skipped';
   const isError = item.status === 'error';
-  const showProgress = active || isDone || isError;
+  const showProgress = active || isDone || isSkipped || isError;
 
   return (
     <div
       className={`flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-sm ${
-        active ? 'border-primary/30 bg-primary/[0.02]' : isDone ? 'border-green-500/30' : isError ? 'border-destructive/30' : ''
+        active
+          ? 'border-primary/30 bg-primary/[0.02]'
+          : isDone
+            ? 'border-green-500/30'
+            : isSkipped
+              ? 'border-[#2563EB]/25 bg-[#2563EB]/[0.03]'
+              : isError
+                ? 'border-destructive/30'
+                : ''
       }`}
     >
       <span className="shrink-0 text-base leading-none" aria-hidden>
@@ -375,8 +392,14 @@ export function KbUploadRow({
       )}
       {showProgress && (
         <span
-          className={`w-16 shrink-0 text-right text-xs tabular-nums ${
-            isError ? 'font-medium text-destructive' : isDone ? 'font-medium text-green-600' : 'text-muted-foreground'
+          className={`${isSkipped ? 'w-28' : 'w-16'} shrink-0 text-right text-xs tabular-nums ${
+            isError
+              ? 'font-medium text-destructive'
+              : isDone
+                ? 'font-medium text-green-600'
+                : isSkipped
+                  ? 'font-medium text-[#1E40AF]'
+                  : 'text-muted-foreground'
           }`}
           title={isError ? item.error : undefined}
         >

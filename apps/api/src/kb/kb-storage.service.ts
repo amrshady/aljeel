@@ -21,6 +21,13 @@ export interface KbPresignedPut {
   headers: Record<string, string>;
 }
 
+export interface KbPreviewUrlOptions {
+  fileName?: string;
+  mimeType?: string;
+  expiresIn?: number;
+  cacheMaxAgeSeconds?: number;
+}
+
 @Injectable()
 export class KbStorageService {
   private readonly tenant: string;
@@ -82,6 +89,29 @@ export class KbStorageService {
     this.assertEnabled();
     const objectKey = toFullObjectKey(this.prefix, storageKey);
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: objectKey });
+    return getSignedUrl(this.client!, command, { expiresIn });
+  }
+
+  async createPreviewUrl(
+    storageKey: string,
+    {
+      fileName,
+      mimeType = 'application/octet-stream',
+      expiresIn = 600,
+      cacheMaxAgeSeconds = 60,
+    }: KbPreviewUrlOptions = {},
+  ): Promise<string> {
+    this.assertEnabled();
+    const objectKey = toFullObjectKey(this.prefix, storageKey);
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: objectKey,
+      ResponseContentType: mimeType,
+      ResponseContentDisposition: fileName
+        ? `inline; filename="${encodeURIComponent(fileName)}"`
+        : 'inline',
+      ResponseCacheControl: `private, max-age=${cacheMaxAgeSeconds}`,
+    });
     return getSignedUrl(this.client!, command, { expiresIn });
   }
 

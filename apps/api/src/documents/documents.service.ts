@@ -15,7 +15,7 @@ import {
   resolveDocumentMimeType,
   type DocumentType,
 } from '@aljeel/shared-types';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { ReadStream } from 'node:fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -60,6 +60,7 @@ function serializeDocument(doc: DocumentRow) {
     fileName: doc.fileName,
     mimeType: doc.mimeType,
     sizeBytes: doc.sizeBytes,
+    checksumSha256: doc.checksumSha256,
     virusScanStatus: doc.virusScanStatus,
     createdAt: doc.createdAt.toISOString(),
   };
@@ -121,7 +122,7 @@ export class DocumentsService {
     }
 
     const payload = DocumentCompleteUploadSchema.parse(body);
-    const { storageKey, fileName, mimeType, sizeBytes, type } = payload;
+    const { storageKey, fileName, mimeType, sizeBytes, checksumSha256, type } = payload;
     this.assertSupplierUploadType(type);
 
     if (sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
@@ -142,24 +143,65 @@ export class DocumentsService {
     const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
     this.assertUploadAllowed(invoice.status);
 
-    const document = await this.prisma.document.create({
-      data: {
-        invoiceId,
-        type: type as DocumentType,
-        fileName: sanitizeFileName(fileName),
-        storageKey,
-        mimeType,
-        sizeBytes,
-        virusScanStatus: 'CLEAN',
+    const sanitizedFileName = sanitizeFileName(fileName);
+    const dedupLockKey = `${invoiceId}:${sanitizedFileName}:${sizeBytes}:${checksumSha256 ?? ''}`;
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${dedupLockKey}, 0))`;
+        const existing = await tx.document.findFirst({
+          where: {
+            invoiceId,
+            fileName: sanitizedFileName,
+            sizeBytes,
+            virusScanStatus: { not: 'FAILED' },
+            ...(checksumSha256 ? { checksumSha256 } : {}),
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (existing) {
+          return { document: existing, duplicatedStorageKey: storageKey };
+        }
+
+        const document = await tx.document.create({
+          data: {
+            invoiceId,
+            type: type as DocumentType,
+            fileName: sanitizedFileName,
+            storageKey,
+            mimeType,
+            sizeBytes,
+            checksumSha256,
+            virusScanStatus: 'CLEAN',
+          },
+        });
+        return { document, duplicatedStorageKey: null };
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    if (result.duplicatedStorageKey) {
+      if (result.document.storageKey !== result.duplicatedStorageKey) {
+        await this.kb.deleteObject(result.duplicatedStorageKey);
+      }
+      return serializeDocument(result.document);
+    }
+
+    const { document } = result;
 
     await this.audit.record({
       actorId: user.sub,
       entity: 'Document',
       entityId: document.id,
       action: 'UPLOAD',
-      after: { invoiceId, fileName, type, sizeBytes, storageKey, via: 'kb' },
+      after: {
+        invoiceId,
+        fileName: sanitizedFileName,
+        type,
+        sizeBytes,
+        storageKey,
+        checksumSha256,
+        via: 'kb',
+      },
     });
 
     return serializeDocument(document);
@@ -272,7 +314,10 @@ export class DocumentsService {
     this.assertDocumentVisible(user, document);
 
     if (this.isKbStorageKey(document.storageKey)) {
-      const url = await this.kb.createDownloadUrl(document.storageKey);
+      const url = await this.kb.createPreviewUrl(document.storageKey, {
+        fileName: document.fileName,
+        mimeType: resolveDocumentMimeType(document.fileName, document.mimeType),
+      });
       return { document, viewUrl: url };
     }
 

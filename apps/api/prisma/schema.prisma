@@ -262,6 +262,7 @@ model Document {
   storageKey      String
   mimeType        String
   sizeBytes       Int
+  checksumSha256  String?
   ocrData         Json?
   virusScanStatus ScanStatus   @default(PENDING)
   createdAt       DateTime     @default(now())
@@ -269,6 +270,7 @@ model Document {
   invoice Invoice @relation(fields: [invoiceId], references: [id])
 
   @@index([invoiceId])
+  @@index([invoiceId, fileName, sizeBytes])
 }
 
 model ApprovalStep {

@@ -13,13 +13,14 @@ import {
   type KbQueuedFile,
 } from '@/components/kb-file-uploader';
 import { RequireAuth } from '@/components/require-auth';
+import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
 import { formatClientError } from '@/lib/format-error';
-import { createInvoiceDraft, submitInvoice } from '@/lib/invoices-api';
+import { createInvoiceDraft, listInvoiceDocuments, submitInvoice } from '@/lib/invoices-api';
 import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
 import { Link, useRouter } from '@/i18n/routing';
 import { useQueryClient } from '@tanstack/react-query';
 
-const UPLOAD_CONCURRENCY = 3;
+const UPLOAD_CONCURRENCY = 6;
 const DONE_PAUSE_MS = 900;
 
 function InvoiceUploadContent() {
@@ -47,9 +48,15 @@ function InvoiceUploadContent() {
     const key = kbFileKey(item);
     setFiles((current) => patchKbFile(current, key, { status: 'signing', progress: 0 }));
     try {
-      await uploadInvoiceDocumentViaKb(invoiceId, item.file, 'OTHER', (progress) => {
-        setFiles((current) => applyKbUploadProgress(current, key, progress));
-      });
+      await uploadInvoiceDocumentViaKb(
+        invoiceId,
+        item.file,
+        'OTHER',
+        (progress) => {
+          setFiles((current) => applyKbUploadProgress(current, key, progress));
+        },
+        item.checksumSha256,
+      );
       setFiles((current) => patchKbFile(current, key, { status: 'done', progress: 100 }));
     } catch (err) {
       const message = err instanceof Error ? err.message : t('error');
@@ -106,7 +113,12 @@ function InvoiceUploadContent() {
         invoiceId = invoice.id;
         setDraftInvoiceId(invoice.id);
       }
-      await uploadAll(invoiceId, queue);
+      const documents = await listInvoiceDocuments(invoiceId);
+      const { nextQueue, uploadQueue } = await markAlreadyUploadedFiles(queue, documents);
+      const byKey = new Map(nextQueue.map((item) => [kbFileKey(item), item]));
+      setFiles((current) => current.map((file) => byKey.get(kbFileKey(file)) ?? file));
+
+      await uploadAll(invoiceId, uploadQueue);
 
       if (submitAfter) {
         setSubmitPhase('submitting');
@@ -135,7 +147,8 @@ function InvoiceUploadContent() {
   }
 
   const canAddFiles =
-    !uploading && files.every((f) => f.status === 'pending' || f.status === 'error');
+    !uploading &&
+    files.every((f) => f.status === 'pending' || f.status === 'error' || f.status === 'skipped');
 
   const buttonLabel = uploading
     ? submitPhase === 'submitting'

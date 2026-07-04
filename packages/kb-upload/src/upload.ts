@@ -15,12 +15,20 @@ export interface CompleteUploadParams {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
+  checksumSha256?: string;
   type: DocumentType;
 }
 
 export interface KbUploadApi {
   requestUploadUrl(params: PresignUploadUrlParams): Promise<DocumentUploadUrlResponse>;
   completeUpload(params: CompleteUploadParams): Promise<unknown>;
+}
+
+export async function sha256File(file: File): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function report(
@@ -47,9 +55,11 @@ export async function uploadFileViaKb(
   file: File,
   type: DocumentType,
   onProgress?: (progress: KbUploadProgress) => void,
+  knownChecksumSha256?: string,
 ): Promise<{ storageKey: string }> {
   const mimeType = resolveDocumentMimeType(file.name, file.type);
   report(onProgress, 'signing', 0, file.size);
+  const checksumSha256 = knownChecksumSha256 ?? (await sha256File(file));
 
   const sign = await api.requestUploadUrl({
     invoiceId,
@@ -69,6 +79,7 @@ export async function uploadFileViaKb(
     fileName: file.name,
     mimeType,
     sizeBytes: file.size,
+    checksumSha256,
     type,
   };
   await api.completeUpload({ invoiceId, ...complete });

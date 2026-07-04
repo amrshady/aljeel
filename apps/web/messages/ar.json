@@ -171,6 +171,7 @@
     "statusUploading": "{percent}%",
     "statusFinalizing": "جاري الإنهاء…",
     "statusDone": "تم ✓",
+    "statusSkipped": "مرفوع مسبقاً",
     "statusFailed": "فشل",
     "loading": "جاري تحميل المستندات…",
     "empty": "لا توجد مستندات مرفقة بعد",

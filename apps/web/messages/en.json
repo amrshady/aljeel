@@ -171,6 +171,7 @@
     "statusUploading": "{percent}%",
     "statusFinalizing": "finalizing…",
     "statusDone": "done ✓",
+    "statusSkipped": "already uploaded",
     "statusFailed": "failed",
     "loading": "Loading documents…",
     "empty": "No documents attached yet",

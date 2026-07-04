@@ -31,6 +31,7 @@ function kbApi(invoiceId: string): KbUploadApi {
           fileName: params.fileName,
           mimeType: params.mimeType,
           sizeBytes: params.sizeBytes,
+          checksumSha256: params.checksumSha256,
           type: params.type,
         }),
         schema: DocumentSchema,
@@ -104,9 +105,17 @@ export async function uploadInvoiceDocumentViaKb(
   file: File,
   type: DocumentType = 'OTHER',
   onProgress?: (progress: KbUploadProgress) => void,
+  checksumSha256?: string,
 ) {
   try {
-    return await uploadFileViaKb(kbApi(invoiceId), invoiceId, file, type, onProgress);
+    return await uploadFileViaKb(
+      kbApi(invoiceId),
+      invoiceId,
+      file,
+      type,
+      onProgress,
+      checksumSha256,
+    );
   } catch (err) {
     if (err instanceof ApiClientError && err.code === 'KB_UPLOAD_NOT_CONFIGURED') {
       await uploadInvoiceDocumentMultipart(invoiceId, file, type, onProgress);

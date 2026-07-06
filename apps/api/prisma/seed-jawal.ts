@@ -81,6 +81,7 @@ async function main() {
       paymentTerms: 'Net 30',
       defaultCurrency: 'SAR',
       erpVendorId: 'VEND-JAWAL',
+      erpIntegration: 'JAWAL',
     },
     update: {
       legalName: 'Jawwal Travel & Tourism',
@@ -90,6 +91,7 @@ async function main() {
       paymentTerms: 'Net 30',
       defaultCurrency: 'SAR',
       erpVendorId: 'VEND-JAWAL',
+      erpIntegration: 'JAWAL',
     },
   });
 

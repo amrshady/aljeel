@@ -5,7 +5,7 @@ import {
   OnModuleInit,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { AsateelRegion, Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
@@ -17,9 +17,9 @@ import { StorageService } from '../storage/storage.service';
 
 const ACTIVE_STATUSES = new Set(['QUEUED', 'RUNNING']);
 const POLL_INTERVAL_MS = 45_000;
-const DEFAULT_ASATEEL_API_BASE = 'http://127.0.0.1:5000';
+const DEFAULT_JAWAL_API_BASE = 'http://127.0.0.1:5000';
 const DEFAULT_BATCHES_ROOT = '/home/clawdbot/.openclaw/workspace/aljeel/batches';
-const SYSTEM_ACTOR = 'system:asateel';
+const SYSTEM_ACTOR = 'system:jawal';
 
 type InvoiceWithIntegration = Prisma.InvoiceGetPayload<{
   include: { supplier: true; documents: true };
@@ -34,16 +34,26 @@ interface TriggerResponse {
 interface RunStatusResponse {
   run_id: string;
   status: 'queued' | 'running' | 'done' | 'failed';
-  region?: string;
   batch_id?: string;
   started_at?: string | null;
   finished_at?: string | null;
-  email_sent?: boolean | null;
   error?: string | null;
 }
 
+/**
+ * Mirrors {@link AsateelIntegrationService} for the Jawal Travel reconciliation
+ * engine. Differences vs Asateel: no region and no email step; the engine writes
+ * a "resolved" spreadsheet (Spreadsheet-<batch>-FILLED-v30.xlsx) instead of an
+ * Oracle upload, which is ingested as the downloadable ORACLE_UPLOAD document.
+ *
+ * NOTE: portal documents are stored with flat, sanitized filenames (folder
+ * hierarchy is not captured at upload time), so docs are staged flat into
+ * `<batch>/src/` with a `<docId>-` prefix. The Jawal engine's `/jawal/run`
+ * discovery must tolerate this prefix and derive ticket/folder grouping from the
+ * flat set (build-plan step 2).
+ */
 @Injectable()
-export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy {
+export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private polling = false;
 
@@ -70,7 +80,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       where: { id: invoiceId },
       include: { supplier: true, documents: true },
     });
-    if (!invoice || invoice.supplier.erpIntegration !== 'ASATEEL') {
+    if (!invoice || invoice.supplier.erpIntegration !== 'JAWAL') {
       return;
     }
 
@@ -88,16 +98,16 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
         message: 'Invoice not found.',
       });
     }
-    if (invoice.supplier.erpIntegration !== 'ASATEEL') {
+    if (invoice.supplier.erpIntegration !== 'JAWAL') {
       throw new UnprocessableEntityException({
-        code: 'ASATEEL_NOT_ENABLED',
-        message: 'This supplier is not configured for Asateel reconciliation.',
+        code: 'JAWAL_NOT_ENABLED',
+        message: 'This supplier is not configured for Jawal reconciliation.',
       });
     }
     if (invoice.status !== 'APPROVED') {
       throw new UnprocessableEntityException({
         code: 'INVOICE_NOT_APPROVED',
-        message: 'Only approved invoices can run Asateel reconciliation.',
+        message: 'Only approved invoices can run Jawal reconciliation.',
       });
     }
 
@@ -124,10 +134,10 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     actorId: string,
     force: boolean,
   ): Promise<void> {
-    if (!force && invoice.asateelStatus && ACTIVE_STATUSES.has(invoice.asateelStatus)) {
+    if (!force && invoice.jawalStatus && ACTIVE_STATUSES.has(invoice.jawalStatus)) {
       return;
     }
-    if (!force && invoice.asateelRunId) {
+    if (!force && invoice.jawalRunId) {
       return;
     }
     if (invoice.invoiceNumber.includes('/') || invoice.invoiceNumber.includes('\\')) {
@@ -138,27 +148,24 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     await this.prisma.invoice.update({
       where: { id: invoice.id },
       data: {
-        asateelStatus: 'QUEUED',
-        asateelRunId: null,
-        asateelQueuePosition: null,
-        asateelEmailSent: null,
-        asateelError: null,
-        asateelFolderName: null,
-        asateelTriggeredAt: new Date(),
-        asateelStartedAt: null,
-        asateelFinishedAt: null,
-        asateelLastPolledAt: null,
-        asateelOracleDocumentId: null,
+        jawalStatus: 'QUEUED',
+        jawalRunId: null,
+        jawalQueuePosition: null,
+        jawalError: null,
+        jawalFolderName: null,
+        jawalTriggeredAt: new Date(),
+        jawalStartedAt: null,
+        jawalFinishedAt: null,
+        jawalLastPolledAt: null,
+        jawalOutputDocumentId: null,
       },
     });
 
     try {
       const folderName = await this.stageInvoiceDocuments(invoice);
-      const region = this.resolveRegion(folderName, invoice.asateelRegion);
       const payload = {
         archive_date: this.archiveDate(invoice),
         folder_name: folderName,
-        region,
         batch_id: invoice.invoiceNumber,
       };
       const trigger = await this.enqueueRun(payload);
@@ -166,46 +173,45 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       await this.prisma.invoice.update({
         where: { id: invoice.id },
         data: {
-          asateelRunId: trigger.run_id,
-          asateelStatus: 'QUEUED',
-          asateelQueuePosition: trigger.queue_position,
-          asateelRegion: region,
-          asateelFolderName: folderName,
-          asateelError: null,
+          jawalRunId: trigger.run_id,
+          jawalStatus: 'QUEUED',
+          jawalQueuePosition: trigger.queue_position,
+          jawalFolderName: folderName,
+          jawalError: null,
         },
       });
       await this.audit.record({
         actorId,
         entity: 'Invoice',
         entityId: invoice.id,
-        action: force ? 'ASATEEL_RERUN_QUEUED' : 'ASATEEL_RUN_QUEUED',
+        action: force ? 'JAWAL_RERUN_QUEUED' : 'JAWAL_RUN_QUEUED',
         after: { runId: trigger.run_id, queuePosition: trigger.queue_position, ...payload },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Asateel trigger failed.';
+      const message = error instanceof Error ? error.message : 'Jawal trigger failed.';
       await this.markFailed(invoice.id, message);
       await this.audit.record({
         actorId,
         entity: 'Invoice',
         entityId: invoice.id,
-        action: 'ASATEEL_RUN_FAILED',
+        action: 'JAWAL_RUN_FAILED',
         after: { error: message },
       });
     }
   }
 
   private async stageInvoiceDocuments(invoice: InvoiceWithIntegration): Promise<string> {
-    const batchesRoot = resolve(process.env.ASATEEL_BATCHES_ROOT ?? DEFAULT_BATCHES_ROOT);
-    const batchDir = resolve(batchesRoot, `asateel-${invoice.invoiceNumber}`);
+    const batchesRoot = resolve(process.env.JAWAL_BATCHES_ROOT ?? DEFAULT_BATCHES_ROOT);
+    const batchDir = resolve(batchesRoot, `jawal-${invoice.invoiceNumber}`);
     if (batchDir !== batchesRoot && !batchDir.startsWith(batchesRoot + '/')) {
-      throw new Error('Invalid Asateel batch path.');
+      throw new Error('Invalid Jawal batch path.');
     }
     const srcDir = join(batchDir, 'src');
     await mkdir(srcDir, { recursive: true });
 
     const documents = invoice.documents.filter((doc) => doc.type !== 'ORACLE_UPLOAD');
     if (documents.length === 0) {
-      throw new Error('Invoice has no source documents to stage for Asateel.');
+      throw new Error('Invoice has no source documents to stage for Jawal.');
     }
 
     for (const doc of documents) {
@@ -224,16 +230,6 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     return srcDir;
   }
 
-  private resolveRegion(folderName: string, fallback: AsateelRegion | null): AsateelRegion {
-    const matches = folderName.match(/\b(CENTRAL|PROJECTS|ADMIN)\b/gi) ?? [];
-    const unique = [...new Set(matches.map((match) => match.toUpperCase()))];
-    const region = unique.length === 1 ? unique[0] : fallback;
-    if (region === 'CENTRAL' || region === 'PROJECTS' || region === 'ADMIN') {
-      return region;
-    }
-    throw new Error('Asateel region is missing or ambiguous.');
-  }
-
   private archiveDate(invoice: InvoiceWithIntegration): string {
     const firstDocumentDate = invoice.documents
       .filter((doc) => doc.type !== 'ORACLE_UPLOAD')
@@ -245,23 +241,22 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
   private async enqueueRun(payload: {
     archive_date: string;
     folder_name: string;
-    region: AsateelRegion;
     batch_id: string;
   }): Promise<TriggerResponse> {
-    const key = process.env.ASATEEL_TRIGGER_KEY;
+    const key = process.env.JAWAL_TRIGGER_KEY;
     if (!key) {
-      throw new Error('ASATEEL_TRIGGER_KEY is not configured.');
+      throw new Error('JAWAL_TRIGGER_KEY is not configured.');
     }
-    const response = await fetch(`${this.apiBase()}/asateel/run`, {
+    const response = await fetch(`${this.apiBase()}/jawal/run`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Asateel-Trigger-Key': key,
+        'X-Jawal-Trigger-Key': key,
       },
       body: JSON.stringify(payload),
     });
     if (response.status !== 202) {
-      throw new Error(await this.responseError(response, 'Asateel trigger rejected the run.'));
+      throw new Error(await this.responseError(response, 'Jawal trigger rejected the run.'));
     }
     return (await response.json()) as TriggerResponse;
   }
@@ -271,13 +266,13 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     this.polling = true;
     try {
       const invoices = await this.prisma.invoice.findMany({
-        where: { asateelStatus: { in: ['QUEUED', 'RUNNING'] }, asateelRunId: { not: null } },
+        where: { jawalStatus: { in: ['QUEUED', 'RUNNING'] }, jawalRunId: { not: null } },
         include: { documents: true },
         take: 25,
       });
       for (const invoice of invoices) {
         await this.pollOne(invoice).catch(async (error) => {
-          const message = error instanceof Error ? error.message : 'Asateel polling failed.';
+          const message = error instanceof Error ? error.message : 'Jawal polling failed.';
           await this.markFailed(invoice.id, message);
         });
       }
@@ -289,62 +284,57 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
   private async pollOne(
     invoice: Prisma.InvoiceGetPayload<{ include: { documents: true } }>,
   ): Promise<void> {
-    if (!invoice.asateelRunId) return;
-    const key = process.env.ASATEEL_TRIGGER_KEY;
+    if (!invoice.jawalRunId) return;
+    const key = process.env.JAWAL_TRIGGER_KEY;
     if (!key) {
-      await this.markFailed(invoice.id, 'ASATEEL_TRIGGER_KEY is not configured.');
+      await this.markFailed(invoice.id, 'JAWAL_TRIGGER_KEY is not configured.');
       return;
     }
 
-    const response = await fetch(`${this.apiBase()}/asateel/run/${invoice.asateelRunId}`, {
-      headers: { 'X-Asateel-Trigger-Key': key },
+    const response = await fetch(`${this.apiBase()}/jawal/run/${invoice.jawalRunId}`, {
+      headers: { 'X-Jawal-Trigger-Key': key },
     });
     if (response.status === 404) {
       await this.prisma.invoice.update({
         where: { id: invoice.id },
         data: {
-          asateelStatus: 'STATUS_LOST',
-          asateelError: 'Asateel run status lost; check ops or re-run.',
-          asateelLastPolledAt: new Date(),
+          jawalStatus: 'STATUS_LOST',
+          jawalError: 'Jawal run status lost; check ops or re-run.',
+          jawalLastPolledAt: new Date(),
         },
       });
       await this.audit.record({
         actorId: SYSTEM_ACTOR,
         entity: 'Invoice',
         entityId: invoice.id,
-        action: 'ASATEEL_STATUS_LOST',
-        after: { runId: invoice.asateelRunId },
+        action: 'JAWAL_STATUS_LOST',
+        after: { runId: invoice.jawalRunId },
       });
       return;
     }
     if (!response.ok) {
-      throw new Error(await this.responseError(response, 'Asateel status polling failed.'));
+      throw new Error(await this.responseError(response, 'Jawal status polling failed.'));
     }
 
     const status = (await response.json()) as RunStatusResponse;
     const mappedStatus = this.mapRunStatus(status.status);
     const terminal = mappedStatus === 'DONE' || mappedStatus === 'FAILED';
-    const oracleDocumentId =
+    const outputDocumentId =
       mappedStatus === 'DONE'
-        ? await this.ingestOracleUpload(invoice, status.email_sent ?? null)
-        : invoice.asateelOracleDocumentId;
+        ? await this.ingestResolvedOutput(invoice)
+        : invoice.jawalOutputDocumentId;
     const error =
-      mappedStatus === 'FAILED'
-        ? status.error ?? 'Asateel reconciliation failed.'
-        : mappedStatus === 'DONE' && status.email_sent === false
-          ? 'Completed, but email delivery failed.'
-          : null;
+      mappedStatus === 'FAILED' ? status.error ?? 'Jawal reconciliation failed.' : null;
 
     await this.prisma.invoice.update({
       where: { id: invoice.id },
       data: {
-        asateelStatus: mappedStatus,
-        asateelEmailSent: status.email_sent ?? null,
-        asateelError: error,
-        asateelStartedAt: this.parseApiDate(status.started_at),
-        asateelFinishedAt: this.parseApiDate(status.finished_at),
-        asateelLastPolledAt: new Date(),
-        asateelOracleDocumentId: oracleDocumentId,
+        jawalStatus: mappedStatus,
+        jawalError: error,
+        jawalStartedAt: this.parseApiDate(status.started_at),
+        jawalFinishedAt: this.parseApiDate(status.finished_at),
+        jawalLastPolledAt: new Date(),
+        jawalOutputDocumentId: outputDocumentId,
       },
     });
 
@@ -353,28 +343,22 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
         actorId: SYSTEM_ACTOR,
         entity: 'Invoice',
         entityId: invoice.id,
-        action: mappedStatus === 'DONE' ? 'ASATEEL_RUN_DONE' : 'ASATEEL_RUN_FAILED',
-        after: {
-          runId: invoice.asateelRunId,
-          emailSent: status.email_sent ?? null,
-          oracleDocumentId,
-          error,
-        },
+        action: mappedStatus === 'DONE' ? 'JAWAL_RUN_DONE' : 'JAWAL_RUN_FAILED',
+        after: { runId: invoice.jawalRunId, outputDocumentId, error },
       });
     }
   }
 
-  private async ingestOracleUpload(
+  private async ingestResolvedOutput(
     invoice: Prisma.InvoiceGetPayload<{ include: { documents: true } }>,
-    emailSent: boolean | null,
   ): Promise<string | null> {
-    if (invoice.asateelOracleDocumentId) {
-      return invoice.asateelOracleDocumentId;
+    if (invoice.jawalOutputDocumentId) {
+      return invoice.jawalOutputDocumentId;
     }
-    const outputPath = await this.findOracleUpload(invoice);
+    const outputPath = await this.findResolvedOutput(invoice);
     const data = await readFile(outputPath);
     const fileName = basename(outputPath);
-    const storageKey = `local:integrations/asateel/${invoice.id}/${Date.now()}-${fileName}`;
+    const storageKey = `local:integrations/jawal/${invoice.id}/${Date.now()}-${fileName}`;
     await this.storage.save(storageKey.replace(/^local:/, ''), data);
     const document = await this.prisma.document.create({
       data: {
@@ -391,49 +375,41 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       actorId: SYSTEM_ACTOR,
       entity: 'Document',
       entityId: document.id,
-      action: 'ASATEEL_ORACLE_UPLOAD_INGESTED',
-      after: { invoiceId: invoice.id, fileName, outputPath, emailSent },
+      action: 'JAWAL_RESOLVED_OUTPUT_INGESTED',
+      after: { invoiceId: invoice.id, fileName, outputPath },
     });
     return document.id;
   }
 
-  private async findOracleUpload(
+  private async findResolvedOutput(
     invoice: Prisma.InvoiceGetPayload<{ include: { documents: true } }>,
   ): Promise<string> {
-    const region = invoice.asateelRegion;
-    if (!region) {
-      throw new Error('Cannot locate Oracle upload without Asateel region.');
-    }
-    const batchDir = resolve(
-      process.env.ASATEEL_BATCHES_ROOT ?? DEFAULT_BATCHES_ROOT,
-      `asateel-${invoice.invoiceNumber}`,
+    const outputDir = resolve(
+      process.env.JAWAL_BATCHES_ROOT ?? DEFAULT_BATCHES_ROOT,
+      `jawal-${invoice.invoiceNumber}`,
+      'output',
     );
-    const trailingNumber = invoice.invoiceNumber.match(/(\d+)$/)?.[1];
-    if (trailingNumber) {
-      const expected = join(
-        batchDir,
-        `${this.titleCase(region)}-${trailingNumber}-2026_Oracle-upload.xlsx`,
-      );
-      if (await this.exists(expected)) {
-        return expected;
-      }
+    const expected = join(outputDir, `Spreadsheet-${invoice.invoiceNumber}-FILLED-v30.xlsx`);
+    if (await this.exists(expected)) {
+      return expected;
     }
-    const files = await readdir(batchDir);
-    const found = files.find((file) => file.endsWith('_Oracle-upload.xlsx'));
+    const files = await readdir(outputDir).catch(() => [] as string[]);
+    const xlsx = files.filter((file) => file.toLowerCase().endsWith('.xlsx'));
+    const found = xlsx.find((file) => /filled/i.test(file)) ?? xlsx[0];
     if (!found) {
-      throw new Error('Asateel Oracle upload file was not found on disk.');
+      throw new Error('Jawal resolved output file was not found on disk.');
     }
-    return join(batchDir, found);
+    return join(outputDir, found);
   }
 
   private async markFailed(invoiceId: string, message: string): Promise<void> {
     await this.prisma.invoice.update({
       where: { id: invoiceId },
       data: {
-        asateelStatus: 'FAILED',
-        asateelError: message,
-        asateelFinishedAt: new Date(),
-        asateelLastPolledAt: new Date(),
+        jawalStatus: 'FAILED',
+        jawalError: message,
+        jawalFinishedAt: new Date(),
+        jawalLastPolledAt: new Date(),
       },
     });
   }
@@ -441,18 +417,18 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
   private serializeStatus(
     invoice: Prisma.InvoiceGetPayload<{ include: { documents: true } }>,
   ) {
-    const oracleDoc = invoice.documents.find(
-      (doc) => doc.id === invoice.asateelOracleDocumentId,
+    const outputDoc = invoice.documents.find(
+      (doc) => doc.id === invoice.jawalOutputDocumentId,
     );
-    if (!invoice.asateelStatus && !invoice.asateelRunId) {
+    if (!invoice.jawalStatus && !invoice.jawalRunId) {
       return {
-        vendor: 'ASATEEL' as const,
+        vendor: 'JAWAL' as const,
         status: null,
         runId: null,
         queuePosition: null,
         emailSent: null,
         error: null,
-        region: invoice.asateelRegion,
+        region: null,
         folderName: null,
         triggeredAt: null,
         startedAt: null,
@@ -463,20 +439,20 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       };
     }
     return {
-      vendor: 'ASATEEL' as const,
-      status: invoice.asateelStatus,
-      runId: invoice.asateelRunId,
-      queuePosition: invoice.asateelQueuePosition,
-      emailSent: invoice.asateelEmailSent,
-      error: invoice.asateelError,
-      region: invoice.asateelRegion,
-      folderName: invoice.asateelFolderName,
-      triggeredAt: invoice.asateelTriggeredAt?.toISOString() ?? null,
-      startedAt: invoice.asateelStartedAt?.toISOString() ?? null,
-      finishedAt: invoice.asateelFinishedAt?.toISOString() ?? null,
-      lastPolledAt: invoice.asateelLastPolledAt?.toISOString() ?? null,
-      outputDocumentId: invoice.asateelOracleDocumentId,
-      outputFileName: oracleDoc?.fileName ?? null,
+      vendor: 'JAWAL' as const,
+      status: invoice.jawalStatus,
+      runId: invoice.jawalRunId,
+      queuePosition: invoice.jawalQueuePosition,
+      emailSent: null,
+      error: invoice.jawalError,
+      region: null,
+      folderName: invoice.jawalFolderName,
+      triggeredAt: invoice.jawalTriggeredAt?.toISOString() ?? null,
+      startedAt: invoice.jawalStartedAt?.toISOString() ?? null,
+      finishedAt: invoice.jawalFinishedAt?.toISOString() ?? null,
+      lastPolledAt: invoice.jawalLastPolledAt?.toISOString() ?? null,
+      outputDocumentId: invoice.jawalOutputDocumentId,
+      outputFileName: outputDoc?.fileName ?? null,
     };
   }
 
@@ -489,7 +465,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
   }
 
   private apiBase(): string {
-    return (process.env.ASATEEL_API_BASE ?? DEFAULT_ASATEEL_API_BASE).replace(/\/+$/, '');
+    return (process.env.JAWAL_API_BASE ?? DEFAULT_JAWAL_API_BASE).replace(/\/+$/, '');
   }
 
   private async responseError(response: Response, fallback: string): Promise<string> {
@@ -504,10 +480,6 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     } catch {
       return false;
     }
-  }
-
-  private titleCase(region: AsateelRegion): string {
-    return region.charAt(0) + region.slice(1).toLowerCase();
   }
 
   private sanitizeFileName(name: string): string {

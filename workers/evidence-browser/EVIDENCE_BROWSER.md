@@ -119,6 +119,43 @@ Supporting / pipeline routes (also proxied under `/api/*`):
 | `/process` | GET | run the pipeline (SSE stream) |
 | `/qa-run` | POST | QA run (SSE stream) |
 | `/qa-report-download` | GET | QA report markdown download |
+| `/jawal/run` | POST | **portal-trigger**: stage portal docs + enqueue a pipeline run (see §4.1) |
+| `/jawal/run/<run_id>` | GET | **portal-trigger**: poll run status for the AP portal |
+
+### 4.1 Jawal portal-trigger API (mirrors Asateel `/asateel/run`)
+
+The AlJeel AP portal (NestJS `JawalIntegrationService`) drives the pipeline from the
+invoice page. It never streams the SSE log — it uses a small queued JSON contract:
+
+```
+POST /jawal/run
+  headers: X-Jawal-Trigger-Key: <shared secret>
+  body:    { "archive_date": "YYYY-MM-DD", "folder_name": "<staged src dir>", "batch_id": "J26-788" }
+  → 202    { "run_id": "ab12cd34", "status": "queued", "queue_position": 0 }
+
+GET /jawal/run/<run_id>
+  headers: X-Jawal-Trigger-Key: <shared secret>
+  → 200    { "run_id", "status": queued|running|done|failed, "started_at", "finished_at", "error" }
+  → 404    when the run_id is unknown (portal maps this to STATUS_LOST)
+```
+
+Behaviour:
+- **Auth** — both routes require `X-Jawal-Trigger-Key` to equal `JAWAL_TRIGGER_KEY`
+  from `/home/clawdbot/.openclaw/.env` (must match the portal's `JAWAL_TRIGGER_KEY`).
+- **Staging** — `folder_name` is the portal-staged `src/` dir. Its files carry a
+  `<docId>-` prefix (the portal flattens folder uploads to flat sanitized names);
+  the route strips that prefix, copies the invoice workbook to
+  `batches/jawal-<batch_id>/invoice-source.xlsx` and every other file into
+  `batches/jawal-<batch_id>/raw/`, then runs the existing Stage 1–5 pipeline.
+- **Serialization** — a single background worker + FIFO queue (`JAWAL_QUEUE`) runs
+  one batch at a time and reuses the shared `run.lock`, so `/jawal/run` never clashes
+  with a `/process` SSE run. Run status is kept in-memory (`JAWAL_RUNS`) and the
+  terminal state is derived from the log's `[PIPELINE_SUCCESS]` / `[PIPELINE_FAILED]`
+  markers. Because it is in-memory, a Flask restart mid-run surfaces as a `404` →
+  the portal shows STATUS_LOST and offers Re-run.
+- **Output** — Stage 5 writes
+  `batches/jawal-<batch_id>/output/Spreadsheet-<batch_id>-FILLED-v30.xlsx`, which the
+  portal reads off the shared disk and re-serves as the AP-only download.
 
 Path-safety: every evidence path is resolved against the batch `raw/` dir and the
 `(ROOT / "batches").resolve()` allowed-prefix is enforced, so `rel=` can't escape
@@ -287,7 +324,7 @@ tunnel run --token <token>`), separate from these two units.
 | Access AUD tag | `f0e8c6db95992e48f5bc86b0a64bd4ee1f01e83a912ac16a634e5903c2d238b5` |
 | Worker KV | `ACTIONS_KV` (reviewer actions + session queue) |
 | Worker secrets (env) | `PROXY_SECRET`, `V2_PROXY_SECRET`, `ACCESS_AUD` (optional override) |
-| Droplet env | `/home/clawdbot/.openclaw/.env` holds `CLOUDFLARE_API_TOKEN` (tunnel_manager) and friends |
+| Droplet env | `/home/clawdbot/.openclaw/.env` holds `CLOUDFLARE_API_TOKEN` (tunnel_manager), `JAWAL_TRIGGER_KEY` (portal-trigger auth), and friends |
 
 **All real secret values live in `/home/clawdbot/.openclaw/.env` on the droplet and
 in Cloudflare Pages secret bindings — never in this repo.**

@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApReviewActions } from '@/components/ap-review-actions';
-import { AsateelReconciliationPanel } from '@/components/asateel-reconciliation-panel';
+import { ReconciliationPanel } from '@/components/reconciliation-panel';
 import { AppShell } from '@/components/app-shell';
 import { PageLoading } from '@/components/loading-spinner';
 import { useAuth } from '@/components/auth-provider';
@@ -132,7 +132,7 @@ function InvoiceDetailContent() {
         <div className="mt-6 space-y-4">
           <ApReviewActions invoiceId={invoice.id} status={invoice.status} />
           {apInvoice && (
-            <AsateelReconciliationPanel
+            <ReconciliationPanel
               invoiceId={invoice.id}
               initialStatus={apInvoice.reconciliation}
             />

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { InvoiceFolderListItemSchema, InvoiceSchema } from './invoice';
-import { AsateelRegionSchema, AsateelRunStatusSchema, InvoiceStatusSchema } from './index';
+import {
+  AsateelRegionSchema,
+  InvoiceStatusSchema,
+  ReconRunStatusSchema,
+  SupplierErpIntegrationSchema,
+} from './index';
 import { InvoiceTimelineEventSchema } from './timeline';
 import { PaginatedResponseSchema } from './index';
 
@@ -16,7 +21,8 @@ export const ApInvoiceDetailSchema = InvoiceSchema.extend({
   supplierName: z.string(),
   reconciliation: z
     .object({
-      status: AsateelRunStatusSchema.nullable(),
+      vendor: SupplierErpIntegrationSchema.nullable(),
+      status: ReconRunStatusSchema.nullable(),
       runId: z.string().nullable(),
       queuePosition: z.number().int().nullable(),
       emailSent: z.boolean().nullable(),
@@ -27,8 +33,8 @@ export const ApInvoiceDetailSchema = InvoiceSchema.extend({
       startedAt: z.string().nullable(),
       finishedAt: z.string().nullable(),
       lastPolledAt: z.string().nullable(),
-      oracleDocumentId: z.string().nullable(),
-      oracleFileName: z.string().nullable(),
+      outputDocumentId: z.string().nullable(),
+      outputFileName: z.string().nullable(),
     })
     .nullable(),
   timeline: z.array(InvoiceTimelineEventSchema),

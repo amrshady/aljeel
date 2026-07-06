@@ -17,6 +17,7 @@ import type { AuthUser } from '../auth/auth.types';
 import { invoiceNotFound } from '../common/tenant.util';
 import { serializeInvoice, serializeTimelineEvent } from '../invoices/invoices.service';
 import { AsateelIntegrationService } from './asateel-integration.service';
+import { JawalIntegrationService } from './jawal-integration.service';
 
 const EXCEPTION_STATUSES = ['UNDER_REVIEW', 'ON_HOLD'] as const;
 
@@ -26,6 +27,7 @@ export class ApService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly asateel: AsateelIntegrationService,
+    private readonly jawal: JawalIntegrationService,
   ) {}
 
   async listExceptions(query: Record<string, string | undefined>) {
@@ -103,9 +105,26 @@ export class ApService {
     return {
       ...serializeInvoice(invoice),
       supplierName: invoice.supplier.legalName,
-      reconciliation: await this.asateel.getStatus(id),
+      reconciliation: await this.reconServiceFor(invoice.supplier.erpIntegration).getStatus(id),
       timeline: events.map(serializeTimelineEvent),
     };
+  }
+
+  /** Route reconciliation calls to the vendor engine configured on the supplier. */
+  private reconServiceFor(
+    erpIntegration: 'ASATEEL' | 'JAWAL' | null,
+  ): AsateelIntegrationService | JawalIntegrationService {
+    return erpIntegration === 'JAWAL' ? this.jawal : this.asateel;
+  }
+
+  private async erpIntegrationForInvoice(
+    id: string,
+  ): Promise<'ASATEEL' | 'JAWAL' | null> {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      select: { supplier: { select: { erpIntegration: true } } },
+    });
+    return invoice?.supplier.erpIntegration ?? null;
   }
 
   async approve(user: AuthUser, id: string) {
@@ -126,12 +145,14 @@ export class ApService {
     return this.transition(user, id, 'UNDER_REVIEW');
   }
 
-  getReconciliationStatus(id: string) {
-    return this.asateel.getStatus(id);
+  async getReconciliationStatus(id: string) {
+    const erpIntegration = await this.erpIntegrationForInvoice(id);
+    return this.reconServiceFor(erpIntegration).getStatus(id);
   }
 
-  rerunReconciliation(user: AuthUser, id: string) {
-    return this.asateel.rerun(id, user.sub);
+  async rerunReconciliation(user: AuthUser, id: string) {
+    const erpIntegration = await this.erpIntegrationForInvoice(id);
+    return this.reconServiceFor(erpIntegration).rerun(id, user.sub);
   }
 
   private async transition(
@@ -211,6 +232,17 @@ export class ApService {
           action: 'ASATEEL_DISPATCH_ERROR',
           after: {
             error: error instanceof Error ? error.message : 'Asateel dispatch failed.',
+          },
+        }),
+      );
+      void this.jawal.dispatchAfterApproval(id, user.sub).catch((error) =>
+        this.audit.record({
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: id,
+          action: 'JAWAL_DISPATCH_ERROR',
+          after: {
+            error: error instanceof Error ? error.message : 'Jawal dispatch failed.',
           },
         }),
       );

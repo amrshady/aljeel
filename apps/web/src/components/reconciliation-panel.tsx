@@ -10,7 +10,7 @@ import { getApReconciliationStatus, rerunApReconciliation } from '@/lib/ap-api';
 import { downloadFile } from '@/lib/api-client';
 import { formatClientError } from '@/lib/format-error';
 
-interface AsateelReconciliationPanelProps {
+interface ReconciliationPanelProps {
   invoiceId: string;
   initialStatus?: ApReconciliationStatus | null;
 }
@@ -38,11 +38,8 @@ function StatusIcon({ status }: { status: ApReconciliationStatus['status'] }) {
   return <Clock3 className="h-4 w-4" aria-hidden />;
 }
 
-export function AsateelReconciliationPanel({
-  invoiceId,
-  initialStatus,
-}: AsateelReconciliationPanelProps) {
-  const t = useTranslations('asateelReconciliation');
+export function ReconciliationPanel({ invoiceId, initialStatus }: ReconciliationPanelProps) {
+  const t = useTranslations('reconciliation');
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +69,8 @@ export function AsateelReconciliationPanel({
     return null;
   }
 
-  const canDownload = status.status === 'DONE' && !!status.oracleDocumentId;
+  const vendor = status.vendor ?? 'DEFAULT';
+  const canDownload = status.status === 'DONE' && !!status.outputDocumentId;
   const canRerun = status.status === 'FAILED' || status.status === 'STATUS_LOST';
   const label =
     status.status === 'DONE' && status.emailSent === false
@@ -80,12 +78,12 @@ export function AsateelReconciliationPanel({
       : t(`status.${status.status}`);
 
   async function onDownload() {
-    if (!status?.oracleDocumentId) return;
+    if (!status?.outputDocumentId) return;
     setError(null);
     try {
       await downloadFile(
-        `/documents/${status.oracleDocumentId}/download`,
-        status.oracleFileName ?? 'Oracle-upload.xlsx',
+        `/documents/${status.outputDocumentId}/download`,
+        status.outputFileName ?? 'reconciliation-output.xlsx',
       );
     } catch (err) {
       setError(formatClientError(err, t('downloadError')));
@@ -96,7 +94,7 @@ export function AsateelReconciliationPanel({
     <section className="rounded-lg border bg-card p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-[#1E40AF]">{t('title')}</h2>
+          <h2 className="text-base font-semibold text-[#1E40AF]">{t(`title.${vendor}`)}</h2>
           <div
             className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${badgeClass(
               status.status,
@@ -128,7 +126,7 @@ export function AsateelReconciliationPanel({
           {canDownload && (
             <Button type="button" onClick={onDownload} className="gap-2">
               <Download className="h-4 w-4" aria-hidden />
-              {t('download')}
+              {t(`download.${vendor}`)}
             </Button>
           )}
           {canRerun && (

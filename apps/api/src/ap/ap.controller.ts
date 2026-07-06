@@ -34,14 +34,14 @@ export class ApController {
 
   @Get('invoices/:id/reconciliation')
   @Roles('AP_CLERK', 'AP_APPROVER')
-  @ApiOperation({ summary: 'Get AP-only Asateel reconciliation status for an invoice' })
+  @ApiOperation({ summary: 'Get AP-only vendor reconciliation status for an invoice' })
   getReconciliation(@Param('id') id: string) {
     return this.apService.getReconciliationStatus(id);
   }
 
   @Post('invoices/:id/reconciliation/rerun')
   @Roles('AP_CLERK', 'AP_APPROVER')
-  @ApiOperation({ summary: 'Re-run AP-only Asateel reconciliation for an approved invoice' })
+  @ApiOperation({ summary: 'Re-run AP-only vendor reconciliation for an approved invoice' })
   rerunReconciliation(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.apService.rerunReconciliation(user, id);
   }

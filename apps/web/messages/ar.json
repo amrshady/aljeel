@@ -23,9 +23,12 @@
     "title": "تسجيل الدخول",
     "subtitle": "تقديم الفواتير وتتبع المدفوعات للموردين بشكل ذاتي",
     "cloudflareSubtitle": "سيتحقق Cloudflare Access من بريدك الإلكتروني ورمز الدخول لمرة واحدة قبل فتح البوابة.",
+    "devSubtitle": "بيئة تطوير محلية — يقوم الـ API بتسجيل دخولك تلقائياً عبر AUTH_DEV_EMAIL.",
     "accessRequiredTitle": "يتطلب الوصول",
     "accessRequiredBody": "يجب أن يتحقق Cloudflare Access من بريدك الإلكتروني قبل تحميل حسابك في البوابة.",
+    "devAccessRequiredBody": "تعذر تحميل حساب التطوير. تأكد من تشغيل الـ API مع AUTH_DEV_MODE=true وAUTH_DEV_EMAIL لمستخدم موجود في البيانات التجريبية.",
     "signInWithAccess": "تسجيل الدخول عبر Cloudflare Access",
+    "continueLocal": "متابعة إلى البوابة",
     "loading": "جاري تحميل الحساب…"
   },
   "dashboard": {

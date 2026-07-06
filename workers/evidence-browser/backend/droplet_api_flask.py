@@ -8,6 +8,7 @@ import shutil
 import uuid
 import time
 import re
+import queue
 import mimetypes
 import tempfile
 from io import BytesIO
@@ -914,6 +915,230 @@ def _run_pipeline_worker(batch_id, no_cache, invoice_path, log_path, lock_fd):
                 log("[END]")
     finally:
         _release_run_lock(lock_fd)
+
+# ---------------------------------------------------------------------------
+# Jawal portal-trigger API (mirrors the Asateel /asateel/run contract).
+#
+# The AlJeel AP portal (NestJS JawalIntegrationService) POSTs here after an
+# invoice is approved. Contract:
+#   POST /jawal/run           -> 202 {run_id, status:"queued", queue_position}
+#     headers: X-Jawal-Trigger-Key
+#     body:    {archive_date, folder_name, batch_id}
+#   GET  /jawal/run/<run_id>  -> 200 {run_id, status, started_at, finished_at, error}
+#                                404 when the run_id is unknown (portal maps to STATUS_LOST)
+#
+# Runs are serialized through a single-worker FIFO queue and reuse the existing
+# _run_pipeline_worker (Stage 1..5). folder_name is the portal-staged src dir;
+# its files carry a "<docId>-" prefix (portal flattens folder uploads to flat
+# sanitized names), which we strip before dropping evidence into the batch raw/
+# tree and detecting the invoice workbook.
+# ---------------------------------------------------------------------------
+JAWAL_RUNS = {}
+JAWAL_RUNS_LOCK = threading.Lock()
+JAWAL_QUEUE = queue.Queue()
+_DOC_ID_PREFIX_RE = re.compile(r'^[a-z0-9]{16,}-')
+
+
+def _jawal_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _jawal_set_run(run_id, **fields):
+    with JAWAL_RUNS_LOCK:
+        run = JAWAL_RUNS.setdefault(run_id, {})
+        run.update(fields)
+
+
+def _jawal_get_run(run_id):
+    with JAWAL_RUNS_LOCK:
+        run = JAWAL_RUNS.get(run_id)
+        return dict(run) if run else None
+
+
+def _jawal_queued_count():
+    with JAWAL_RUNS_LOCK:
+        return sum(1 for run in JAWAL_RUNS.values() if run.get("status") == "queued")
+
+
+def _jawal_trigger_key():
+    return os.environ.get("JAWAL_TRIGGER_KEY", "")
+
+
+def _check_jawal_key():
+    expected = _jawal_trigger_key()
+    provided = request.headers.get("X-Jawal-Trigger-Key", "")
+    return bool(expected) and provided == expected
+
+
+def _strip_doc_id_prefix(name):
+    return _DOC_ID_PREFIX_RE.sub('', name, count=1)
+
+
+def _stage_jawal_portal_docs(batch_id, folder_name):
+    """Copy portal-staged docs into batches/jawal-<batch>/{raw,invoice-source.xlsx}.
+
+    Returns (batch_dir, raw_dir, invoice_path, staged_count). The invoice is the
+    Excel workbook whose cleaned name looks like an invoice (contains "inv"),
+    falling back to the first Excel file; everything else lands in raw/.
+    """
+    normalized = batch_id.replace("jawal-", "")
+    batch_dir = ROOT / "batches" / f"jawal-{normalized}"
+    raw_dir = batch_dir / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+
+    src = Path(folder_name)
+    if not src.is_dir():
+        raise FileNotFoundError(f"staged folder not found: {folder_name}")
+
+    excel_candidates = []
+    other_files = []
+    for entry in sorted(src.iterdir(), key=lambda p: p.name.lower()):
+        if not entry.is_file():
+            continue
+        clean = _strip_doc_id_prefix(entry.name)
+        if entry.suffix.lower() in (".xlsx", ".xls"):
+            excel_candidates.append((entry, clean))
+        else:
+            other_files.append((entry, clean))
+
+    invoice_path = None
+    invoice_entry = None
+    if excel_candidates:
+        invoice_entry = next(
+            (item for item in excel_candidates if "inv" in item[1].lower()),
+            excel_candidates[0],
+        )
+        dst_invoice = batch_dir / "invoice-source.xlsx"
+        _atomic_copy(invoice_entry[0], dst_invoice)
+        invoice_path = str(dst_invoice)
+
+    staged = 0
+    for entry, clean in other_files:
+        _atomic_copy(entry, raw_dir / clean)
+        staged += 1
+    # Non-invoice workbooks are still evidence — keep them in raw/.
+    for entry, clean in excel_candidates:
+        if invoice_entry is not None and entry == invoice_entry[0]:
+            continue
+        _atomic_copy(entry, raw_dir / clean)
+        staged += 1
+
+    return batch_dir, raw_dir, invoice_path, staged
+
+
+def _jawal_acquire_run_lock(run_id, deadline_seconds=3600):
+    """Wait for the shared pipeline lock, then return an owned lock_fd."""
+    deadline = time.time() + deadline_seconds
+    while True:
+        _maybe_clear_stale_lock()
+        try:
+            lock_fd = os.open(RUN_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            started_at = _jawal_now()
+            os.write(lock_fd, f"{run_id}\n".encode("utf-8"))
+            RUN_LOCK_TS.write_text(
+                json.dumps({"since": started_at, "run_id": run_id}), encoding="utf-8"
+            )
+            return lock_fd, started_at
+        except FileExistsError:
+            if time.time() > deadline:
+                raise TimeoutError("timed out waiting for pipeline lock")
+            time.sleep(5)
+
+
+def _jawal_worker_loop():
+    while True:
+        job = JAWAL_QUEUE.get()
+        run_id = job["run_id"]
+        batch_id = job["batch_id"]
+        lock_fd = None
+        try:
+            _jawal_set_run(run_id, status="running", started_at=_jawal_now())
+            lock_fd, started_at = _jawal_acquire_run_lock(run_id)
+            PIPELINE_LOGS_DIR.mkdir(parents=True, exist_ok=True)
+            log_path = PIPELINE_LOGS_DIR / f"{started_at.replace(':', '').replace('+', 'Z')}-{run_id}.log"
+            log_path.touch()
+            _jawal_set_run(run_id, started_at=started_at, log_path=str(log_path))
+
+            # _run_pipeline_worker owns and releases lock_fd in its finally block.
+            _run_pipeline_worker(batch_id, True, job.get("invoice_path"), log_path, lock_fd)
+            lock_fd = None
+
+            content = log_path.read_text(encoding="utf-8", errors="replace")
+            if "[PIPELINE_SUCCESS]" in content:
+                _jawal_set_run(run_id, status="done", finished_at=_jawal_now(), error=None)
+            else:
+                match = re.search(r"\[PIPELINE_FAILED: (.+?)\]", content)
+                _jawal_set_run(
+                    run_id,
+                    status="failed",
+                    finished_at=_jawal_now(),
+                    error=(match.group(1) if match else "Jawal pipeline failed"),
+                )
+        except Exception as exc:
+            if lock_fd is not None:
+                _release_run_lock(lock_fd)
+            _jawal_set_run(run_id, status="failed", finished_at=_jawal_now(), error=str(exc))
+        finally:
+            JAWAL_QUEUE.task_done()
+
+
+threading.Thread(target=_jawal_worker_loop, daemon=True).start()
+
+
+@app.route('/jawal/run', methods=['POST'])
+def jawal_run():
+    if not _check_jawal_key():
+        return jsonify({"error": "unauthorized"}), 401
+    body = request.get_json(silent=True) or {}
+    batch_id = str(body.get("batch_id", "")).strip()
+    folder_name = str(body.get("folder_name", "")).strip()
+    if not batch_id:
+        return jsonify({"error": "batch_id required"}), 400
+    if "/" in batch_id or "\\" in batch_id:
+        return jsonify({"error": "batch_id must not contain path separators"}), 400
+    if not folder_name:
+        return jsonify({"error": "folder_name required"}), 400
+
+    try:
+        _batch_dir, _raw_dir, invoice_path, staged = _stage_jawal_portal_docs(batch_id, folder_name)
+    except Exception as exc:
+        return jsonify({"error": f"staging failed: {exc}"}), 400
+    if staged == 0 and not invoice_path:
+        return jsonify({"error": "no source documents found in folder_name"}), 400
+
+    run_id = uuid.uuid4().hex[:8]
+    queue_position = _jawal_queued_count()
+    _jawal_set_run(
+        run_id,
+        run_id=run_id,
+        batch_id=batch_id,
+        folder_name=folder_name,
+        archive_date=body.get("archive_date"),
+        status="queued",
+        started_at=None,
+        finished_at=None,
+        error=None,
+    )
+    JAWAL_QUEUE.put({"run_id": run_id, "batch_id": batch_id, "invoice_path": invoice_path})
+    return jsonify({"run_id": run_id, "status": "queued", "queue_position": queue_position}), 202
+
+
+@app.route('/jawal/run/<run_id>', methods=['GET'])
+def jawal_run_status(run_id):
+    if not _check_jawal_key():
+        return jsonify({"error": "unauthorized"}), 401
+    run = _jawal_get_run(run_id)
+    if not run:
+        return jsonify({"error": "run_id not found"}), 404
+    return jsonify({
+        "run_id": run_id,
+        "status": run.get("status", "queued"),
+        "batch_id": run.get("batch_id"),
+        "started_at": run.get("started_at"),
+        "finished_at": run.get("finished_at"),
+        "error": run.get("error"),
+    })
+
 
 @app.route('/ping', methods=['GET'])
 def ping():

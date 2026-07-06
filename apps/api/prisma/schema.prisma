@@ -223,6 +223,16 @@ model Invoice {
   asateelFinishedAt       DateTime?
   asateelLastPolledAt     DateTime?
   asateelOracleDocumentId String?
+  jawalRunId              String?           @unique
+  jawalStatus            AsateelRunStatus?
+  jawalQueuePosition     Int?
+  jawalError             String?
+  jawalFolderName        String?
+  jawalTriggeredAt       DateTime?
+  jawalStartedAt         DateTime?
+  jawalFinishedAt        DateTime?
+  jawalLastPolledAt      DateTime?
+  jawalOutputDocumentId  String?
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 

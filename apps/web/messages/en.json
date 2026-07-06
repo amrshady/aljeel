@@ -23,9 +23,12 @@
     "title": "Sign in",
     "subtitle": "Self-service invoice submission and payment tracking for suppliers",
     "cloudflareSubtitle": "Cloudflare Access will verify your email and one-time code before opening the portal.",
+    "devSubtitle": "Local development — the API signs you in automatically using AUTH_DEV_EMAIL.",
     "accessRequiredTitle": "Access required",
     "accessRequiredBody": "Cloudflare Access must verify your email before this portal can load your account.",
+    "devAccessRequiredBody": "Could not load your dev account. Ensure the API is running with AUTH_DEV_MODE=true and AUTH_DEV_EMAIL set to a seeded user.",
     "signInWithAccess": "Sign in with Cloudflare Access",
+    "continueLocal": "Continue to portal",
     "loading": "Loading account…"
   },
   "dashboard": {

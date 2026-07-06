@@ -45,6 +45,13 @@ export const AsateelRunStatusSchema = z.enum([
 ]);
 export type AsateelRunStatus = z.infer<typeof AsateelRunStatusSchema>;
 
+/** Vendor-agnostic reconciliation run status (shared by Asateel + Jawal). */
+export const ReconRunStatusSchema = AsateelRunStatusSchema;
+export type ReconRunStatus = AsateelRunStatus;
+
+export const SupplierErpIntegrationSchema = z.enum(['ASATEEL', 'JAWAL']);
+export type SupplierErpIntegration = z.infer<typeof SupplierErpIntegrationSchema>;
+
 export const VerificationStatusSchema = z.enum(['PENDING', 'VERIFIED', 'REJECTED']);
 export type VerificationStatus = z.infer<typeof VerificationStatusSchema>;
 

@@ -1,6 +1,11 @@
 'use client';
 
-import type { AsateelRegion } from '@aljeel/shared-types';
+import {
+  ASATEEL_REGION_CODES,
+  ASATEEL_REGION_VALUES,
+  validateInvoiceSubmitDocuments,
+  type AsateelRegion,
+} from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, FileWarning } from 'lucide-react';
@@ -56,11 +61,20 @@ function InvoiceUploadContent() {
       }),
   });
 
+  function fileLabel(item: KbQueuedFile): string {
+    return item.relativePath ?? item.file.name;
+  }
+
+  function submitValidationError(fileNames: string[]): string | null {
+    const issue = validateInvoiceSubmitDocuments(fileNames);
+    if (!issue) return null;
+    if (issue.code === 'XLSX_REQUIRED') return t('errors.xlsxRequired');
+    return t('errors.filesRequired');
+  }
+
   function validateForm(requireFiles: boolean): string | null {
-    if (requireFiles && files.length === 0) {
-      return t('errors.filesRequired');
-    }
-    return null;
+    if (!requireFiles) return null;
+    return submitValidationError(files.map(fileLabel));
   }
 
   async function uploadOne(invoiceId: string, item: KbQueuedFile) {
@@ -140,6 +154,13 @@ function InvoiceUploadContent() {
       await uploadAll(invoiceId, uploadQueue);
 
       if (submitAfter) {
+        const finalDocuments = await listInvoiceDocuments(invoiceId);
+        const submitError = submitValidationError(finalDocuments.map((doc) => doc.fileName));
+        if (submitError) {
+          setError(submitError);
+          setSubmitPhase('idle');
+          return;
+        }
         setSubmitPhase('submitting');
         await submitInvoice(invoiceId);
       }
@@ -266,9 +287,11 @@ function InvoiceUploadContent() {
               }}
             >
               <option value="">{t('asateelRegionPlaceholder')}</option>
-              <option value="CENTRAL">{t('asateelRegions.CENTRAL')}</option>
-              <option value="PROJECTS">{t('asateelRegions.PROJECTS')}</option>
-              <option value="ADMIN">{t('asateelRegions.ADMIN')}</option>
+              {ASATEEL_REGION_VALUES.map((region) => (
+                <option key={region} value={region}>
+                  {t(`asateelRegions.${region}`, { code: ASATEEL_REGION_CODES[region] })}
+                </option>
+              ))}
             </select>
           </div>
 

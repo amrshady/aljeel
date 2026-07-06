@@ -33,8 +33,7 @@ export const InvoiceStatusSchema = z.enum([
 ]);
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;
 
-export const AsateelRegionSchema = z.enum(['CENTRAL', 'PROJECTS', 'ADMIN']);
-export type AsateelRegion = z.infer<typeof AsateelRegionSchema>;
+export * from './asateel-region';
 
 export const AsateelRunStatusSchema = z.enum([
   'QUEUED',
@@ -93,6 +92,7 @@ export * from './supplier';
 export * from './invoice';
 export * from './invoice-fsm';
 export * from './invoice-math';
+export * from './invoice-submit';
 export * from './document';
 export * from './timeline';
 export * from './ap';

@@ -67,8 +67,10 @@ enum DocumentType {
 
 enum AsateelRegion {
   CENTRAL
-  PROJECTS
-  ADMIN
+  EASTERN
+  WESTERN
+  PT_PROJECT
+  MAIN
 }
 
 enum AsateelRunStatus {

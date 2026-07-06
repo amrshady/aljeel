@@ -14,6 +14,7 @@ import {
   isPlaceholderInvoiceNumber,
   validateInvoiceMath,
   InvalidInvoiceTransitionError,
+  validateInvoiceSubmitDocuments,
   type CreateInvoiceDraft,
   type InvoiceListQuery,
   type UpsertInvoiceDraft,
@@ -329,13 +330,17 @@ export class InvoicesService {
       throw error;
     }
 
-    const documentCount = await this.prisma.document.count({
+    const documents = await this.prisma.document.findMany({
       where: { invoiceId: id },
+      select: { fileName: true },
     });
-    if (documentCount === 0) {
+    const documentIssue = validateInvoiceSubmitDocuments(
+      documents.map((document) => document.fileName),
+    );
+    if (documentIssue) {
       throw new UnprocessableEntityException({
-        code: 'DOCUMENTS_REQUIRED',
-        message: 'At least one document must be attached before submitting.',
+        code: documentIssue.code,
+        message: documentIssue.message,
       });
     }
 

@@ -5,6 +5,11 @@ import {
   OnModuleInit,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import {
+  getAsateelRegionCode,
+  getAsateelRegionFilePrefix,
+  parseAsateelRegionFromFolderName,
+} from '@aljeel/shared-types';
 import type { AsateelRegion, Prisma } from '@prisma/client';
 import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
@@ -158,7 +163,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       const payload = {
         archive_date: this.archiveDate(invoice),
         folder_name: folderName,
-        region,
+        region: getAsateelRegionCode(region),
         batch_id: invoice.invoiceNumber,
       };
       const trigger = await this.enqueueRun(payload);
@@ -225,11 +230,12 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
   }
 
   private resolveRegion(folderName: string, fallback: AsateelRegion | null): AsateelRegion {
-    const matches = folderName.match(/\b(CENTRAL|PROJECTS|ADMIN)\b/gi) ?? [];
-    const unique = [...new Set(matches.map((match) => match.toUpperCase()))];
-    const region = unique.length === 1 ? unique[0] : fallback;
-    if (region === 'CENTRAL' || region === 'PROJECTS' || region === 'ADMIN') {
-      return region;
+    const parsed = parseAsateelRegionFromFolderName(folderName);
+    if (parsed) {
+      return parsed;
+    }
+    if (fallback) {
+      return fallback;
     }
     throw new Error('Asateel region is missing or ambiguous.');
   }
@@ -245,7 +251,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
   private async enqueueRun(payload: {
     archive_date: string;
     folder_name: string;
-    region: AsateelRegion;
+    region: string;
     batch_id: string;
   }): Promise<TriggerResponse> {
     const key = process.env.ASATEEL_TRIGGER_KEY;
@@ -412,7 +418,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     if (trailingNumber) {
       const expected = join(
         batchDir,
-        `${this.titleCase(region)}-${trailingNumber}-2026_Oracle-upload.xlsx`,
+        `${getAsateelRegionFilePrefix(region)}-${trailingNumber}-2026_Oracle-upload.xlsx`,
       );
       if (await this.exists(expected)) {
         return expected;
@@ -504,10 +510,6 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
     } catch {
       return false;
     }
-  }
-
-  private titleCase(region: AsateelRegion): string {
-    return region.charAt(0) + region.slice(1).toLowerCase();
   }
 
   private sanitizeFileName(name: string): string {

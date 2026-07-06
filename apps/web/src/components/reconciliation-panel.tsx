@@ -1,6 +1,7 @@
 'use client';
 
 import type { ApReconciliationStatus } from '@aljeel/shared-types';
+import { ASATEEL_REGION_CODES, AsateelRegionSchema } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, Clock3, Download, RefreshCw } from 'lucide-react';
@@ -40,6 +41,7 @@ function StatusIcon({ status }: { status: ApReconciliationStatus['status'] }) {
 
 export function ReconciliationPanel({ invoiceId, initialStatus }: ReconciliationPanelProps) {
   const t = useTranslations('reconciliation');
+  const tRegion = useTranslations('invoiceForm.asateelRegions');
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +78,12 @@ export function ReconciliationPanel({ invoiceId, initialStatus }: Reconciliation
     status.status === 'DONE' && status.emailSent === false
       ? t('status.DONE_EMAIL_FAILED')
       : t(`status.${status.status}`);
+  const regionLabel = (() => {
+    if (!status.region) return null;
+    const parsed = AsateelRegionSchema.safeParse(status.region);
+    if (!parsed.success) return status.region;
+    return tRegion(parsed.data, { code: ASATEEL_REGION_CODES[parsed.data] });
+  })();
 
   async function onDownload() {
     if (!status?.outputDocumentId) return;
@@ -108,7 +116,7 @@ export function ReconciliationPanel({ invoiceId, initialStatus }: Reconciliation
             <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{status.error}</p>
           )}
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-            {status.region && <span>{t('region', { region: status.region })}</span>}
+            {regionLabel && <span>{t('region', { region: regionLabel })}</span>}
             {status.queuePosition !== null && (
               <span>{t('queuePosition', { position: status.queuePosition })}</span>
             )}

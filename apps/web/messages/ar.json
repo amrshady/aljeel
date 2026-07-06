@@ -115,7 +115,7 @@
     "title": "تقديم فاتورة",
     "subtitle": "ارفع الفاتورة وأي مستندات داعمة. تُستخرج التفاصيل تلقائياً بعد التقديم.",
     "filesTitle": "المستندات",
-    "filesHint": "أضف كل ملفاتك في رفع واحد. يظهر تقدم كل ملف أثناء الرفع.",
+    "filesHint": "أضف كل ملفاتك في رفع واحد. يُشترط ملف واحد على الأقل وملفّان Excel (.xlsx) على الأقل قبل التقديم.",
     "filesDropTitle": "اسحب وأفلت مجلداً أو ملفات هنا، أو انقر للاختيار",
     "filesDropHint": "ارفع مجلداً كاملاً — سيُعرض كل ملف بداخله ويُرفع على حدة",
     "unfinishedTitle": "لديك {count, plural, one {عملية رفع غير مكتملة} two {عمليتا رفع غير مكتملتين} few {# عمليات رفع غير مكتملة} many {# عملية رفع غير مكتملة} other {# عملية رفع غير مكتملة}}",
@@ -126,9 +126,11 @@
     "asateelRegion": "منطقة أساطيل",
     "asateelRegionPlaceholder": "اختر المنطقة",
     "asateelRegions": {
-      "CENTRAL": "المركزية",
-      "PROJECTS": "المشاريع",
-      "ADMIN": "الإدارة"
+      "CENTRAL": "المركزية ({code})",
+      "EASTERN": "الشرقية ({code})",
+      "WESTERN": "الغربية ({code})",
+      "PT_PROJECT": "P&T (مشاريع) ({code})",
+      "MAIN": "الرئيسية ({code})"
     },
     "saveDraft": "حفظ مسودة",
     "submit": "تقديم للمراجعة",
@@ -137,7 +139,8 @@
     "uploadingFiles": "جاري رفع الملفات…",
     "error": "تعذر حفظ الفاتورة",
     "errors": {
-      "filesRequired": "يرجى إرفاق ملف واحد على الأقل قبل التقديم للمراجعة"
+      "filesRequired": "يرجى إرفاق ملف واحد على الأقل قبل التقديم للمراجعة",
+      "xlsxRequired": "يرجى إرفاق ملفّي Excel (.xlsx) على الأقل قبل التقديم للمراجعة"
     }
   },
   "invoiceDetail": {
@@ -151,6 +154,8 @@
     "submit": "تقديم للمراجعة",
     "submitting": "جاري التقديم…",
     "submitError": "فشل التقديم",
+    "filesRequired": "يرجى إرفاق ملف واحد على الأقل قبل التقديم للمراجعة",
+    "xlsxRequired": "يرجى إرفاق ملفّي Excel (.xlsx) على الأقل قبل التقديم للمراجعة",
     "invoicePreviewTitle": "الفاتورة",
     "invoicePreviewLoading": "جاري تحميل الفاتورة…",
     "invoicePreviewMissing": "لم يتم إرفاق ملف PDF للفاتورة بعد. يمكنك رفعه من قسم المرفقات أدناه.",
@@ -270,13 +275,21 @@
       "ON_HOLD": "معلقة"
     }
   },
-  "asateelReconciliation": {
-    "title": "مطابقة أساطيل",
-    "download": "تنزيل ملف أوراكل",
+  "reconciliation": {
+    "title": {
+      "ASATEEL": "مطابقة أساطيل",
+      "JAWAL": "مطابقة جوال للسفر",
+      "DEFAULT": "المطابقة"
+    },
+    "download": {
+      "ASATEEL": "تنزيل ملف أوراكل",
+      "JAWAL": "تنزيل الملف المُسوَّى",
+      "DEFAULT": "تنزيل الملف الناتج"
+    },
     "rerun": "إعادة التشغيل",
     "rerunning": "جاري إعادة التشغيل…",
     "rerunError": "تعذرت إعادة تشغيل المطابقة",
-    "downloadError": "تعذر تنزيل ملف أوراكل",
+    "downloadError": "تعذر تنزيل الملف الناتج",
     "region": "المنطقة: {region}",
     "queuePosition": "الترتيب: {position}",
     "lastChecked": "آخر تحقق: {value}",

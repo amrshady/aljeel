@@ -1,6 +1,10 @@
 'use client';
 
-import type { ApInvoiceDetail, UserRole } from '@aljeel/shared-types';
+import {
+  validateInvoiceSubmitDocuments,
+  type ApInvoiceDetail,
+  type UserRole,
+} from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -54,6 +58,17 @@ function InvoiceDetailContent() {
 
   async function onSubmit() {
     if (!invoice) return;
+    const validationIssue = validateInvoiceSubmitDocuments(
+      documents?.map((doc) => doc.fileName) ?? [],
+    );
+    if (validationIssue) {
+      setError(
+        validationIssue.code === 'XLSX_REQUIRED'
+          ? t('xlsxRequired')
+          : t('filesRequired'),
+      );
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -61,7 +76,17 @@ function InvoiceDetailContent() {
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
       await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : t('submitError'));
+      if (err instanceof ApiClientError) {
+        setError(
+          err.code === 'XLSX_REQUIRED'
+            ? t('xlsxRequired')
+            : err.code === 'DOCUMENTS_REQUIRED'
+              ? t('filesRequired')
+              : err.message,
+        );
+      } else {
+        setError(t('submitError'));
+      }
     } finally {
       setSubmitting(false);
     }

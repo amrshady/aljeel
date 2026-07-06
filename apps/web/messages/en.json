@@ -115,7 +115,7 @@
     "title": "Submit invoice",
     "subtitle": "Upload your invoice and any supporting documents. Details are extracted automatically after submission.",
     "filesTitle": "Documents",
-    "filesHint": "Add all your files in one upload. Progress is shown for each file.",
+    "filesHint": "Add all your files in one upload. At least one file and two Excel (.xlsx) files are required before submitting.",
     "filesDropTitle": "Drag & drop a folder or files here, or click to browse",
     "filesDropHint": "Upload a whole folder — every file inside will be listed and uploaded individually",
     "unfinishedTitle": "You have {count, plural, one {# unfinished upload} other {# unfinished uploads}}",
@@ -126,9 +126,11 @@
     "asateelRegion": "Asateel region",
     "asateelRegionPlaceholder": "Select region",
     "asateelRegions": {
-      "CENTRAL": "Central",
-      "PROJECTS": "Projects",
-      "ADMIN": "Admin"
+      "CENTRAL": "Central ({code})",
+      "EASTERN": "Eastern ({code})",
+      "WESTERN": "Western ({code})",
+      "PT_PROJECT": "P&T (project) ({code})",
+      "MAIN": "Main ({code})"
     },
     "saveDraft": "Save draft",
     "submit": "Submit for review",
@@ -137,7 +139,8 @@
     "uploadingFiles": "Uploading files…",
     "error": "Could not save invoice",
     "errors": {
-      "filesRequired": "Please attach at least one file before submitting for review"
+      "filesRequired": "Please attach at least one file before submitting for review",
+      "xlsxRequired": "Please attach at least two Excel (.xlsx) files before submitting for review"
     }
   },
   "invoiceDetail": {
@@ -151,6 +154,8 @@
     "submit": "Submit for review",
     "submitting": "Submitting…",
     "submitError": "Submit failed",
+    "filesRequired": "Please attach at least one file before submitting for review",
+    "xlsxRequired": "Please attach at least two Excel (.xlsx) files before submitting for review",
     "invoicePreviewTitle": "Invoice",
     "invoicePreviewLoading": "Loading invoice…",
     "invoicePreviewMissing": "No invoice PDF attached yet. Upload one in the attachments section below.",
@@ -270,13 +275,21 @@
       "ON_HOLD": "On hold"
     }
   },
-  "asateelReconciliation": {
-    "title": "Asateel reconciliation",
-    "download": "Download Oracle upload",
+  "reconciliation": {
+    "title": {
+      "ASATEEL": "Asateel reconciliation",
+      "JAWAL": "Jawal Travel reconciliation",
+      "DEFAULT": "Reconciliation"
+    },
+    "download": {
+      "ASATEEL": "Download Oracle upload",
+      "JAWAL": "Download resolved file",
+      "DEFAULT": "Download output"
+    },
     "rerun": "Re-run",
     "rerunning": "Re-running…",
     "rerunError": "Could not re-run reconciliation",
-    "downloadError": "Could not download Oracle upload",
+    "downloadError": "Could not download output file",
     "region": "Region: {region}",
     "queuePosition": "Queue: {position}",
     "lastChecked": "Checked: {value}",

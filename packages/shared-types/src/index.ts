@@ -34,6 +34,7 @@ export const InvoiceStatusSchema = z.enum([
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;
 
 export * from './asateel-region';
+export * from './asateel-invoice-manifest';
 
 export const AsateelRunStatusSchema = z.enum([
   'QUEUED',

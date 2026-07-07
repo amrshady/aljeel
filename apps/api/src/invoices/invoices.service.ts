@@ -24,6 +24,7 @@ import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
+import { AsateelInvoiceManifestService } from './asateel-invoice-manifest.service';
 
 export function serializeInvoice(
   invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>,
@@ -81,6 +82,7 @@ export class InvoicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly asateelManifest: AsateelInvoiceManifestService,
   ) {}
 
   async createDraft(user: AuthUser, body: unknown) {
@@ -88,7 +90,7 @@ export class InvoicesService {
     const supplierId = requireSupplierId(user);
 
     if (dto.invoiceNumber) {
-      const existing = await this.prisma.invoice.findFirst({
+      const existingDraft = await this.prisma.invoice.findFirst({
         where: {
           supplierId,
           invoiceNumber: dto.invoiceNumber,
@@ -96,8 +98,24 @@ export class InvoicesService {
         },
         include: { lines: true },
       });
-      if (existing) {
-        return serializeInvoice(existing);
+      if (existingDraft) {
+        return serializeInvoice(existingDraft);
+      }
+
+      const alreadySubmitted = await this.prisma.invoice.findFirst({
+        where: {
+          supplierId,
+          invoiceNumber: dto.invoiceNumber,
+          status: { notIn: ['DRAFT', 'REJECTED'] },
+        },
+        select: { id: true },
+      });
+      if (alreadySubmitted) {
+        throw new ConflictException({
+          code: 'INVOICE_NUMBER_TAKEN',
+          message: `An invoice folder named "${dto.invoiceNumber}" was already submitted.`,
+          details: { invoiceNumber: dto.invoiceNumber },
+        });
       }
     }
 
@@ -332,7 +350,7 @@ export class InvoicesService {
 
     const documents = await this.prisma.document.findMany({
       where: { invoiceId: id },
-      select: { fileName: true },
+      select: { fileName: true, storageKey: true },
     });
     const documentIssue = validateInvoiceSubmitDocuments(
       documents.map((document) => document.fileName),
@@ -342,6 +360,21 @@ export class InvoicesService {
         code: documentIssue.code,
         message: documentIssue.message,
       });
+    }
+
+    const supplier = await this.prisma.supplier.findUnique({
+      where: { id: supplierId },
+      select: { erpIntegration: true },
+    });
+    if (supplier?.erpIntegration === 'ASATEEL') {
+      const manifestIssue = await this.asateelManifest.validateUploadedFolder(documents);
+      if (manifestIssue) {
+        throw new UnprocessableEntityException({
+          code: manifestIssue.code,
+          message: manifestIssue.message,
+          details: manifestIssue.details,
+        });
+      }
     }
 
     if (invoice.lines.length > 0) {

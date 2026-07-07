@@ -22,7 +22,8 @@ import {
 } from '@/components/kb-file-uploader';
 import { RequireAuth } from '@/components/require-auth';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
-import { formatClientError } from '@/lib/format-error';
+import { validateLocalAsateelManifest } from '@/lib/asateel-manifest-validation';
+import { formatAsateelManifestIssue, formatInvoiceError } from '@/lib/format-error';
 import {
   createInvoiceDraft,
   listInvoiceDocuments,
@@ -120,6 +121,15 @@ function InvoiceUploadContent() {
       return;
     }
 
+    if (submitAfter) {
+      const folderFiles = files.filter((file) => file.status !== 'skipped');
+      const manifestIssue = await validateLocalAsateelManifest(folderFiles);
+      if (manifestIssue) {
+        setError(formatAsateelManifestIssue(manifestIssue, t));
+        return;
+      }
+    }
+
     setUploading(true);
     setSubmitPhase('uploading');
     setError(null);
@@ -169,7 +179,7 @@ function InvoiceUploadContent() {
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
       router.push(submitAfter ? '/dashboard' : `/invoices/${invoiceId}`);
     } catch (err) {
-      setError(formatClientError(err, t('error')));
+      setError(formatInvoiceError(err, t, t('error')));
       setSubmitPhase('idle');
     } finally {
       setUploading(false);

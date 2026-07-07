@@ -19,7 +19,7 @@ import { DocumentEvidenceViewer } from '@/components/document-evidence-viewer';
 import { InvoiceDocuments } from '@/components/invoice-documents';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
-import { ApiClientError } from '@/lib/api-client';
+import { formatInvoiceError } from '@/lib/format-error';
 import { getApInvoice } from '@/lib/ap-api';
 import { getInvoice, listInvoiceDocuments, submitInvoice } from '@/lib/invoices-api';
 import { Link } from '@/i18n/routing';
@@ -28,6 +28,7 @@ const AP_ROLES = new Set<UserRole>(['AP_CLERK', 'AP_APPROVER']);
 
 function InvoiceDetailContent() {
   const t = useTranslations('invoiceDetail');
+  const tForm = useTranslations('invoiceForm');
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -76,17 +77,7 @@ function InvoiceDetailContent() {
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
       await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
     } catch (err) {
-      if (err instanceof ApiClientError) {
-        setError(
-          err.code === 'XLSX_REQUIRED'
-            ? t('xlsxRequired')
-            : err.code === 'DOCUMENTS_REQUIRED'
-              ? t('filesRequired')
-              : err.message,
-        );
-      } else {
-        setError(t('submitError'));
-      }
+      setError(formatInvoiceError(err, tForm, t('submitError')));
     } finally {
       setSubmitting(false);
     }

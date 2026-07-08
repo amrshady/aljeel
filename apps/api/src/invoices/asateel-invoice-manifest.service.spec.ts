@@ -44,7 +44,7 @@ describe('AsateelInvoiceManifestService', () => {
     };
     const service = new AsateelInvoiceManifestService(storage as never, kb as never);
 
-    const issue = await service.validateUploadedFolder([
+    const result = await service.validateUploadedFolder([
       {
         fileName: 'report.xlsx',
         storageKey: 'invoices/inv-1/report.xlsx',
@@ -54,7 +54,8 @@ describe('AsateelInvoiceManifestService', () => {
       { fileName: 'Main 8-2026.xlsx', storageKey: 'local:summary.xlsx' },
     ]);
 
-    expect(issue).toBeNull();
+    expect(result.error).toBeNull();
+    expect(result.warning).toBeNull();
   });
 
   it('reports missing attachment files for invoice numbers', async () => {
@@ -64,14 +65,33 @@ describe('AsateelInvoiceManifestService', () => {
     };
     const service = new AsateelInvoiceManifestService({} as never, kb as never);
 
-    const issue = await service.validateUploadedFolder([
+    const result = await service.validateUploadedFolder([
       { fileName: 'report.xlsx', storageKey: 'invoices/inv-1/report.xlsx' },
       { fileName: '03041_0001.pdf', storageKey: 'local:unused' },
       { fileName: '03042_0001.pdf', storageKey: 'local:unused' },
     ]);
 
-    expect(issue?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
-    expect(issue?.details?.missingInvoiceNos).toEqual(['03067']);
+    expect(result.error?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
+    expect(result.error?.details?.missingInvoiceNos).toEqual(['03067']);
+    expect(result.warning).toBeNull();
+  });
+
+  it('warns when extra attachments are not listed in the spreadsheet', async () => {
+    const report = buildShippingReportXlsx(['03041']);
+    const kb = {
+      createReadStream: vi.fn().mockResolvedValue(streamFromBuffer(report)),
+    };
+    const service = new AsateelInvoiceManifestService({} as never, kb as never);
+
+    const result = await service.validateUploadedFolder([
+      { fileName: 'report.xlsx', storageKey: 'invoices/inv-1/report.xlsx' },
+      { fileName: '03041_0001.pdf', storageKey: 'local:unused' },
+      { fileName: '99999_0001.pdf', storageKey: 'local:unused' },
+    ]);
+
+    expect(result.error).toBeNull();
+    expect(result.warning?.code).toBe('ASATEEL_INVOICE_FILES_EXTRA');
+    expect(result.warning?.details?.extraFileNames).toEqual(['99999_0001.pdf']);
   });
 
   it('requires a spreadsheet with an Invoice No column', async () => {
@@ -87,11 +107,12 @@ describe('AsateelInvoiceManifestService', () => {
     };
     const service = new AsateelInvoiceManifestService({} as never, kb as never);
 
-    const issue = await service.validateUploadedFolder([
+    const result = await service.validateUploadedFolder([
       { fileName: 'empty.xlsx', storageKey: 'invoices/inv-1/empty.xlsx' },
       { fileName: '03041_0001.pdf', storageKey: 'local:unused' },
     ]);
 
-    expect(issue?.code).toBe('ASATEEL_INVOICE_TABLE_REQUIRED');
+    expect(result.error?.code).toBe('ASATEEL_INVOICE_TABLE_REQUIRED');
+    expect(result.warning).toBeNull();
   });
 });

@@ -1,15 +1,22 @@
 export type AsateelInvoiceManifestIssueCode =
   | 'ASATEEL_INVOICE_TABLE_REQUIRED'
   | 'ASATEEL_INVOICE_TABLE_EMPTY'
-  | 'ASATEEL_INVOICE_FILES_MISSING';
+  | 'ASATEEL_INVOICE_FILES_MISSING'
+  | 'ASATEEL_INVOICE_FILES_EXTRA';
 
 export interface AsateelInvoiceManifestIssue {
   code: AsateelInvoiceManifestIssueCode;
   message: string;
   details?: {
     missingInvoiceNos?: string[];
+    extraFileNames?: string[];
     sourceSpreadsheet?: string;
   };
+}
+
+export interface AsateelInvoiceManifestValidation {
+  error: AsateelInvoiceManifestIssue | null;
+  warning: AsateelInvoiceManifestIssue | null;
 }
 
 const INVOICE_NO_HEADER = /invoice\s*(?:no\.?|number)/i;
@@ -119,15 +126,22 @@ export function extractInvoiceNumbersFromWorkbookSheets(
   return [...numbers];
 }
 
+function attachmentBasename(fileName: string): string {
+  return fileName.split(/[\\/]/).pop() ?? fileName;
+}
+
 export function validateAsateelInvoiceManifest(
   invoiceNos: string[],
   folderFileNames: string[],
-): AsateelInvoiceManifestIssue | null {
+): AsateelInvoiceManifestValidation {
   if (invoiceNos.length === 0) {
     return {
-      code: 'ASATEEL_INVOICE_TABLE_EMPTY',
-      message:
-        'The uploaded spreadsheet does not contain any invoice numbers in the Invoice No column.',
+      error: {
+        code: 'ASATEEL_INVOICE_TABLE_EMPTY',
+        message:
+          'The uploaded spreadsheet does not contain any invoice numbers in the Invoice No column.',
+      },
+      warning: null,
     };
   }
 
@@ -135,14 +149,30 @@ export function validateAsateelInvoiceManifest(
   const missingInvoiceNos = invoiceNos.filter(
     (invoiceNo) => !attachments.some((fileName) => fileMatchesInvoiceNo(fileName, invoiceNo)),
   );
+  const extraFileNames = attachments
+    .filter(
+      (fileName) =>
+        !invoiceNos.some((invoiceNo) => fileMatchesInvoiceNo(fileName, invoiceNo)),
+    )
+    .map(attachmentBasename);
 
-  if (missingInvoiceNos.length > 0) {
-    return {
-      code: 'ASATEEL_INVOICE_FILES_MISSING',
-      message: `Missing uploaded files for invoice numbers: ${missingInvoiceNos.join(', ')}.`,
-      details: { missingInvoiceNos },
-    };
-  }
+  const error =
+    missingInvoiceNos.length > 0
+      ? {
+          code: 'ASATEEL_INVOICE_FILES_MISSING' as const,
+          message: `Missing uploaded files for invoice numbers: ${missingInvoiceNos.join(', ')}.`,
+          details: { missingInvoiceNos },
+        }
+      : null;
 
-  return null;
+  const warning =
+    extraFileNames.length > 0
+      ? {
+          code: 'ASATEEL_INVOICE_FILES_EXTRA' as const,
+          message: `These files are not listed in the spreadsheet Invoice No column: ${extraFileNames.join(', ')}.`,
+          details: { extraFileNames },
+        }
+      : null;
+
+  return { error, warning };
 }

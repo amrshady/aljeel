@@ -109,6 +109,10 @@ export function formatAsateelManifestIssue(
       return t('errors.asateelTableRequired');
     case 'ASATEEL_INVOICE_TABLE_EMPTY':
       return t('errors.asateelTableEmpty');
+    case 'ASATEEL_INVOICE_FILES_EXTRA':
+      return t('errors.asateelFilesExtra', {
+        files: issue.details?.extraFileNames?.join(', ') ?? '',
+      });
     default:
       return issue.message;
   }

@@ -2,7 +2,7 @@ import {
   extractInvoiceNumbersFromWorkbookSheets,
   isXlsxFileName,
   validateAsateelInvoiceManifest,
-  type AsateelInvoiceManifestIssue,
+  type AsateelInvoiceManifestValidation,
 } from '@aljeel/shared-types';
 import * as XLSX from 'xlsx';
 
@@ -34,7 +34,7 @@ async function parseXlsxSheets(file: File): Promise<unknown[][][]> {
  */
 export async function validateLocalAsateelManifest(
   files: LocalManifestFile[],
-): Promise<AsateelInvoiceManifestIssue | null> {
+): Promise<AsateelInvoiceManifestValidation | null> {
   const fileNames = files.map(fileLabel);
   const xlsxItems = files.filter((item) => isXlsxFileName(fileLabel(item)));
 

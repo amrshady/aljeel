@@ -41,22 +41,45 @@ describe('asateel invoice manifest', () => {
   });
 
   it('requires a matching file for every invoice number', () => {
-    const issue = validateAsateelInvoiceManifest(['03041', '3042', '03067'], [
+    const result = validateAsateelInvoiceManifest(['03041', '3042', '03067'], [
       '03041_0001.pdf',
       '3042_0001.pdf',
       'Main 8-2026.xlsx',
     ]);
-    expect(issue?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
-    expect(issue?.details?.missingInvoiceNos).toEqual(['03067']);
+    expect(result.error?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
+    expect(result.error?.details?.missingInvoiceNos).toEqual(['03067']);
+    expect(result.warning).toBeNull();
   });
 
   it('passes when every invoice number has a matching attachment', () => {
-    expect(
-      validateAsateelInvoiceManifest(['03041', '3042'], [
-        '03041_0001.pdf',
-        '3042_0001.pdf',
-        'report.xlsx',
-      ]),
-    ).toBeNull();
+    const result = validateAsateelInvoiceManifest(['03041', '3042'], [
+      '03041_0001.pdf',
+      '3042_0001.pdf',
+      'report.xlsx',
+    ]);
+    expect(result.error).toBeNull();
+    expect(result.warning).toBeNull();
+  });
+
+  it('warns when attachments are not listed in the spreadsheet', () => {
+    const result = validateAsateelInvoiceManifest(['03041'], [
+      '03041_0001.pdf',
+      '99999_0001.pdf',
+      'report.xlsx',
+    ]);
+    expect(result.error).toBeNull();
+    expect(result.warning?.code).toBe('ASATEEL_INVOICE_FILES_EXTRA');
+    expect(result.warning?.details?.extraFileNames).toEqual(['99999_0001.pdf']);
+  });
+
+  it('blocks on missing files even when extra files are present', () => {
+    const result = validateAsateelInvoiceManifest(['03041', '03042'], [
+      '03041_0001.pdf',
+      '99999_0001.pdf',
+      'report.xlsx',
+    ]);
+    expect(result.error?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
+    expect(result.error?.details?.missingInvoiceNos).toEqual(['03042']);
+    expect(result.warning?.code).toBe('ASATEEL_INVOICE_FILES_EXTRA');
   });
 });

@@ -367,12 +367,12 @@ export class InvoicesService {
       select: { erpIntegration: true },
     });
     if (supplier?.erpIntegration === 'ASATEEL') {
-      const manifestIssue = await this.asateelManifest.validateUploadedFolder(documents);
-      if (manifestIssue) {
+      const manifest = await this.asateelManifest.validateUploadedFolder(documents);
+      if (manifest.error) {
         throw new UnprocessableEntityException({
-          code: manifestIssue.code,
-          message: manifestIssue.message,
-          details: manifestIssue.details,
+          code: manifest.error.code,
+          message: manifest.error.message,
+          details: manifest.error.details,
         });
       }
     }

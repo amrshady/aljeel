@@ -142,6 +142,7 @@
       "filesRequired": "Please attach at least one file before submitting for review",
       "xlsxRequired": "Please attach at least two Excel (.xlsx) files before submitting for review",
       "asateelFilesMissing": "Missing PDF files for invoice numbers: {numbers}",
+      "asateelFilesExtra": "These files are not listed in the spreadsheet Invoice No column: {files}",
       "asateelTableRequired": "Upload a spreadsheet with an Invoice No column (Asateel shipping report).",
       "asateelTableEmpty": "The spreadsheet has no invoice numbers in the Invoice No column.",
       "invoiceNumberTaken": "An invoice folder named \"{name}\" was already submitted. Resume the existing draft or rename the folder.",

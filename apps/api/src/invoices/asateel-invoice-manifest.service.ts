@@ -4,7 +4,7 @@ import {
   isSpreadsheetFileName,
   isXlsxFileName,
   validateAsateelInvoiceManifest,
-  type AsateelInvoiceManifestIssue,
+  type AsateelInvoiceManifestValidation,
 } from '@aljeel/shared-types';
 import { Readable } from 'node:stream';
 import * as XLSX from 'xlsx';
@@ -25,7 +25,7 @@ export class AsateelInvoiceManifestService {
 
   async validateUploadedFolder(
     documents: InvoiceDocument[],
-  ): Promise<AsateelInvoiceManifestIssue | null> {
+  ): Promise<AsateelInvoiceManifestValidation> {
     const fileNames = documents.map((document) => document.fileName);
     const spreadsheetDocuments = documents.filter((document) =>
       isSpreadsheetFileName(document.fileName),
@@ -33,9 +33,12 @@ export class AsateelInvoiceManifestService {
 
     if (spreadsheetDocuments.length === 0) {
       return {
-        code: 'ASATEEL_INVOICE_TABLE_REQUIRED',
-        message:
-          'Upload a spreadsheet containing the Asateel shipping report with an Invoice No column.',
+        error: {
+          code: 'ASATEEL_INVOICE_TABLE_REQUIRED',
+          message:
+            'Upload a spreadsheet containing the Asateel shipping report with an Invoice No column.',
+        },
+        warning: null,
       };
     }
 
@@ -59,23 +62,27 @@ export class AsateelInvoiceManifestService {
 
     if (invoiceNos.size === 0) {
       return {
-        code: 'ASATEEL_INVOICE_TABLE_REQUIRED',
-        message:
-          'None of the uploaded spreadsheets contain an Invoice No column with invoice numbers.',
+        error: {
+          code: 'ASATEEL_INVOICE_TABLE_REQUIRED',
+          message:
+            'None of the uploaded spreadsheets contain an Invoice No column with invoice numbers.',
+        },
+        warning: null,
       };
     }
 
-    const manifestIssue = validateAsateelInvoiceManifest([...invoiceNos], fileNames);
-    if (!manifestIssue) {
-      return null;
-    }
-
+    const manifest = validateAsateelInvoiceManifest([...invoiceNos], fileNames);
     return {
-      ...manifestIssue,
-      details: {
-        ...manifestIssue.details,
-        sourceSpreadsheet,
-      },
+      error: manifest.error
+        ? {
+            ...manifest.error,
+            details: {
+              ...manifest.error.details,
+              sourceSpreadsheet,
+            },
+          }
+        : null,
+      warning: manifest.warning,
     };
   }
 

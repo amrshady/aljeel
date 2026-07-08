@@ -48,6 +48,7 @@ function InvoiceUploadContent() {
   const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
   const [draftInvoiceId, setDraftInvoiceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<'idle' | 'uploading' | 'submitting'>('idle');
 
@@ -123,11 +124,17 @@ function InvoiceUploadContent() {
 
     if (submitAfter) {
       const folderFiles = files.filter((file) => file.status !== 'skipped');
-      const manifestIssue = await validateLocalAsateelManifest(folderFiles);
-      if (manifestIssue) {
-        setError(formatAsateelManifestIssue(manifestIssue, t));
+      const manifest = await validateLocalAsateelManifest(folderFiles);
+      if (manifest?.error) {
+        setError(formatAsateelManifestIssue(manifest.error, t));
+        setWarning(null);
         return;
       }
+      setWarning(
+        manifest?.warning ? formatAsateelManifestIssue(manifest.warning, t) : null,
+      );
+    } else {
+      setWarning(null);
     }
 
     setUploading(true);
@@ -269,7 +276,11 @@ function InvoiceUploadContent() {
             <div className="mt-3">
               <KbFileUploader
                 files={files}
-                onChange={setFiles}
+                onChange={(next) => {
+                  setFiles(next);
+                  setError(null);
+                  setWarning(null);
+                }}
                 blockNewFiles={!canAddFiles}
                 allowFolder
                 onFolderName={(name) => {
@@ -277,6 +288,8 @@ function InvoiceUploadContent() {
                     if (prev !== name) setDraftInvoiceId(null);
                     return name;
                   });
+                  setError(null);
+                  setWarning(null);
                 }}
                 listRef={listRef}
                 title={t('filesDropTitle')}
@@ -304,6 +317,12 @@ function InvoiceUploadContent() {
               ))}
             </select>
           </div>
+
+          {warning && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+              {warning}
+            </p>
+          )}
 
           {error && (
             <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

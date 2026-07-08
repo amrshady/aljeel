@@ -142,6 +142,7 @@
       "filesRequired": "يرجى إرفاق ملف واحد على الأقل قبل التقديم للمراجعة",
       "xlsxRequired": "يرجى إرفاق ملفّي Excel (.xlsx) على الأقل قبل التقديم للمراجعة",
       "asateelFilesMissing": "ملفات PDF مفقودة لأرقام الفواتير: {numbers}",
+      "asateelFilesExtra": "هذه الملفات غير مدرجة في عمود Invoice No بجدول البيانات: {files}",
       "asateelTableRequired": "يرجى رفع جدول بيانات يحتوي على عمود Invoice No (تقرير شحن أساطيل).",
       "asateelTableEmpty": "لا يحتوي جدول البيانات على أرقام فواتير في عمود Invoice No.",
       "invoiceNumberTaken": "تم تقديم مجلد فواتير باسم \"{name}\" مسبقاً. تابع المسودة الحالية أو أعد تسمية المجلد.",

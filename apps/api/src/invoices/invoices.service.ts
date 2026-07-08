@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
@@ -24,6 +25,7 @@ import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
+import { InvoiceSubmitNotificationService } from '../notifications/invoice-submit-notification.service';
 import { AsateelInvoiceManifestService } from './asateel-invoice-manifest.service';
 
 export function serializeInvoice(
@@ -79,10 +81,13 @@ export function serializeTimelineEvent(event: {
 
 @Injectable()
 export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly asateelManifest: AsateelInvoiceManifestService,
+    private readonly invoiceSubmitNotification: InvoiceSubmitNotificationService,
   ) {}
 
   async createDraft(user: AuthUser, body: unknown) {
@@ -364,7 +369,7 @@ export class InvoicesService {
 
     const supplier = await this.prisma.supplier.findUnique({
       where: { id: supplierId },
-      select: { erpIntegration: true },
+      select: { erpIntegration: true, legalName: true },
     });
     if (supplier?.erpIntegration === 'ASATEEL') {
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
@@ -446,6 +451,21 @@ export class InvoicesService {
       before: { status: 'SUBMITTED' },
       after: { status: 'UNDER_REVIEW' },
     });
+
+    void this.invoiceSubmitNotification
+      .notifyInvoiceSubmitted({
+        invoiceId: reviewed.id,
+        invoiceNumber: reviewed.invoiceNumber,
+        supplierName: supplier?.legalName ?? 'Unknown supplier',
+        submittedByEmail: user.email,
+        submittedByName: user.fullName,
+      })
+      .catch((error: unknown) => {
+        this.logger.error(
+          { invoiceId: reviewed.id, err: error },
+          'Failed to send invoice submit notification email',
+        );
+      });
 
     return {
       id: reviewed.id,

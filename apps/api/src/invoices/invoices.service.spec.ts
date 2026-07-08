@@ -11,7 +11,13 @@ describe('InvoicesService tenant isolation', () => {
     };
     const audit = { record: vi.fn() };
     const asateelManifest = { validateUploadedFolder: vi.fn() };
-    const service = new InvoicesService(prisma as never, audit as never, asateelManifest as never);
+    const invoiceSubmitNotification = { notifyInvoiceSubmitted: vi.fn() };
+    const service = new InvoicesService(
+      prisma as never,
+      audit as never,
+      asateelManifest as never,
+      invoiceSubmitNotification as never,
+    );
 
     await expect(
       service.getById(
@@ -34,7 +40,13 @@ describe('InvoicesService supplier scope', () => {
     const prisma = { invoice: { count: vi.fn(), findMany: vi.fn() } };
     const audit = { record: vi.fn() };
     const asateelManifest = { validateUploadedFolder: vi.fn() };
-    const service = new InvoicesService(prisma as never, audit as never, asateelManifest as never);
+    const invoiceSubmitNotification = { notifyInvoiceSubmitted: vi.fn() };
+    const service = new InvoicesService(
+      prisma as never,
+      audit as never,
+      asateelManifest as never,
+      invoiceSubmitNotification as never,
+    );
 
     await expect(
       service.list(

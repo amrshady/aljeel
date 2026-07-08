@@ -1,6 +1,5 @@
+import { execFile } from 'node:child_process';
 import { Injectable, Logger } from '@nestjs/common';
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
 
 export interface SendEmailInput {
   to: string[];
@@ -9,13 +8,15 @@ export interface SendEmailInput {
   html: string;
 }
 
+const DEFAULT_GOG_ACCOUNT = 'aljeel@accordpartners.ai';
+const GOG_TIMEOUT_MS = 30_000;
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: Transporter | null = null;
 
   isConfigured(): boolean {
-    return Boolean(process.env.SMTP_HOST?.trim() && process.env.SMTP_FROM?.trim());
+    return process.env.NOTIFY_EMAIL_DISABLED !== 'true' && Boolean(this.getAccount());
   }
 
   async sendMail(input: SendEmailInput): Promise<void> {
@@ -27,39 +28,55 @@ export class EmailService {
     if (!this.isConfigured()) {
       this.logger.warn(
         { recipients, subject: input.subject },
-        'SMTP is not configured; skipping email notification',
+        'Email notification is disabled; skipping email notification',
       );
       return;
     }
 
-    const transporter = this.getTransporter();
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM,
-      to: recipients.join(', '),
-      subject: input.subject,
-      text: input.text,
-      html: input.html,
+    const failures: string[] = [];
+    for (const recipient of recipients) {
+      try {
+        await this.sendWithGog(recipient, input.subject, input.html);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        failures.push(`${recipient}: ${message}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Failed to send email notification via gog: ${failures.join('; ')}`);
+    }
+  }
+
+  private sendWithGog(recipient: string, subject: string, html: string): Promise<void> {
+    const account = this.getAccount();
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      GOG_KEYRING_BACKEND: 'file',
+      GOG_KEYRING_PASSWORD: process.env.GOG_KEYRING_PASSWORD ?? 'openclaw',
+      GOG_ACCOUNT: account,
+      HOME: process.env.HOME ?? '/home/clawdbot',
+      PATH: process.env.PATH ?? '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+    };
+
+    return new Promise((resolve, reject) => {
+      execFile(
+        'gog',
+        ['gmail', 'send', '--account', account, '--to', recipient, '--subject', subject, '--body-html', html],
+        { env, timeout: GOG_TIMEOUT_MS },
+        (error, _stdout, stderr) => {
+          if (error) {
+            const detail = stderr.trim() || error.message;
+            reject(new Error(detail));
+            return;
+          }
+          resolve();
+        },
+      );
     });
   }
 
-  private getTransporter(): Transporter {
-    if (this.transporter) {
-      return this.transporter;
-    }
-
-    const host = process.env.SMTP_HOST!.trim();
-    const port = Number(process.env.SMTP_PORT ?? 587);
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const user = process.env.SMTP_USER?.trim();
-    const pass = process.env.SMTP_PASSWORD;
-
-    this.transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: user ? { user, pass } : undefined,
-    });
-
-    return this.transporter;
+  private getAccount(): string {
+    return process.env.GOG_ACCOUNT?.trim() || DEFAULT_GOG_ACCOUNT;
   }
 }

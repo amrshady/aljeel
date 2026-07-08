@@ -3,12 +3,12 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
+  ApExceptionListQuerySchema,
   ApHoldRequestSchema,
   ApRejectRequestSchema,
-  InvoiceListQuerySchema,
   assertInvoiceTransition,
   InvalidInvoiceTransitionError,
-  type InvoiceListQuery,
+  type ApExceptionListQuery,
 } from '@aljeel/shared-types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module';
@@ -20,6 +20,7 @@ import { AsateelIntegrationService } from './asateel-integration.service';
 import { JawalIntegrationService } from './jawal-integration.service';
 
 const EXCEPTION_STATUSES = ['UNDER_REVIEW', 'ON_HOLD'] as const;
+const PROCESSED_STATUSES = ['APPROVED', 'SCHEDULED', 'PAID', 'REJECTED'] as const;
 
 @Injectable()
 export class ApService {
@@ -31,10 +32,11 @@ export class ApService {
   ) {}
 
   async listExceptions(query: Record<string, string | undefined>) {
-    const params: InvoiceListQuery = InvoiceListQuerySchema.parse(query);
+    const params: ApExceptionListQuery = ApExceptionListQuerySchema.parse(query);
+    const processedView = params.view === 'processed';
 
     const where: Prisma.InvoiceWhereInput = {
-      status: { in: [...EXCEPTION_STATUSES] },
+      status: { in: processedView ? [...PROCESSED_STATUSES] : [...EXCEPTION_STATUSES] },
       ...(params.q
         ? {
             OR: [
@@ -45,7 +47,9 @@ export class ApService {
         : {}),
     };
 
-    const orderBy = { createdAt: 'desc' as const };
+    const orderBy = processedView
+      ? { updatedAt: 'desc' as const }
+      : { createdAt: 'desc' as const };
 
     const [total, rows] = await Promise.all([
       this.prisma.invoice.count({ where }),

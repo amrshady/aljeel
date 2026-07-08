@@ -44,6 +44,29 @@ describe('ApService', () => {
     return prisma;
   }
 
+  function listRow(status: string) {
+    return {
+      id: 'inv1',
+      supplierId: 'sup1',
+      invoiceNumber: 'INV-1',
+      invoiceDate: new Date('2026-07-01T00:00:00.000Z'),
+      poId: null,
+      currency: 'SAR',
+      subtotal: { toString: () => '100.00' },
+      vat: { toString: () => '15.00' },
+      total: { toString: () => '115.00' },
+      status,
+      source: 'UPLOAD',
+      rejectionReason: null,
+      archivedAt: null,
+      asateelRegion: null,
+      createdAt: new Date('2026-07-02T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-03T00:00:00.000Z'),
+      lines: [],
+      supplier: { legalName: 'Supplier One' },
+    };
+  }
+
   it('rejects approve when invoice is not under review', async () => {
     const prisma = {
       invoice: {
@@ -79,6 +102,84 @@ describe('ApService', () => {
     expect(prisma.$transaction).toHaveBeenCalled();
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'APPROVED', entityId: 'inv1' }),
+    );
+  });
+
+  it('lists queue exceptions by review statuses ordered by creation date', async () => {
+    const prisma = {
+      invoice: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([listRow('UNDER_REVIEW')]),
+      },
+      document: {
+        groupBy: vi.fn().mockResolvedValue([
+          { invoiceId: 'inv1', _count: { id: 2 }, _sum: { sizeBytes: 500 } },
+        ]),
+      },
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const result = await service.listExceptions({ page: '1', pageSize: '10' });
+
+    expect(prisma.invoice.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ['UNDER_REVIEW', 'ON_HOLD'] } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    expect(result.data[0]).toEqual(
+      expect.objectContaining({
+        id: 'inv1',
+        status: 'UNDER_REVIEW',
+        supplierName: 'Supplier One',
+        documentCount: 2,
+        totalSizeBytes: 500,
+      }),
+    );
+  });
+
+  it('lists processed exceptions by terminal statuses ordered by update date', async () => {
+    const prisma = {
+      invoice: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([listRow('APPROVED')]),
+      },
+      document: {
+        groupBy: vi.fn().mockResolvedValue([]),
+      },
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const result = await service.listExceptions({
+      view: 'processed',
+      page: '1',
+      pageSize: '10',
+    });
+
+    expect(prisma.invoice.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ['APPROVED', 'SCHEDULED', 'PAID', 'REJECTED'] } },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    );
+    expect(result.data[0]).toEqual(
+      expect.objectContaining({
+        id: 'inv1',
+        status: 'APPROVED',
+        supplierName: 'Supplier One',
+        documentCount: 0,
+        totalSizeBytes: 0,
+      }),
     );
   });
 

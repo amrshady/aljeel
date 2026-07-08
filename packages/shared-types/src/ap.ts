@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { InvoiceFolderListItemSchema, InvoiceSchema } from './invoice';
+import { InvoiceFolderListItemSchema, InvoiceListQuerySchema, InvoiceSchema } from './invoice';
 import {
   AsateelRegionSchema,
   InvoiceStatusSchema,
@@ -11,11 +11,17 @@ import { PaginatedResponseSchema } from './index';
 
 export const ApExceptionInvoiceSchema = InvoiceFolderListItemSchema.extend({
   supplierName: z.string(),
+  status: InvoiceStatusSchema,
 });
 export type ApExceptionInvoice = z.infer<typeof ApExceptionInvoiceSchema>;
 
 export const ApExceptionListSchema = PaginatedResponseSchema(ApExceptionInvoiceSchema);
 export type ApExceptionList = z.infer<typeof ApExceptionListSchema>;
+
+export const ApExceptionListQuerySchema = InvoiceListQuerySchema.extend({
+  view: z.enum(['queue', 'processed']).default('queue'),
+});
+export type ApExceptionListQuery = z.infer<typeof ApExceptionListQuerySchema>;
 
 export const ApInvoiceDetailSchema = InvoiceSchema.extend({
   supplierName: z.string(),

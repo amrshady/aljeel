@@ -250,8 +250,11 @@
   "apReview": {
     "title": "AP review queue",
     "subtitle": "Invoices awaiting review or on hold",
+    "tabQueue": "Review queue",
+    "tabProcessed": "Processed",
     "loading": "Loading queue…",
     "empty": "No invoices need review right now",
+    "emptyProcessed": "No processed invoices yet.",
     "selectHint": "Select an invoice from the queue to review",
     "evidence": "Evidence",
     "evidenceHint": "Click a file to preview it inline — no download required",

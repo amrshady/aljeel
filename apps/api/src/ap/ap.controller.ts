@@ -13,7 +13,7 @@ export class ApController {
 
   @Get('exceptions')
   @Roles('AP_CLERK', 'AP_APPROVER')
-  @ApiOperation({ summary: 'Queue of invoices needing AP review' })
+  @ApiOperation({ summary: 'List AP review queue or processed invoices via ?view=' })
   listExceptions(@Query() query: Record<string, string | undefined>) {
     return this.apService.listExceptions(query);
   }

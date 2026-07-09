@@ -1,0 +1,73 @@
+{
+  "_comment": "Golden regression gate: locked Jawal J26-788 v15.11.2 deterministic aggregate snapshot. Refresh only after an intentional, reviewed contract change.",
+  "command": [
+    "python3",
+    "scripts/process_batch.py",
+    "--batch",
+    "batches/jawal-J26-788",
+    "--raw-dir",
+    "batches/jawal-J26-788/raw",
+    "--suffix",
+    "v15.11.2"
+  ],
+  "total_lines": 100,
+  "row_status_breakdown": {
+    "GREEN": 23,
+    "YELLOW": 31,
+    "RED": 46
+  },
+  "clean_lines": 0,
+  "hard_failures": 4,
+  "soft_flags": 96,
+  "flag_breakdown": {
+    "MANPOWER_DIV_NOT_IN_MASTER": 58,
+    "FORM_TRIP_VALUE_DIFFERS": 53,
+    "FORM_FUSION_CODES_LOGGED": 48,
+    "FORM_NOT_FOUND_IN_EMAIL": 45,
+    "TRIP_PURPOSE_UNKNOWN": 44,
+    "ALLOCATION_TARGET_MISSING": 30,
+    "UNKNOWN_COST_CENTER": 4,
+    "ACCOUNT_OVERRIDE_APPLIED": 3,
+    "FORM_EMP_NO_MISMATCH": 3,
+    "MANAGER_NOT_REALLOCATED": 1,
+    "FORM_AGREES_WITH_MANPOWER": 1,
+    "EMPLOYEE_AS_SPONSORED": 1
+  },
+  "match_method_breakdown": {
+    "emp_no_direct": 91,
+    "v2_v3_L_overrides": 1,
+    "v2_L8": 3,
+    "v2_L4": 4,
+    "v2_L1.5": 1
+  },
+  "account_breakdown": {
+    "60301003": 82,
+    "60307021": 13,
+    "60301004": 2,
+    "60308009": 2,
+    "21070229": 1
+  },
+  "halt_queue_count": 4,
+  "within_batch_catches": 111,
+  "cross_batch_catches": 0,
+  "catches_by_category": {
+    "OPEX_SERIAL_MISSING": 67,
+    "NO_APPROVAL": 18,
+    "SHARED_OPEX_SPONSORSHIP": 12,
+    "NO_FOLDER": 9,
+    "DUP_ROUTE_STRICT": 4,
+    "ANNUAL_HR_APPROVAL_MISSING": 1
+  },
+  "labadi_qc_check": {
+    "rows_checked": 100,
+    "blank_emp_no": 0,
+    "opex_serial_missing": 67,
+    "annual_approval_missing": 1,
+    "amount_exceeds_invoice": 0
+  },
+  "resolution_tally": {
+    "resolved": 23,
+    "exception": 77,
+    "blank_key_rows": 0
+  }
+}

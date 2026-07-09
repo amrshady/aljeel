@@ -203,6 +203,79 @@ def extract_pdf_text(path: Path) -> str:
         return f"[PDF_ERROR: {e}]"
 
 
+_DATE_LAYER_RE = re.compile(r"^\d{2}[a-z]{3}$", re.IGNORECASE)
+_EVIDENCE_SUFFIXES = {".msg", ".pdf", ".eml"}
+_MERGED_EVIDENCE_FOLDERS: dict[str, list[Path]] = {}
+
+
+def _has_direct_evidence_files(folder: Path) -> bool:
+    try:
+        return any(
+            child.is_file() and child.suffix.lower() in _EVIDENCE_SUFFIXES
+            for child in folder.iterdir()
+        )
+    except OSError:
+        return False
+
+
+def _single_evidence_child(folder: Path) -> Path | None:
+    """Return the one descriptive child that holds evidence files, if present."""
+    if _has_direct_evidence_files(folder):
+        return None
+    try:
+        children = [child for child in folder.iterdir() if child.is_dir()]
+    except OSError:
+        return None
+    if len(children) != 1:
+        return None
+    child = children[0]
+    return child if _has_direct_evidence_files(child) else None
+
+
+def _logical_ref_key(folder: Path) -> str:
+    return folder.name.strip().casefold()
+
+
+def iter_evidence_files(folder: Path):
+    """Yield evidence files for a logical ref folder, including merged duplicates."""
+    siblings = _MERGED_EVIDENCE_FOLDERS.get(str(folder.resolve(strict=False)), [folder])
+    seen: set[tuple[str, int]] = set()
+    for sibling in siblings:
+        source = _single_evidence_child(sibling) or sibling
+        try:
+            children = sorted(source.iterdir())
+        except OSError:
+            continue
+        for child in children:
+            try:
+                dedupe_key = (child.name.casefold(), child.stat().st_size)
+            except OSError:
+                dedupe_key = (child.name.casefold(), -1)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            yield child
+
+
+def _candidate_ref_folders(raw_root: Path) -> list[Path]:
+    folders: list[Path] = []
+    try:
+        children = sorted(raw_root.iterdir())
+    except OSError:
+        return folders
+    for child in children:
+        if not child.is_dir():
+            continue
+        if _DATE_LAYER_RE.match(child.name):
+            try:
+                folders.extend(sub for sub in sorted(child.iterdir()) if sub.is_dir())
+            except OSError:
+                pass
+        else:
+            folders.append(child)
+    return folders
+
+
 def find_ticket_folder(ticket_no: str, passenger: str, notes: str, all_folders: list[Path]) -> Path | None:
     """Try multiple strategies to locate the evidence folder."""
     # 1) Exact ticket# match
@@ -239,7 +312,7 @@ def find_ticket_folder(ticket_no: str, passenger: str, notes: str, all_folders: 
             if not f.is_dir():
                 continue
             try:
-                for child in f.iterdir():
+                for child in iter_evidence_files(f):
                     if child.name.upper().endswith(".PDF"):
                         try:
                             reader = pypdf.PdfReader(str(child))
@@ -263,7 +336,7 @@ def find_ticket_folder(ticket_no: str, passenger: str, notes: str, all_folders: 
                 if not f.is_dir():
                     continue
                 try:
-                    for child in f.iterdir():
+                    for child in iter_evidence_files(f):
                         if tok in child.name.upper():
                             return f
                 except Exception:
@@ -272,15 +345,20 @@ def find_ticket_folder(ticket_no: str, passenger: str, notes: str, all_folders: 
 
 
 def collect_all_folders(raw_root: Path) -> list[Path]:
-    """Return all ticket-folder candidates (depth 2: dayfolder/ticketfolder)."""
-    folders = []
-    for day in sorted(raw_root.iterdir()):
-        if not day.is_dir():
-            continue
-        for sub in sorted(day.iterdir()):
-            if sub.is_dir():
-                folders.append(sub)
-    return folders
+    """Return logical evidence ref folders, accepting flat or date-layer uploads."""
+    buckets: dict[str, list[Path]] = {}
+    for folder in _candidate_ref_folders(raw_root):
+        if _has_direct_evidence_files(folder) or _single_evidence_child(folder):
+            buckets.setdefault(_logical_ref_key(folder), []).append(folder)
+
+    folders: list[Path] = []
+    for siblings in buckets.values():
+        primary = sorted(siblings, key=lambda p: str(p))[0]
+        folders.append(primary)
+        _MERGED_EVIDENCE_FOLDERS[str(primary.resolve(strict=False))] = sorted(
+            siblings, key=lambda p: str(p)
+        )
+    return sorted(folders, key=lambda p: str(p))
 
 
 def collect_evidence(folder: Path) -> dict:
@@ -288,7 +366,7 @@ def collect_evidence(folder: Path) -> dict:
     out = {"folder": str(folder), "msgs": [], "pdfs": [], "files": [], "total_chars": 0}
     if not folder or not folder.exists():
         return out
-    for child in sorted(folder.iterdir()):
+    for child in iter_evidence_files(folder):
         out["files"].append(child.name)
         if child.is_file():
             n = child.name.lower()
@@ -345,10 +423,42 @@ def call_gemini(prompt: str, model: str, retries: int = 3) -> dict:
             text = re.sub(r"\s*```$", "", text)
             text = text.strip()
             if not text.startswith("{"):
-                m = re.search(r"\{.*\}", text, re.DOTALL)
-                if m:
-                    text = m.group()
-            parsed = json.loads(text) if text else {}
+                first_obj = text.find("{")
+                if first_obj >= 0:
+                    text = text[first_obj:]
+
+            def _close_unbalanced_json(s: str) -> str:
+                stack = []
+                in_string = False
+                escape = False
+                pairs = {"{": "}", "[": "]"}
+                for ch in s:
+                    if in_string:
+                        if escape:
+                            escape = False
+                        elif ch == "\\":
+                            escape = True
+                        elif ch == '"':
+                            in_string = False
+                        continue
+                    if ch == '"':
+                        in_string = True
+                    elif ch in pairs:
+                        stack.append(pairs[ch])
+                    elif ch in "}]":
+                        if stack and ch == stack[-1]:
+                            stack.pop()
+                return s + "".join(reversed(stack))
+
+            parsed = {}
+            if text:
+                # raw_decode accepts the first complete object and ignores
+                # Gemini's trailing chatter; repair handles truncated brackets.
+                decoder = json.JSONDecoder()
+                try:
+                    parsed, _ = decoder.raw_decode(text)
+                except json.JSONDecodeError:
+                    parsed = json.loads(_close_unbalanced_json(text))
             usage = data.get("usageMetadata") or {}
             return {
                 "json": parsed,

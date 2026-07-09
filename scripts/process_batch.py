@@ -912,7 +912,24 @@ def process_batch(
 
     print(f"  Header at row {header_row_idx}, data starts at row {header_row_idx + 1}")
 
-
+    input_headers = {
+        str(df.iloc[header_row_idx, c]).strip(): c
+        for c in range(len(df.columns))
+        if pd.notna(df.iloc[header_row_idx, c]) and str(df.iloc[header_row_idx, c]).strip()
+    }
+    invoice_ref_col = next(
+        (
+            input_headers[h]
+            for h in (
+                "Invoice Ref No",
+                "Invoice Ref. No.",
+                "Ref No",
+                "Ref. No.",
+            )
+            if h in input_headers
+        ),
+        None,
+    )
 
     # --- Process each data row ---
     results = []
@@ -934,6 +951,9 @@ def process_batch(
         description = str(row.iloc[COL_DESC]) if pd.notna(row.iloc[COL_DESC]) else ""
         amount = _safe_float(row.iloc[COL_AMOUNT])
         emp_no_raw = _safe_int(row.iloc[COL_EMP_NO])
+        invoice_ref_no = ""
+        if invoice_ref_col is not None and invoice_ref_col < len(row):
+            invoice_ref_no = str(row.iloc[invoice_ref_col] or "").strip() if pd.notna(row.iloc[invoice_ref_col]) else ""
 
         # Also try extracting emp_no from description if not in col P
         if emp_no_raw is None:
@@ -1153,6 +1173,7 @@ def process_batch(
         if emp_from_ref_no:
             resolved._v2_flag = (resolved._v2_flag + " EMP_FROM_REF_NO").strip()
             resolved._v2_trace = (resolved._v2_trace or "") + f" | EMP_FROM_REF_NO: invoice Ref. No. emp_no={emp_no_raw} trusted"
+        resolved._invoice_ref_no = invoice_ref_no
         
         # Track email extraction for report + cache enrichment
         _email_extraction_log.append({
@@ -2023,10 +2044,11 @@ def process_batch(
         "Trip Purpose Signals",      # BI
         "Trip Purpose Trace",        # BJ
         "Trip Account Override",     # BK
+        "Invoice Ref No",            # BL
         # Labadi RULE 4 & 5 (2026-06-09): OPEX serial + dual-approval columns.
-        "OPEX Serial",               # BL  (RULE 4)
-        "HR Approval (Mai)",         # BM  (RULE 5)
-        "Sanad Approval",            # BN  (RULE 5)
+        "OPEX Serial",               # BM  (RULE 4)
+        "HR Approval (Mai)",         # BN  (RULE 5)
+        "Sanad Approval",            # BO  (RULE 5)
     ]
 
     # Clear any existing columns beyond P (col 16) to avoid leftover data
@@ -2239,6 +2261,7 @@ def process_batch(
             getattr(r, '_trip_signals', ''),                # Trip Purpose Signals
             getattr(r, '_trip_trace', ''),                  # Trip Purpose Trace
             getattr(r, '_trip_account_override', ''),       # Trip Account Override
+            getattr(r, '_invoice_ref_no', ''),              # Invoice Ref No
             getattr(r, '_opex_serial', 'N/A'),              # OPEX Serial (RULE 4)
             getattr(r, '_mai_approval_status', 'N/A'),      # HR Approval (Mai) (RULE 5)
             getattr(r, '_sanad_approval_status', 'N/A'),    # Sanad Approval (RULE 5)

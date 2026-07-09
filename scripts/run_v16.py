@@ -84,6 +84,14 @@ def _clean_passenger(passenger: str) -> str:
     return _COMPANION_RE.sub("", passenger).strip()
 
 
+def _iter_evidence_files(folder: Path):
+    iterator = getattr(fea, "iter_evidence_files", None)
+    if iterator:
+        yield from iterator(folder)
+    else:
+        yield from folder.iterdir()
+
+
 # ── personal contribution index ───────────────────────────────────────────────
 # Personal contribution approval emails have subject/filename like:
 #   "RE_ Approved_ Personal Contribution Approval Requested for
@@ -104,7 +112,7 @@ def build_personal_contribution_index(all_folders: list[Path]) -> dict[str, dict
         if not folder.exists():
             continue
         try:
-            for child in folder.iterdir():
+            for child in _iter_evidence_files(folder):
                 if child.suffix.lower() != ".msg":
                     continue
                 fname = child.name
@@ -144,7 +152,7 @@ def build_reverse_folder_index(all_folders: list[Path]) -> dict[str, Path]:
         if not folder.exists():
             continue
         try:
-            for child in folder.iterdir():
+            for child in _iter_evidence_files(folder):
                 cname = child.name
                 # ── 1. Ticket refs in filenames ────────────────────────────
                 for m in _TICKET_26_RE.finditer(cname):
@@ -305,7 +313,7 @@ def _folder_has_pc_email(folder: Path | None) -> bool:
     try:
         return any(
             child.suffix.lower() == ".msg" and "personal contribution" in child.name.lower()
-            for child in folder.iterdir()
+            for child in _iter_evidence_files(folder)
         )
     except PermissionError:
         return False

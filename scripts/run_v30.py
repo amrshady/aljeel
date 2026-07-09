@@ -120,6 +120,8 @@ from run_v16 import (
     _PC_SIGNAL,
     _PC_EMP_RE,
 )
+import run_v16 as _run_v16_module
+_run_v16_module.fea = fea
 # Import v17.1 booking-group detection (origin: v17)
 from run_v17 import (
     build_booking_groups,
@@ -297,7 +299,7 @@ def find_folder_v25(
             import pypdf
             for f in all_folders:
                 if not f.is_dir(): continue
-                for child in f.iterdir():
+                for child in fea.iter_evidence_files(f):
                     cn = child.name.upper()
                     if cn.endswith(".PDF"):
                         try:
@@ -1363,6 +1365,7 @@ def process_row_v25(
     lookups: dict,
     reverse_index: dict[str, Path] | None = None,
     pc_index: dict[str, dict] | None = None,
+    invoice_ref_index: dict | None = None,
     no_cache: bool = False,
     verified_emp_locked: bool = False,
 ) -> dict:
@@ -1413,10 +1416,44 @@ def process_row_v25(
     # surname matching.  If it finds a DIFFERENT folder with a PC email,
     # override classify's evidence so Call 2 sees the right documents.
     correct_folder = find_folder_v25(ticket, passenger, notes, all_folders, reverse_index or {})
+    ref_no = _row_invoice_ref_no(cascade_row)
+    ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(ref_no, invoice_ref_index)
     classify_folder_str = classify.get("_folder", "")
     folder_corrected = False
 
-    if correct_folder and str(correct_folder) != classify_folder_str:
+    if ref_folder and not classify_folder_str:
+        ref_evidence = fea.collect_evidence(ref_folder)
+        if ref_status == "REF_FUZZY" and ref_note:
+            hint = {
+                "filename": "[v30-invoice-ref-soft-catch]",
+                "text": (
+                    f"SOFT QC CATCH: {ref_note}. The invoice Ref. No. is {ref_no}; "
+                    f"the nearest sibling evidence folder is {ref_folder.name}. "
+                    "Use this folder for allocation evidence, but keep the mismatch "
+                    "visible for human confirmation."
+                ),
+            }
+            ref_evidence.setdefault("pdfs", []).insert(0, hint)
+            ref_evidence["total_chars"] = ref_evidence.get("total_chars", 0) + len(hint["text"])
+        classify["_folder"] = str(ref_folder)
+        classify["_evidence"] = ref_evidence
+        classify["_invoice_ref_folder_status"] = ref_status
+        classify["_invoice_ref_soft_catch"] = ref_note if ref_status == "REF_FUZZY" else ""
+        folder_corrected = True
+        route_reason = (
+            "INVOICE_REF_EMP_FILENAME"
+            if ref_status == "REF_EMP_FILENAME"
+            else "INVOICE_REF_FUZZY"
+            if ref_status == "REF_FUZZY"
+            else "INVOICE_REF_FOLDER"
+        )
+        print(
+            f"[invoice-ref] row {row_idx} ({passenger}): Ref. No. {ref_no} -> "
+            f"{ref_folder.name}" + (f" [{ref_note}]" if ref_note else ""),
+            flush=True,
+        )
+
+    if (not folder_corrected) and correct_folder and str(correct_folder) != classify_folder_str:
         # v30 conservative: only correct if the better folder is an explicit family
         # folder (folder name contains 'family') AND has a PC email.  Pure PC-email
         # folders without 'family' in the name are individual employee tickets and
@@ -1511,6 +1548,8 @@ def process_row_v25(
         "out_tokens":           classify.get("_llm_out_tokens", 0),
         "error":                classify.get("_llm_error", ""),
         "folder_corrected":     folder_corrected,
+        "invoice_ref_status":   classify.get("_invoice_ref_folder_status", ""),
+        "invoice_ref_note":     classify.get("_invoice_ref_soft_catch", ""),
     }
 
     row_type       = classify.get("row_type", "unclear")
@@ -1881,6 +1920,9 @@ MISSING_EVIDENCE_FLAG = "MISSING_EVIDENCE"
 ANCILLARY_EVENT_INHERITED_FLAG = "ANCILLARY_EVENT_ALLOCATION_INHERITED"
 OPEX_EMAIL_ONLY_FLAG = "OPEX_EMAIL_ONLY"
 BUNDLED_TICKET_SHARED_PDF_FLAG = "BUNDLED_TICKET_SHARED_PDF"
+INVOICE_REF_FOLDER_MATCH_FLAG = "INVOICE_REF_FOLDER_MATCH"
+INVOICE_REF_EMP_FILENAME_FLAG = "INVOICE_REF_EMP_FILENAME_MATCH"
+INVOICE_REF_FUZZY_FLAG = "REF_FUZZY"
 TICKET_SCAN_RE = re.compile(r"\b(\d{10})\b")
 SHORT_REF_SCAN_RE = re.compile(r"\b(\d{2}-\d{3,})\b")
 PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECASE)
@@ -1924,6 +1966,162 @@ def _reference_tokens_in_text(text: str) -> set[str]:
         if token:
             refs.add(token)
     return refs
+
+
+def _norm_invoice_ref_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").casefold())
+
+
+def _row_invoice_ref_no(cascade_row: dict) -> str:
+    for key in ("Invoice Ref No", "Invoice Ref. No.", "Ref No", "Ref. No."):
+        val = str(cascade_row.get(key, "") or "").strip()
+        if val:
+            return val
+    return str(cascade_row.get("_invoice_ref_no", "") or "").strip()
+
+
+def _invoice_ref_is_event(ref_no: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z]+-\d{1,4}-\d{2,4}", str(ref_no or "").strip()))
+
+
+def _invoice_ref_sis_parts(ref_no: str) -> tuple[str, str, int] | None:
+    m = re.fullmatch(r"([A-Za-z]+)-(\d+)-(\d{4})", str(ref_no or "").strip())
+    if not m:
+        return None
+    return m.group(1).casefold(), m.group(2), int(m.group(3))
+
+
+def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
+    """Index evidence folders by event ref and PC approval employee numbers."""
+    event_folders: list[tuple[str, Path]] = []
+    emp_filename: dict[str, Path] = {}
+    sis_siblings: dict[tuple[str, str], list[tuple[int, str, Path]]] = {}
+
+    for folder in all_folders:
+        if not folder.exists():
+            continue
+        folder_name = folder.name.strip()
+        folder_key = _norm_invoice_ref_key(folder_name)
+        event_folders.append((folder_key, folder))
+        for m in re.finditer(r"\b([A-Za-z]+)-(\d+)-(\d{4})\b", folder_name):
+            prefix = (m.group(1).casefold(), m.group(2))
+            sis_siblings.setdefault(prefix, []).append((int(m.group(3)), m.group(0), folder))
+        try:
+            for child in fea.iter_evidence_files(folder):
+                if child.suffix.lower() not in {".msg", ".pdf"}:
+                    continue
+                fname_l = child.name.casefold()
+                if "personal contribution" not in fname_l and "approved" not in fname_l:
+                    continue
+                for emp_m in re.finditer(r"(?<!\d)(\d{6,7})(?!\d)", child.name):
+                    emp_filename.setdefault(emp_m.group(1), folder)
+        except (OSError, PermissionError):
+            continue
+
+    return {
+        "event_folders": event_folders,
+        "emp_filename": emp_filename,
+        "sis_siblings": sis_siblings,
+    }
+
+
+def resolve_invoice_ref_folder(ref_no: str, ref_index: dict | None) -> tuple[Path | None, str, str]:
+    """Resolve invoice Ref. No. to evidence folder. Returns (folder, status, note)."""
+    ref_no = str(ref_no or "").strip()
+    if not ref_no or not ref_index:
+        return None, "", ""
+
+    ref_key = _norm_invoice_ref_key(ref_no)
+    if not ref_key:
+        return None, "", ""
+
+    if re.fullmatch(r"\d{6,7}", ref_no):
+        folder = (ref_index.get("emp_filename") or {}).get(ref_no)
+        if folder:
+            return folder, "REF_EMP_FILENAME", f"invoice Ref. No. employee {ref_no} found in evidence filename"
+        return None, "", ""
+
+    if _invoice_ref_is_event(ref_no):
+        for folder_key, folder in ref_index.get("event_folders") or []:
+            if folder_key == ref_key or ref_key in folder_key:
+                return folder, "REF_FOLDER", f"invoice Ref. No. {ref_no} matched evidence folder {folder.name}"
+
+        parts = _invoice_ref_sis_parts(ref_no)
+        if parts:
+            prefix, number, year = parts
+            siblings = (ref_index.get("sis_siblings") or {}).get((prefix, number), [])
+            if siblings:
+                sib_year, sib_ref, folder = sorted(
+                    siblings,
+                    key=lambda item: (abs(item[0] - year), item[0], item[2].name),
+                )[0]
+                if sib_year != year:
+                    note = f"invoice Ref year mismatch ({ref_no} vs folder {sib_ref})"
+                    return folder, "REF_FUZZY", note
+
+    return None, "", ""
+
+
+def backfill_invoice_ref_nos(cascade_rows: list[dict], batch_id: str, batch_dir: Path) -> int:
+    """Populate Invoice Ref No on existing cascade outputs from the source invoice by Sl# order."""
+    if any(_row_invoice_ref_no(row) for row in cascade_rows):
+        return 0
+
+    candidates = [
+        VOLUME_BASE / batch_id / "invoice.xlsx",
+        VOLUME_BASE / batch_id / "invoice-source.xlsx",
+        batch_dir / "invoice.xlsx",
+        batch_dir / "invoice-source.xlsx",
+    ]
+    invoice_path = next((p for p in candidates if p.exists()), None)
+    if not invoice_path:
+        return 0
+
+    try:
+        wb = openpyxl.load_workbook(invoice_path, data_only=True, read_only=True)
+        ws = wb["Sheet"] if "Sheet" in wb.sheetnames else wb[wb.sheetnames[0]]
+        refs_by_sl: dict[int, str] = {}
+        refs_in_order: list[str] = []
+        for row_idx in range(28, (ws.max_row or 28) + 1):
+            sl = ws.cell(row_idx, 1).value
+            if sl is None:
+                break
+            ref = str(ws.cell(row_idx, 7).value or "").strip()
+            refs_in_order.append(ref)
+            try:
+                sl_int = int(float(str(sl).strip()))
+            except (TypeError, ValueError):
+                continue
+            refs_by_sl[sl_int] = ref
+        wb.close()
+    except Exception as exc:
+        print(f"[invoice-ref] WARNING: could not read {invoice_path}: {exc}", flush=True)
+        return 0
+
+    filled = 0
+    header_ids = []
+    for row in cascade_rows:
+        try:
+            sl = int(float(str(row.get("*Invoice Header Identifier", "")).strip()))
+        except (TypeError, ValueError):
+            sl = None
+        header_ids.append(sl)
+
+    use_row_order = len(set(header_ids)) <= 1
+    for idx, row in enumerate(cascade_rows):
+        ref = ""
+        if use_row_order and idx < len(refs_in_order):
+            ref = refs_in_order[idx]
+        else:
+            sl = header_ids[idx]
+            ref = refs_by_sl.get(sl, "") if sl is not None else ""
+        if ref:
+            row["Invoice Ref No"] = ref
+            row["_invoice_ref_no"] = ref
+            filled += 1
+    if filled:
+        print(f"[invoice-ref] backfilled {filled} Invoice Ref No value(s) from {invoice_path}", flush=True)
+    return filled
 
 
 def _master_emp_name(rec: dict) -> str:
@@ -2197,15 +2395,28 @@ def _bundled_host_ticket_no(host_pdf_path: str) -> str:
     return ""
 
 
-def cascade_row_no_folder(cascade_row: dict, ticket_folder_index: set[str]) -> bool:
+def cascade_row_no_folder(
+    cascade_row: dict,
+    ticket_folder_index: set[str],
+    invoice_ref_index: dict | None = None,
+) -> bool:
     """True when the row lacks evidence for its trailing Description reference."""
     desc = str(cascade_row.get("Description", "") or "")
     if re.search(r"\b(CHD|INF)\b", desc, re.IGNORECASE):
         return False
     ref_token = _row_reference_token(cascade_row)
     if not ref_token:
-        return True
-    return ref_token not in ticket_folder_index
+        ticket_missing = True
+    else:
+        ticket_missing = ref_token not in ticket_folder_index
+    if not ticket_missing:
+        return False
+    invoice_ref = _row_invoice_ref_no(cascade_row)
+    if invoice_ref:
+        folder, _status, _note = resolve_invoice_ref_folder(invoice_ref, invoice_ref_index)
+        if folder:
+            return False
+    return True
 
 
 def row_missing_evidence(row: dict) -> bool:
@@ -2228,14 +2439,33 @@ def stamp_missing_evidence_gate(
     ticket_folder_index: set[str],
     bundled_ticket_pdf_map: dict[str, str] | None = None,
     direct_ticket_index: set[str] | None = None,
+    invoice_ref_index: dict | None = None,
 ) -> int:
     gated = 0
     bundled_ticket_pdf_map = bundled_ticket_pdf_map or {}
     direct_ticket_index = direct_ticket_index or set()
     for i, c in enumerate(cascade_rows):
-        if not cascade_row_no_folder(c, ticket_folder_index):
+        if not cascade_row_no_folder(c, ticket_folder_index, invoice_ref_index):
             ref_token = _row_reference_token(c)
             ticket_no = _row_ticket_no(c)
+            ticket_resolved = bool(ref_token and ref_token in ticket_folder_index)
+            ref_folder, ref_status, ref_note = (None, "", "")
+            if not ticket_resolved:
+                ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(
+                    _row_invoice_ref_no(c), invoice_ref_index
+                )
+            if ref_folder:
+                h = hybrid_rows[i]
+                h["_missing_evidence_resolved"] = True
+                h["_evidence_folder"] = str(ref_folder)
+                h["_invoice_ref_folder_status"] = ref_status
+                h["_invoice_ref_soft_catch"] = ref_note if ref_status == "REF_FUZZY" else ""
+                if ref_status == "REF_EMP_FILENAME":
+                    _append_hybrid_flag(h, INVOICE_REF_EMP_FILENAME_FLAG)
+                elif ref_status == "REF_FUZZY":
+                    _append_hybrid_flag(h, INVOICE_REF_FUZZY_FLAG)
+                else:
+                    _append_hybrid_flag(h, INVOICE_REF_FOLDER_MATCH_FLAG)
             if (
                 re.fullmatch(r"\d{10}", ref_token or "")
                 and ticket_no
@@ -3345,6 +3575,56 @@ def normalize_final_segment_cells(out_xlsx: Path, header_row: int) -> int:
     return normalized
 
 
+def stamp_invoice_ref_resolution_columns(out_xlsx: Path, hybrid_rows: list[dict], hdr_row: int) -> int:
+    """Surface invoice Ref. No. evidence resolution, including fuzzy QC catches."""
+    wb = openpyxl.load_workbook(out_xlsx)
+    ws = wb.active
+    cols = {
+        str(ws.cell(hdr_row, ci).value or "").strip(): ci
+        for ci in range(1, ws.max_column + 1)
+        if str(ws.cell(hdr_row, ci).value or "").strip()
+    }
+    status_col = cols.get("Evidence Folder Status")
+    catches_col = cols.get("QC Catches")
+    flags_col = cols.get("Agent Flags")
+    if not status_col:
+        wb.close()
+        return 0
+
+    stamped = 0
+    for row in hybrid_rows:
+        status = str(row.get("_invoice_ref_folder_status", "") or "").strip()
+        if not status:
+            continue
+        row_idx = row["_row_idx"]
+        if status == "REF_FUZZY":
+            ws.cell(row_idx, status_col).value = INVOICE_REF_FUZZY_FLAG
+            note = str(row.get("_invoice_ref_soft_catch", "") or "").strip()
+            if catches_col and note:
+                cell = ws.cell(row_idx, catches_col)
+                existing = str(cell.value or "").strip()
+                catch = f"INVOICE_REF_YEAR_MISMATCH(MEDIUM): {note}"
+                cell.value = f"{existing}; {catch}" if existing else catch
+            if flags_col:
+                cell = ws.cell(row_idx, flags_col)
+                existing = str(cell.value or "").strip()
+                if INVOICE_REF_FUZZY_FLAG not in existing:
+                    cell.value = (
+                        f"{existing} | {INVOICE_REF_FUZZY_FLAG}"
+                        if existing and existing != "CLEAN"
+                        else INVOICE_REF_FUZZY_FLAG
+                    )
+        elif str(ws.cell(row_idx, status_col).value or "").strip() == "MISSING":
+            ws.cell(row_idx, status_col).value = "OK"
+        stamped += 1
+
+    if stamped:
+        wb.save(str(out_xlsx))
+    wb.close()
+    print(f"[invoice-ref] stamped {stamped} invoice-ref evidence row(s)", flush=True)
+    return stamped
+
+
 def stamp_missing_evidence_output(
     out_xlsx: Path,
     hybrid_rows: list[dict],
@@ -3771,6 +4051,7 @@ def main():
     print(f"[load] {len(cascade_rows)} cascade rows", flush=True)
     if args.limit > 0:
         cascade_rows = cascade_rows[:args.limit]
+    backfill_invoice_ref_nos(cascade_rows, batch_id, batch_dir)
 
     print("[load] master data...", flush=True)
     manpower    = fea.load_manpower()
@@ -3784,7 +4065,13 @@ def main():
     print("[scan] building reverse folder + PC index (v30 — adj-ticket expansion)...", flush=True)
     reverse_index = build_reverse_folder_index_v25(all_folders)
     pc_index      = build_personal_contribution_index(all_folders)
-    print(f"[scan] reverse={len(reverse_index)} mappings  pc={len(pc_index)} PC folders", flush=True)
+    invoice_ref_index = build_invoice_ref_folder_index(all_folders)
+    print(
+        f"[scan] reverse={len(reverse_index)} mappings  pc={len(pc_index)} PC folders  "
+        f"invoice-ref-folders={len(invoice_ref_index.get('event_folders', []))} "
+        f"invoice-ref-emp={len(invoice_ref_index.get('emp_filename', {}))}",
+        flush=True,
+    )
 
     # ── stage 1: routing ───────────────────────────────────────────────────
     # ── v30 Fix D: routing override for sponsoring rows with non-empty emp_no ─
@@ -3804,6 +4091,19 @@ def main():
         emp_no  = str(row.get("Employee No", "") or "").strip()
         if account == "60307021":
             return True, "SPONSORING_EMPNO_REVIEW"
+        ref_token = _row_reference_token(row)
+        if not (ref_token and ref_token in ticket_folder_index):
+            ref_folder, ref_status, _ref_note = resolve_invoice_ref_folder(
+                _row_invoice_ref_no(row), invoice_ref_index
+            )
+            if ref_folder:
+                return True, (
+                    "INVOICE_REF_EMP_FILENAME"
+                    if ref_status == "REF_EMP_FILENAME"
+                    else "INVOICE_REF_FUZZY"
+                    if ref_status == "REF_FUZZY"
+                    else "INVOICE_REF_FOLDER"
+                )
         return _needs_classification(row, all_folders_, rev_idx)
 
     routed: list[tuple[int, str]] = []
@@ -3858,6 +4158,7 @@ def main():
         ticket_folder_index,
         bundled_ticket_pdf_map=bundled_ticket_pdf_map,
         direct_ticket_index=direct_ticket_index,
+        invoice_ref_index=invoice_ref_index,
     )
     if missing_evidence_rows:
         routed_before_gate = len(routed)
@@ -3895,6 +4196,7 @@ def main():
                 batch_id, raw_root, all_folders, manpower, lookups,
                 reverse_index=reverse_index,
                 pc_index=pc_index,
+                invoice_ref_index=invoice_ref_index,
                 no_cache=no_cache,
                 verified_emp_locked=row_verified_emp_locked(hybrid_rows[idx]),
             )
@@ -4536,6 +4838,7 @@ def main():
 
     v15.write_v15_12_xlsx(cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row)
     stamp_own_form_trip_columns(out_xlsx, hybrid_rows, hdr_row)
+    stamp_invoice_ref_resolution_columns(out_xlsx, hybrid_rows, hdr_row)
 
     # cascade_fallback rows are copied from the cascade workbook by the v15 writer.
     # VERIFIED_EMP_LOCK rows must still persist the stage-2.5 corrected identity.

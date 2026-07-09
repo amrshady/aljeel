@@ -53,6 +53,7 @@ HEADERS = [
     "Distribution Combination[..]",
     "Tax Classification Code[..]",
     "Employee No",
+    "Invoice Ref No",
 ]
 
 GREEN_FILL = PatternFill("solid", fgColor="C6EFCE")
@@ -359,6 +360,7 @@ def write_spreadsheet(metadata, lines, employees, batch_dir):
             dist_combo,
             tax_code,
             cls.get("emp_no") or "",
+            line.get("ref_no") or "",
         ]
 
         for c, value in enumerate(values, start=1):

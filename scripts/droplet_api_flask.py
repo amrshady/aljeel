@@ -27,6 +27,7 @@ UPLOADS_DIR = ROOT / "uploads" / "portal"
 PIPELINE_LOGS_DIR = ROOT / "tmp" / "pipeline-logs"
 VOLUME_BASE = Path("/mnt/aljeel_ap_kb/current")
 sys.path.insert(0, str(SCRIPTS))
+sys.modules.setdefault("droplet_api_flask", sys.modules[__name__])
 from msg_parser import parse_msg
 
 # Load environment variables from .env
@@ -1519,6 +1520,10 @@ def qa_report_download():
 
 import droplet_api_v2
 app.register_blueprint(droplet_api_v2.bp)
+import asateel_trigger
+app.register_blueprint(asateel_trigger.bp)
+import jawal_trigger
+app.register_blueprint(jawal_trigger.bp)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, threaded=True)

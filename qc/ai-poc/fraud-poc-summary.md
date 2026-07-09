@@ -1,6 +1,6 @@
 # AlJeel AP — AI Consistency Check: Final Summary (v16.2)
 
-**Generated:** 2026-06-29 10:18 UTC
+**Generated:** 2026-07-09 00:09 UTC
 **Schema:** v16.2 — Pydantic v2 + Gemini responseSchema locked categories
 **Model:** gemini-3.1-pro-preview (Cloudflare AI Gateway, 2M context)
 
@@ -19,7 +19,7 @@
 - AI: **0 RED + 0 YELLOW** / ? rows
 - **Total SAR at risk: 0.00**
 - v15.11 flagged: **0 rows**
-- Agreement: **7** | AI-only: **3** | Rules-only: **38**
+- Agreement: **13** | AI-only: **7** | Rules-only: **32**
 - Pydantic valid: ? | Errors: 0
 - Categories: _(none)_
 - Cost: $? | Latency: ?s

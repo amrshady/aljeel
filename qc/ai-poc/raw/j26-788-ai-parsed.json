@@ -1403,12 +1403,12 @@
   ],
   "model_version": "gemini-2.5-flash",
   "cost_usd": 0.07276,
-  "latency_sec": 73.19,
+  "latency_sec": 69.75,
   "input_tokens": 6972,
   "output_tokens": 6405,
   "data_rows_sent": 101,
   "cache_hit": false,
   "sha256": "0952bc91e8ccfc86c9979f76a372416deed1a09560de9f7fe8736d5e59be86af",
-  "parsed_at": "2026-06-26T10:26:36.559301Z",
+  "parsed_at": "2026-07-06T21:25:55.370705Z",
   "validation_errors": []
 }

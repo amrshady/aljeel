@@ -9,7 +9,7 @@
  *   - /api/upload-finalize — record the upload in KV, queue a sync ping to the droplet
  *   - /api/archive       — mark a file archived (KV only; bytes stay in Spaces)
  *   - /api/restore       — unmark archived
- *   - /api/download-url  — sign a Spaces GET URL
+ *   - /api/download-url  — sign a Spaces GET URL; mode=preview returns inline PDF response overrides
  *
  * Auth: Cloudflare Access in front gates everything by email allowlist.
  *   Workers reads the email from cf-access-authenticated-user-email header.
@@ -299,10 +299,17 @@ async function handleDownloadUrl(request, env, email) {
   const url = new URL(request.url);
   const tenant = url.searchParams.get('tenant');
   const key = url.searchParams.get('key');
+  const mode = url.searchParams.get('mode');
   gateTenant(tenant, email);
   if (!key) return json({ error: 'key required' }, 400);
   const cfg = TENANT_BUCKETS[tenant];
-  const signed = await spacesPresign(env, cfg, `${cfg.prefix}${key}`, 'GET', 600);
+  const isPreview = mode === 'preview';
+  const filename = key.split('/').pop() || 'preview.pdf';
+  const signed = await spacesPresign(env, cfg, `${cfg.prefix}${key}`, 'GET', 600, isPreview ? {
+    'response-content-type': 'application/pdf',
+    'response-content-disposition': `inline; filename="${filename.replace(/["\\]/g, '_')}"`,
+    'response-cache-control': 'private, max-age=600'
+  } : undefined);
   return json({ url: signed.url, expires_in: 600 });
 }
 
@@ -373,7 +380,7 @@ async function spacesList(env, cfg, prefix) {
       service: 's3'
     }) : signed;
 
-    const resp = await fetch(fetchUrl, { headers: signedNext.headers });
+    const resp = await fetch(signedNext.url, { headers: signedNext.headers });
     if (!resp.ok) {
       const txt = await resp.text();
       throw new Error(`Spaces list HTTP ${resp.status}: ${txt.slice(0, 200)}`);
@@ -408,7 +415,7 @@ async function spacesList(env, cfg, prefix) {
   return allKeys;
 }
 
-async function spacesPresign(env, cfg, key, method, expires) {
+async function spacesPresign(env, cfg, key, method, expires, responseOverrides) {
   const host = `${cfg.bucket}.${cfg.region}.digitaloceanspaces.com`;
   // Encode every segment per RFC 3986. We preserve '/' as the path separator.
   // S3 sigv4 requires the canonical URI to be the percent-encoded path that
@@ -416,10 +423,13 @@ async function spacesPresign(env, cfg, key, method, expires) {
   // (decoded) key down so presignUrl can sign the encoded form without
   // round-tripping through URL.pathname (which would re-decode unicode).
   const encodedPath = key.split('/').map(encodeRFC3986).join('/');
-  const url = `https://${host}/${encodedPath}`;
+  const url = new URL(`https://${host}/${encodedPath}`);
+  if (responseOverrides) {
+    Object.entries(responseOverrides).forEach(([k, v]) => url.searchParams.set(k, v));
+  }
   const signed = await presignUrl({
     method,
-    url,
+    url: url.toString(),
     host,
     region: cfg.region,
     accessKey: env.SPACES_ACCESS_KEY_ID,
@@ -465,8 +475,7 @@ async function signRequest({ method, url, host, region, accessKey, secretKey, se
   if (!canonicalUri) canonicalUri = u.pathname || '/';
   // AWS SigV4 requires each query param key+value individually RFC3986-encoded,
   // sorted by key. searchParams.toString() encodes space as '+', AWS expects '%20'.
-  const params = [...u.searchParams.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const canonicalQuery = params.map(([k, v]) => `${encodeRFC3986(k)}=${encodeRFC3986(v)}`).join('&');
+  const canonicalQuery = canonicalQueryString(u.searchParams.entries());
   const payloadHash = 'UNSIGNED-PAYLOAD';
   const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
   const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
@@ -484,6 +493,7 @@ async function signRequest({ method, url, host, region, accessKey, secretKey, se
   const authorization = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
   return {
+    url: urlWithCanonicalQuery(host, canonicalUri, canonicalQuery),
     headers: {
       'host': host,
       'x-amz-content-sha256': payloadHash,
@@ -510,8 +520,8 @@ async function presignUrl({ method, url, host, region, accessKey, secretKey, ser
   // wire. URL.pathname re-decodes unicode, so callers pass the encoded form
   // explicitly. Fall back to URL.pathname for ASCII-only legacy paths.
   if (!canonicalUri) canonicalUri = u.pathname;
-  const params = [...u.searchParams.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const canonicalQuery = params.map(([k, v]) => `${encodeRFC3986(k)}=${encodeRFC3986(v)}`).join('&');
+  const params = [...u.searchParams.entries()];
+  const canonicalQuery = canonicalQueryString(params);
   const canonicalHeaders = `host:${host}\n`;
   const signedHeaders = 'host';
   const payloadHash = 'UNSIGNED-PAYLOAD';
@@ -523,9 +533,9 @@ async function presignUrl({ method, url, host, region, accessKey, secretKey, ser
   signingKey = await hmac(signingKey, service);
   signingKey = await hmac(signingKey, 'aws4_request');
   const signature = toHex(await hmac(signingKey, stringToSign));
-  u.searchParams.set('X-Amz-Signature', signature);
+  params.push(['X-Amz-Signature', signature]);
 
-  return u.toString();
+  return urlWithCanonicalQuery(host, canonicalUri, canonicalQueryString(params));
 }
 
 function decodeXmlEntities(s) {
@@ -540,4 +550,15 @@ function decodeXmlEntities(s) {
 
 function encodeRFC3986(s) {
   return encodeURIComponent(s).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+}
+
+function canonicalQueryString(params) {
+  return [...params]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([k, v]) => `${encodeRFC3986(k)}=${encodeRFC3986(v)}`)
+    .join('&');
+}
+
+function urlWithCanonicalQuery(host, canonicalUri, canonicalQuery) {
+  return `https://${host}${canonicalUri}${canonicalQuery ? `?${canonicalQuery}` : ''}`;
 }

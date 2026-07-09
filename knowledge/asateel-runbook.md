@@ -53,6 +53,8 @@ python3 qc/asateel_golden_check.py      # must print "GOLDEN OK", exit 0
 - Golden signature: **188 rows · GREEN 7 · YELLOW 181 · RED 0 · 6 blank CC · 92/92 reconciled.**
 - If it fails: a change altered pipeline behavior. Do NOT deliver. Diagnose (Codex) before proceeding.
 
+> **Jawal has its own golden gate** (separate pipeline — travel tickets / `run_v30.py`, NOT this Asateel runbook). Before trusting ANY Jawal pipeline change, run `python3 qc/jawal_golden_check.py` — must print `GOLDEN OK`, exit 0. Locked batch J26-788; snapshots deterministic Stage-1 cascade aggregates from `summary-v15.11.2.json` vs `qc/jawal_golden_expected.json` (NOT Gemini/LLM output). Signature: **100 rows · GREEN 23 · YELLOW 31 · RED 46 · resolved 23 / exception 77 · blank-key 0.** Regenerate baseline only after an intentional reviewed change: `python3 scripts/process_batch.py --batch batches/jawal-J26-788 --raw-dir batches/jawal-J26-788/raw --suffix v15.11.2`, then refresh the expected JSON.
+
 ### Step 4 — Deliver
 - Outputs land in `matched/`: `asateel-oracle-upload.xlsx`, `asateel-allocation.json`, `asateel-catch.json`, `asateel-summary.json`, `asateel-trace.json`.
 - Copy the Oracle sheet to the batch folder for the record:

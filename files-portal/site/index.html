@@ -256,7 +256,7 @@
     }
     .file-list-header {
       display:grid;
-      grid-template-columns:1fr 110px 130px 110px;
+      grid-template-columns:1fr 110px 130px 140px;
       gap:1rem;
       padding:0.7rem 1.1rem;
       background:var(--bg);
@@ -270,7 +270,7 @@
     }
     .file-row {
       display:grid;
-      grid-template-columns:1fr 110px 130px 110px;
+      grid-template-columns:1fr 110px 130px 140px;
       gap:1rem;
       padding:0.85rem 1.1rem;
       border-bottom:1px solid var(--line);
@@ -304,18 +304,81 @@
     .file-action-btn {
       background:transparent;
       border:1px solid var(--line);
-      padding:0.3rem 0.55rem;
+      width:30px; height:30px;
+      padding:0;
       border-radius:4px;
       font-size:0.72rem;
       color:var(--muted);
       cursor:pointer; font-family:inherit;
+      display:inline-flex; align-items:center; justify-content:center;
     }
     .file-action-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .file-action-btn.preview:hover { color:#2563EB; border-color:#2563EB; }
     .file-action-btn.danger:hover { color:var(--error); border-color:var(--error); }
+    .file-action-btn svg { width:15px; height:15px; stroke-width:2; }
     .file-list-empty {
       padding:3rem 1.5rem;
       text-align:center;
       color:var(--muted); font-size:0.9rem;
+    }
+
+    /* PDF PREVIEW */
+    .preview-modal {
+      position:fixed;
+      inset:0;
+      z-index:90;
+      display:none;
+      background:rgba(14,26,46,0.62);
+      padding:1.5rem;
+    }
+    .preview-modal.open { display:flex; }
+    .preview-panel {
+      background:var(--paper);
+      border:1px solid #E5E7EB;
+      border-radius:8px;
+      width:min(1180px, 100%);
+      height:min(860px, calc(100vh - 3rem));
+      margin:auto;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      box-shadow:0 24px 60px rgba(14,26,46,0.24);
+    }
+    .preview-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      padding:0.7rem 0.9rem;
+      border-bottom:1px solid #E5E7EB;
+      background:#fff;
+    }
+    .preview-title {
+      color:#0e1a2e;
+      font-weight:600;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .preview-close {
+      border:1px solid #E5E7EB;
+      background:#fff;
+      color:#4a5568;
+      width:32px;
+      height:32px;
+      border-radius:4px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .preview-close:hover { color:#2563EB; border-color:#2563EB; }
+    .preview-close svg { width:17px; height:17px; }
+    .preview-frame {
+      width:100%;
+      flex:1;
+      border:0;
+      background:#f7f8fa;
     }
 
     /* TOAST */
@@ -359,8 +422,10 @@
       .filter-controls input { width:100%; }
       .file-list-header { grid-template-columns:1fr 80px; }
       .file-list-header > div:nth-child(3), .file-list-header > div:nth-child(4) { display:none; }
-      .file-row { grid-template-columns:1fr 80px; }
+      .file-row { grid-template-columns:1fr 108px; }
       .file-row > div:nth-child(2), .file-row > div:nth-child(3) { display:none; }
+      .preview-modal { padding:0.75rem; }
+      .preview-panel { height:calc(100vh - 1.5rem); }
     }
   </style>
 </head>
@@ -430,6 +495,18 @@
 
 </div>
 
+<div class="preview-modal" id="preview-modal" aria-hidden="true">
+  <div class="preview-panel" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="preview-header">
+      <div class="preview-title" id="preview-title">PDF preview</div>
+      <button class="preview-close" id="preview-close" type="button" aria-label="Close preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <iframe class="preview-frame" id="preview-frame" title="PDF preview"></iframe>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -450,6 +527,7 @@ let activeTenant = SITE_TENANTS[0];
 let activePath = '';      // current folder path ('' = root)
 let activeFilter = 'active';
 let allFiles = [];
+const previewUrlCache = new Map();
 
 // =====================================================
 // API helpers
@@ -489,6 +567,17 @@ function fileIcon(name, isFolder) {
   if (['txt','md'].includes(ext)) return '📄';
   if (['zip','tar','gz','7z'].includes(ext)) return '🗜';
   return '📎';
+}
+
+function isPdfFile(name) {
+  return name.split('.').pop().toLowerCase() === 'pdf';
+}
+
+function iconSvg(name) {
+  const icons = {
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 11.75 11.75 0 0 1 21.88 0 1 1 0 0 1 0 .7 11.75 11.75 0 0 1-21.88 0"/><circle cx="12" cy="12" r="3"/></svg>'
+  };
+  return icons[name] || '';
 }
 
 function humanSize(b) {
@@ -667,6 +756,9 @@ function renderFiles() {
 
   directFiles.sort((a, b) => (b.modified || 0) - (a.modified || 0)).forEach(f => {
     const name = f.path.split('/').pop();
+    const previewButton = isPdfFile(name)
+      ? `<button class="file-action-btn preview" data-act="preview" data-key="${encodeURIComponent(f.path)}" title="Preview PDF" aria-label="Preview PDF">${iconSvg('eye')}</button>`
+      : '';
     html.push(`
       <div class="file-row ${f.archived ? 'archived' : ''}">
         <div class="file-name">
@@ -678,8 +770,9 @@ function renderFiles() {
         <div class="file-size">${humanSize(f.size)}</div>
         <div class="file-modified">${humanDate(f.modified)}</div>
         <div class="file-actions">
-          <button class="file-action-btn" data-act="download" data-key="${encodeURIComponent(f.path)}" title="Download">↓</button>
-          <button class="file-action-btn ${f.archived ? '' : 'danger'}" data-act="${f.archived ? 'restore' : 'archive'}" data-key="${encodeURIComponent(f.path)}" title="${f.archived ? 'Restore' : 'Archive'}">${f.archived ? '↺' : '⌫'}</button>
+          ${previewButton}
+          <button class="file-action-btn" data-act="download" data-key="${encodeURIComponent(f.path)}" title="Download" aria-label="Download">↓</button>
+          <button class="file-action-btn ${f.archived ? '' : 'danger'}" data-act="${f.archived ? 'restore' : 'archive'}" data-key="${encodeURIComponent(f.path)}" title="${f.archived ? 'Restore' : 'Archive'}" aria-label="${f.archived ? 'Restore' : 'Archive'}">${f.archived ? '↺' : '⌫'}</button>
         </div>
       </div>
     `);
@@ -707,6 +800,7 @@ function renderFiles() {
         return archiveFolder(folder, count);
       }
       const key = decodeURIComponent(btn.dataset.key);
+      if (act === 'preview') return previewFile(key);
       if (act === 'download') return downloadFile(key);
       if (act === 'archive') return archiveFile(key);
       if (act === 'restore') return restoreFile(key);
@@ -789,9 +883,9 @@ async function walkEntry(entry, basePath, out) {
 
 async function handleFiles(items) {
   const list = document.getElementById('upload-list');
-  // Upload up to 4 in parallel
+  // Upload up to 6 in parallel
   const queue = [...items];
-  const concurrency = 4;
+  const concurrency = 6;
   const workers = Array(Math.min(concurrency, queue.length)).fill(null).map(async () => {
     while (queue.length) {
       const item = queue.shift();
@@ -901,6 +995,35 @@ async function downloadFile(key) {
   } catch (e) { toast(`Download failed: ${e.message}`, 'error'); }
 }
 
+async function previewFile(key) {
+  try {
+    const cacheKey = `${activeTenant}:${key}`;
+    const cached = previewUrlCache.get(cacheKey);
+    let url = cached && cached.expiresAt > Date.now() ? cached.url : '';
+    if (!url) {
+      const r = await api(`/download-url?tenant=${activeTenant}&key=${encodeURIComponent(key)}&mode=preview`);
+      url = r.url;
+      previewUrlCache.set(cacheKey, { url, expiresAt: Date.now() + ((r.expires_in || 600) - 30) * 1000 });
+    }
+    openPreviewModal(key, url);
+  } catch (e) { toast(`Preview failed: ${e.message}`, 'error'); }
+}
+
+function openPreviewModal(key, url) {
+  const modal = document.getElementById('preview-modal');
+  document.getElementById('preview-title').textContent = key.split('/').pop();
+  document.getElementById('preview-frame').src = url;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closePreviewModal() {
+  const modal = document.getElementById('preview-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.getElementById('preview-frame').src = 'about:blank';
+}
+
 // =====================================================
 // USER
 // =====================================================
@@ -930,10 +1053,22 @@ function setupFilterChips() {
   document.getElementById('refresh-btn').onclick = () => loadFiles();
 }
 
+function setupPreviewModal() {
+  const modal = document.getElementById('preview-modal');
+  document.getElementById('preview-close').onclick = closePreviewModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closePreviewModal();
+  };
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closePreviewModal();
+  });
+}
+
 renderTabs();
 applyBrand();
 setupDropzone();
 setupFilterChips();
+setupPreviewModal();
 loadUser();
 loadFiles();
 </script>

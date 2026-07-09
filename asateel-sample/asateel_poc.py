@@ -1144,12 +1144,14 @@ def normalize_exclusive_amount(amount: float | None, subtotal: float | None, tot
     return amount, "excl_assumed"
 
 
-def _canonical_jq(raw: Any) -> str:
+def _canonical_jq(raw: Any, *, allow_bare: bool = True) -> str:
     text = _clean(raw).upper()
     m = re.search(r"\bJQ\s*-\s*(\d+)\b", text)
-    if not m:
-        return ""
-    return f"JQ-{m.group(1).zfill(8)}"
+    if m:
+        return f"JQ-{m.group(1).zfill(8)}"
+    if allow_bare and re.fullmatch(r"\d+", text):
+        return f"JQ-{text.zfill(8)}"
+    return ""
 
 
 def _sperson_id(raw: Any) -> str:
@@ -1158,14 +1160,17 @@ def _sperson_id(raw: Any) -> str:
     return m.group(1) if m else text
 
 
-def _split_jqs(raw: Any) -> list[str]:
+def _split_jqs(raw: Any, *, allow_bare: bool = True) -> list[str]:
     out = []
     seen = set()
-    for m in re.finditer(r"\bJQ\s*-\s*(\d+)\b", _clean(raw), flags=re.I):
+    text = _clean(raw)
+    for m in re.finditer(r"\bJQ\s*-\s*(\d+)\b", text, flags=re.I):
         jq = f"JQ-{m.group(1).zfill(8)}"
         if jq not in seen:
             seen.add(jq)
             out.append(jq)
+    if allow_bare and not out and re.fullmatch(r"\d+", text):
+        out.append(f"JQ-{text.zfill(8)}")
     return out
 
 
@@ -1422,7 +1427,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         if not current_inv:
             continue
         jq = _clean(vals[23] if len(vals) > 23 else "")
-        parsed_jqs = _split_jqs(jq)
+        parsed_jqs = _split_jqs(jq, allow_bare=False)
         employee_name = _clean(vals[24] if len(vals) > 24 else "")
         agency = _clean(vals[31] if len(vals) > 31 else "")
         division = _clean(vals[32] if len(vals) > 32 else "")
@@ -1455,7 +1460,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         rec_base["solution_code"] = solution_code
         rec_base["solution_name"] = solution_name
         rec_base["solution_note"] = solution_note
-        jqs = parsed_jqs or ([_canonical_jq(jq)] if _canonical_jq(jq) else [jq])
+        jqs = parsed_jqs or ([_canonical_jq(jq, allow_bare=False)] if _canonical_jq(jq, allow_bare=False) else [jq])
         for jq_index, jq_token in enumerate(jqs, start=1):
             rec = dict(rec_base)
             rec["jq"] = jq_token
@@ -1469,7 +1474,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         first_by_jq: dict[str, dict[str, Any]] = {}
         duplicate_rows_by_jq: dict[str, list[int]] = {}
         for rec in records:
-            jq_key = _canonical_jq(rec.get("jq"))
+            jq_key = _canonical_jq(rec.get("jq"), allow_bare=False)
             if not jq_key.startswith("JQ-"):
                 continue
             if jq_key in first_by_jq:
@@ -1482,7 +1487,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         for jq_key, rows_for_jq in duplicate_rows_by_jq.items():
             note = f"Duplicate supplier rows for {jq_key} on invoice {inv}: rows {', '.join(map(str, rows_for_jq))}; first row used"
             for rec in records:
-                if _canonical_jq(rec.get("jq")) == jq_key:
+                if _canonical_jq(rec.get("jq"), allow_bare=False) == jq_key:
                     rec["_supplier_duplicate_jq_note"] = note
     return index
 
@@ -1491,7 +1496,7 @@ def supplier_jq_units_for_invoice(invoice_no: Any, supplier_index: dict[str, lis
     units = []
     seen_jqs: set[str] = set()
     for rec in supplier_index.get(_code(invoice_no, 5), []):
-        jq = _canonical_jq(rec.get("jq"))
+        jq = _canonical_jq(rec.get("jq"), allow_bare=False)
         if not jq.startswith("JQ-"):
             continue
         if jq in seen_jqs:
@@ -1571,8 +1576,8 @@ def _extract_pdf_jqs(line: dict[str, Any], extraction: dict[str, Any]) -> list[s
     found: list[str] = []
     seen: set[str] = set()
     for field in fields:
-        for jq in _split_jqs(field):
-            key = _canonical_jq(jq)
+        for jq in _split_jqs(field, allow_bare=False):
+            key = _canonical_jq(jq, allow_bare=False)
             if key not in seen:
                 seen.add(key)
                 found.append(key)
@@ -1591,7 +1596,7 @@ def sample_files() -> list[tuple[str, str, Path]]:
 
 
 def _invoice_sort_key(path: Path) -> int:
-    m = re.match(r"^(\d{5})_0001\.pdf$", path.name)
+    m = re.search(r"(\d{5})_0001\.pdf$", path.name)
     return int(m.group(1)) if m else 10**9
 
 
@@ -1611,7 +1616,7 @@ def folder_files(folder_arg: str | None, full: bool, pdf_dir: str | None = None)
         paths = sorted(Path(pdf_dir).expanduser().glob("*_0001.pdf"), key=_invoice_sort_key)
         out = []
         for path in paths:
-            m = re.match(r"^(\d{5})_0001\.pdf$", path.name)
+            m = re.search(r"(\d{5})_0001\.pdf$", path.name)
             if m:
                 out.append((label, m.group(1), path))
         return out
@@ -1627,7 +1632,7 @@ def folder_files(folder_arg: str | None, full: bool, pdf_dir: str | None = None)
             folder_path = PDF_ROOT / folder
             paths = sorted(folder_path.glob("*_0001.pdf"), key=_invoice_sort_key)
             for path in paths:
-                m = re.match(r"^(\d{5})_0001\.pdf$", path.name)
+                m = re.search(r"(\d{5})_0001\.pdf$", path.name)
                 if m:
                     out.append((label, m.group(1), path))
         else:
@@ -2047,16 +2052,8 @@ def build_rows(
             if supplier_action == "so_detail_override" and (
                 so_detail_supplier_discrepancy
                 or so_detail_manpower_discrepancy
-                or (
-                    so_detail_group
-                    and so_detail_group.get("multi_allocation_unit")
-                    and not so_detail_inherited_supplier_allocation
-                )
                 or resolved.get("status_reason")
             ):
-                if status != "RED":
-                    status = "YELLOW"
-            if so_detail_enabled and unit_jq and not so_detail_rec:
                 if status != "RED":
                     status = "YELLOW"
             if supplier_home_agency_discrepancy or (supplier_match and supplier_match.get("_supplier_duplicate_jq")):
@@ -2065,6 +2062,12 @@ def build_rows(
                 status = "YELLOW"
             if not supplier_match and _extract_pdf_jqs(ln, ext):
                 status = "YELLOW"
+            is_warehouse_cc = (
+                _code(resolved.get("cost_center")) == "140040"
+                or _clean(resolved.get("cost_center_name")).casefold() == "warehouse"
+            )
+            if so_detail_enabled and not so_detail_rec and (unit_jq or supplier_match) and not is_warehouse_cc:
+                status = "RED"
             line_vat = round((line_amount or 0) * VAT_RATE, 2)
             line_total = round((line_amount or 0) + line_vat, 2)
             if len(output_units) == 1 and not supplier_jq_units:
@@ -2088,7 +2091,6 @@ def build_rows(
             debug_notes = [n for n in notes if _clean(n)]
             if account_note:
                 debug_notes.append(account_note)
-            debug_notes.append("Supplier Number unknown; left blank")
             debug_notes.append(f"Location confirmed as {DEFAULT_LOCATION}")
             if resolved.get("brand_remap_from") and resolved.get("brand_remap_to"):
                 debug_notes.append(f"Brand remapped {resolved.get('brand_remap_from')} -> {resolved.get('brand_remap_to')}")

@@ -57,3 +57,7 @@ dashboard/**/*.json
 # --- All env variants ---
 *.env
 tunnel.env
+
+# --- DB dumps (financial data — never commit) ---
+db-backup-*.sql
+*.sql

@@ -387,12 +387,9 @@ def _execute_job(job: AsateelJob) -> None:
     stage_cmd = [
         "python3",
         str(ROOT / "scripts" / "asateel_stage_batch.py"),
-        "--archive-date",
-        job.archive_date,
-        "--folder-name",
-        job.folder_name,
         "--batch-id",
         job.batch_id,
+        "--pre-staged",
     ]
     try:
         staged = _run_command(stage_cmd)

@@ -1,0 +1,257 @@
+openapi: 3.1.0
+info:
+  title: AlJeel Jawal Reconciliation Trigger API
+  version: "1.0.0"
+  x-audience: internal
+  x-agent-readable: true
+  description: |
+    Internal HTTP API to trigger the AlJeel **Jawal** reconciliation pipeline and poll
+    its status. Designed to be called by another function or AI agent.
+
+    ## How it works (async job model)
+    1. `POST /jawal/run` enqueues a job and immediately returns a `run_id` with HTTP `202`.
+       The pipeline runs asynchronously on a single background worker (one job at a time,
+       FIFO). It executes the same end-to-end Jawal stages used by the existing `/process`
+       route, including invoice conversion when an uploaded invoice is supplied, cascade,
+       v30 LLM handling, AI parsing/fraud audit, Excel injection, review JSON rebuild,
+       split output generation, public output promotion, audit export, and dashboard deploy.
+    2. Poll `GET /jawal/run/{run_id}` until `status` is `done` or `failed`.
+    3. On terminal status, the API emails the report as `aljeel@accordpartners.ai`; the
+       house address `amr@accordpartners.ai` is always cc'd.
+
+    ## Authentication
+    Every protected request MUST include the header `X-Jawal-Trigger-Key: <secret>`.
+    Missing/incorrect key => `401 unauthorized`. The secret lives in the Flask service
+    environment (`JAWAL_TRIGGER_KEY`); obtain it from the operator/secrets store.
+
+    ## Important operational notes for callers
+    - The job registry and queue are **in-memory**. If the Flask service restarts, queued
+      jobs are lost and `run_id`s from before the restart return `404`. Poll promptly and
+      do not assume long-term persistence of run history.
+    - `batch_id` must match `^J26-\d+$`.
+    - `invoice_path`, when supplied, must be an absolute `.xlsx`/`.xls` path produced by
+      the existing `/upload` route. If omitted, the worker uses the on-disk batch input
+      discovery path used by `/process`.
+    - Pipeline timeout / lock wait budget is 3 hours; expect a long-running background job.
+
+servers:
+  - url: http://127.0.0.1:5000
+    description: On-droplet local (same host as the Flask service; preferred for internal callers)
+  - url: https://finance.aljeel.accordpartners.ai
+    description: >
+      Public host (Cloudflare Access protected). Note: the /jawal/* routes are served by
+      the Flask app on port 5000; reaching them via the public host depends on current
+      proxy/tunnel routing. For agent-to-agent calls on the droplet, use the local server.
+
+tags:
+  - name: jawal
+    description: Jawal reconciliation pipeline trigger + status
+
+paths:
+  /jawal/openapi.json:
+    get:
+      tags: [jawal]
+      operationId: getJawalOpenApiJson
+      summary: Fetch this OpenAPI spec as JSON (no auth)
+      responses:
+        "200":
+          description: OpenAPI spec (JSON)
+          content:
+            application/json:
+              schema: { type: object }
+        "500":
+          description: Spec unavailable on server
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "openapi spec unavailable" }
+
+  /jawal/openapi.yaml:
+    get:
+      tags: [jawal]
+      operationId: getJawalOpenApiYaml
+      summary: Fetch this OpenAPI spec as YAML (no auth)
+      responses:
+        "200":
+          description: OpenAPI spec (YAML)
+          content:
+            application/yaml:
+              schema: { type: string }
+        "500":
+          description: Spec unavailable on server
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /jawal/run:
+    post:
+      tags: [jawal]
+      operationId: enqueueJawalRun
+      summary: Enqueue a Jawal reconciliation run
+      security:
+        - triggerKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunRequest'
+            examples:
+              uploaded_invoice:
+                summary: Run with invoice staged by /upload
+                value:
+                  batch_id: "J26-954"
+                  invoice_path: "/home/clawdbot/.openclaw/workspace/aljeel/uploads/portal/abc123/invoice.xlsx"
+                  no_cache: true
+                  recipients:
+                    - "ljaradat@aljeel.com"
+                    - "mlabadi@aljeel.com"
+              on_disk:
+                summary: Run from on-disk batch input
+                value:
+                  batch_id: "J26-954"
+      responses:
+        "202":
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnqueueResponse'
+              example:
+                run_id: "9f2c1a4b7d6e4f0a8c3b2d1e5f6a7b8c"
+                status: "queued"
+                queue_position: 1
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                bad_batch:
+                  value: { error: "batch_id must match ^J26-\\d+$" }
+                bad_recipients:
+                  value: { error: "recipients must be a list of email addresses" }
+        "401":
+          description: Missing or invalid trigger key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "unauthorized" }
+
+  /jawal/run/{run_id}:
+    get:
+      tags: [jawal]
+      operationId: getJawalRun
+      summary: Get status of a run
+      security:
+        - triggerKey: []
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string }
+          description: The `run_id` returned by POST /jawal/run
+      responses:
+        "200":
+          description: Run record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunStatus'
+        "401":
+          description: Missing or invalid trigger key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "unauthorized" }
+        "404":
+          description: Unknown run_id (or lost after service restart)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "not found" }
+
+components:
+  securitySchemes:
+    triggerKey:
+      type: apiKey
+      in: header
+      name: X-Jawal-Trigger-Key
+      description: Shared secret from JAWAL_TRIGGER_KEY in the Flask service environment.
+
+  schemas:
+    RunRequest:
+      type: object
+      required: [batch_id]
+      additionalProperties: false
+      properties:
+        batch_id:
+          type: string
+          pattern: '^J26-\d+$'
+          description: Jawal batch identifier.
+          example: "J26-954"
+        invoice_path:
+          type: string
+          description: Optional absolute path to an uploaded invoice `.xlsx`/`.xls` staged via `/upload`.
+          example: "/home/clawdbot/.openclaw/workspace/aljeel/uploads/portal/abc123/invoice.xlsx"
+        no_cache:
+          type: boolean
+          default: true
+          description: Clean run flag passed through to the Jawal pipeline.
+        include_log:
+          type: boolean
+          default: false
+          description: Optional. Include the internal pipeline log tail in success emails.
+        recipients:
+          type: array
+          description: >
+            Optional. Report recipients. If omitted, defaults to JAWAL_REPORT_RECIPIENTS
+            (comma-separated env), else amr@accordpartners.ai. amr@accordpartners.ai is
+            ALWAYS cc'd regardless (house rule).
+          items:
+            type: string
+            format: email
+          example: ["ljaradat@aljeel.com", "mlabadi@aljeel.com"]
+
+    EnqueueResponse:
+      type: object
+      properties:
+        run_id:
+          type: string
+          description: "Poll handle for GET /jawal/run/{run_id}"
+        status:
+          type: string
+          enum: [queued]
+        queue_position:
+          type: integer
+          description: 1-based position in the FIFO queue at enqueue time
+
+    RunStatus:
+      type: object
+      properties:
+        run_id: { type: string }
+        status:
+          type: string
+          enum: [queued, running, done, failed]
+        batch_id: { type: string }
+        created_at: { type: string, format: date-time }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        email_sent:
+          type: [boolean, "null"]
+          description: Whether the report email was sent (gog gmail send). null until terminal.
+        counts:
+          type: object
+          description: Optional headline counts when available from review JSON.
+        outputs:
+          type: array
+          items: { type: string }
+          description: Present on success; final full and SPLIT spreadsheet paths.
+        error:
+          type: string
+          description: Present only when status=failed; tail of the failure detail.
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }

@@ -187,6 +187,21 @@ def _date_str(v: Any) -> str:
         return _clean(v)
 
 
+def _oracle_date_str(v: Any) -> str:
+    """Render an invoice date in Oracle's required month/day/year form."""
+    if not v:
+        return ""
+    if hasattr(v, "strftime"):
+        return v.strftime("%m/%d/%Y")
+    try:
+        dt = pd.to_datetime(v, errors="coerce")
+        if pd.isna(dt):
+            return _clean(v)
+        return dt.strftime("%m/%d/%Y")
+    except Exception:
+        return _clean(v)
+
+
 def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -1298,12 +1313,14 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
             pos = headers[name] - 1
             return row[pos] if pos < len(row) else ""
 
-        jq = _canonical_jq(val("ORDER_NUMBER"))
+        raw_jq = _clean(val("ORDER_NUMBER"))
+        jq = _canonical_jq(raw_jq)
         agency_code = _code(val("CAT_AGENCY"), 5)
         if not jq:
             continue
         by_jq_rows.setdefault(jq, []).append({
             "jq": jq,
+            "raw_jq": raw_jq,
             "row": ridx,
             "cat_agency_code": agency_code,
             "cat_agency_desc": _clean(val("CAT_AGENCY_DESC")),
@@ -1325,6 +1342,9 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
         distinct_sperson_count = len({rec["sperson_id"] for rec in agencies})
         index[jq] = {
             "jq": jq,
+            # The first matching SO_Detail row is authoritative for display only;
+            # canonical ``jq`` remains the lookup key everywhere else.
+            "raw_jq": rows_for_jq[0]["raw_jq"],
             "rows": rows_for_jq,
             "agencies": agencies,
             "distinct_agency_count": distinct_agency_count,
@@ -1547,11 +1567,11 @@ def match_supplier_line(
     return None
 
 
-def _additional_info(supplier_line: dict[str, Any] | None) -> str:
+def _additional_info(supplier_line: dict[str, Any] | None, display_jq: Any = "") -> str:
     if not supplier_line:
         return ""
     emp_no = _code(supplier_line.get("employee_number")).strip()
-    jq = _clean(supplier_line.get("jq")).strip()
+    jq = _clean(display_jq).strip() or _clean(supplier_line.get("jq")).strip()
     if emp_no and jq:
         return f"{emp_no}.{jq}"
     return emp_no or jq
@@ -2028,7 +2048,11 @@ def build_rows(
                     )
             elif so_detail_enabled and unit_jq and unit_jq not in so_detail_index:
                 notes.append("JQ not in SO_Detail export")
-            additional_info = _additional_info(supplier_match)
+            jq_display = ""
+            if supplier_match:
+                jq_key = _canonical_jq(supplier_match.get("jq"))
+                jq_display = _clean((so_detail_index.get(jq_key) or {}).get("raw_jq"))
+            additional_info = _additional_info(supplier_match, jq_display)
             if supplier_match and not additional_info:
                 notes.append("Employee Number and JQ unavailable for matched Supplier Expenses Format line")
             elif not supplier_match:
@@ -2132,7 +2156,7 @@ def build_rows(
                 "*Invoice Number": invoice_no,
                 "*Invoice Currency": "SAR",
                 "*Invoice Amount": total,
-                "*Invoice Date": _date_str(ext.get("invoice_date")),
+                "*Invoice Date": _oracle_date_str(ext.get("invoice_date")),
                 "**Supplier[..]": SUPPLIER_NAME,
                 "**Supplier Number": "",
                 "*Supplier Site[..]": "",
@@ -2186,6 +2210,16 @@ def build_rows(
             if status != "GREEN":
                 row["notes"] = row["notes"] or resolved.get("status_reason") or "review required"
             rows.append(row)
+    invoice_serials: dict[str, int] = {}
+    for row in rows:
+        invoice_no = _clean(row.get("*Invoice Number"))
+        first_invoice_row = invoice_no not in invoice_serials
+        if first_invoice_row:
+            invoice_serials[invoice_no] = len(invoice_serials) + 1
+        row["*Invoice Header Identifier"] = invoice_serials[invoice_no]
+        if not first_invoice_row:
+            row["*Invoice Amount"] = ""
+            row["*Invoice Date"] = ""
     return rows, trace
 
 
@@ -2307,7 +2341,10 @@ def write_excel(rows: list[dict[str, Any]], path: Path) -> None:
         }
         for c, header in enumerate(headers, start=1):
             value = row.get(header, debug_values.get(header, ""))
-            ws.cell(ridx, c).value = value
+            cell = ws.cell(ridx, c)
+            cell.value = value
+            if header == "*Invoice Date":
+                cell.number_format = "mm/dd/yyyy"
 
         fill, font = _row_style(row.get("Row_Status") or "GREEN")
         for c in range(1, header_count + 1):

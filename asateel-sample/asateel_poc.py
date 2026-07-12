@@ -1044,7 +1044,13 @@ def normalize_extraction(value: Any) -> dict[str, Any]:
     return {"invoice_number": "", "lines": [], "extraction_notes": ["Gemini returned non-object extraction"]}
 
 
-def classify(extraction: dict[str, Any], resolved: dict[str, Any], notes: list[str]) -> str:
+def classify(
+    extraction: dict[str, Any],
+    resolved: dict[str, Any],
+    notes: list[str],
+    *,
+    scan_available: bool = True,
+) -> str:
     inv = _clean(extraction.get("invoice_number"))
     subtotal = _money(extraction.get("subtotal"))
     vat = _money(extraction.get("vat"))
@@ -1053,10 +1059,10 @@ def classify(extraction: dict[str, Any], resolved: dict[str, Any], notes: list[s
     if allocation_status and allocation_status != "Can Be used":
         notes.append(f"RED: Manpower allocation status: {allocation_status}")
         return "RED"
-    if not inv or total is None:
+    if scan_available and (not inv or total is None):
         notes.append("RED: invoice number or total not extractable")
         return "RED"
-    if subtotal is not None and vat is not None and abs((subtotal + vat) - total) > 1.0:
+    if scan_available and subtotal is not None and vat is not None and abs((subtotal + vat) - total) > 1.0:
         notes.append(f"RED: totals do not foot ({subtotal}+{vat}!={total})")
         return "RED"
     if not resolved.get("division") or not resolved.get("cost_center") or not resolved.get("agency_name"):
@@ -2120,7 +2126,7 @@ def build_rows(
                 solution_code = _code(resolved.get("solution_code"), 5) or "00000"
                 solution_name = _clean(resolved.get("solution_name")) or "General"
 
-            status = classify(ext, resolved, notes)
+            status = classify(ext, resolved, notes, scan_available=not master_fallback)
             if supplier_action in {"supplier_override", "supplier_unresolved"}:
                 status = "YELLOW" if status == "GREEN" and supplier_home_agency_discrepancy else status
             if supplier_action == "so_detail_override" and (

@@ -1458,6 +1458,8 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
                 solution = alt_solution
         cost_center = _clean(vals[35] if len(vals) > 35 else "")
         amount = _money(vals[36] if len(vals) > 36 else None)
+        invoice_amount = _money(vals[15] if len(vals) > 15 else None)
+        invoice_date = vals[16] if len(vals) > 16 else ""
         employee_number = _code(vals[40] if len(vals) > 40 else "")
         emp = _find_employee(employee_name, lookups)
         if not employee_number and emp:
@@ -1474,6 +1476,8 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
             "solution": solution,
             "cost_center": cost_center,
             "amount": amount,
+            "invoice_amount": invoice_amount,
+            "invoice_date": invoice_date,
             "_supplier_row_amount": amount,
         }
         solution_code, solution_name, solution_note = _solution_from_text(solution, lookups)
@@ -1670,6 +1674,7 @@ def build_rows(
     lookups: Lookups,
     supplier_index: dict[str, list[dict[str, Any]]] | None = None,
     so_detail_index: dict[str, dict[str, Any]] | None = None,
+    available_pdf_invoice_numbers: set[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows = []
     supplier_index = supplier_index or {}
@@ -1682,10 +1687,50 @@ def build_rows(
         "so_detail_loaded_jqs": len(so_detail_index),
     }
     gl_desc, account_note = account_description(lookups)
-    for item in extractions:
+    # A staged PDF is authoritative evidence that the invoice was supplied, even
+    # when extraction fails or reads a different invoice number.  Filename hints
+    # are normalized by the same five-digit rule as the master index.
+    pdf_invoice_numbers = {
+        _code(item.get("invoice_hint"), 5)
+        for item in extractions
+        if _code(item.get("invoice_hint"), 5)
+    }
+    if available_pdf_invoice_numbers is None:
+        # Direct callers historically pass only the selected folder's
+        # extractions. Treat PDFs staged in sibling supplier folders as present.
+        available_pdf_invoice_numbers = {
+            match.group(1)
+            for path in PDF_ROOT.rglob("*_0001.pdf")
+            if (match := re.search(r"(\d{5})_0001\.pdf$", path.name))
+        }
+    pdf_invoice_numbers.update(_code(inv, 5) for inv in available_pdf_invoice_numbers)
+    work_items = list(extractions)
+    for missing_invoice in sorted(set(supplier_index) - pdf_invoice_numbers):
+        master_records = supplier_index[missing_invoice]
+        master_header = master_records[0] if master_records else {}
+        work_items.append({
+            "folder": "MASTER_FALLBACK",
+            "invoice_hint": missing_invoice,
+            "pdf": "",
+            "master_fallback": True,
+            "master_invoice_amount": master_header.get("invoice_amount"),
+            "master_invoice_date": master_header.get("invoice_date"),
+            "payload": {
+                "pdf": "",
+                "extraction": {
+                    "invoice_number": missing_invoice,
+                    "invoice_date": master_header.get("invoice_date"),
+                    "lines": [{"line_no": 1}],
+                },
+            },
+        })
+    trace["missing_pdf_invoices"] = sorted(set(supplier_index) - pdf_invoice_numbers)
+
+    for item in work_items:
         folder = item["folder"]
         expected_inv = item["invoice_hint"]
         payload = item["payload"]
+        master_fallback = bool(item.get("master_fallback"))
         if item.get("error"):
             err = _clean(item.get("error"))
             trace["invoices"].append({
@@ -1893,6 +1938,11 @@ def build_rows(
             ln = unit["ln"]
             resolved = dict(unit["resolved"])
             notes = list(ext.get("extraction_notes") or [])
+            if master_fallback:
+                notes.append(
+                    "PDF MISSING — allocated from Expenses-Format master + SO_Detail only; "
+                    "invoice total NOT verified against scan"
+                )
             line_amount = unit["line_amount"]
             supplier_match = unit.get("supplier_match") or match_supplier_line(
                 invoice_no,
@@ -2092,6 +2142,8 @@ def build_rows(
             )
             if so_detail_enabled and not so_detail_rec and (unit_jq or supplier_match) and not is_warehouse_cc:
                 status = "RED"
+            if master_fallback:
+                status = "RED"
             line_vat = round((line_amount or 0) * VAT_RATE, 2)
             line_total = round((line_amount or 0) + line_vat, 2)
             if len(output_units) == 1 and not supplier_jq_units:
@@ -2155,7 +2207,7 @@ def build_rows(
                 "*Business Unit": BUSINESS_UNIT,
                 "*Invoice Number": invoice_no,
                 "*Invoice Currency": "SAR",
-                "*Invoice Amount": total,
+                "*Invoice Amount": item.get("master_invoice_amount") if master_fallback else total,
                 "*Invoice Date": _oracle_date_str(ext.get("invoice_date")),
                 "**Supplier[..]": SUPPLIER_NAME,
                 "**Supplier Number": "",
@@ -2182,13 +2234,14 @@ def build_rows(
                 "Intercompany": "00",
                 "Future 1": "000000",
                 "GL Description": "",
-                "_header_subtotal": subtotal,
-                "_header_total": total,
+                "_header_subtotal": "" if master_fallback else subtotal,
+                "_header_total": "" if master_fallback else total,
                 "_amount_basis": unit["amount_basis"],
-                "_trace_pdf": payload.get("pdf"),
-                "_extracted_brands": extracted_brands,
-                "_extracted_salespeople": extracted_salespeople,
-                "_extraction_notes": "; ".join(_clean(n) for n in ext.get("extraction_notes") or [] if _clean(n)),
+                "_trace_pdf": "" if master_fallback else payload.get("pdf"),
+                "_extracted_brands": "" if master_fallback else extracted_brands,
+                "_extracted_salespeople": "" if master_fallback else extracted_salespeople,
+                "_extraction_notes": "" if master_fallback else "; ".join(_clean(n) for n in ext.get("extraction_notes") or [] if _clean(n)),
+                "_exception_category": "MISSING_PDF" if master_fallback else "",
                 "_account_note": account_note,
                 "_supplier_match": supplier_match,
                 "_additional_information": additional_info,

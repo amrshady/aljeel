@@ -129,6 +129,7 @@ def _row_public(row: dict[str, Any]) -> dict[str, Any]:
         "additional_information": row.get("_additional_information") or "",
         "notes": row.get("notes") or "",
         "trace_pdf": row.get("_trace_pdf") or "",
+        "exception_category": row.get("_exception_category") or "",
     }
 
 
@@ -191,7 +192,18 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
                 "evidence": {"allocation_rows": rec["allocation_rows"]},
             })
         for row in rec["allocation_rows"]:
-            if row.get("so_detail_vs_supplier_discrepancy") == "Y":
+            if row.get("exception_category") == "MISSING_PDF":
+                catches.append({
+                    "category": "MISSING_PDF",
+                    "severity": "HIGH",
+                    "invoice_no": rec["invoice_no"],
+                    "employee_no": row.get("employee_no"),
+                    "jq": row.get("jq"),
+                    "value_at_risk_sar": 0.0,
+                    "detail": row.get("notes"),
+                    "evidence": {"allocation_rows": [row]},
+                })
+            elif row.get("so_detail_vs_supplier_discrepancy") == "Y":
                 catches.append({
                     "category": "SO_DETAIL_SUPPLIER_DISCREPANCY",
                     "severity": "MEDIUM",

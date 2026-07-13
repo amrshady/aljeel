@@ -17,6 +17,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import Counter
 from copy import copy
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -29,7 +30,7 @@ from openpyxl.styles import Font, PatternFill
 from rapidfuzz import fuzz, process
 
 ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
-ASATEEL_PIPELINE_VERSION = "2026-07-13.1"
+ASATEEL_PIPELINE_VERSION = "2026-07-13.2"
 SAMPLE_ROOT = ROOT / "asateel-sample"
 PDF_ROOT = SAMPLE_ROOT / "_pdfs"
 OUT_DIR = SAMPLE_ROOT / "_poc_out"
@@ -43,6 +44,9 @@ ENTRY_FILES = [
 ]
 DEFAULT_EXPENSES_FORMAT_XLSX = SAMPLE_ROOT / "_allocation" / "Central-11-2026.xlsx"
 DEFAULT_SO_DETAIL_XLSX = ROOT / "reference" / "SO_Detail_Labadi_1_R21_AA.xlsx"
+DEFAULT_PROJECT_ALLOCATION_LOOKUP = ROOT / "pipelines" / "lookups" / "asateel_projects_labadi_v1.json"
+STANDARD_ALLOCATION_MODE = "standard"
+PROJECT_ALLOCATION_MODE = "projects-labadi-v1"
 
 GL_ACCOUNT = "61500027"
 GL_FALLBACK_DESC = "Transportation/Freight Expense"
@@ -109,6 +113,9 @@ DEBUG_HEADERS = [
     "Account Lookup Note",
     "Trace PDF",
     "Agent Method",
+    "Project Allocation Mode",
+    "Project Lookup Status",
+    "Project Lookup Explanation",
 ]
 
 SEGMENT_WIDTHS = {
@@ -279,6 +286,13 @@ def provenance(args: argparse.Namespace, fingerprints: dict[str, Any]) -> dict[s
             "pdf_dir": str(Path(getattr(args, "pdf_dir", "")).expanduser().resolve()) if getattr(args, "pdf_dir", "") else "",
             "expenses_format": str(Path(getattr(args, "expenses_format", "")).expanduser().resolve()) if getattr(args, "expenses_format", "") else "",
             "so_detail": str(Path(getattr(args, "so_detail", "")).expanduser().resolve()) if getattr(args, "so_detail", "") else "",
+            "allocation_mode": getattr(args, "allocation_mode", STANDARD_ALLOCATION_MODE),
+            "project_allocation_lookup": (
+                str(Path(getattr(args, "project_allocation_lookup", "")).expanduser().resolve())
+                if getattr(args, "allocation_mode", STANDARD_ALLOCATION_MODE) == PROJECT_ALLOCATION_MODE
+                and getattr(args, "project_allocation_lookup", "")
+                else ""
+            ),
         },
         "input_fingerprints_key": "input_fingerprints",
         "input_fingerprints": fingerprints,
@@ -352,6 +366,37 @@ def _norm_agency_words(v: Any, strip_corporate: bool = False) -> str:
     if strip_corporate:
         words = [w for w in words if w not in AGENCY_CORPORATE_WORDS]
     return " ".join(words)
+
+
+def _project_override_supplier_match(
+    supplier_match: dict[str, Any],
+    project_lookup: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Apply the exact, pre-resolved project mapping to a supplier line."""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from scripts.asateel_project_allocation import resolve_override
+
+    updated = dict(supplier_match)
+    audit = resolve_override(
+        project_lookup,
+        agency_code=supplier_match.get("agency_code"),
+        agency_name=supplier_match.get("agency") or supplier_match.get("agency_name"),
+        employee_no=supplier_match.get("employee_number"),
+        employee_name=supplier_match.get("employee_name"),
+    )
+    agency_after = audit.get("agency_after") or {}
+    employee_after = audit.get("employee_after") or {}
+    if agency_after:
+        updated["agency_code"] = agency_after.get("code", "")
+        updated["agency_name"] = agency_after.get("name", "")
+        updated["agency_resolve_method"] = f"{PROJECT_ALLOCATION_MODE}:{audit.get('agency_match_method') or 'unresolved'}"
+        updated["agency_resolve_score"] = 1.0
+    if employee_after:
+        updated["employee_number"] = employee_after.get("employee_no", "")
+        updated["employee_name"] = employee_after.get("employee_name", "")
+    updated["_project_allocation_audit"] = audit
+    return updated, audit
 
 
 def load_lookups() -> Lookups:
@@ -1705,7 +1750,14 @@ def build_rows(
     supplier_index: dict[str, list[dict[str, Any]]] | None = None,
     so_detail_index: dict[str, dict[str, Any]] | None = None,
     available_pdf_invoice_numbers: set[str] | None = None,
+    allocation_mode: str = STANDARD_ALLOCATION_MODE,
+    project_lookup: dict[str, Any] | None = None,
+    project_master_fallback: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if allocation_mode not in {STANDARD_ALLOCATION_MODE, PROJECT_ALLOCATION_MODE}:
+        raise ValueError(f"unsupported Asateel allocation mode: {allocation_mode}")
+    if allocation_mode == PROJECT_ALLOCATION_MODE and not project_lookup:
+        raise ValueError("projects-labadi-v1 mode requires a validated project lookup")
     rows = []
     supplier_index = supplier_index or {}
     if so_detail_index is None:
@@ -1716,6 +1768,8 @@ def build_rows(
         "invoices": [],
         "supplier_expenses_format_loaded_invoices": len(supplier_index),
         "so_detail_loaded_jqs": len(so_detail_index),
+        "allocation_mode": allocation_mode,
+        "project_lookup_statistics": (project_lookup or {}).get("statistics", {}),
     }
     gl_desc, account_note = account_description(lookups)
     # A staged PDF is authoritative evidence that the invoice was supplied, even
@@ -1759,6 +1813,7 @@ def build_rows(
 
     for item in work_items:
         folder = item["folder"]
+        is_project_invoice = folder == "PROJECTS" or (bool(item.get("master_fallback")) and project_master_fallback)
         expected_inv = item["invoice_hint"]
         payload = item["payload"]
         master_fallback = bool(item.get("master_fallback"))
@@ -1988,6 +2043,13 @@ def build_rows(
                     supplier_index,
                     used_supplier_rows,
                 )
+            project_audit: dict[str, Any] | None = None
+            if (
+                allocation_mode == PROJECT_ALLOCATION_MODE
+                and is_project_invoice
+                and supplier_match
+            ):
+                supplier_match, project_audit = _project_override_supplier_match(supplier_match, project_lookup or {})
             resolved_source = _clean(resolved.get("source")).lower()
             resolved_agency_code = _code(resolved.get("agency_code"), 5)
             supplier_inheritance_jq = unit.get("supplier_inheritance_jq", "")
@@ -2033,6 +2095,7 @@ def build_rows(
                     "home_agency_discrepancy": "",
                     "solution": supplier_match.get("solution"),
                     "solution_code": supplier_match.get("solution_code"),
+                    "project_allocation": project_audit,
                 })
                 if not supplier_match.get("_amount_match"):
                     notes.append(
@@ -2055,6 +2118,8 @@ def build_rows(
             so_detail_supplier_discrepancy = ""
             if supplier_match and supplier_match.get("employee_number") and not manpower_emp:
                 notes.append(f"Supplier employee number {supplier_match.get('employee_number')} not found in Manpower")
+            if project_audit:
+                notes.append(project_audit.get("explanation", ""))
             supplier_has_allocation = bool(
                 supplier_match
                 and supplier_match.get("agency_code")
@@ -2062,7 +2127,7 @@ def build_rows(
                 and supplier_match.get("cost_center")
             )
             supplier_allocation = {
-                "source": "supplier_expenses_format",
+                "source": PROJECT_ALLOCATION_MODE if project_audit and project_audit.get("agency_after") else "supplier_expenses_format",
                 "raw": _clean(supplier_match.get("agency")) if supplier_match else "",
                 "agency_code": supplier_match.get("agency_code") if supplier_match else "",
                 "agency_name": supplier_match.get("agency_name") if supplier_match else "",
@@ -2085,6 +2150,7 @@ def build_rows(
                     manpower_emp
                     and _code(manpower_emp.get("agency_code"), 5)
                     and _code(manpower_emp.get("agency_code"), 5) != _code(supplier_match.get("agency_code"), 5)
+                    and not (project_audit and project_audit.get("status") == "applied")
                 ):
                     supplier_home_agency_discrepancy = "Y"
                     notes.append(
@@ -2132,6 +2198,8 @@ def build_rows(
             else:
                 notes.append("No Supplier Expenses Format line matched for Solution")
             status = classify(ext, resolved, notes, scan_available=not master_fallback)
+            if project_audit and project_audit.get("status") != "applied" and status == "GREEN":
+                status = "YELLOW"
             if supplier_action in {"supplier_override", "supplier_unresolved"}:
                 status = "YELLOW" if status == "GREEN" and supplier_home_agency_discrepancy else status
             if supplier_action == "filled" and supplier_match and supplier_match.get("_match_method") != "line_order_amount" and status == "GREEN":
@@ -2255,6 +2323,7 @@ def build_rows(
                 "_so_detail_jq": unit_jq,
                 "_supplier_home_agency_discrepancy": supplier_home_agency_discrepancy,
                 "_supplier_jq_count": supplier_match.get("_jq_count") if supplier_match else "",
+                "_project_allocation_audit": project_audit,
             }
             row["GL Description"] = _build_gl_description(row)
             row["Distribution Combination[..]"] = build_distribution_combination(row)
@@ -2264,6 +2333,11 @@ def build_rows(
             if status != "GREEN":
                 row["notes"] = row["notes"] or resolved.get("status_reason") or "review required"
             rows.append(row)
+    trace["project_lookup_status_counts"] = dict(Counter(
+        _clean((row.get("_project_allocation_audit") or {}).get("status"))
+        for row in rows
+        if row.get("_project_allocation_audit")
+    ))
     invoice_serials: dict[str, int] = {}
     for row in rows:
         invoice_no = _clean(row.get("*Invoice Number"))
@@ -2392,6 +2466,9 @@ def write_excel(rows: list[dict[str, Any]], path: Path) -> None:
             "Account Lookup Note": row.get("_account_note"),
             "Trace PDF": row.get("_trace_pdf"),
             "Agent Method": "asateel_poc_cached_gemini",
+            "Project Allocation Mode": (row.get("_project_allocation_audit") or {}).get("mode", ""),
+            "Project Lookup Status": (row.get("_project_allocation_audit") or {}).get("status", ""),
+            "Project Lookup Explanation": (row.get("_project_allocation_audit") or {}).get("explanation", ""),
         }
         for c, header in enumerate(headers, start=1):
             value = row.get(header, debug_values.get(header, ""))
@@ -2842,6 +2919,17 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=str(DEFAULT_SO_DETAIL_XLSX),
         help="SO_Detail export used only to validate canonical JQ existence",
     )
+    parser.add_argument(
+        "--allocation-mode",
+        choices=[STANDARD_ALLOCATION_MODE, PROJECT_ALLOCATION_MODE],
+        default=STANDARD_ALLOCATION_MODE,
+        help="Separate Labadi override mode; applies only to PROJECTS invoices",
+    )
+    parser.add_argument(
+        "--project-allocation-lookup",
+        default=str(DEFAULT_PROJECT_ALLOCATION_LOOKUP),
+        help="Normalized deterministic lookup for projects-labadi-v1 mode",
+    )
     return parser.parse_args(argv)
 
 
@@ -2851,6 +2939,14 @@ def main(argv: list[str] | None = None) -> int:
     lookups = load_lookups()
     supplier_index = load_expenses_format(Path(args.expenses_format), lookups)
     so_detail_index = load_so_detail(Path(args.so_detail))
+    project_lookup = None
+    if args.allocation_mode == PROJECT_ALLOCATION_MODE:
+        if args.folder not in {"PROJECTS", "ALL"}:
+            raise ValueError("projects-labadi-v1 mode requires --folder PROJECTS or ALL")
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from scripts.asateel_project_allocation import load_lookup
+        project_lookup = load_lookup(Path(args.project_allocation_lookup))
     extracted = []
     cache_tag = pdf_dir_cache_tag(args.pdf_dir)
     files = folder_files(args.folder, args.full, args.pdf_dir)
@@ -2869,9 +2965,20 @@ def main(argv: list[str] | None = None) -> int:
                 "error": str(exc),
             })
 
-    rows, trace = build_rows(extracted, lookups, supplier_index, so_detail_index)
+    rows, trace = build_rows(
+        extracted,
+        lookups,
+        supplier_index,
+        so_detail_index,
+        allocation_mode=args.allocation_mode,
+        project_lookup=project_lookup,
+        project_master_fallback=args.folder == "PROJECTS",
+    )
     trace["supplier_expenses_format_path"] = str(Path(args.expenses_format))
     trace["so_detail_path"] = str(Path(args.so_detail))
+    trace["project_allocation_lookup_path"] = (
+        str(Path(args.project_allocation_lookup)) if project_lookup else ""
+    )
     validation = validate(rows, lookups)
     trace["validation"] = validation
 

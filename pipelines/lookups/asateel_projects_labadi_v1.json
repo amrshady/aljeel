@@ -1,0 +1,390 @@
+{
+  "agency_rules": [
+    {
+      "agency_aliases": [
+        "Steris"
+      ],
+      "agency_code": "10055",
+      "agency_name": "Steris",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Ayed Ahmad Ayed Zeiadeh"
+        ],
+        "employee_name": "Ayed Ahmad Ayed Zeiadeh",
+        "employee_no": "1000320"
+      },
+      "source_cells": {
+        "agency": "F10",
+        "employee_name": "G10",
+        "employee_no": "H10"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Deroyal"
+      ],
+      "agency_code": "10062",
+      "agency_name": "Deroyal",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Ayman Mohamad Elsafi"
+        ],
+        "employee_name": "Ayman Mohamad Elsafi",
+        "employee_no": "1000157"
+      },
+      "source_cells": {
+        "agency": "F8",
+        "employee_name": "G8",
+        "employee_no": "H8"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Abbott"
+      ],
+      "agency_code": "10072",
+      "agency_name": "Abbott",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Feras Mohammad Nayef Amro"
+        ],
+        "employee_name": "Feras Mohammad Nayef Amro",
+        "employee_no": "1000593"
+      },
+      "source_cells": {
+        "agency": "F11",
+        "employee_name": "G11",
+        "employee_no": "H11"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Vygon"
+      ],
+      "agency_code": "10101",
+      "agency_name": "Vygon",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Nujud Fahad Alanazi"
+        ],
+        "employee_name": "Nujud Fahad Alanazi",
+        "employee_no": "1001061"
+      },
+      "source_cells": {
+        "agency": "F12",
+        "employee_name": "G12",
+        "employee_no": "H12"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Medsource"
+      ],
+      "agency_code": "10102",
+      "agency_name": "Medsource",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Ayman Mohamad Elsafi"
+        ],
+        "employee_name": "Ayman Mohamad Elsafi",
+        "employee_no": "1000157"
+      },
+      "source_cells": {
+        "agency": "F9",
+        "employee_name": "G9",
+        "employee_no": "H9"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Bio-Rad"
+      ],
+      "agency_code": "10111",
+      "agency_name": "Bio-Rad",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Meshari Khalid A Alharbi"
+        ],
+        "employee_name": "Meshari Khalid A Alharbi",
+        "employee_no": "1001982"
+      },
+      "source_cells": {
+        "agency": "F5",
+        "employee_name": "G5",
+        "employee_no": "H5"
+      }
+    },
+    {
+      "agency_aliases": [
+        "BMX"
+      ],
+      "agency_code": "10153",
+      "agency_name": "BMX",
+      "employee_strategy": "bmx_junior_to_head",
+      "heads": [
+        {
+          "employee_aliases": [
+            "Elsayed Ahmed Elsayed Ahmed Ewis"
+          ],
+          "employee_name": "Elsayed Ahmed Elsayed Ahmed Ewis",
+          "employee_no": "1000290",
+          "juniors": [
+            {
+              "employee_aliases": [
+                "Abdelrahman Mohammad Abed Hamed"
+              ],
+              "employee_name": "Abdelrahman Mohammad Abed Hamed",
+              "employee_no": "1000526",
+              "source_cells": {
+                "employee_name": "I16",
+                "employee_no": "I17"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Ahmed Hani  M Alem"
+              ],
+              "employee_name": "Ahmed Hani  M Alem",
+              "employee_no": "1001811",
+              "source_cells": {
+                "employee_name": "J16",
+                "employee_no": "J17"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Moayad Ahmed A Baghlaf"
+              ],
+              "employee_name": "Moayad Ahmed A Baghlaf",
+              "employee_no": "1002442",
+              "source_cells": {
+                "employee_name": "K16",
+                "employee_no": "K17"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Tariq Tayseer Rafiq Alhamedi"
+              ],
+              "employee_name": "Tariq Tayseer Rafiq Alhamedi",
+              "employee_no": "1000389",
+              "source_cells": {
+                "employee_name": "L16",
+                "employee_no": "L17"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Zayed Saleh Almuhanna"
+              ],
+              "employee_name": "Zayed Saleh Almuhanna",
+              "employee_no": "1001016",
+              "source_cells": {
+                "employee_name": "M16",
+                "employee_no": "M17"
+              }
+            }
+          ],
+          "source_cells": {
+            "employee_name": "H15",
+            "employee_no": "I15"
+          }
+        },
+        {
+          "employee_aliases": [
+            "Mahmoud Mofeed Mahmoud Elshamaly"
+          ],
+          "employee_name": "Mahmoud Mofeed Mahmoud Elshamaly",
+          "employee_no": "1001686",
+          "juniors": [
+            {
+              "employee_aliases": [
+                "Abdelrahman Abdulltaif Hassan Elkilo"
+              ],
+              "employee_name": "Abdelrahman Abdulltaif Hassan Elkilo",
+              "employee_no": "1000467",
+              "source_cells": {
+                "employee_name": "I20",
+                "employee_no": "I21"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Jawdat  Ammar  Jawdat  Shorab"
+              ],
+              "employee_name": "Jawdat  Ammar  Jawdat  Shorab",
+              "employee_no": "1002057",
+              "source_cells": {
+                "employee_name": "J20",
+                "employee_no": "J21"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Maymunah Raed M Albukhari"
+              ],
+              "employee_name": "Maymunah Raed M Albukhari",
+              "employee_no": "1001935",
+              "source_cells": {
+                "employee_name": "K20",
+                "employee_no": "K21"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Waleed  Hassan A Alasiri"
+              ],
+              "employee_name": "Waleed  Hassan A Alasiri",
+              "employee_no": "1001906",
+              "source_cells": {
+                "employee_name": "L20",
+                "employee_no": "L21"
+              }
+            }
+          ],
+          "source_cells": {
+            "employee_name": "H19",
+            "employee_no": "I19"
+          }
+        },
+        {
+          "employee_aliases": [
+            "Esra Mohmoud Alfaris"
+          ],
+          "employee_name": "Esra Mohmoud Alfaris",
+          "employee_no": "1002165",
+          "juniors": [
+            {
+              "employee_aliases": [
+                "Ahmed  Abdelhakim  Elsayed"
+              ],
+              "employee_name": "Ahmed  Abdelhakim  Elsayed",
+              "employee_no": "1002437",
+              "source_cells": {
+                "employee_name": "I24",
+                "employee_no": "I25"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Khaled  Abdulwahhab  S Alwahhabi"
+              ],
+              "employee_name": "Khaled  Abdulwahhab  S Alwahhabi",
+              "employee_no": "1001815",
+              "source_cells": {
+                "employee_name": "J24",
+                "employee_no": "J25"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Mohamed  Ahmed Gad Mosa"
+              ],
+              "employee_name": "Mohamed  Ahmed Gad Mosa",
+              "employee_no": "1002312",
+              "source_cells": {
+                "employee_name": "K24",
+                "employee_no": "K25"
+              }
+            }
+          ],
+          "source_cells": {
+            "employee_name": "H23",
+            "employee_no": "I23"
+          }
+        }
+      ],
+      "source_cells": {
+        "agency": "F14",
+        "instruction": "G14"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Dirui"
+      ],
+      "agency_code": "10155",
+      "agency_name": "Dirui",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Meshari Khalid A Alharbi"
+        ],
+        "employee_name": "Meshari Khalid A Alharbi",
+        "employee_no": "1001982"
+      },
+      "source_cells": {
+        "agency": "F7",
+        "employee_name": "G7",
+        "employee_no": "H7"
+      }
+    },
+    {
+      "agency_aliases": [
+        "Solventum"
+      ],
+      "agency_code": "10202",
+      "agency_name": "Solventum",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Ahmad Jebreil Al Baz"
+        ],
+        "employee_name": "Ahmad Jebreil Al Baz",
+        "employee_no": "1000375"
+      },
+      "source_cells": {
+        "agency": "F6",
+        "employee_name": "G6",
+        "employee_no": "H6"
+      }
+    }
+  ],
+  "description": "Labadi workbook allocation override for Asateel PROJECTS invoices only",
+  "mode": "projects-labadi-v1",
+  "precedence": [
+    "project mode applies only when invoice folder is PROJECTS",
+    "agency: canonical code exact match",
+    "agency: unique normalized alias exact match",
+    "non-BMX employee: workbook manager selected by resolved agency",
+    "BMX employee: exact junior/head code, then unique normalized employee-name alias",
+    "unknown, conflicting, or ambiguous input: no guessed employee; emit project lookup review"
+  ],
+  "provenance": {
+    "master_label": "qc/master-data/Aljeel_Lookups-v2.xlsx",
+    "master_sha256": "ec8d7fe48f22371f6b14b06a90e622a2e5e7115d207f31b8140dd49b73e72a50",
+    "master_size_bytes": 105137,
+    "source_cells": [
+      "F4:H12",
+      "F14:M25"
+    ],
+    "source_label": "Labadi Book1 Asateel projects allocation workbook",
+    "source_sha256": "a1a2cdee4863669cc625c122e9254fb2ca3af70fa43b5082bc2723ca3fc7a40c",
+    "source_sheet": "Sheet1",
+    "source_size_bytes": 10251
+  },
+  "schema_version": 1,
+  "statistics": {
+    "agency_rules": 9,
+    "bmx_heads": 3,
+    "bmx_junior_to_head_rules": 12,
+    "direct_agency_manager_rules": 8,
+    "referenced_employee_codes": 21
+  },
+  "validation": {
+    "ambiguities": [],
+    "errors": [],
+    "warnings": [
+      "10062 Deroyal: designated manager 1000157 has Manpower home agency 10060 Ansell",
+      "10072 Abbott: designated manager 1000593 has Manpower home agency 10200 S&M",
+      "10102 Medsource: designated manager 1000157 has Manpower home agency 10060 Ansell",
+      "10155 Dirui: designated manager 1001982 has Manpower home agency 10111 Bio-Rad"
+    ]
+  }
+}

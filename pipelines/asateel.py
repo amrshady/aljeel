@@ -35,6 +35,9 @@ VAT_RATE = 0.15
 DEFAULT_FOLDER = "CENTRAL"
 DEFAULT_EXPENSES_FORMAT_XLSX = ROOT / "asateel-sample" / "_allocation" / "Central-11-2026.xlsx"
 DEFAULT_SO_DETAIL_XLSX = ROOT / "reference" / "SO_Detail_Labadi_1_R21_AA.xlsx"
+DEFAULT_PROJECT_ALLOCATION_LOOKUP = ROOT / "pipelines" / "lookups" / "asateel_projects_labadi_v1.json"
+STANDARD_ALLOCATION_MODE = "standard"
+PROJECT_ALLOCATION_MODE = "projects-labadi-v1"
 
 
 def _load_v6_engine():
@@ -128,6 +131,7 @@ def _row_public(row: dict[str, Any]) -> dict[str, Any]:
         "notes": row.get("notes") or "",
         "trace_pdf": row.get("_trace_pdf") or "",
         "exception_category": row.get("_exception_category") or "",
+        "project_allocation": row.get("_project_allocation_audit"),
     }
 
 
@@ -190,7 +194,19 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
                 "evidence": {"allocation_rows": rec["allocation_rows"]},
             })
         for row in rec["allocation_rows"]:
-            if row.get("exception_category") == "MISSING_PDF":
+            project_audit = row.get("project_allocation") or {}
+            if project_audit and project_audit.get("status") != "applied":
+                catches.append({
+                    "category": "PROJECT_ALLOCATION_LOOKUP_REVIEW",
+                    "severity": "MEDIUM",
+                    "invoice_no": rec["invoice_no"],
+                    "employee_no": row.get("employee_no"),
+                    "jq": row.get("jq"),
+                    "value_at_risk_sar": 0.0,
+                    "detail": project_audit.get("explanation"),
+                    "evidence": {"allocation_rows": [row]},
+                })
+            elif row.get("exception_category") == "MISSING_PDF":
                 catches.append({
                     "category": "MISSING_PDF",
                     "severity": "HIGH",
@@ -257,6 +273,11 @@ def _summary(
     source_counts = Counter(_clean(r.get("allocation_source")) or "none" for r in rows)
     split_counts = Counter(_clean(r.get("split_method")) or "n/a" for r in rows)
     by_cat = Counter(c["category"] for c in catches)
+    project_status_counts = Counter(
+        _clean((r.get("_project_allocation_audit") or {}).get("status"))
+        for r in rows
+        if r.get("_project_allocation_audit")
+    )
     return {
         "vendor": "Asateel Al-Tareeq / supplier Expenses Format v6",
         "period": "Central Region 11-2026",
@@ -285,6 +306,9 @@ def _summary(
         "trace_json": str(TRACE_JSON),
         "supplier_expenses_format_path": str(args.expenses_format),
         "so_detail_path": str(args.so_detail),
+        "allocation_mode": args.allocation_mode,
+        "project_allocation_lookup_path": str(args.project_allocation_lookup) if args.allocation_mode == PROJECT_ALLOCATION_MODE else "",
+        "project_lookup_status_counts": dict(sorted(project_status_counts.items())),
         "input_fingerprints": input_fingerprints,
         "provenance": provenance,
         "header_validation": {
@@ -321,11 +345,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--refresh-cache", action="store_true", help="Force fresh Gemini extraction")
     parser.add_argument("--expenses-format", default=str(DEFAULT_EXPENSES_FORMAT_XLSX))
     parser.add_argument("--so-detail", default="")
+    parser.add_argument(
+        "--allocation-mode",
+        choices=[STANDARD_ALLOCATION_MODE, PROJECT_ALLOCATION_MODE],
+        default=STANDARD_ALLOCATION_MODE,
+        help="Use the separate Labadi override for PROJECTS invoices only",
+    )
+    parser.add_argument(
+        "--project-allocation-lookup",
+        default=str(DEFAULT_PROJECT_ALLOCATION_LOOKUP),
+        help="Normalized deterministic project allocation JSON",
+    )
     return parser.parse_args(argv)
 
 
 def run(argv: list[str] | None = None) -> dict[str, Any]:
     args = parse_args(argv)
+    if args.allocation_mode == PROJECT_ALLOCATION_MODE and args.folder not in {"PROJECTS", "ALL"}:
+        raise ValueError("projects-labadi-v1 mode requires --folder PROJECTS or ALL")
     MATCHED.mkdir(parents=True, exist_ok=True)
     EXTRACT.mkdir(parents=True, exist_ok=True)
 
@@ -333,6 +370,12 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     lookups = engine.load_lookups()
     supplier_index = engine.load_expenses_format(Path(args.expenses_format), lookups)
     so_detail_index = engine.load_so_detail(Path(args.so_detail)) if args.so_detail else {}
+    project_lookup = None
+    if args.allocation_mode == PROJECT_ALLOCATION_MODE:
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from scripts.asateel_project_allocation import load_lookup
+        project_lookup = load_lookup(Path(args.project_allocation_lookup))
 
     cache_tag = engine.pdf_dir_cache_tag(args.pdf_dir)
     files = engine.folder_files(args.folder, args.full, args.pdf_dir)
@@ -340,6 +383,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         Path(args.expenses_format),
         Path(args.so_detail) if args.so_detail else None,
         [pdf_path for _, _, pdf_path in files],
+    )
+    input_fingerprints["project_allocation_lookup_json"] = (
+        engine._file_fingerprint(Path(args.project_allocation_lookup))
+        if args.allocation_mode == PROJECT_ALLOCATION_MODE
+        else None
     )
     provenance = engine.provenance(args, input_fingerprints)
     extracted = []
@@ -358,7 +406,15 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                 "error": str(exc),
             })
 
-    rows, trace = engine.build_rows(extracted, lookups, supplier_index, so_detail_index)
+    rows, trace = engine.build_rows(
+        extracted,
+        lookups,
+        supplier_index,
+        so_detail_index,
+        allocation_mode=args.allocation_mode,
+        project_lookup=project_lookup,
+        project_master_fallback=args.folder == "PROJECTS",
+    )
     validation = engine.validate(rows, lookups)
     engine.write_excel(rows, ORACLE_XLSX)
     header_diffs = engine.validate_output_headers(ORACLE_XLSX)
@@ -371,6 +427,10 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "production_entrypoint": str(Path(__file__).resolve()),
         "supplier_expenses_format_path": str(Path(args.expenses_format)),
         "so_detail_path": str(Path(args.so_detail)) if args.so_detail else "",
+        "allocation_mode": args.allocation_mode,
+        "project_allocation_lookup_path": (
+            str(Path(args.project_allocation_lookup)) if args.allocation_mode == PROJECT_ALLOCATION_MODE else ""
+        ),
         "input_fingerprints": input_fingerprints,
         "provenance": provenance,
         "validation": validation,
@@ -397,6 +457,9 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     print(f"Distribution rows written: {summary['allocation_lines']}")
     print(f"GREEN/YELLOW/RED rows: {summary['row_status_counts']}")
     print(f"Split methods: {summary['split_method_counts']}")
+    print(f"Allocation mode: {summary['allocation_mode']}")
+    if summary["project_lookup_status_counts"]:
+        print(f"Project lookup statuses: {summary['project_lookup_status_counts']}")
     print(f"Reconciled/mismatched invoices: {summary['reconciled_invoices']}/{summary['mismatched_invoices']}")
     print(f"Exceptions by category: {summary['exceptions_by_category']}")
     print("\nOUTPUT FILES")

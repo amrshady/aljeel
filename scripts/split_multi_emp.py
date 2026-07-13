@@ -3,17 +3,19 @@
 
 Rows whose Employee No column holds multiple comma-separated employee numbers
 (e.g. "1000477,1002037" on Euro Anesthesia rows) are split into one row per
-employee in a NEW output file. The cost is divided equally and all GL segments
-are re-derived from each employee's Manpower record, except event sponsorship
-rows where v30's parent event segments are preserved. The original v30 file is
-left untouched.
+employee in a NEW output file. Normal travel rows retain the legacy equal split.
+Sponsorship rows use the exact employee/amount tuples persisted from the OPEX
+allocation table and preserve the parent event segments. The original v30 file
+is left untouched.
 
 Usage:
     python3 scripts/split_multi_emp.py <input_xlsx> <output_xlsx> [lookups_xlsx]
 """
 
 import sys
+import json
 from copy import copy
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 import re
 
@@ -58,6 +60,7 @@ HEADER_ALIASES = {
     "Future 1": ["Future 1"],
     "GL Description": ["GL Description"],
     "Agent Flags": ["Agent Flags"],
+    "OPEX Allocation Details": ["OPEX Allocation Details"],
 }
 
 EVENT_SEGMENTS_TO_PRESERVE = (
@@ -159,6 +162,76 @@ def split_amount(total: float, n: int) -> list:
     shares = [share] * (n - 1)
     shares.append(round(total - share * (n - 1), 2))
     return shares
+
+
+def allocate_line_amount(total: float, form_amounts: list[float | None]) -> list[float]:
+    """Allocate a billed line across form employees without changing its value.
+
+    Form amounts are weights only.  All-present amounts produce a proportional
+    split; all-missing amounts produce an even split.  The first child absorbs
+    the cent-rounding remainder so the returned children exactly conserve the
+    parent line amount.
+    """
+    if not form_amounts:
+        return []
+    try:
+        line_amount = Decimal(str(total))
+    except (InvalidOperation, ValueError, TypeError):
+        return []
+
+    explicit = [amount is not None for amount in form_amounts]
+    if any(explicit) and not all(explicit):
+        return []
+    if all(explicit):
+        weights = [Decimal(str(amount)) for amount in form_amounts]
+        weight_total = sum(weights, Decimal("0"))
+        if weight_total == 0:
+            return []
+        shares = [
+            (line_amount * weight / weight_total).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            for weight in weights
+        ]
+    else:
+        # Retain the established equal-split calculation, then move its
+        # rounding remainder from the last child to the first for sponsorship.
+        shares = [Decimal(str(value)) for value in split_amount(float(line_amount), len(form_amounts))]
+        if len(shares) > 1:
+            remainder = shares[-1] - shares[0]
+            shares[0] += remainder
+            shares[-1] -= remainder
+
+    shares[0] += line_amount - sum(shares, Decimal("0"))
+    return [float(share) for share in shares]
+
+
+def parse_opex_allocations(value) -> list[dict]:
+    """Validate employee tuples and optional ratio amounts serialized by v30."""
+    if not value:
+        return []
+    try:
+        raw = json.loads(str(value))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    if not isinstance(raw, list):
+        return []
+    out = []
+    for item in raw:
+        if not isinstance(item, dict):
+            return []
+        emp_no = seg(item.get("emp_no"))
+        raw_amount = item.get("amount")
+        amount = parse_amount(raw_amount)
+        if not re.fullmatch(r"1\d{6}", emp_no):
+            return []
+        if raw_amount not in (None, "") and amount is None:
+            return []
+        out.append({"emp_no": emp_no, "name": seg(item.get("name")), "amount": amount})
+    explicit = [item["amount"] is not None for item in out]
+    if any(explicit) and not all(explicit):
+        return []
+    return out
 
 
 def _cell_text(ws, row_i: int, col: dict, header: str) -> str:
@@ -265,18 +338,48 @@ def split_multi_emp(input_xlsx: str, output_xlsx: str, lookups_path: str = DEFAU
             continue
         total_rows += 1
         emp_val = ws.cell(row=r, column=emp_col).value
-        if emp_val is None or "," not in str(emp_val):
-            continue
-        emps = [e.strip() for e in str(emp_val).split(",") if e.strip()]
-        if len(emps) < 2:
-            continue
-        split_rows += 1
+        sponsorship = _cell_text(ws, r, col, "Account") == "60307021"
+        allocations = parse_opex_allocations(
+            ws.cell(row=r, column=col["OPEX Allocation Details"]).value
+            if sponsorship and "OPEX Allocation Details" in col else None
+        )
+        if sponsorship and allocations:
+            stamped_emps = [e.strip() for e in str(emp_val or "").split(",") if e.strip()]
+            allocation_emps = [item["emp_no"] for item in allocations]
+            if stamped_emps != allocation_emps:
+                # Never resurrect stale tuples that a later folder-review pass
+                # invalidated by blanking Employee No.
+                allocations = []
+        if sponsorship:
+            if not allocations:
+                ws.cell(row=r, column=emp_col, value="")
+                if "Agent Flags" in col:
+                    flag_cell = ws.cell(row=r, column=col["Agent Flags"])
+                    flags = seg(flag_cell.value)
+                    review = "SPONSORSHIP_ALLOCATION_TABLE_REVIEW"
+                    if review not in flags:
+                        flag_cell.value = (flags + " | " + review).strip(" |")
+                continue
+            emps = [item["emp_no"] for item in allocations]
+            line_amount = parse_amount(ws.cell(row=r, column=col["*Amount"]).value)
+            amount_shares = (
+                allocate_line_amount(line_amount, [item["amount"] for item in allocations])
+                if line_amount is not None else None
+            )
+        else:
+            if emp_val is None or "," not in str(emp_val):
+                continue
+            emps = [e.strip() for e in str(emp_val).split(",") if e.strip()]
+            if len(emps) < 2:
+                continue
+            amount = parse_amount(ws.cell(row=r, column=col["*Amount"]).value)
+            amount_shares = split_amount(amount, len(emps)) if amount is not None else None
         n = len(emps)
+        if n > 1:
+            split_rows += 1
 
-        amount = parse_amount(ws.cell(row=r, column=col["*Amount"]).value)
         # *Invoice Amount is the header-level invoice total — do NOT divide, copy as-is to all split rows
         inv_amount = parse_amount(ws.cell(row=r, column=col["*Invoice Amount"]).value) if "*Invoice Amount" in col else None
-        amount_shares = split_amount(amount, n) if amount is not None else None
         # inv_shares removed — *Invoice Amount is copied as-is (not divided)
         preserve_event_segments = _is_event_sponsorship_row(ws, r, col)
         parent_event_segments = {
@@ -285,9 +388,12 @@ def split_multi_emp(input_xlsx: str, output_xlsx: str, lookups_path: str = DEFAU
             if preserve_event_segments and key in col
         }
 
-        ws.insert_rows(r + 1, n - 1)
-        for k in range(1, n):
-            copy_row(ws, r, r + k, max_col)
+        # openpyxl's insert_rows(..., amount=0) corrupts the used range, so a
+        # valid one-employee form allocation updates the row in place.
+        if n > 1:
+            ws.insert_rows(r + 1, n - 1)
+            for k in range(1, n):
+                copy_row(ws, r, r + k, max_col)
 
         for k, emp in enumerate(emps):
             row_i = r + k

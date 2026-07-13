@@ -564,7 +564,8 @@ Your job: given the invoice row + ALL evidence files for this ticket, analyze th
 ## Scenario C: Sponsoring Expenses (External HCP / Guest Travel)
 * **Criteria:** The passenger is an external doctor or guest (not an employee), or the trip is sponsored under a specific vendor marketing event (e.g. Abbott, CRM, EP, HF).
 * **Account Code:** Use `60307021` (Sponsoring Expenses).
-* **Employee No:** Use the requesting Al Jeel employee / sponsor number from the OPEX form or approval thread when present.
+* **Employee No / amount:** Read every row of the OPEX **Amount to Allocate / Event Allocation Details** table.
+  Output the listed AlJeel employee number(s); the downstream splitter creates one accounting row per employee using that row's exact form amount. Never equal-divide or substitute the requester.
 * **Allocation segments (CC, DIV, Agency, Solution):** 
   1. Use the **OPEX form / event allocation** for cost_center, div, agency, and solution.
   2. Do **not** copy the requesting employee's home manpower segments onto sponsorship rows unless the event/form segment is missing.

@@ -615,23 +615,19 @@ def _apply_sponsorship_agency_codes(final: dict, classify: dict, manpower: dict)
 
 
 def resolve_sponsorship_from_master(requesting_emp_no: str, manpower: dict, lookups: dict, form_agency: str = "") -> dict | None:
-    """Resolve sponsorship row from OPEX-form agency, falling back to requestor home record."""
+    """Resolve a provisional sponsorship row pending the OPEX allocation pass."""
     rec = manpower.get(requesting_emp_no)
     if not rec:
         return None
     agency_codes, status = resolve_sponsorship_codes_from_agency(form_agency, manpower)
     if agency_codes:
         return {
-            # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor's
-            # emp_no (the AlJeel employee who submitted the OPEX form) — never blank.
             "emp_no": requesting_emp_no,
             **agency_codes,
         }
     if status.startswith("AGENCY_CODES_INCONSISTENT"):
         print(f"[warn] {status}; falling back to requestor home sponsorship behavior", flush=True)
     return {
-        # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor's
-        # emp_no (the AlJeel employee who submitted the OPEX form) — never blank.
         "emp_no":      requesting_emp_no,
         "account":     "60307021",
         "cost_center": rec["cost_center"],
@@ -790,23 +786,19 @@ def _build_classify_hint(classify: dict) -> str:
     if en:
         lines.append(f"  employee_no_in_doc  : {en}  ← look this up in the master below first")
     if rn:
-        lines.append(f"  requesting_emp_no   : {rn}  ← OPEX requestor; keep as emp_no for sponsorship")
+        lines.append(f"  requesting_emp_no   : {rn}  ← classification/allocation context only; never output as sponsorship emp_no")
     form_agency = str(classify.get("sponsorship_agency_from_form", "") or "").strip()
     if form_agency:
-        lines.append(f"  sponsorship_agency_from_form: {form_agency}  ← ONLY form field used for sponsorship code assignment")
+        lines.append(f"  sponsorship_agency_from_form: {form_agency}  ← explicit OPEX form evidence; use with the other form segments")
     if opc:
         lines.append(f"  opex_code           : {opc}")
     if basis:
         lines.append(f"  basis               : {basis}")
     if rt == "sponsorship":
-        # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor's
-        # emp_no (the AlJeel employee who submitted the OPEX form) — never blank.
-        _spon_emp = str(rn or en or "").strip()
-        if _spon_emp:
-            lines.append(f"  MANDATORY: account=60307021, emp_no={_spon_emp} (the OPEX requestor / AlJeel employee — never blank)")
-        else:
-            lines.append("  MANDATORY: account=60307021, emp_no = the OPEX requestor's AlJeel employee number (never blank)")
-        lines.append("  MANDATORY: ignore the form Division, Solution, and Amount for code assignment; use only the form Agency to select the consistent Manpower agency code set.")
+        lines.append("  MANDATORY: account=60307021.")
+        lines.append("  Employee No and amount come from each OPEX Amount to Allocate/Event Allocation Details row.")
+        lines.append("  Never equal-divide and never collapse a multi-employee allocation onto the requester.")
+        lines.append("  Use explicit OPEX form CC/DIV/Solution/Agency values before any field-level fallback.")
     elif rt == "employee":
         if en:
             lines.append(f"  MANDATORY: first look up emp_no {en} in the master. If found, use home CC/div/agency directly.")
@@ -817,13 +809,7 @@ def _build_classify_hint(classify: dict) -> str:
 # ─── post-resolution: enforce sponsorship blank emp_no ───────────────────────
 
 def enforce_sponsorship_rules(final: dict, classify: dict, cascade_row: dict) -> dict:
-    """
-    Labadi RULE 1 (2026-06-09): emp_no is now ALWAYS populated. The previous hard
-    rule ("if sponsorship → emp_no must be blank") is REVERSED — sponsorship rows
-    carry the requestor / AlJeel employee who submitted the OPEX form. This
-    function no longer blanks emp_no; it is retained as a pass-through so all call
-    sites (run_v16..run_v30) keep working unchanged.
-    """
+    """Pass through Employee No; the later OPEX allocation-table pass owns it."""
     return final
 
 
@@ -1051,6 +1037,7 @@ def process_row(
         )
         if rec:
             final = enforce_sponsorship_rules(rec, classify, cascade_row)
+            final["_sponsorship_requesting_emp_no"] = requesting_no
             final["_agent_method"]  = "v16_sponsorship_master"
             final["_classify"]      = row_type
             final["_classify_req"]  = requesting_no

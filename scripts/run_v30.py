@@ -224,7 +224,7 @@ def _stamp_21070229_home_segments(row: dict, rec: dict | None) -> None:
 # (CRM-2026-30 is YEAR-SEQ, CE-18-2026 is SEQ-YEAR), so the serial is kept
 # EXACTLY as written in the source — no reordering.
 _SERIAL_PAT = re.compile(
-    r"\b(CE|CRM|HF|EP|AATS)-\d+-\d+\b",
+    r"\b(CE|CRM|HF|EP|SIS|LAB|AATS)-\d+(?:-\d+)?(?!-\d)",
     re.IGNORECASE,
 )
 
@@ -235,6 +235,97 @@ def _extract_serial_from_text(text: str) -> str:
     m = _SERIAL_PAT.search(text)
     if m:
         return m.group(0).upper()
+    return ""
+
+
+def _canonical_event_serial(value: str) -> str:
+    """Return an event-safe key independent of case/year/hyphen variance.
+
+    The business identifier is department + event sequence; the optional year
+    may appear before or after it (CRM-2026-31 / SIS-14-2026), be omitted
+    (LAB-16), or be malformed across groups (CE-202-26 means CE-20-2026).
+    Form numbers (``-J-2026-...``) and filename suffixes are intentionally not
+    part of the key.
+    """
+    text = str(value or "").upper().strip()
+    m = re.search(
+        r"\b(CE|CRM|HF|EP|SIS|LAB|AATS)\s*-?\s*(\d{1,4})(?:\s*-?\s*(\d{2,4}))?",
+        text,
+    )
+    if not m:
+        return ""
+    prefix, first, second = m.group(1), m.group(2), m.group(3)
+    if not second:
+        sequence = first
+    elif len(first) == 4 and first.startswith("20"):
+        sequence = second
+    elif len(second) == 4 and second.startswith("20"):
+        sequence = first
+    elif len(first) == 3 and first.startswith("20") and len(second) == 2:
+        # Observed scanner/filename typo: CE-202-26 -> CE-20-2026.
+        sequence = first[:-1]
+    else:
+        sequence = first
+    return f"{prefix}{int(sequence)}"
+
+
+def _opex_pdf_event_key(pdf_path: Path) -> str:
+    """Prefer the OPEX filename's event serial, then its nearest ancestors."""
+    key = _canonical_event_serial(pdf_path.name)
+    if key:
+        return key
+    for parent in pdf_path.parents:
+        key = _canonical_event_serial(parent.name)
+        if key:
+            return key
+    return ""
+
+
+_OPEX_EVENT_INDEX_CACHE: dict[tuple[str, ...], dict[str, list[Path]]] = {}
+
+
+def _build_opex_event_pdf_index(all_folders: list[Path]) -> dict[str, list[Path]]:
+    """Index each form once by normalized event serial across the evidence tree."""
+    cache_key = tuple(sorted(str(p.resolve(strict=False)) for p in all_folders))
+    cached = _OPEX_EVENT_INDEX_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    index: dict[str, list[Path]] = {}
+    seen: set[Path] = set()
+    for folder in all_folders:
+        for pdf in _find_opex_pdfs(folder):
+            resolved = pdf.resolve(strict=False)
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            key = _opex_pdf_event_key(pdf)
+            if key:
+                index.setdefault(key, []).append(pdf)
+    for paths in index.values():
+        paths.sort(key=lambda p: str(p).casefold())
+    _OPEX_EVENT_INDEX_CACHE[cache_key] = index
+    return index
+
+
+def _row_event_key(row: dict, cascade_row: dict, folder: Path | None = None) -> str:
+    """Choose the resolved event key, retaining participant-based disambiguation."""
+    if folder:
+        pdfs = _find_opex_pdfs(folder)
+        if pdfs:
+            key = _opex_pdf_event_key(pdfs[0])
+            if key:
+                return key
+        key = _canonical_event_serial(str(folder))
+        if key:
+            return key
+    for value in (
+        row.get("opex_serial"), row.get("_opex_serial"),
+        cascade_row.get("OPEX Serial"), cascade_row.get("Description"),
+        _row_invoice_ref_no(cascade_row),
+    ):
+        key = _canonical_event_serial(value)
+        if key:
+            return key
     return ""
 
 # ─── FIX A-part-2: ticket-first lookup (prevents bad surname match) ──────────
@@ -677,10 +768,10 @@ OPEX FORM TEXT:
 
 
 def _find_opex_pdfs(folder_path):
-    """OPEX-*.pdf files directly inside an evidence folder, sorted by name."""
+    """Find OPEX PDFs recursively, matching full-evidence folder traversal."""
     try:
         return sorted(
-            f for f in folder_path.iterdir()
+            f for f in folder_path.rglob("*")
             if f.is_file() and f.suffix.lower() == ".pdf"
             and re.search(r"opex", f.name, re.IGNORECASE)
         )
@@ -729,6 +820,8 @@ def _parse_opex_event_segments(folder: Path | None, cascade_row: dict) -> dict:
         ),
         "cost_center": "",
         "source": "cascade_form_columns",
+        "raw_labels": {},
+        "unresolved_labels": [],
     }
 
     # A 15-digit Fusion ref belongs in the Form Cost-Center-Ref audit column,
@@ -752,6 +845,8 @@ def _parse_opex_event_segments(folder: Path | None, cascade_row: dict) -> dict:
                 if not text_segments:
                     continue
                 event["source"] = pdf_path.name
+                event["raw_labels"].update(text_segments.get("raw_labels", {}))
+                event["unresolved_labels"].extend(text_segments.get("unresolved_labels", []))
                 event["div"] = event["div"] or text_segments.get("div", "")
                 event["agency"] = event["agency"] or text_segments.get("agency", "")
                 event["solution"] = event["solution"] or text_segments.get("solution", "")
@@ -766,6 +861,8 @@ def _parse_opex_event_segments(folder: Path | None, cascade_row: dict) -> dict:
                 event["cost_center"] = event["cost_center"] or parsed_cc
             if not (event["div"] and event["agency"] and event["solution"] and event["cost_center"]):
                 text_segments = _extract_opex_pdf_text_segments(pdf_path)
+                event["raw_labels"].update(text_segments.get("raw_labels", {}))
+                event["unresolved_labels"].extend(text_segments.get("unresolved_labels", []))
                 event["div"] = event["div"] or text_segments.get("div", "")
                 event["agency"] = event["agency"] or text_segments.get("agency", "")
                 event["solution"] = event["solution"] or text_segments.get("solution", "")
@@ -817,9 +914,14 @@ def _lookup_segment_code_by_name(segment: str, label: str) -> str:
     }
     widths = {"div": 3, "agency": 5, "solution": 5}
     mapping = maps.get(segment, {})
+    # Exact lookup is safe even for short business labels such as SIS.  Only
+    # substring matching is forbidden for short labels (GI must never become
+    # Imaging merely because those two letters occur in the master name).
     for code, name in mapping.items():
         if _normalise_label(name) == label_norm:
             return _clean_numeric_segment(code, widths[segment])
+    if len(label_norm) < 4:
+        return ""
     for code, name in mapping.items():
         name_norm = _normalise_label(name)
         if label_norm and (label_norm in name_norm or name_norm in label_norm):
@@ -840,7 +942,9 @@ def _extract_opex_pdf_text_segments(pdf_path: Path) -> dict:
     if not text.strip():
         return {}
 
-    out = {}
+    header_labels = _ocr_form_header_labels(pdf_path)
+
+    out = {"raw_labels": {}, "unresolved_labels": []}
     label_map = {
         "agency": r"Agency:\s*([^\n]+)",
         "div": r"Division:\s*([^\n]+)",
@@ -848,51 +952,183 @@ def _extract_opex_pdf_text_segments(pdf_path: Path) -> dict:
         "cost_center": r"Cost\s*Center:\s*(\d{1,6})",
     }
     for key, pat in label_map.items():
+        if key in header_labels:
+            raw = header_labels[key]
+            out["raw_labels"][key] = raw
+            if key == "cost_center":
+                out[key] = _clean_numeric_segment(raw, 6)
+            elif raw.isdigit():
+                out[key] = _clean_numeric_segment(raw, {"div": 3, "agency": 5, "solution": 5}[key])
+            else:
+                out[key] = _lookup_segment_code_by_name(key, raw)
+                if not out[key]:
+                    out["unresolved_labels"].append(f"{key}={raw}")
+            continue
         m = re.search(pat, text, re.IGNORECASE)
         if not m:
             continue
         raw = m.group(1).strip()
+        out["raw_labels"][key] = raw
         if key == "cost_center":
             out[key] = _clean_numeric_segment(raw, 6)
         elif raw.isdigit():
             out[key] = _clean_numeric_segment(raw, {"div": 3, "agency": 5, "solution": 5}[key])
         else:
             out[key] = _lookup_segment_code_by_name(key, raw)
+            if not out[key]:
+                out["unresolved_labels"].append(f"{key}={raw}")
     if not out.get("agency"):
         ocr_text = _ocr_pdf_first_page(pdf_path)
-        agency = _unique_agency_from_text(f"{text}\n{ocr_text}")
+        agency = _unique_agency_from_text(f"{text}\n{ocr_text}\n{pdf_path}")
         if agency:
             out["agency"] = agency
     return out
+
+
+_OPEX_HEADER_LABEL_CACHE: dict[Path, dict[str, str]] = {}
+
+
+def _ocr_form_header_labels(pdf_path: Path) -> dict[str, str]:
+    """OCR each small OPEX header cell separately to retain short labels."""
+    key = pdf_path.resolve(strict=False)
+    if key in _OPEX_HEADER_LABEL_CACHE:
+        return _OPEX_HEADER_LABEL_CACHE[key]
+    result: dict[str, str] = {}
+    if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
+        _OPEX_HEADER_LABEL_CACHE[key] = result
+        return result
+    try:
+        import fitz
+        with fitz.open(str(pdf_path)) as doc:
+            page_width = int(doc[0].rect.width * 600 / 72)
+        with tempfile.TemporaryDirectory(prefix="opex-header-") as tmp_dir:
+            prefix = Path(tmp_dir) / "page"
+            subprocess.run(
+                ["pdftoppm", "-f", "1", "-singlefile", "-r", "600", "-gray",
+                 str(pdf_path), str(prefix)],
+                check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=45,
+            )
+            rendered = prefix.with_suffix(".pgm")
+            if not rendered.exists():
+                _OPEX_HEADER_LABEL_CACHE[key] = result
+                return result
+            tsv = subprocess.run(
+                ["tesseract", str(rendered), "stdout", "--psm", "6", "tsv"],
+                check=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                text=True, timeout=45,
+            ).stdout
+            labels = []
+            for line in tsv.splitlines()[1:]:
+                parts = line.split("\t")
+                if len(parts) < 12:
+                    continue
+                word = re.sub(r"[^a-z]", "", parts[11].casefold())
+                if word not in {"division", "agency", "solution"}:
+                    continue
+                labels.append((word, int(parts[6]), int(parts[7]), int(parts[8]), int(parts[9])))
+            # Select the y-cluster containing the full Division/Agency/Solution
+            # header, not the later "Division Manager" signature label.
+            if labels:
+                groups = []
+                for item in sorted(labels, key=lambda value: value[2]):
+                    group = next(
+                        (candidate for candidate in groups
+                         if abs(candidate[0][2] - item[2]) <= 80),
+                        None,
+                    )
+                    if group is None:
+                        group = []
+                        groups.append(group)
+                    group.append(item)
+                labels = max(
+                    groups,
+                    key=lambda group: (len({item[0] for item in group}), -group[0][2]),
+                )
+            labels.sort(key=lambda item: item[1])
+            for pos, (name, x, y, width, height) in enumerate(labels):
+                next_x = labels[pos + 1][1] if pos + 1 < len(labels) else page_width - 20
+                crop_prefix = Path(tmp_dir) / f"cell-{name}"
+                subprocess.run(
+                    ["pdftoppm", "-f", "1", "-singlefile", "-r", "1200",
+                     "-x", str(max(0, (x + width - 20) * 2)),
+                     "-y", str(max(0, (y - 60) * 2)),
+                     "-W", str(max(200, (next_x - x - width + 10) * 2)),
+                     "-H", str(max(180, (height + 120) * 2)),
+                     "-gray", str(pdf_path), str(crop_prefix)],
+                    check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=45,
+                )
+                crop = crop_prefix.with_suffix(".pgm")
+                if not crop.exists():
+                    continue
+                cleaned = ""
+                for psm in (3, 11, 7, 10):
+                    cell_text = subprocess.run(
+                        ["tesseract", str(crop), "stdout", "--psm", str(psm)],
+                        check=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                        text=True, timeout=30,
+                    ).stdout
+                    candidate = re.sub(r"\s+", " ", cell_text).strip(" |:-\n\t")
+                    candidate = re.sub(
+                        rf"^.*?\b{name}\b\s*:?", "", candidate,
+                        flags=re.IGNORECASE,
+                    ).strip(" |:-")
+                    if candidate:
+                        cleaned = candidate
+                        break
+                compact = _normalise_label(cleaned)
+                known_code = _lookup_segment_code_by_name(
+                    {"division": "div", "agency": "agency", "solution": "solution"}[name],
+                    cleaned,
+                )
+                short_code = bool(
+                    re.fullmatch(r"[A-Z]{2,3}", cleaned.strip())
+                    and cleaned.strip() == cleaned.strip().upper()
+                )
+                if cleaned and (known_code or short_code):
+                    result[{"division": "div", "agency": "agency", "solution": "solution"}[name]] = cleaned
+            present_names = {item[0] for item in labels}
+            for name, key_name in (("division", "div"), ("solution", "solution")):
+                if name in present_names and key_name not in result:
+                    result[key_name] = "UNREADABLE"
+    except Exception:
+        result = {}
+    _OPEX_HEADER_LABEL_CACHE[key] = result
+    return result
 
 
 def _ocr_pdf_first_page(pdf_path: Path) -> str:
     if not shutil.which("tesseract"):
         return ""
     try:
-        import fitz
-        with fitz.open(str(pdf_path)) as doc:
-            if not doc:
-                return ""
-            pix = doc[0].get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                tmp_path = Path(tmp.name)
-            try:
-                pix.save(str(tmp_path))
-                proc = subprocess.run(
-                    ["tesseract", str(tmp_path), "stdout", "--psm", "6"],
-                    check=False,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                    text=True,
-                    timeout=30,
+        with tempfile.TemporaryDirectory(prefix="opex-ocr-") as tmp_dir:
+            tmp_path = Path(tmp_dir) / "page.png"
+            if shutil.which("pdftoppm"):
+                subprocess.run(
+                    ["pdftoppm", "-f", "1", "-singlefile", "-r", "600", "-gray",
+                     str(pdf_path), str(tmp_path.with_suffix(""))],
+                    check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=45,
                 )
-                return proc.stdout or ""
-            finally:
-                try:
-                    tmp_path.unlink()
-                except OSError:
-                    pass
+                rendered = tmp_path.with_suffix(".pgm")
+                if rendered.exists():
+                    tmp_path = rendered
+            if not tmp_path.exists():
+                import fitz
+                with fitz.open(str(pdf_path)) as doc:
+                    if not doc:
+                        return ""
+                    doc[0].get_pixmap(matrix=fitz.Matrix(4, 4), alpha=False).save(str(tmp_path))
+            proc = subprocess.run(
+                ["tesseract", str(tmp_path), "stdout", "--psm", "6"],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=45,
+            )
+            return proc.stdout or ""
     except Exception:
         return ""
 
@@ -901,8 +1137,6 @@ def _unique_agency_from_text(text: str) -> str:
     lookup = get_lookup()
     lookup._ensure_loaded()
     counts = Counter()
-    norm_text = _normalise_label(text)
-    text_tokens = re.findall(r"[a-z0-9]+", norm_text)
     for code, name in getattr(lookup, "_agency_to_name", {}).items():
         code = _clean_numeric_segment(code, 5)
         name_norm = _normalise_label(name)
@@ -913,14 +1147,9 @@ def _unique_agency_from_text(text: str) -> str:
             or name_norm in {"general", "spon", "none", "na"}
         ):
             continue
-        hit_count = norm_text.count(name_norm)
-        if not hit_count and len(name_norm) >= 5:
-            for tok in text_tokens:
-                if abs(len(tok) - len(name_norm)) > 2:
-                    continue
-                if SequenceMatcher(None, tok, name_norm).ratio() >= 0.82:
-                    hit_count += 1
-                    break
+        name_words = re.findall(r"[a-z0-9]+", str(name or "").casefold())
+        pattern = r"\b" + r"[^a-z0-9]*".join(map(re.escape, name_words)) + r"\b"
+        hit_count = len(re.findall(pattern, str(text or "").casefold()))
         if hit_count:
             counts[code] += hit_count
     if not counts:
@@ -940,7 +1169,9 @@ def _first_manpower_emp_no(row: dict) -> str:
 
 
 def _manpower_home_segments(row: dict, manpower: dict) -> dict:
-    emp_no = _first_manpower_emp_no(row)
+    emp_no = str(row.get("_sponsorship_requesting_emp_no", "") or "").strip()
+    if not emp_no:
+        emp_no = _first_manpower_emp_no(row)
     rec = manpower.get(emp_no) if emp_no else None
     if not rec:
         return {"emp_no": emp_no}
@@ -960,6 +1191,112 @@ def _append_agent_flag_detail(row: dict, flag: str) -> None:
         details.append(flag)
 
 
+def _row_participant_names(cascade_row: dict) -> list[str]:
+    """Return doctor/passenger name fragments, excluding the invoice event prefix."""
+    desc = str(cascade_row.get("Description", "") or "")
+    passenger = desc.split(" - ", 1)[0]
+    passenger = re.sub(r"^\s*[A-Z]+-\d+-\d+[-\s]*", "", passenger, flags=re.IGNORECASE)
+    passenger = re.sub(r"\b(?:MR|MRS|MS|MISS)\b", "", passenger, flags=re.IGNORECASE)
+    parts = re.split(r"\s*(?:,|\bAND\b|&)\s*", passenger, flags=re.IGNORECASE)
+    return [re.sub(r"\s+", " ", part).strip(" -") for part in parts if part.strip(" -")]
+
+
+def _opex_owner_folder(pdf_path: Path) -> Path:
+    """Return the nearest serial-named event ancestor for an OPEX PDF."""
+    pdf_serial = _extract_serial_from_text(pdf_path.name)
+    for parent in pdf_path.parents:
+        parent_serial = _extract_serial_from_text(parent.name)
+        if parent_serial and (not pdf_serial or parent_serial == pdf_serial):
+            return parent
+    return pdf_path.parent
+
+
+def _matching_event_messages(pdf_path: Path) -> list[Path]:
+    """Messages in the form directory whose subject belongs to that event thread."""
+    context_tokens = {
+        token for token in re.findall(r"[a-z0-9]+", pdf_path.parent.name.casefold())
+        if len(token) >= 3 and token not in {"opex", "form", "change", "payment"}
+    }
+    messages = []
+    try:
+        from msg_parser import parse_msg
+    except Exception:
+        return messages
+    for msg in sorted(pdf_path.parent.glob("*.msg")):
+        parsed = parse_msg(msg, use_cache=True)
+        if parsed.get("parse_method") == "failed":
+            continue
+        subject = str(parsed.get("subject", "") or "")
+        subject_tokens = set(re.findall(r"[a-z0-9]+", subject.casefold()))
+        # A serial in the subject is decisive. Otherwise require meaningful
+        # overlap with the directory that owns this particular OPEX form.
+        subject_serial = _extract_serial_from_text(subject)
+        pdf_serial = _extract_serial_from_text(pdf_path.name)
+        if (subject_serial and pdf_serial and subject_serial == pdf_serial) or len(
+            context_tokens & subject_tokens
+        ) >= min(2, max(1, len(context_tokens))):
+            messages.append(msg)
+    return messages
+
+
+def _event_folder_by_participant(
+    cascade_row: dict, all_folders: list[Path]
+) -> tuple[Path | None, str]:
+    """Resolve an event folder only from explicit ``Dr <name>`` thread evidence.
+
+    This is deliberately stricter than the old shared-folder fuzzy lookup. It
+    never treats senders/CC recipients as attendees and returns an ambiguity
+    status instead of choosing when a row names people from multiple events.
+    """
+    names = _row_participant_names(cascade_row)
+    if not names:
+        return None, ""
+    cache_key = tuple(sorted(str(f.resolve(strict=False)) for f in all_folders))
+    cache = getattr(_event_folder_by_participant, "_cache", {})
+    name_to_owners = cache.get(cache_key)
+    if name_to_owners is None:
+        name_to_owners = {}
+        seen_pdfs = set()
+        for folder in all_folders:
+            for pdf in _find_opex_pdfs(folder):
+                resolved = pdf.resolve(strict=False)
+                if resolved in seen_pdfs:
+                    continue
+                seen_pdfs.add(resolved)
+                messages = _matching_event_messages(pdf)
+                if not messages:
+                    continue
+                try:
+                    from msg_parser import parse_msg
+                    body = "\n".join(
+                        str(parse_msg(msg, use_cache=True).get("body_text", "") or "")
+                        for msg in messages
+                    )
+                except Exception:
+                    continue
+                owner = _opex_owner_folder(pdf)
+                for match in re.finditer(r"\bDr\.?\s+([A-Za-z]{3,})\b", body, re.IGNORECASE):
+                    name_to_owners.setdefault(match.group(1).casefold(), set()).add(owner)
+        cache[cache_key] = name_to_owners
+        _event_folder_by_participant._cache = cache
+
+    candidates: dict[Path, set[str]] = {}
+    for name in names:
+        tokens = [
+            tok for tok in re.findall(r"[A-Za-z]+", name)
+            if tok.upper() not in {"DR", "MR", "MRS", "MS"} and len(tok) >= 3
+        ]
+        if not tokens:
+            continue
+        for owner in name_to_owners.get(tokens[0].casefold(), set()):
+            candidates.setdefault(owner, set()).add(name)
+    if len(candidates) == 1:
+        return next(iter(candidates)), "PARTICIPANT_FOLDER"
+    if len(candidates) > 1:
+        return None, "PARTICIPANT_FOLDER_AMBIGUOUS"
+    return None, ""
+
+
 def _sponsorship_event_folder_for_row(
     row: dict,
     cascade_row: dict,
@@ -968,10 +1305,60 @@ def _sponsorship_event_folder_for_row(
     reverse_index: dict[str, Path],
 ) -> Path | None:
     existing = str(row.get("_evidence_folder", "") or "").strip()
-    if existing:
+    existing_status = str(row.get("_invoice_ref_folder_status", "") or "")
+    if existing and existing_status != "REF_FUZZY":
         p = Path(existing)
         if p.exists():
+            invoice_serial = _extract_serial_from_text(_row_invoice_ref_no(cascade_row))
+            # Exact non-SIS invoice references remain authoritative. The
+            # participant resolver exists for the documented SIS ref/folder
+            # mismatch, not to move common names (for example Khaled) between
+            # distinct CRM events.
+            if invoice_serial and not invoice_serial.startswith("SIS-"):
+                return p
+            participant_folder, participant_status = _event_folder_by_participant(
+                cascade_row, all_folders
+            )
+            if participant_status == "PARTICIPANT_FOLDER_AMBIGUOUS":
+                _append_agent_flag_detail(row, "SPONSORSHIP_REF_FOLDER_MISMATCH")
+                row["_sponsorship_folder_status"] = participant_status
+                # Ambiguous participant names must not orphan a line when its
+                # exact normalized event folder already contains an OPEX form.
+                if _find_opex_pdfs(p):
+                    return p
+                return None
+            same_event = (
+                participant_folder
+                and _extract_serial_from_text(str(participant_folder))
+                and _extract_serial_from_text(str(participant_folder)) == _extract_serial_from_text(str(p))
+            )
+            if participant_folder and not same_event and participant_folder.resolve(strict=False) != p.resolve(strict=False):
+                _append_agent_flag_detail(row, "SPONSORSHIP_REF_FOLDER_MISMATCH")
+                row["_sponsorship_folder_status"] = participant_status
+                return participant_folder
             return p
+
+    participant_folder, participant_status = _event_folder_by_participant(
+        cascade_row, all_folders
+    )
+    if participant_folder:
+        invoice_ref = _row_invoice_ref_no(cascade_row)
+        folder_serial = _extract_serial_from_text(str(participant_folder))
+        if invoice_ref and folder_serial and _extract_serial_from_text(invoice_ref) != folder_serial:
+            _append_agent_flag_detail(row, "SPONSORSHIP_REF_FOLDER_MISMATCH")
+        row["_sponsorship_folder_status"] = participant_status
+        return participant_folder
+    if participant_status == "PARTICIPANT_FOLDER_AMBIGUOUS":
+        _append_agent_flag_detail(row, "SPONSORSHIP_REF_FOLDER_MISMATCH")
+        row["_sponsorship_folder_status"] = participant_status
+        # Continue to the canonical event lookup below. Participant ambiguity
+        # blocks guessing between events, but an exact serial match is evidence.
+
+    event_key = _row_event_key(row, cascade_row)
+    event_pdfs = _build_opex_event_pdf_index(all_folders).get(event_key, [])
+    if event_pdfs:
+        row["_sponsorship_folder_status"] = "NORMALIZED_EVENT_SERIAL"
+        return _opex_owner_folder(event_pdfs[0])
 
     desc = str(cascade_row.get("Description", "") or "")
     notes = str(cascade_row.get("Notes", "") or "")
@@ -1119,51 +1506,30 @@ def apply_sponsorship_event_segments(
         )
         event = _parse_opex_event_segments(folder, cascade_row)
 
-        # Labadi sponsorship agency rule: when Call 1 or the OPEX form parser
-        # provides an agency, ignore form Division/Solution and employee-home/
-        # event segments. Apply the single consistent Manpower code set for that
-        # agency uniformly to every sponsorship output row, including split rows.
-        if (
-            not str(row.get("_sponsorship_agency_from_form", "") or "").strip()
-            and event.get("agency")
-        ):
+        # Explicit form fields always win. An unambiguous agency mapping may fill
+        # only missing fields; requester home is the final field-level fallback.
+        if event.get("agency"):
+            # The row-owned form value is authoritative over an earlier Call-1
+            # agency hint. This matters when multiple allocations in one event
+            # carry different agencies.
             row["_sponsorship_agency_from_form"] = event.get("agency", "")
             row["_sponsorship_agency_from_form_source"] = event.get("source", "")
         form_agency = str(row.get("_sponsorship_agency_from_form", "") or "").strip()
+        agency_codes = None
+        agency_status = "AGENCY_FROM_FORM_MISSING"
         if form_agency:
-            agency_codes, agency_status = resolve_sponsorship_codes_from_agency(
-                form_agency, manpower
-            )
-            if agency_codes:
-                changes = 0
-                for key in ("account", "cost_center", "div", "solution", "agency"):
-                    if str(row.get(key, "") or "").strip() != str(agency_codes.get(key, "") or "").strip():
-                        row[key] = agency_codes.get(key, "")
-                        changes += 1
-                row["_sponsorship_agency_status"] = agency_status
-                row["_sponsorship_agency_codes_applied"] = True
-                if changes and row.get("_agent_method", "cascade") == "cascade":
-                    row["_agent_method"] = "hybrid_overlay"
-                if changes:
-                    applied += 1
-                print(
-                    f"[sponsor-agency-codes] row {i+1}: agency {form_agency!r} "
-                    "resolved from Manpower; event/home segments bypassed",
-                    flush=True,
-                )
-                continue
+            agency_codes, agency_status = resolve_sponsorship_codes_from_agency(form_agency, manpower)
             row["_sponsorship_agency_status"] = agency_status
-            if agency_status.startswith("AGENCY_CODES_INCONSISTENT"):
-                print(
-                    f"[warn] row {i+1}: {agency_status}; falling back to existing "
-                    "v30 sponsorship segment behavior",
-                    flush=True,
-                )
 
         manpower_home = _manpower_home_segments(row, manpower)
 
         changes = 0
         diff_parts = []
+        unresolved_keys = {
+            item.split("=", 1)[0]
+            for item in event.get("unresolved_labels", [])
+            if "=" in item
+        }
         for key, width in (
             ("cost_center", 6),
             ("div", 3),
@@ -1171,20 +1537,45 @@ def apply_sponsorship_event_segments(
             ("solution", 5),
         ):
             form_val = event.get(key, "")
-            manpower_val = manpower_home.get(key, "")
             current_val = _clean_numeric_segment(row.get(key), width)
+            if key in unresolved_keys:
+                # The form explicitly supplied a label, but the master did not
+                # resolve it deterministically. Do not replace it with requester
+                # home or an agency-correlated guess.
+                if str(row.get(key, "") or "").strip():
+                    row[key] = ""
+                    changes += 1
+                source = "form_label_unresolved"
+                row.setdefault("_sponsorship_segment_sources", {})[key] = source
+                raw_label = event.get("raw_labels", {}).get(key, "")
+                _append_agent_flag_detail(
+                    row, f"SPONSORSHIP_{key.upper()}_LABEL_REVIEW({raw_label})"
+                )
+                continue
             if form_val:
-                if current_val != form_val:
-                    row[key] = form_val
-                    changes += 1
-                if manpower_val and form_val != manpower_val:
-                    diff_parts.append(f"{key} form={form_val} manpower={manpower_val}")
+                resolved = form_val
+                source = "form"
+            elif agency_codes and _clean_numeric_segment(agency_codes.get(key), width):
+                resolved = _clean_numeric_segment(agency_codes.get(key), width)
+                source = "agency_mapping"
+                _append_agent_flag_detail(row, f"SPONSORSHIP_{key.upper()}_AGENCY_FALLBACK")
             else:
-                fallback = manpower_val or current_val
-                if fallback and current_val != fallback:
-                    row[key] = fallback
-                    changes += 1
-                diff_parts.append(f"{key} form_missing manpower={manpower_val or 'missing'}")
+                manpower_val = manpower_home.get(key, "")
+                if manpower_val:
+                    resolved = manpower_val
+                    source = "requester_home"
+                    _append_agent_flag_detail(row, f"SPONSORSHIP_{key.upper()}_REQUESTER_HOME_FALLBACK")
+                else:
+                    resolved = current_val
+                    source = "existing_unresolved"
+                    _append_agent_flag_detail(row, f"SPONSORSHIP_{key.upper()}_FALLBACK_REVIEW")
+            if resolved and current_val != resolved:
+                row[key] = resolved
+                changes += 1
+            row.setdefault("_sponsorship_segment_sources", {})[key] = source
+            manpower_val = manpower_home.get(key, "")
+            if form_val and manpower_val and form_val != manpower_val:
+                diff_parts.append(f"{key} form={form_val} manpower={manpower_val}")
 
         # There is no reliable parsed OPEX location field today; keep existing
         # event/sponsorship location, falling back to manpower only if blank.
@@ -1267,6 +1658,35 @@ def stamp_sponsorship_form_columns(out_xlsx: Path, hybrid_rows: list[dict], hdr_
     return written
 
 
+def stamp_sponsorship_allocation_columns(out_xlsx: Path, hybrid_rows: list[dict], hdr_row: int) -> int:
+    """Persist OPEX employees and optional ratio amounts for the SPLIT stage."""
+    wb = openpyxl.load_workbook(out_xlsx)
+    ws = wb.active
+    headers = {
+        str(ws.cell(hdr_row, ci).value or "").strip(): ci
+        for ci in range(1, ws.max_column + 1)
+    }
+    allocation_col = headers.get("OPEX Allocation Details")
+    if allocation_col is None:
+        allocation_col = ws.max_column + 1
+        ws.cell(hdr_row, allocation_col).value = "OPEX Allocation Details"
+    written = 0
+    for row in hybrid_rows:
+        if str(row.get("account", "") or "").strip() != "60307021":
+            continue
+        allocations = row.get("_sponsorship_allocations") or []
+        expected_emp = ",".join(str(item.get("emp_no", "") or "") for item in allocations)
+        if allocations and expected_emp and expected_emp == str(row.get("emp_no", "") or "").strip():
+            ws.cell(row["_row_idx"], allocation_col).value = json.dumps(
+                allocations, ensure_ascii=False, separators=(",", ":")
+            )
+            written += 1
+    wb.save(str(out_xlsx))
+    wb.close()
+    print(f"[sponsor-allocation] {written} row(s) stamped exact OPEX allocation tuples", flush=True)
+    return written
+
+
 def _emp_tokens(emp_no) -> list[str]:
     if emp_no is None:
         return []
@@ -1317,41 +1737,362 @@ def _clear_stale_employee_not_in_master_dict(row: dict, manpower: dict) -> bool:
     return changed
 
 
-def _apply_multi_salesman_from_opex(final, classify, row_idx, manpower=None):
-    """Labadi RULE 1 (2026-06-09) multi-salesman: a sponsorship OPEX form can
-    allocate the amount across SEVERAL salesmen. The shortcut / metadata paths
-    only see the single requesting emp_no, so re-read the OPEX PDF's salesman
-    table and stamp ALL employee numbers (comma-separated) on the row.
-    Also backfills opex_serial from the OPEX PDF filename when still missing.
+def _ocr_employee_for_allocation_line(
+    line: str, manpower: dict, candidate_div: str = ""
+) -> str:
+    """Resolve a scanned table row to one master employee without guessing."""
+    exact = re.search(r"(?<!\d)(1\d{6})(?!\d)", line)
+    if exact and exact.group(1) in manpower:
+        return exact.group(1)
+    for token in re.findall(r"[A-Za-z0-9]{7,10}", line):
+        repaired = token.upper().translate(str.maketrans({
+            "O": "0", "Q": "0", "I": "1", "L": "1", "A": "4", "S": "5",
+        }))
+        for candidate in re.findall(r"1\d{6}", repaired):
+            if candidate in manpower:
+                return candidate
+
+    ocr_tokens = [
+        re.sub(r"[^a-z]", "", token.casefold())
+        for token in re.findall(r"[A-Za-z]+", line)
+    ]
+    ocr_tokens = [token for token in ocr_tokens if len(token) >= 4]
+    ocr_shapes = set(ocr_tokens)
+    ocr_shapes.update(a + b for a, b in zip(ocr_tokens, ocr_tokens[1:]))
+    if not ocr_shapes:
+        return ""
+
+    scored = []
+    for emp_no, rec in manpower.items():
+        if candidate_div and str(rec.get("div_code", "") or "") != candidate_div:
+            continue
+        name_tokens = [
+            re.sub(r"[^a-z]", "", token.casefold())
+            for token in re.findall(r"[A-Za-z]+", str(rec.get("name", "") or ""))
+        ]
+        name_tokens = [token for token in name_tokens if len(token) >= 3]
+        # Require two name components. A single common token (Ahmed, Kamal,
+        # Ali) is not enough to identify an allocation-table employee.
+        name_shapes = {
+            a + b for i, a in enumerate(name_tokens) for b in name_tokens[i + 1:]
+        }
+        score = max(
+            (SequenceMatcher(None, left, right).ratio()
+             for left in ocr_shapes for right in name_shapes),
+            default=0.0,
+        )
+        scored.append((score, str(emp_no)))
+    scored.sort(reverse=True)
+    if not scored or scored[0][0] < 0.84:
+        return ""
+    if scored[0][0] < 0.98 and len(scored) > 1 and scored[0][0] - scored[1][0] < 0.025:
+        return ""
+    return scored[0][1]
+
+
+def _extract_ocr_sponsorship_allocations(text: str, manpower: dict) -> list[dict]:
+    """Extract image-only allocation rows; fall back to even ratios if amounts blur."""
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    start = next(
+        (i for i, line in enumerate(lines) if re.search(
+            r"event allocation details|amount to allocate", line, re.IGNORECASE
+        )),
+        None,
+    )
+    if start is None:
+        return []
+    table = lines[start:]
+    allocations = []
+    unresolved = []
+    seen = set()
+    for line_no, line in enumerate(table):
+        amounts = re.findall(r"(?<!\d)(\d{1,3}(?:,\d{3})+(?:\.\d{2})?)(?!\d)", line)
+        emp_no = _ocr_employee_for_allocation_line(line, manpower)
+        if not emp_no:
+            unresolved.append((line_no, line, amounts[-1] if amounts else ""))
+            continue
+        if emp_no in seen:
+            continue
+        seen.add(emp_no)
+        allocations.append({
+            "emp_no": emp_no,
+            "name": str(manpower.get(emp_no, {}).get("name", "") or ""),
+            "amount": amounts[-1] if amounts else "",
+            "_order": line_no,
+        })
+
+    div_counts = Counter(
+        str(manpower.get(item["emp_no"], {}).get("div_code", "") or "")
+        for item in allocations
+    )
+    common_div = div_counts.most_common(1)[0][0] if div_counts else ""
+    for line_no, line, amount in unresolved:
+        emp_no = _ocr_employee_for_allocation_line(line, manpower, common_div)
+        if not emp_no or emp_no in seen:
+            continue
+        seen.add(emp_no)
+        allocations.append({
+            "emp_no": emp_no,
+            "name": str(manpower.get(emp_no, {}).get("name", "") or ""),
+            "amount": amount,
+            "_order": line_no,
+        })
+
+    allocations.sort(key=lambda item: item["_order"])
+    for item in allocations:
+        item.pop("_order", None)
+
+    if not allocations:
+        return []
+    total = None
+    for line in table:
+        m = re.search(r"\btotal\b.*?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?)", line, re.IGNORECASE)
+        if m:
+            total = float(m.group(1).replace(",", ""))
+    complete_amounts = all(item["amount"] for item in allocations)
+    parsed_sum = sum(
+        float(item["amount"].replace(",", "")) for item in allocations if item["amount"]
+    )
+    if not complete_amounts or (total is not None and abs(parsed_sum - total) > 0.01):
+        # Employee identities remain useful. Blank every uncertain amount so
+        # SPLIT uses the documented even-ratio policy instead of distorted OCR.
+        for item in allocations:
+            item["amount"] = ""
+    return allocations
+
+
+def _extract_sponsorship_allocations_from_opex_pdf(pdf_path, manpower=None):
+    """Return ordered ``(employee_no, name, amount)`` rows from the OPEX table.
+
+    PyMuPDF preserves these forms as one cell per line, so parse the table
+    deterministically first.  The old salesman-only LLM extractor remains a
+    fallback for scanned forms, but a missing amount is never accepted as an
+    allocation because stage 5 must not invent an equal split.
     """
+    try:
+        import fitz
+        with fitz.open(str(pdf_path)) as doc:
+            text = "\n".join(page.get_text() for page in doc)
+    except Exception as exc:
+        print(f"[sponsor-allocation] PDF read failed for {pdf_path}: {exc}", flush=True)
+        return [], []
+
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    start = next(
+        (i for i, line in enumerate(lines) if re.search(
+            r"event allocation details|amount to allocate", line, re.IGNORECASE
+        )),
+        None,
+    )
+    allocations = []
+    if start is not None:
+        table = lines[start:]
+        for i, line in enumerate(table):
+            emp_match = re.fullmatch(r"E?(1\d{6})(?:\s+(.+?))?", line, re.IGNORECASE)
+            if not emp_match:
+                continue
+            emp_no = emp_match.group(1)
+            name = str(emp_match.group(2) or "").strip()
+            amount = ""
+            for candidate in table[i + 1:i + 5]:
+                amount_match = re.fullmatch(
+                    r"(?:SAR\s*)?([+-]?\d[\d,]*(?:\.\d{1,2})?)(?:\s*(?:SAR|SR))?",
+                    candidate,
+                    re.IGNORECASE,
+                )
+                if amount_match:
+                    amount = amount_match.group(1)
+                    break
+                if not name and not re.search(r"employee no|name|amount", candidate, re.IGNORECASE):
+                    name = candidate
+            if amount:
+                allocations.append({"emp_no": emp_no, "name": name, "amount": amount})
+
+    if not allocations:
+        ocr_text = _ocr_pdf_first_page(pdf_path)
+        if ocr_text and manpower:
+            allocations = _extract_ocr_sponsorship_allocations(ocr_text, manpower)
+            if allocations:
+                return [item["emp_no"] for item in allocations], allocations
+        salesmen = _extract_salesmen_from_opex_pdf(pdf_path)
+        return salesmen, [
+            {"emp_no": emp_no, "name": "", "amount": ""} for emp_no in salesmen
+        ]
+    return [item["emp_no"] for item in allocations], allocations
+
+
+_SHARED_OPEX_PDF_CACHE: dict[str, list[Path]] = {}
+
+
+def _find_shared_opex_pdfs(serial: str) -> list[Path]:
+    """Find an exact-serial OPEX form in shared evidence when local evidence is email-only."""
+    serial = _extract_serial_from_text(serial or "")
+    if not serial:
+        return []
+    key = serial.upper()
+    if key in _SHARED_OPEX_PDF_CACHE:
+        return _SHARED_OPEX_PDF_CACHE[key]
+    roots = (
+        ROOT / "dashboard" / "public" / "evidence",
+        ROOT / "batches",
+        ROOT / "archive",
+    )
+    matches = []
+    for root in roots:
+        if not root.exists():
+            continue
+        try:
+            for path in root.rglob("*.pdf"):
+                if "opex" in path.name.lower() and _extract_serial_from_text(path.name).upper() == key:
+                    matches.append(path)
+        except OSError:
+            continue
+    _SHARED_OPEX_PDF_CACHE[key] = sorted(set(matches))
+    return _SHARED_OPEX_PDF_CACHE[key]
+
+
+def _apply_multi_salesman_from_opex(
+    final, classify, row_idx, manpower=None, allocation_cache=None
+):
+    """Stamp OPEX employees and optional allocation ratios for the SPLIT stage."""
     folder_str = str(classify.get("_folder", "") or "")
-    if not folder_str:
-        return
-    opex_pdfs = _find_opex_pdfs(Path(folder_str))
+    opex_pdfs = list(classify.get("_opex_pdfs") or [])
     if not opex_pdfs:
+        opex_pdfs = _find_opex_pdfs(Path(folder_str)) if folder_str else []
+    folder_status = str(classify.get("_folder_status", "") or "")
+    if not opex_pdfs and folder_status != "PARTICIPANT_FOLDER_AMBIGUOUS":
+        serial_hint = " ".join(str(v or "") for v in (
+            final.get("opex_serial"), classify.get("opex_code"),
+            Path(folder_str).name if folder_str else "",
+        ))
+        opex_pdfs = _find_shared_opex_pdfs(serial_hint)
+    if not opex_pdfs:
+        final.pop("_sponsorship_allocations", None)
+        final.pop("_sponsorship_salesmen", None)
+        final["emp_no"] = ""
+        _append_agent_flag_detail(final, "SPONSORSHIP_ALLOCATION_TABLE_REVIEW")
+        final["_flags"] = (str(final.get("_flags", "") or "") + " SPONSORSHIP_ALLOCATION_TABLE_REVIEW").strip()
         return
-    salesmen = _extract_salesmen_from_opex_pdf(opex_pdfs[0])
-    if len(salesmen) >= 2:
-        final["emp_no"] = ",".join(salesmen)
+    event_key = str(classify.get("_event_key", "") or _opex_pdf_event_key(opex_pdfs[0]))
+    cached = allocation_cache.get(event_key) if allocation_cache is not None and event_key else None
+    if cached is None:
+        salesmen, allocations = [], []
+        source_pdf = opex_pdfs[0]
+        # Repeated evidence dates can contain an unreadable early scan and a
+        # valid later copy. Resolve the form once by taking the first candidate
+        # with a complete employee list, then cache it for every event line.
+        for candidate_pdf in opex_pdfs:
+            if manpower is None:
+                candidate_salesmen, candidate_allocations = (
+                    _extract_sponsorship_allocations_from_opex_pdf(candidate_pdf)
+                )
+            else:
+                candidate_salesmen, candidate_allocations = (
+                    _extract_sponsorship_allocations_from_opex_pdf(candidate_pdf, manpower)
+                )
+            if candidate_allocations and all(
+                item.get("emp_no") for item in candidate_allocations
+            ):
+                salesmen, allocations = candidate_salesmen, candidate_allocations
+                source_pdf = candidate_pdf
+                break
+        if allocation_cache is not None and event_key:
+            allocation_cache[event_key] = (salesmen, allocations, source_pdf)
+    else:
+        salesmen, allocations, source_pdf = cached
+    final["_sponsorship_salesmen"] = salesmen
+    final["_sponsorship_allocations"] = allocations
+    valid_employees = [item for item in allocations if item.get("emp_no")]
+    amount_presence = [bool(str(item.get("amount", "") or "").strip()) for item in allocations]
+    amounts_are_usable = not any(amount_presence) or all(amount_presence)
+    if valid_employees and len(valid_employees) == len(allocations) and amounts_are_usable:
+        final["emp_no"] = ",".join(item["emp_no"] for item in valid_employees)
+        allocation_mode = "proportional" if all(amount_presence) else "even"
         print(
-            f"[v30-multi-salesman] row {row_idx}: {len(salesmen)} salesmen "
-            f"in {opex_pdfs[0].name} → {final['emp_no']}",
+            f"[v30-sponsorship-allocation] row {row_idx}: {len(valid_employees)} employee "
+            f"allocation(s), {allocation_mode} split, from {source_pdf.name}",
             flush=True,
         )
-    elif len(salesmen) == 1 and str(final.get("emp_no", "") or "").strip() in ("", "0", "-"):
-        final["emp_no"] = salesmen[0]
+    else:
+        final["emp_no"] = ""
+        _append_agent_flag_detail(final, "SPONSORSHIP_ALLOCATION_AMOUNT_REVIEW")
+        final["_flags"] = (str(final.get("_flags", "") or "") + " SPONSORSHIP_ALLOCATION_AMOUNT_REVIEW").strip()
 
-    if manpower:
-        _clear_stale_employee_not_in_master_dict(final, manpower)
-
-    # OPEX serial is often right in the PDF filename (e.g.
-    # "OPEX-CE-18-2026-J-2026-108 (1).pdf").
-    if str(final.get("opex_serial", "") or "").strip() in ("", "MISSING", "N/A"):
+    # The row-owned folder/form is authoritative over a mismatched invoice ref.
+    # Prefer its serial even when an earlier fuzzy pass already stamped another
+    # nonblank serial. MOVIVA's PDF name omits SIS-15, so inspect the folder path.
+    selected_serial = _extract_serial_from_text(folder_str)
+    if not selected_serial:
         for opex_pdf in opex_pdfs:
-            serial_from_name = _extract_serial_from_text(opex_pdf.name)
-            if serial_from_name:
-                final["opex_serial"] = serial_from_name
+            selected_serial = _extract_serial_from_text(opex_pdf.name)
+            if selected_serial:
                 break
+    if selected_serial:
+        final["opex_serial"] = selected_serial
+
+
+def apply_sponsorship_allocations(
+    hybrid_rows: list[dict],
+    cascade_rows: list[dict],
+    raw_root: Path,
+    all_folders: list[Path],
+    reverse_index: dict[str, Path],
+    manpower: dict,
+) -> tuple[int, int]:
+    """Late authoritative allocation pass after all account overlays settle."""
+    allocated = review = 0
+    event_pdf_index = _build_opex_event_pdf_index(all_folders)
+    allocation_cache: dict[str, tuple[list[str], list[dict], Path]] = {}
+    for i, row in enumerate(hybrid_rows):
+        if str(row.get("account", "") or "").strip() != "60307021":
+            # A row can be provisionally classified as sponsorship, receive
+            # allocation metadata, then correctly settle as employee travel in
+            # a later form/lock pass. Restore its original Employee No exactly.
+            had_provisional_allocation = row.pop("_sponsorship_allocations", None) is not None
+            if had_provisional_allocation:
+                row.pop("_sponsorship_salesmen", None)
+            if had_provisional_allocation or "," in str(row.get("emp_no", "") or ""):
+                row["emp_no"] = cascade_rows[i].get("Employee No", "") or ""
+            continue
+        cascade_row = cascade_rows[i]
+        folder = _sponsorship_event_folder_for_row(
+            row, cascade_row, raw_root, all_folders, reverse_index
+        )
+        event_key = _row_event_key(row, cascade_row, folder)
+        event_pdfs = event_pdf_index.get(event_key, [])
+        if event_pdfs:
+            # The normalized filename serial is authoritative and shared by all
+            # lines in the event, even when a ticket-specific folder is absent.
+            folder = _opex_owner_folder(event_pdfs[0])
+            row["_evidence_folder"] = str(folder)
+        serial_hint = (
+            row.get("opex_serial") or row.get("_opex_serial")
+            or _cascade_form_value(cascade_row, "OPEX Serial")
+            or _cascade_form_value(cascade_row, "Invoice Ref No")
+        )
+        classify = {
+            "_folder": str(folder) if folder else "",
+            "opex_code": str(serial_hint or ""),
+            "_folder_status": str(row.get("_sponsorship_folder_status", "") or ""),
+            "_event_key": event_key,
+            "_opex_pdfs": event_pdfs,
+        }
+        _apply_multi_salesman_from_opex(
+            row, classify, i + 1, manpower, allocation_cache
+        )
+        if row.get("_sponsorship_allocations") and str(row.get("emp_no", "") or "").strip():
+            allocated += 1
+        else:
+            review += 1
+        if row.get("_agent_method", "cascade") == "cascade":
+            row["_agent_method"] = "hybrid_overlay"
+    print(
+        f"[sponsor-allocation] {allocated} sponsorship row(s) received exact table tuples; "
+        f"{review} row(s) require review",
+        flush=True,
+    )
+    return allocated, review
 
 
 def process_row_v25(
@@ -1421,7 +2162,7 @@ def process_row_v25(
     classify_folder_str = classify.get("_folder", "")
     folder_corrected = False
 
-    if ref_folder and not classify_folder_str:
+    if ref_folder and ref_status != "REF_FUZZY" and not classify_folder_str:
         ref_evidence = fea.collect_evidence(ref_folder)
         if ref_status == "REF_FUZZY" and ref_note:
             hint = {
@@ -1452,6 +2193,13 @@ def process_row_v25(
             f"{ref_folder.name}" + (f" [{ref_note}]" if ref_note else ""),
             flush=True,
         )
+
+    if ref_status == "REF_FUZZY":
+        # A neighboring year is review evidence, never authority to bind the
+        # row to that event. In particular SIS-14-2027/2028 must not silently
+        # inherit the SIS-14-2026 form.
+        classify["_invoice_ref_folder_status"] = ref_status
+        classify["_invoice_ref_soft_catch"] = ref_note
 
     if (not folder_corrected) and correct_folder and str(correct_folder) != classify_folder_str:
         # v30 conservative: only correct if the better folder is an explicit family
@@ -1488,9 +2236,21 @@ def process_row_v25(
     # text so Call 2 (and the sponsorship master shortcut) can see it.
     if (not folder_corrected) and not classify.get("_folder"):
         from qc_catches_within_batch import _find_shared_opex_folder_in_batch
-        _shared_date_dir, shared_folder = _find_shared_opex_folder_in_batch(
-            raw_root, ticket, passenger
+        shared_folder, participant_status = _event_folder_by_participant(
+            cascade_row, all_folders
         )
+        if shared_folder:
+            _shared_date_dir = shared_folder.parent
+            folder_serial = _extract_serial_from_text(str(shared_folder))
+            ref_serial = _extract_serial_from_text(ref_no)
+            if ref_serial and folder_serial and ref_serial != folder_serial:
+                classify["_sponsorship_ref_folder_mismatch"] = True
+        else:
+            _shared_date_dir, shared_folder = _find_shared_opex_folder_in_batch(
+                raw_root, ticket, passenger
+            )
+            if participant_status == "PARTICIPANT_FOLDER_AMBIGUOUS":
+                classify["_sponsorship_ref_folder_mismatch"] = True
         if shared_folder:
             shared_evidence = fea.collect_evidence(shared_folder)
             opex_emp = _extract_opex_emp_no(shared_folder)
@@ -1609,9 +2369,7 @@ def process_row_v25(
             if form_agency:
                 final["_sponsorship_agency_from_form"] = form_agency
             final["_agent_method"]  = "v16_sponsorship_master"
-            # Stamp requestor emp_no on shortcut rows (Labadi Rule 1 — always populated)
-            if str(final.get("emp_no", "") or "").strip() in ("", "0", "0000000"):
-                final["emp_no"] = str(requesting_no)
+            final["_sponsorship_requesting_emp_no"] = str(requesting_no)
             final["_classify"]      = row_type
             final["_classify_req"]  = requesting_no
             final["_route_reason"]  = route_reason
@@ -1702,17 +2460,10 @@ def process_row_v25(
     # the 6 GL segments, so read opex_serial straight off the raw LLM output.
     final["opex_serial"] = str(llm.get("opex_serial", "") or "").strip()
 
-    # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor / AlJeel
-    # employee who submitted the OPEX form — never blank. If the LLM/overlay path
-    # left emp_no blank but a requesting employee was identified, populate it.
-    if (str(final.get("account", "") or "").strip() == "60307021"
-            and str(final.get("emp_no", "") or "").strip() in ("", "0", "-")
-            and requesting_no):
-        final["emp_no"] = requesting_no
+    if str(final.get("account", "") or "").strip() == "60307021":
+        final["_sponsorship_requesting_emp_no"] = requesting_no
 
-    # Labadi RULE 1 multi-salesman catch-all: sponsorship rows resolved via the
-    # LLM also carry only one emp_no even when the OPEX PDF's salesman table
-    # allocates across several. Re-read the OPEX PDF and stamp them all.
+    # Replace the provisional requester with the OPEX allocation-table employees.
     if str(final.get("account", "") or "").strip() == "60307021":
         _apply_multi_salesman_from_opex(final, classify, row_idx, manpower)
 
@@ -4135,11 +4886,8 @@ def main():
     # v30 employee registration Pass-2 removal below) which is where false-positive
     # name-based matches should be blocked.
 
-    # Labadi RULE 1 (2026-06-09): sponsorship rows KEEP an emp_no — the requestor /
-    # AlJeel employee who submitted the OPEX form — and must NEVER be blanked. The
-    # cascade [blank] pass that cleared emp_no on account=60307021 rows is REMOVED.
-    # The requestor emp_no is resolved downstream (stage 3 LLM resolution / OPEX
-    # folder extraction).
+    # Sponsorship requester identity is provisional. The OPEX allocation-table
+    # pass replaces it with the form employees and exact amounts before SPLIT.
 
     # ── stage 2.5: verified Ref.No. employee lock ────────────────────────
     # If the invoice Ref.No. carries a 7-digit emp_no and that employee's
@@ -4612,12 +5360,9 @@ def main():
                     except Exception:
                         pass
                 h["account"]        = "60307021"
-                # Labadi RULE 1 (2026-06-09): sponsorship rows carry the requestor
-                # emp_no (AlJeel employee who submitted the OPEX form), never blank.
-                # Use the emp_no extracted from the OPEX folder .msg body when found;
-                # otherwise keep the existing emp_no on the row rather than clearing.
                 if opex_emp_no:
-                    h["emp_no"]     = opex_emp_no
+                    h["_sponsorship_requesting_emp_no"] = opex_emp_no
+                h["emp_no"] = ""
                 h["gl_name"]        = "Sponsoring Expenses"
                 # If requesting emp found in master, use their agency/cc/div/solution
                 if opex_emp_rec:
@@ -4825,6 +5570,9 @@ def main():
         all_folders,
         reverse_index,
     )
+    apply_sponsorship_allocations(
+        hybrid_rows, cascade_rows, raw_root, all_folders, reverse_index, manpower
+    )
     ancillary_inherited = inherit_ancillary_event_allocations(hybrid_rows, cascade_rows)
     print(f"[ancillary-event] {ancillary_inherited} missing ancillary row(s) inherited event allocation", flush=True)
 
@@ -4839,6 +5587,7 @@ def main():
     v15.write_v15_12_xlsx(cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row)
     stamp_own_form_trip_columns(out_xlsx, hybrid_rows, hdr_row)
     stamp_invoice_ref_resolution_columns(out_xlsx, hybrid_rows, hdr_row)
+    stamp_sponsorship_allocation_columns(out_xlsx, hybrid_rows, hdr_row)
 
     # cascade_fallback rows are copied from the cascade workbook by the v15 writer.
     # VERIFIED_EMP_LOCK rows must still persist the stage-2.5 corrected identity.

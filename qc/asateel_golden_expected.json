@@ -9,8 +9,8 @@
   ],
   "allocation_lines": 188,
   "row_status_counts": {
-    "GREEN": 7,
-    "YELLOW": 181,
+    "GREEN": 3,
+    "YELLOW": 185,
     "RED": 0
   },
   "blank_cost_center_rows": 6,

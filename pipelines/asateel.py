@@ -2,12 +2,10 @@
 """
 Production Asateel pipeline.
 
-The maintained allocation engine lives in asateel-sample/asateel_poc.py.  The
-old production file was a v2 demo analyzer over a legacy manual allocation
-workbook; it did not understand the supplier Expenses Format sheet, per-JQ
-splits, or supplier-agency-authoritative rules.  This entrypoint delegates to
-the v6 engine and adapts its row-level Oracle output back into the production
-JSON contracts under matched/.
+The maintained allocation engine lives in asateel-sample/asateel_poc.py. The
+production entrypoint delegates to its supplier-authoritative allocation logic
+and adapts Oracle rows into the JSON contracts under matched/. SO_Detail is
+used only for canonical-JQ existence validation.
 """
 from __future__ import annotations
 
@@ -213,7 +211,7 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
                     "value_at_risk_sar": 0.0,
                     "detail": (
                         f"SO_Detail agency {row.get('so_detail_agency')} differs from "
-                        f"Supplier Sheet agency {row.get('supplier_sheet_agency')}; SO_Detail used."
+                        f"Supplier Sheet agency {row.get('supplier_sheet_agency')}; supplier sheet retained."
                     ),
                     "evidence": {"allocation_rows": [row]},
                 })

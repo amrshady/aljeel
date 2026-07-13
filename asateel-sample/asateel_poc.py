@@ -29,7 +29,7 @@ from openpyxl.styles import Font, PatternFill
 from rapidfuzz import fuzz, process
 
 ROOT = Path("/home/clawdbot/.openclaw/workspace/aljeel")
-ASATEEL_PIPELINE_VERSION = "2026-07-01.1"
+ASATEEL_PIPELINE_VERSION = "2026-07-13.1"
 SAMPLE_ROOT = ROOT / "asateel-sample"
 PDF_ROOT = SAMPLE_ROOT / "_pdfs"
 OUT_DIR = SAMPLE_ROOT / "_poc_out"
@@ -301,6 +301,12 @@ class Lookups:
     solution_name_by_code: dict[str, str]
     employee_names: list[str]
     account_name_by_code: dict[str, str]
+
+
+class SoDetailIndex(dict[str, dict[str, Any]]):
+    """A loaded SO_Detail presence index, including the valid empty-export case."""
+
+    loaded = True
 
 
 BRAND_ALIAS_REMAP = {
@@ -827,11 +833,71 @@ def _find_employee(raw: Any, lookups: Lookups) -> dict[str, str] | None:
     return None
 
 
-def _resolve_supplier_agency_text(raw: Any, lookups: Lookups) -> dict[str, Any]:
+def _match_agency_reference(raw: Any, agencies: list[dict[str, str]], method_prefix: str) -> dict[str, Any] | None:
+    """Resolve supplier text against one explicit agency value/description table."""
+    name = _clean(raw)
+    if not name:
+        return None
+    raw_code = _code(name, 5)
+    norm_text = _norm_agency_words(name)
+    norm_stripped = _norm_agency_words(name, strip_corporate=True)
+    for agency in agencies:
+        if raw_code.isdigit() and raw_code == _code(agency.get("code"), 5):
+            return {
+                "code": _code(agency.get("code"), 5),
+                "name": _clean(agency.get("name")),
+                "score": 1.0,
+                "method": f"{method_prefix}_value",
+                "raw": name,
+            }
+    by_norm: dict[str, dict[str, str]] = {}
+    by_stripped: dict[str, dict[str, str]] = {}
+    for agency in agencies:
+        by_norm.setdefault(_norm_agency_words(agency.get("name")), agency)
+        by_stripped.setdefault(_norm_agency_words(agency.get("name"), strip_corporate=True), agency)
+    if norm_text in by_norm:
+        agency = by_norm[norm_text]
+        return {
+            "code": _code(agency.get("code"), 5), "name": _clean(agency.get("name")),
+            "score": 1.0, "method": f"{method_prefix}_exact", "raw": name,
+        }
+    if norm_stripped and norm_stripped in by_stripped:
+        agency = by_stripped[norm_stripped]
+        return {
+            "code": _code(agency.get("code"), 5), "name": _clean(agency.get("name")),
+            "score": 0.99, "method": f"{method_prefix}_exact", "raw": name,
+        }
+    for agency in agencies:
+        agency_norm = _norm_agency_words(agency.get("name"), strip_corporate=True)
+        if norm_stripped and agency_norm and (
+            norm_stripped.startswith(agency_norm) or agency_norm.startswith(norm_stripped)
+        ):
+            return {
+                "code": _code(agency.get("code"), 5), "name": _clean(agency.get("name")),
+                "score": 0.95, "method": f"{method_prefix}_substring", "raw": name,
+            }
+    return None
+
+
+def _resolve_supplier_agency_text(
+    raw: Any,
+    lookups: Lookups,
+    workbook_agencies: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
     name = _clean(raw)
     empty = {"code": "", "name": name, "score": 0.0, "method": "unresolved", "raw": name}
     if not name:
         return empty
+
+    # The Expenses Format workbook is the authority for its own validation
+    # values. Fall back to the shared master only if that local table cannot
+    # resolve the supplier sub-line text.
+    workbook_match = _match_agency_reference(name, workbook_agencies or [], "workbook_agency_reference")
+    if workbook_match:
+        shared_name = lookups.agency_name_by_code.get(workbook_match["code"])
+        if shared_name:
+            workbook_match["name"] = shared_name
+        return workbook_match
 
     norm_text = _norm_agency_words(name)
     norm_stripped = _norm_agency_words(name, strip_corporate=True)
@@ -1208,8 +1274,12 @@ def _split_supplier_amount(amount: float | None, count: int, index: int) -> tupl
     return round(unit_cents / 100, 2), basis
 
 
-def _supplier_resolve_allocation(rec: dict[str, Any], lookups: Lookups) -> dict[str, str]:
-    agency_resolved = _resolve_supplier_agency_text(rec.get("agency"), lookups)
+def _supplier_resolve_allocation(
+    rec: dict[str, Any],
+    lookups: Lookups,
+    workbook_agencies: list[dict[str, str]] | None = None,
+) -> dict[str, str]:
+    agency_resolved = _resolve_supplier_agency_text(rec.get("agency"), lookups, workbook_agencies)
     agency_code = agency_resolved.get("code", "")
     agency_name = agency_resolved.get("name", "")
     cluster = lookups.agency_to_cluster.get((agency_name or _clean(rec.get("agency"))).casefold())
@@ -1235,65 +1305,6 @@ def _supplier_resolve_allocation(rec: dict[str, Any], lookups: Lookups) -> dict[
     }
 
 
-def _agency_cluster_for_code(code: Any, display_name: Any, lookups: Lookups) -> dict[str, Any]:
-    agency_code = _code(code, 5)
-    so_name = _clean(display_name)
-    master_name = lookups.agency_name_by_code.get(agency_code, "")
-    agency_name = so_name or master_name
-    out = {
-        "source": "so_detail",
-        "raw": agency_name,
-        "agency_code": agency_code,
-        "agency_name": agency_name,
-        "division_code": "",
-        "division": "",
-        "cost_center": "",
-        "cost_center_name": "",
-        "solution_code": "00000",
-        "solution_name": "General",
-        "confidence": 1.0,
-        "status_reason": "",
-        "match_method": "so_detail_cat_agency_code",
-        "agency_resolve_method": "so_detail_cat_agency_code",
-    }
-    if not agency_code or agency_code not in lookups.agency_name_by_code:
-        out["status_reason"] = "SO_Detail CAT_AGENCY code not in Agency lookup"
-        return out
-
-    cluster = (
-        lookups.agency_to_cluster.get(master_name.casefold())
-        or lookups.agency_to_cluster.get(so_name.casefold())
-    )
-    if not cluster:
-        out["status_reason"] = "SO_Detail CAT_AGENCY code has no Manpower agency cluster"
-        return out
-
-    out.update({
-        "division": cluster["division"],
-        "division_code": cluster["division_code"],
-        "cost_center": cluster["cost_center"],
-        "cost_center_name": cluster["cost_center_name"],
-    })
-    cc_div_code = lookups.cc_div_by_code.get(out["cost_center"])
-    if cc_div_code:
-        out["division_code"] = cc_div_code
-        out["division"] = lookups.div_name_by_code.get(cc_div_code, out["division"])
-    solution_code, solution_name, _ = _solution_from_text(cluster.get("solution"), lookups)
-    out["solution_code"] = solution_code or "00000"
-    out["solution_name"] = solution_name or "General"
-    return out
-
-
-def _so_detail_agency_resolution_status(code: Any, display_name: Any, lookups: Lookups) -> tuple[str, str, str]:
-    agency_code = _code(code, 5)
-    agency_name = _clean(display_name) or lookups.agency_name_by_code.get(agency_code, "")
-    if not agency_code or agency_code in {"00000", "99999"}:
-        return agency_code, agency_name, "SO_Detail CAT_AGENCY code is unresolved"
-    if agency_code not in lookups.agency_name_by_code:
-        return agency_code, agency_name, "SO_Detail CAT_AGENCY code not in Agency lookup"
-    return agency_code, agency_name or lookups.agency_name_by_code.get(agency_code, ""), ""
-
-
 def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
     if not path or not path.exists():
         return {}
@@ -1307,7 +1318,9 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
         for idx, cell in enumerate(ws[5], start=1)
         if _clean(cell.value)
     }
-    required = ["ORDER_NUMBER", "ORGANIZATION_CODE", "CAT_AGENCY", "CAT_AGENCY_DESC", "SPERSON"]
+    # LOCKED: SO_Detail validates only that a canonical JQ exists. Agency,
+    # salesperson, and organization columns must not influence allocation.
+    required = ["ORDER_NUMBER"]
     missing = [name for name in required if name not in headers]
     if missing:
         wb.close()
@@ -1321,118 +1334,61 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
 
         raw_jq = _clean(val("ORDER_NUMBER"))
         jq = _canonical_jq(raw_jq)
-        agency_code = _code(val("CAT_AGENCY"), 5)
         if not jq:
             continue
         by_jq_rows.setdefault(jq, []).append({
             "jq": jq,
             "raw_jq": raw_jq,
             "row": ridx,
-            "cat_agency_code": agency_code,
-            "cat_agency_desc": _clean(val("CAT_AGENCY_DESC")),
-            "sperson": _clean(val("SPERSON")),
-            "sperson_id": _sperson_id(val("SPERSON")),
-            "organization_code": _clean(val("ORGANIZATION_CODE")),
         })
     wb.close()
 
-    index: dict[str, dict[str, Any]] = {}
+    index: SoDetailIndex = SoDetailIndex()
     for jq, rows_for_jq in by_jq_rows.items():
-        first_by_code: dict[str, dict[str, Any]] = {}
-        first_by_unit: dict[tuple[str, str], dict[str, Any]] = {}
-        for rec in rows_for_jq:
-            first_by_code.setdefault(rec["cat_agency_code"], rec)
-            first_by_unit.setdefault((rec["cat_agency_code"], rec["sperson_id"]), rec)
-        agencies = list(first_by_unit.values())
-        distinct_agency_count = len(first_by_code)
-        distinct_sperson_count = len({rec["sperson_id"] for rec in agencies})
         index[jq] = {
             "jq": jq,
-            # The first matching SO_Detail row is authoritative for display only;
-            # canonical ``jq`` remains the lookup key everywhere else.
             "raw_jq": rows_for_jq[0]["raw_jq"],
             "rows": rows_for_jq,
-            "agencies": agencies,
-            "distinct_agency_count": distinct_agency_count,
-            "distinct_sperson_count": distinct_sperson_count,
             "duplicate_row_count": max(0, len(rows_for_jq) - 1),
-            "same_agency_diff_org": (
-                len(rows_for_jq) > 1
-                and distinct_agency_count == 1
-                and len(agencies) == 1
-                and len({_clean(rec.get("organization_code")) for rec in rows_for_jq}) > 1
-            ),
-            "multi_agency": distinct_agency_count > 1,
-            "multi_sperson_same_agency": distinct_agency_count == 1 and len(agencies) > 1,
-            "multi_allocation_unit": len(agencies) > 1,
         }
     return index
 
 
-def _so_detail_split_method(so_detail: dict[str, Any]) -> str:
-    agency_count = int(so_detail.get("distinct_agency_count") or 0)
-    sperson_count = int(so_detail.get("distinct_sperson_count") or 0)
-    if agency_count > 1 and sperson_count > 1:
-        return "per_jq_agency_sperson_even"
-    if agency_count > 1:
-        return "per_jq_agency_even"
-    return "per_jq_sperson_even"
+def _header_column(ws: Any, aliases: set[str], fallback: int) -> int:
+    """Return a 1-based column from the labelled row 8, with known-layout fallback."""
+    for cell in ws[8]:
+        if _norm_key(cell.value) in aliases:
+            return cell.column
+    return fallback
 
 
-def _so_detail_split_note(so_detail: dict[str, Any]) -> str:
-    agencies = so_detail.get("agencies") or []
-    agency_count = int(so_detail.get("distinct_agency_count") or 0)
-    sperson_count = int(so_detail.get("distinct_sperson_count") or 0)
-    if agency_count == 1 and sperson_count > 1:
-        agency_rec = agencies[0] if agencies else {}
-        salesperson_parts = [_clean(rec.get("sperson")) or _clean(rec.get("sperson_id")) for rec in agencies]
-        return (
-            f"JQ split across {len(agencies)} salespersons on agency "
-            f"{_agency_display(agency_rec.get('cat_agency_code'), agency_rec.get('cat_agency_desc'))}: "
-            f"{', '.join(part for part in salesperson_parts if part)}; transport cost split evenly"
-        )
-    tuple_parts = [
-        (
-            f"{_agency_display(rec.get('cat_agency_code'), rec.get('cat_agency_desc'))}/"
-            f"{_clean(rec.get('sperson')) or _clean(rec.get('sperson_id'))}"
-        ).rstrip("/")
-        for rec in agencies
-    ]
-    driver = "agencies and salespersons" if agency_count > 1 and sperson_count > 1 else "agencies"
-    return (
-        f"JQ split across {len(agencies)} {driver}: "
-        f"{', '.join(part for part in tuple_parts if part)}; transport cost split evenly"
-    )
+def _supplier_description_invoice(raw: Any) -> str:
+    """Extract the invoice explicitly repeated in a supplier description."""
+    match = re.search(r"(?:^|/)\s*(\d{4,5})\s*$", _clean(raw))
+    return _code(match.group(1), 5) if match else ""
 
 
-def _self_check_so_detail_sperson_split() -> dict[str, Any]:
-    so_detail = {
-        "jq": "JQ-99990001",
-        "agencies": [
-            {
-                "cat_agency_code": "10202",
-                "cat_agency_desc": "Solventum",
-                "sperson": "1000473-Abdallah A",
-                "sperson_id": "1000473",
-            },
-            {
-                "cat_agency_code": "10202",
-                "cat_agency_desc": "Solventum",
-                "sperson": "1001031-Mahmoud S",
-                "sperson_id": "1001031",
-            },
-        ],
-        "distinct_agency_count": 1,
-        "distinct_sperson_count": 2,
-        "multi_allocation_unit": True,
-    }
-    amounts = [_split_supplier_amount(100.01, 2, idx)[0] for idx in (1, 2)]
-    method = _so_detail_split_method(so_detail)
-    note = _so_detail_split_note(so_detail)
-    assert method == "per_jq_sperson_even"
-    assert amounts == [50.0, 50.01]
-    assert "1000473-Abdallah A" in note and "1001031-Mahmoud S" in note
-    return {"split_method": method, "amounts": amounts, "note": note}
+def _workbook_agency_reference(wb: Any) -> list[dict[str, str]]:
+    sheet_name = next((name for name in wb.sheetnames if name.strip().casefold() == "agency"), "")
+    if not sheet_name:
+        return []
+    ws = wb[sheet_name]
+    value_col = description_col = 0
+    header_row = 0
+    for ridx, row in enumerate(ws.iter_rows(min_row=1, max_row=min(ws.max_row, 10)), start=1):
+        labels = {_norm_key(cell.value): cell.column for cell in row if _clean(cell.value)}
+        if "value" in labels and "description" in labels:
+            value_col, description_col, header_row = labels["value"], labels["description"], ridx
+            break
+    if not value_col or not description_col:
+        return []
+    agencies = []
+    for row in ws.iter_rows(min_row=header_row + 1, values_only=True):
+        code = _code(row[value_col - 1] if value_col <= len(row) else "", 5)
+        name = _clean(row[description_col - 1] if description_col <= len(row) else "")
+        if code and name:
+            agencies.append({"code": code, "name": name})
+    return agencies
 
 
 def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[str, Any]]]:
@@ -1443,36 +1399,73 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         wb.close()
         return {}
     ws = wb["Expenses Format"]
+    workbook_agencies = _workbook_agency_reference(wb)
+    description_col = _header_column(ws, {"descriptioncomments", "description", "comments"}, 26)
+    columns = {
+        "invoice": _header_column(ws, {"invoicenumber"}, 14),
+        "jq": _header_column(ws, {"ofjq", "jq", "jqnumber"}, 24),
+        "employee_name": _header_column(ws, {"employeename"}, 25),
+        # This header is merged across four columns, while supplier data rows
+        # can anchor their own merged value in any column within that span.
+        "description": tuple(range(description_col, description_col + 4)),
+        "agency": _header_column(ws, {"agency"}, 32),
+        "division": _header_column(ws, {"division"}, 33),
+        "solution": _header_column(ws, {"solution"}, 35),
+        "cost_center": _header_column(ws, {"costcenter"}, 36),
+        "amount": _header_column(ws, {"amount"}, 37),
+        "invoice_amount": _header_column(ws, {"invoiceamount"}, 16),
+        "invoice_date": _header_column(ws, {"invoicedate"}, 17),
+        "employee_number": _header_column(ws, {"employeenumber", "employeeno"}, 41),
+    }
+
+    def cell(vals: list[Any], name: str) -> Any:
+        positions = columns[name]
+        if isinstance(positions, int):
+            positions = (positions,)
+        for column in positions:
+            pos = column - 1
+            value = vals[pos] if pos < len(vals) else ""
+            if _clean(value):
+                return value
+        return ""
+
     index: dict[str, list[dict[str, Any]]] = {}
     current_inv = ""
     for ridx, row in enumerate(ws.iter_rows(min_row=9, values_only=True), start=9):
         vals = list(row)
-        inv = _code(vals[13] if len(vals) > 13 else "", 5)
-        if inv:
-            current_inv = inv
-        if not current_inv:
+        header_inv = _code(cell(vals, "invoice"), 5)
+        if header_inv:
+            current_inv = header_inv
+        description = _clean(cell(vals, "description"))
+        description_inv = _supplier_description_invoice(description)
+        # Supplier allocation rows repeat the invoice in DESCRIPTION / Comments.
+        # Prefer that row-level reference when it conflicts with a mistyped header;
+        # unlike header fill-down, it cannot bleed into the following invoice.
+        row_inv = description_inv or current_inv
+        if not row_inv:
             continue
-        jq = _clean(vals[23] if len(vals) > 23 else "")
+        jq = _clean(cell(vals, "jq"))
         parsed_jqs = _split_jqs(jq, allow_bare=False)
-        employee_name = _clean(vals[24] if len(vals) > 24 else "")
-        agency = _clean(vals[31] if len(vals) > 31 else "")
-        division = _clean(vals[32] if len(vals) > 32 else "")
-        solution = _clean(vals[34] if len(vals) > 34 else "")
+        employee_name = _clean(cell(vals, "employee_name"))
+        agency = _clean(cell(vals, "agency"))
+        division = _clean(cell(vals, "division"))
+        solution = _clean(cell(vals, "solution"))
+        cost_center = _clean(cell(vals, "cost_center"))
         if not lookups.solution_code_by_description.get(_norm_text(solution)):
-            alt_solution = _clean(vals[35] if len(vals) > 35 else "")
+            alt_solution = cost_center
             if lookups.solution_code_by_description.get(_norm_text(alt_solution)):
                 solution = alt_solution
-        cost_center = _clean(vals[35] if len(vals) > 35 else "")
-        amount = _money(vals[36] if len(vals) > 36 else None)
-        invoice_amount = _money(vals[15] if len(vals) > 15 else None)
-        invoice_date = vals[16] if len(vals) > 16 else ""
-        employee_number = _code(vals[40] if len(vals) > 40 else "")
+        amount = _money(cell(vals, "amount"))
+        invoice_amount = _money(cell(vals, "invoice_amount"))
+        invoice_date = cell(vals, "invoice_date")
+        employee_number = _code(cell(vals, "employee_number"))
         emp = _find_employee(employee_name, lookups)
         if not employee_number and emp:
             employee_number = emp["emp_no"]
         rec_base = {
             "row": ridx,
-            "invoice_no": current_inv,
+            "invoice_no": row_inv,
+            "description": description,
             "jq": jq,
             "_source_jq_cell": jq,
             "employee_name": employee_name,
@@ -1497,41 +1490,18 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
             rec["_jq_count"] = len(jqs) if parsed_jqs else 0
             rec["_jq_index"] = jq_index if parsed_jqs else 0
             rec["amount"], rec["_amount_basis"] = _split_supplier_amount(amount, len(jqs), jq_index)
-            rec.update(_supplier_resolve_allocation(rec, lookups))
-            index.setdefault(current_inv, []).append(rec)
+            rec.update(_supplier_resolve_allocation(rec, lookups, workbook_agencies))
+            index.setdefault(row_inv, []).append(rec)
     wb.close()
-    for inv, records in index.items():
-        first_by_jq: dict[str, dict[str, Any]] = {}
-        duplicate_rows_by_jq: dict[str, list[int]] = {}
-        for rec in records:
-            jq_key = _canonical_jq(rec.get("jq"), allow_bare=False)
-            if not jq_key.startswith("JQ-"):
-                continue
-            if jq_key in first_by_jq:
-                rec["_supplier_duplicate_jq"] = "Y"
-                first = first_by_jq[jq_key]
-                first["_supplier_duplicate_jq"] = "Y"
-                duplicate_rows_by_jq.setdefault(jq_key, [first["row"]]).append(rec["row"])
-            else:
-                first_by_jq[jq_key] = rec
-        for jq_key, rows_for_jq in duplicate_rows_by_jq.items():
-            note = f"Duplicate supplier rows for {jq_key} on invoice {inv}: rows {', '.join(map(str, rows_for_jq))}; first row used"
-            for rec in records:
-                if _canonical_jq(rec.get("jq"), allow_bare=False) == jq_key:
-                    rec["_supplier_duplicate_jq_note"] = note
     return index
 
 
 def supplier_jq_units_for_invoice(invoice_no: Any, supplier_index: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     units = []
-    seen_jqs: set[str] = set()
     for rec in supplier_index.get(_code(invoice_no, 5), []):
         jq = _canonical_jq(rec.get("jq"), allow_bare=False)
         if not jq.startswith("JQ-"):
             continue
-        if jq in seen_jqs:
-            continue
-        seen_jqs.add(jq)
         out = dict(rec)
         out["jq"] = jq
         out["_match_method"] = "supplier_jq_unit"
@@ -1575,6 +1545,60 @@ def match_supplier_line(
         out["_amount_match"] = True
         return out
     return None
+
+
+def supplier_inherited_allocation(
+    invoice_no: Any,
+    supplier_index: dict[str, list[dict[str, Any]]],
+    preferred_jq: Any = "",
+    *,
+    allow_invoice_fallback: bool = True,
+) -> dict[str, Any] | None:
+    """Return an unambiguous supplier CC/DIV/Solution block, never agency."""
+    candidates = supplier_index.get(_code(invoice_no, 5), [])
+
+    preferred_jq_key = _canonical_jq(preferred_jq, allow_bare=False)
+    if preferred_jq_key:
+        preferred = [
+            rec for rec in candidates
+            if _canonical_jq(rec.get("jq"), allow_bare=False) == preferred_jq_key
+        ]
+        if preferred:
+            candidates = preferred
+        elif not allow_invoice_fallback:
+            return None
+
+    blocks: dict[tuple[str, str, str, str, str, str], dict[str, Any]] = {}
+    for rec in candidates:
+        block = (
+            _code(rec.get("division_code")),
+            _clean(rec.get("division")),
+            _code(rec.get("cost_center")),
+            _clean(rec.get("cost_center_name")),
+            _code(rec.get("solution_code"), 5) or "00000",
+            _clean(rec.get("solution_name")) or "General",
+        )
+        if block[0] and block[2]:
+            blocks.setdefault(block, rec)
+    if len(blocks) != 1:
+        return None
+    rec = next(iter(blocks.values()))
+    return {
+        "source": "supplier_expenses_format_allocation_inherited",
+        "raw": "supplier allocation inheritance",
+        "agency_code": "",
+        "agency_name": "",
+        "division_code": rec.get("division_code", ""),
+        "division": rec.get("division", ""),
+        "cost_center": rec.get("cost_center", ""),
+        "cost_center_name": rec.get("cost_center_name", ""),
+        "solution_code": rec.get("solution_code", "") or "00000",
+        "solution_name": rec.get("solution_name", "") or "General",
+        "confidence": 1.0,
+        "status_reason": "supplier agency is not stated for this preserved sub-line",
+        "match_method": "supplier_invoice_allocation_inheritance",
+        "agency_resolve_method": "unresolved",
+    }
 
 
 def _additional_info(supplier_line: dict[str, Any] | None, display_jq: Any = "") -> str:
@@ -1684,8 +1708,9 @@ def build_rows(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows = []
     supplier_index = supplier_index or {}
-    so_detail_index = so_detail_index or {}
-    so_detail_enabled = bool(so_detail_index)
+    if so_detail_index is None:
+        so_detail_index = {}
+    so_detail_enabled = bool(so_detail_index) or bool(getattr(so_detail_index, "loaded", False))
     trace: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "invoices": [],
@@ -1883,6 +1908,17 @@ def build_rows(
         used_supplier_rows: set[int] = set()
         invoice_no = _code(ext.get("invoice_number"), 5) or expected_inv
         supplier_jq_units = supplier_jq_units_for_invoice(invoice_no, supplier_index)
+        paired_signal_sources = [
+            _clean((ln.get("allocation_signal") or {}).get("source")).lower()
+            for ln in lines
+        ]
+        preserve_paired_signal_rows = bool(
+            expanded_multi_signal
+            and len(supplier_jq_units) > 1
+            and len(lines) == 2 * len(supplier_jq_units)
+            and paired_signal_sources[::2] == ["brand"] * len(supplier_jq_units)
+            and paired_signal_sources[1::2] == ["salesperson"] * len(supplier_jq_units)
+        )
         invoice_trace = {
             "folder": folder,
             "expected_invoice": expected_inv,
@@ -1894,7 +1930,10 @@ def build_rows(
         }
         trace["invoices"].append(invoice_trace)
 
-        if supplier_jq_units:
+        # Multi-signal PDF rows are preserved as evidence rows. Supplier JQs
+        # provide their CC/DIV/Solution inheritance below; they must not collapse
+        # those rows or reintroduce SO_Detail-driven agency splitting.
+        if supplier_jq_units and not preserve_paired_signal_rows:
             output_units = []
             for idx, unit in enumerate(supplier_jq_units, start=1):
                 source_idx = min(idx - 1, len(lines) - 1)
@@ -1908,25 +1947,10 @@ def build_rows(
                     "split_method": "per_jq",
                 }
                 so_detail = so_detail_index.get(_canonical_jq(unit.get("jq")))
-                if so_detail and so_detail.get("multi_allocation_unit"):
-                    agencies = so_detail.get("agencies") or []
-                    split_method_name = _so_detail_split_method(so_detail)
-                    split_note = _so_detail_split_note(so_detail)
-                    for agency_idx, agency_rec in enumerate(agencies, start=1):
-                        amount, basis = _split_supplier_amount(base_unit["line_amount"], len(agencies), agency_idx)
-                        split_unit = dict(base_unit)
-                        split_unit["line_amount"] = amount or 0.0
-                        split_unit["amount_basis"] = basis.replace("supplier_row_amount", "so_detail_allocation_unit_amount")
-                        split_unit["split_method"] = split_method_name
-                        split_unit["so_detail_rec"] = agency_rec
-                        split_unit["so_detail_group"] = so_detail
-                        split_unit["so_detail_split_note"] = split_note
-                        split_unit["line_no"] = f"{idx}.{agency_idx}"
-                        output_units.append(split_unit)
-                else:
-                    base_unit["so_detail_group"] = so_detail
-                    base_unit["so_detail_rec"] = (so_detail.get("agencies") or [None])[0] if so_detail else None
-                    output_units.append(base_unit)
+                # Supplier sub-lines are already the allocation units. SO_Detail
+                # is validation-only and must never expand or replace them.
+                base_unit["so_detail_group"] = so_detail
+                output_units.append(base_unit)
         else:
             output_units = []
             for idx, ln in enumerate(lines, start=1):
@@ -1936,6 +1960,11 @@ def build_rows(
                     "line_amount": clean_amounts[idx - 1] if have_all_line_amounts else even_amount,
                     "amount_basis": amount_basis_by_line[idx - 1],
                     "supplier_match": None,
+                    "supplier_inheritance_jq": (
+                        supplier_jq_units[(idx - 1) // 2].get("jq", "")
+                        if preserve_paired_signal_rows and idx % 2 == 1
+                        else ""
+                    ),
                     "line_no": ln.get("line_no") or idx,
                     "split_method": split_method,
                 })
@@ -1946,19 +1975,37 @@ def build_rows(
             notes = list(ext.get("extraction_notes") or [])
             if master_fallback:
                 notes.append(
-                    "PDF MISSING — allocated from Expenses-Format master + SO_Detail only; "
+                    "PDF MISSING — allocated from Expenses-Format master only; "
                     "invoice total NOT verified against scan"
                 )
             line_amount = unit["line_amount"]
-            supplier_match = unit.get("supplier_match") or match_supplier_line(
-                invoice_no,
-                idx,
-                line_amount,
-                supplier_index,
-                used_supplier_rows,
+            supplier_match = unit.get("supplier_match")
+            if not supplier_match and not ln.get("_expanded_from_multi_signal"):
+                supplier_match = match_supplier_line(
+                    invoice_no,
+                    idx,
+                    line_amount,
+                    supplier_index,
+                    used_supplier_rows,
+                )
+            resolved_source = _clean(resolved.get("source")).lower()
+            resolved_agency_code = _code(resolved.get("agency_code"), 5)
+            supplier_inheritance_jq = unit.get("supplier_inheritance_jq", "")
+            can_inherit_supplier_allocation = (
+                resolved_source == "brand"
+                and resolved_agency_code not in {"", "00000"}
+            )
+            inherited_supplier_allocation = (
+                None
+                if supplier_match or not can_inherit_supplier_allocation
+                else supplier_inherited_allocation(
+                    invoice_no,
+                    supplier_index,
+                    supplier_inheritance_jq,
+                    allow_invoice_fallback=not supplier_inheritance_jq,
+                )
             )
             supplier_action = "none"
-            so_detail_rec = unit.get("so_detail_rec")
             so_detail_group = unit.get("so_detail_group")
             unit_jqs = []
             if supplier_match and _canonical_jq(supplier_match.get("jq")):
@@ -1967,8 +2014,6 @@ def build_rows(
             unit_jq = next((jq for jq in unit_jqs if jq), "")
             if not so_detail_group and unit_jq:
                 so_detail_group = so_detail_index.get(unit_jq)
-                if so_detail_group:
-                    so_detail_rec = (so_detail_group.get("agencies") or [None])[0]
             if supplier_match:
                 invoice_trace["supplier_matches"].append({
                     "line_no": unit["line_no"],
@@ -1993,10 +2038,8 @@ def build_rows(
                     notes.append(
                         f"Supplier Expenses Format matched by line order; supplier amount {supplier_match.get('amount')} differs from PDF line amount {line_amount}"
                     )
-                if supplier_match.get("_supplier_duplicate_jq_note"):
-                    notes.append(supplier_match.get("_supplier_duplicate_jq_note"))
             elif _extract_pdf_jqs(ln, ext):
-                notes.append("JQ found in PDF but missing from Supplier Expenses Format; PDF extraction fallback used")
+                notes.append("JQ found in PDF but missing from Supplier Expenses Format; PDF signal not used for allocation")
             manpower_emp = _find_employee_by_no(supplier_match.get("employee_number"), lookups) if supplier_match else None
             supplier_sheet_agency = _agency_display(
                 supplier_match.get("agency_code") if supplier_match else "",
@@ -2007,14 +2050,9 @@ def build_rows(
                 manpower_emp.get("agency_name") if manpower_emp else "",
             )
             supplier_home_agency_discrepancy = ""
-            so_detail_agency = _agency_display(
-                so_detail_rec.get("cat_agency_code") if so_detail_rec else "",
-                so_detail_rec.get("cat_agency_desc") if so_detail_rec else "",
-            )
-            so_detail_salesperson = _clean(so_detail_rec.get("sperson")) if so_detail_rec else ""
+            so_detail_agency = ""
+            so_detail_salesperson = ""
             so_detail_supplier_discrepancy = ""
-            so_detail_manpower_discrepancy = ""
-            so_detail_inherited_supplier_allocation = False
             if supplier_match and supplier_match.get("employee_number") and not manpower_emp:
                 notes.append(f"Supplier employee number {supplier_match.get('employee_number')} not found in Manpower")
             supplier_has_allocation = bool(
@@ -2044,8 +2082,6 @@ def build_rows(
                 supplier_action = "supplier_override"
                 notes.append("Full allocation block used from Supplier Expenses Format")
                 if (
-                    not so_detail_rec
-                    and
                     manpower_emp
                     and _code(manpower_emp.get("agency_code"), 5)
                     and _code(manpower_emp.get("agency_code"), 5) != _code(supplier_match.get("agency_code"), 5)
@@ -2062,47 +2098,19 @@ def build_rows(
                 notes.append(
                     f"Supplier Agency '{supplier_match.get('agency')}' did not resolve to Agency lookup; supplier sheet not silently replaced by Manpower"
                 )
-            if so_detail_rec:
-                if supplier_has_allocation and so_detail_group and so_detail_group.get("multi_allocation_unit"):
-                    agency_code, agency_name, agency_status_reason = _so_detail_agency_resolution_status(
-                        so_detail_rec.get("cat_agency_code"),
-                        so_detail_rec.get("cat_agency_desc"),
-                        lookups,
-                    )
-                    resolved = dict(supplier_allocation)
-                    resolved.update({
-                        "source": "so_detail_supplier_expenses_format",
-                        "raw": _clean(so_detail_rec.get("cat_agency_desc")),
-                        "agency_code": agency_code,
-                        "agency_name": agency_name,
-                        "confidence": 1.0,
-                        "status_reason": agency_status_reason,
-                        "match_method": "so_detail_cat_agency_code_supplier_allocation",
-                        "agency_resolve_method": "so_detail_cat_agency_code",
-                    })
-                    so_detail_inherited_supplier_allocation = True
-                else:
-                    resolved = _agency_cluster_for_code(so_detail_rec.get("cat_agency_code"), so_detail_rec.get("cat_agency_desc"), lookups)
-                supplier_action = "so_detail_override"
-                if unit.get("so_detail_split_note"):
-                    notes.append(unit["so_detail_split_note"])
-                if so_detail_inherited_supplier_allocation:
-                    notes.append("SO_Detail CAT_AGENCY used with Supplier Expenses Format CC/DIV/Solution allocation")
-                else:
-                    notes.append("SO_Detail CAT_AGENCY used as authoritative allocation")
-                if resolved.get("status_reason"):
-                    notes.append(resolved.get("status_reason"))
-                if supplier_match and _code(supplier_match.get("agency_code"), 5) and _code(supplier_match.get("agency_code"), 5) != _code(so_detail_rec.get("cat_agency_code"), 5):
-                    so_detail_supplier_discrepancy = "Y"
-                    notes.append(
-                        f"SO_Detail agency {so_detail_agency} differs from Supplier Sheet agency {supplier_sheet_agency}; SO_Detail used"
-                    )
-                if manpower_emp and _code(manpower_emp.get("agency_code"), 5) and _code(manpower_emp.get("agency_code"), 5) != _code(so_detail_rec.get("cat_agency_code"), 5):
-                    so_detail_manpower_discrepancy = "Y"
-                    notes.append(
-                        f"SO_Detail agency {so_detail_agency} differs from Manpower home agency {manpower_home_agency}; SO_Detail used"
-                    )
-            elif so_detail_enabled and unit_jq and unit_jq not in so_detail_index:
+            elif inherited_supplier_allocation:
+                supplier_action = "supplier_allocation_inherited"
+                resolved = dict(inherited_supplier_allocation)
+                notes.append(
+                    "Supplier CC/DIV/Solution inherited for preserved sub-line; agency left blank because no line-specific supplier agency was stated"
+                )
+            else:
+                # OCR brand/salesperson signals remain evidence only. Allocation
+                # authority is the Expenses Format supplier sub-line.
+                resolved = dict(supplier_allocation)
+                resolved["source"] = "supplier_expenses_format_missing"
+                resolved["status_reason"] = "supplier allocation line missing"
+            if so_detail_enabled and unit_jq and unit_jq not in so_detail_index:
                 notes.append("JQ not in SO_Detail export")
             jq_display = ""
             if supplier_match:
@@ -2115,39 +2123,28 @@ def build_rows(
                 notes.append("No Supplier Expenses Format line matched for Employee Number/JQ")
             solution_code = "00000"
             solution_name = "General"
-            if supplier_match:
-                solution_code = _code(supplier_match.get("solution_code"), 5) or "00000"
-                solution_name = _clean(supplier_match.get("solution_name")) or "General"
-                if supplier_match.get("solution_note"):
-                    notes.append(supplier_match.get("solution_note"))
+            solution_source = supplier_match or inherited_supplier_allocation
+            if solution_source:
+                solution_code = _code(solution_source.get("solution_code"), 5) or "00000"
+                solution_name = _clean(solution_source.get("solution_name")) or "General"
+                if solution_source.get("solution_note"):
+                    notes.append(solution_source.get("solution_note"))
             else:
                 notes.append("No Supplier Expenses Format line matched for Solution")
-            if so_detail_rec:
-                solution_code = _code(resolved.get("solution_code"), 5) or "00000"
-                solution_name = _clean(resolved.get("solution_name")) or "General"
-
             status = classify(ext, resolved, notes, scan_available=not master_fallback)
             if supplier_action in {"supplier_override", "supplier_unresolved"}:
                 status = "YELLOW" if status == "GREEN" and supplier_home_agency_discrepancy else status
-            if supplier_action == "so_detail_override" and (
-                so_detail_supplier_discrepancy
-                or so_detail_manpower_discrepancy
-                or resolved.get("status_reason")
-            ):
-                if status != "RED":
-                    status = "YELLOW"
-            if supplier_home_agency_discrepancy or (supplier_match and supplier_match.get("_supplier_duplicate_jq")):
+            if supplier_action == "filled" and supplier_match and supplier_match.get("_match_method") != "line_order_amount" and status == "GREEN":
                 status = "YELLOW"
-            if supplier_action == "filled" and supplier_match and supplier_match.get("_match_method") != "line_order_amount":
-                status = "YELLOW"
-            if not supplier_match and _extract_pdf_jqs(ln, ext):
+            if not supplier_match and _extract_pdf_jqs(ln, ext) and status == "GREEN":
                 status = "YELLOW"
             is_warehouse_cc = (
                 _code(resolved.get("cost_center")) == "140040"
                 or _clean(resolved.get("cost_center_name")).casefold() == "warehouse"
             )
-            if so_detail_enabled and not so_detail_rec and (unit_jq or supplier_match) and not is_warehouse_cc:
-                status = "RED"
+            if so_detail_enabled and not so_detail_group and (unit_jq or supplier_match) and not is_warehouse_cc:
+                if status == "GREEN":
+                    status = "YELLOW"
             if master_fallback:
                 status = "RED"
             line_vat = round((line_amount or 0) * VAT_RATE, 2)
@@ -2157,9 +2154,7 @@ def build_rows(
                 line_total = total
             is_green = status == "GREEN"
             has_resolved_segments = bool(resolved.get("agency_name") and resolved.get("division") and resolved.get("cost_center"))
-            keep_allocation = is_green or supplier_action in {"filled", "manpower_empno", "supplier_agency", "supplier_override"} or (
-                supplier_action == "so_detail_override"
-            ) or (
+            keep_allocation = is_green or supplier_action in {"filled", "manpower_empno", "supplier_agency", "supplier_override", "supplier_allocation_inherited"} or (
                 has_resolved_segments and _clean(resolved.get("allocation_status")) and _clean(resolved.get("allocation_status")) != "Can Be used"
             )
             agency_code = resolved.get("agency_code") if keep_allocation else ""
@@ -2202,7 +2197,7 @@ def build_rows(
                 "Division": division_name,
                 "Cost_Center": cost_center,
                 "Cost_Center_name": cost_center_name,
-                "allocation_source": resolved.get("source") if (resolved.get("raw") or resolved.get("source") == "so_detail") else "none",
+                "allocation_source": resolved.get("source") if resolved.get("raw") else "none",
                 "agency_resolve_method": resolved.get("agency_resolve_method") or "manpower_fallback",
                 "split_method": unit["split_method"],
                 "confidence": resolved.get("confidence") or 0,
@@ -2845,21 +2840,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--so-detail",
         default=str(DEFAULT_SO_DETAIL_XLSX),
-        help="SO_Detail export used as authoritative JQ agency reference",
-    )
-    parser.add_argument(
-        "--self-check-so-detail-sperson-split",
-        action="store_true",
-        help="Run a synthetic same-agency/two-salesperson SO_Detail split assertion and exit",
+        help="SO_Detail export used only to validate canonical JQ existence",
     )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
-    if args.self_check_so_detail_sperson_split:
-        print(json.dumps(_self_check_so_detail_sperson_split(), ensure_ascii=False, indent=2))
-        return 0
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     lookups = load_lookups()
     supplier_index = load_expenses_format(Path(args.expenses_format), lookups)

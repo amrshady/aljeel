@@ -779,9 +779,6 @@ def _find_opex_pdfs(folder_path):
         return []
 
 
-FORM_VS_MANPOWER_SEGMENT_DIFF = "FORM_VS_MANPOWER_SEGMENT_DIFF"
-
-
 def _clean_numeric_segment(value, width: int | None = None) -> str:
     text = str(value or "").strip()
     if not text or text.lower() in {"none", "nan", "null", "missing", "n/a"}:
@@ -1490,7 +1487,7 @@ def apply_sponsorship_event_segments(
     all_folders: list[Path],
     reverse_index: dict[str, Path],
 ) -> int:
-    """Policy A/B/C: sponsorship rows use event/form segments, not home segments."""
+    """Apply form Agency and agency-filtered Manpower sponsorship segments."""
     applied = 0
     for i, row in enumerate(hybrid_rows):
         if row.get("_opex_email_only"):
@@ -1506,8 +1503,9 @@ def apply_sponsorship_event_segments(
         )
         event = _parse_opex_event_segments(folder, cascade_row)
 
-        # Explicit form fields always win. An unambiguous agency mapping may fill
-        # only missing fields; requester home is the final field-level fallback.
+        # Agency is the only accounting segment sourced from the linked OPEX
+        # form. DIV, cost center, and solution are sourced from the Manpower
+        # records filtered by that agency, regardless of other form fields.
         if event.get("agency"):
             # The row-owned form value is authoritative over an earlier Call-1
             # agency hint. This matters when multiple allocations in one event
@@ -1524,38 +1522,31 @@ def apply_sponsorship_event_segments(
         manpower_home = _manpower_home_segments(row, manpower)
 
         changes = 0
-        diff_parts = []
-        unresolved_keys = {
-            item.split("=", 1)[0]
-            for item in event.get("unresolved_labels", [])
-            if "=" in item
-        }
-        for key, width in (
-            ("cost_center", 6),
-            ("div", 3),
-            ("agency", 5),
-            ("solution", 5),
-        ):
-            form_val = event.get(key, "")
+        # Preserve the form Agency exactly as discovered for this event. If it
+        # is unavailable, retain the existing requester-home/current fallback.
+        current_agency = _clean_numeric_segment(row.get("agency"), 5)
+        if form_agency:
+            resolved_agency = form_agency
+            agency_source = "form"
+        elif manpower_home.get("agency", ""):
+            resolved_agency = manpower_home["agency"]
+            agency_source = "requester_home"
+            _append_agent_flag_detail(row, "SPONSORSHIP_AGENCY_REQUESTER_HOME_FALLBACK")
+        else:
+            resolved_agency = current_agency
+            agency_source = "existing_unresolved"
+            _append_agent_flag_detail(row, "SPONSORSHIP_AGENCY_FALLBACK_REVIEW")
+        if resolved_agency and current_agency != resolved_agency:
+            row["agency"] = resolved_agency
+            changes += 1
+        row.setdefault("_sponsorship_segment_sources", {})["agency"] = agency_source
+
+        # Other sponsorship segments must never come from form values or form
+        # labels. Use the agency-filtered Manpower result first, then requester
+        # home, then preserve the existing row value for review.
+        for key, width in (("cost_center", 6), ("div", 3), ("solution", 5)):
             current_val = _clean_numeric_segment(row.get(key), width)
-            if key in unresolved_keys:
-                # The form explicitly supplied a label, but the master did not
-                # resolve it deterministically. Do not replace it with requester
-                # home or an agency-correlated guess.
-                if str(row.get(key, "") or "").strip():
-                    row[key] = ""
-                    changes += 1
-                source = "form_label_unresolved"
-                row.setdefault("_sponsorship_segment_sources", {})[key] = source
-                raw_label = event.get("raw_labels", {}).get(key, "")
-                _append_agent_flag_detail(
-                    row, f"SPONSORSHIP_{key.upper()}_LABEL_REVIEW({raw_label})"
-                )
-                continue
-            if form_val:
-                resolved = form_val
-                source = "form"
-            elif agency_codes and _clean_numeric_segment(agency_codes.get(key), width):
+            if agency_codes and _clean_numeric_segment(agency_codes.get(key), width):
                 resolved = _clean_numeric_segment(agency_codes.get(key), width)
                 source = "agency_mapping"
                 _append_agent_flag_detail(row, f"SPONSORSHIP_{key.upper()}_AGENCY_FALLBACK")
@@ -1573,9 +1564,6 @@ def apply_sponsorship_event_segments(
                 row[key] = resolved
                 changes += 1
             row.setdefault("_sponsorship_segment_sources", {})[key] = source
-            manpower_val = manpower_home.get(key, "")
-            if form_val and manpower_val and form_val != manpower_val:
-                diff_parts.append(f"{key} form={form_val} manpower={manpower_val}")
 
         # There is no reliable parsed OPEX location field today; keep existing
         # event/sponsorship location, falling back to manpower only if blank.
@@ -1589,12 +1577,6 @@ def apply_sponsorship_event_segments(
         row["_form_cost_center_ref"] = event.get("cost_center_ref", "") or event.get("cost_center", "")
         if folder:
             row["_evidence_folder"] = str(folder)
-
-        if diff_parts:
-            _append_agent_flag_detail(
-                row,
-                f"{FORM_VS_MANPOWER_SEGMENT_DIFF}({'; '.join(diff_parts)})",
-            )
 
         if changes:
             if row.get("_agent_method", "cascade") == "cascade":

@@ -223,7 +223,7 @@ def test_apply_allocation_accepts_employee_list_without_form_amounts(tmp_path, m
     assert "SPONSORSHIP_ALLOCATION_AMOUNT_REVIEW" not in final.get("_agent_flag_details", "")
 
 
-def test_explicit_form_segments_are_shared_by_allocated_employees(tmp_path, monkeypatch):
+def test_form_agency_drives_agency_filtered_manpower_segments(tmp_path, monkeypatch):
     row = {
         "account": "60307021", "emp_no": "1001422,1002169,1001530",
         "cost_center": "999999", "div": "999", "solution": "99999", "agency": "99998",
@@ -237,15 +237,88 @@ def test_explicit_form_segments_are_shared_by_allocated_employees(tmp_path, monk
     }
     monkeypatch.setattr(
         run_v30, "resolve_sponsorship_codes_from_agency",
-        lambda agency, manpower: (None, "AGENCY_CODES_INCONSISTENT"),
+        lambda agency, manpower: ({
+            "cost_center": "170022", "div": "140", "solution": "00007",
+            "agency": "10043",
+        }, "sponsorship_agency_manpower"),
     )
     run_v30.apply_sponsorship_event_segments(
         [row], [cascade], {"1001422": _home()}, tmp_path, [tmp_path], {}
     )
     assert (row["cost_center"], row["div"], row["solution"], row["agency"]) == (
-        "160011", "130", "00000", "10043"
+        "170022", "140", "00007", "10043"
     )
+    assert row["_sponsorship_segment_sources"] == {
+        "agency": "form", "cost_center": "agency_mapping",
+        "div": "agency_mapping", "solution": "agency_mapping",
+    }
     assert row["emp_no"] == "1001422,1002169,1001530"
+
+
+def test_form_only_segment_labels_are_ignored_for_requester_home_fallback(tmp_path, monkeypatch):
+    row = {
+        "account": "60307021", "emp_no": "1001422,1002169,1001530",
+        "cost_center": "888888", "div": "888", "solution": "88888", "agency": "99998",
+        "_evidence_folder": str(tmp_path), "_sponsorship_requesting_emp_no": "1001422",
+    }
+    event = {
+        "cost_center": "160011", "div": "130", "solution": "00000", "agency": "10043",
+        "cost_center_ref": "160011", "source": "linked-form.pdf",
+        "raw_labels": {"cost_center": "Form CC", "div": "Form DIV", "solution": "Form Solution"},
+        "unresolved_labels": ["cost_center=Form CC", "div=Form DIV", "solution=Form Solution"],
+    }
+    monkeypatch.setattr(run_v30, "_parse_opex_event_segments", lambda folder, cascade: event)
+    monkeypatch.setattr(
+        run_v30, "resolve_sponsorship_codes_from_agency",
+        lambda agency, manpower: (None, "AGENCY_CODES_INCONSISTENT"),
+    )
+    run_v30.apply_sponsorship_event_segments(
+        [row], [{}], {"1001422": _home("170022", "140", "00007")},
+        tmp_path, [tmp_path], {},
+    )
+    assert (row["cost_center"], row["div"], row["solution"], row["agency"]) == (
+        "170022", "140", "00007", "10043"
+    )
+    assert row["_sponsorship_segment_sources"] == {
+        "agency": "form", "cost_center": "requester_home",
+        "div": "requester_home", "solution": "requester_home",
+    }
+    assert not any("LABEL_REVIEW" in flag for flag in row.get("_agent_flag_details", []))
+    assert row["emp_no"] == "1001422,1002169,1001530"
+
+
+def test_unresolved_agency_mapping_preserves_existing_segments_for_review(tmp_path, monkeypatch):
+    row = {
+        "account": "60307021", "emp_no": "1001422,1002169,1001530",
+        "cost_center": "180033", "div": "150", "solution": "00009", "agency": "99998",
+        "_evidence_folder": str(tmp_path), "_sponsorship_requesting_emp_no": "1001422",
+    }
+    event = {
+        "cost_center": "160011", "div": "130", "solution": "00000", "agency": "10043",
+        "cost_center_ref": "160011", "source": "linked-form.pdf",
+        "raw_labels": {"div": "Form DIV"}, "unresolved_labels": ["div=Form DIV"],
+    }
+    monkeypatch.setattr(run_v30, "_parse_opex_event_segments", lambda folder, cascade: event)
+    monkeypatch.setattr(
+        run_v30, "resolve_sponsorship_codes_from_agency",
+        lambda agency, manpower: (None, "AGENCY_CODES_INCONSISTENT"),
+    )
+    run_v30.apply_sponsorship_event_segments(
+        [row], [{}], {}, tmp_path, [tmp_path], {},
+    )
+    assert (row["cost_center"], row["div"], row["solution"], row["agency"]) == (
+        "180033", "150", "00009", "10043"
+    )
+    assert row["_sponsorship_segment_sources"] == {
+        "agency": "form", "cost_center": "existing_unresolved",
+        "div": "existing_unresolved", "solution": "existing_unresolved",
+    }
+    assert {
+        "SPONSORSHIP_COST_CENTER_FALLBACK_REVIEW",
+        "SPONSORSHIP_DIV_FALLBACK_REVIEW",
+        "SPONSORSHIP_SOLUTION_FALLBACK_REVIEW",
+    }.issubset(row["_agent_flag_details"])
+    assert not any("LABEL_REVIEW" in flag for flag in row["_agent_flag_details"])
 
 
 def _patch_split_dependencies(monkeypatch):

@@ -50,7 +50,7 @@ python3 pipelines/asateel.py --folder CENTRAL --full \
 python3 qc/asateel_golden_check.py      # must print "GOLDEN OK", exit 0
 ```
 - Runs the golden CENTRAL command (`--folder CENTRAL --full`, no pdf-dir/so-detail) against `qc/asateel_golden_expected.json`.
-- Golden signature: **188 rows · GREEN 7 · YELLOW 181 · RED 0 · 6 blank CC · 92/92 reconciled.**
+- Golden signature: **188 rows · GREEN 3 · YELLOW 185 · RED 0 · 6 blank CC · 92/92 reconciled.** (re-baselined 2026-07-13 for the supplier-sheet-authoritative agency rule; was GREEN 7 / YELLOW 181 under the old SO_Detail-authoritative behavior.)
 - If it fails: a change altered pipeline behavior. Do NOT deliver. Diagnose (Codex) before proceeding.
 
 > **Jawal has its own golden gate** (separate pipeline — travel tickets / `run_v30.py`, NOT this Asateel runbook). Before trusting ANY Jawal pipeline change, run `python3 qc/jawal_golden_check.py` — must print `GOLDEN OK`, exit 0. Locked batch J26-788; snapshots deterministic Stage-1 cascade aggregates from `summary-v15.11.2.json` vs `qc/jawal_golden_expected.json` (NOT Gemini/LLM output). Signature: **100 rows · GREEN 23 · YELLOW 31 · RED 46 · resolved 23 / exception 77 · blank-key 0.** Regenerate baseline only after an intentional reviewed change: `python3 scripts/process_batch.py --batch batches/jawal-J26-788 --raw-dir batches/jawal-J26-788/raw --suffix v15.11.2`, then refresh the expected JSON.
@@ -64,8 +64,9 @@ python3 qc/asateel_golden_check.py      # must print "GOLDEN OK", exit 0
 
 ## 3. Locked logic (do not change without golden gate + Codex)
 
-- **SO_Detail authoritative for agency.** Canonical JQ = strip leading space, zero-pad 8 → `JQ-NNNNNNNN`. Dedupe on CAT_AGENCY code only (org diffs ignored).
-- **Multi-agency JQs split evenly** across distinct agencies (cent remainder to last), flagged YELLOW, `split_method=per_jq_agency_even`. Salesperson-split guard exists but is dormant on current data.
+- **Supplier sheet authoritative for agency (changed 2026-07-13).** Agency (and its allocation segments) come from the batch's Expenses Format supplier sheet, matched by invoice number per line. Agency names map via the workbook `Agency ` reference sheet (value/description), then shared lookups. **SO_Detail is JQ-existence VALIDATION ONLY** — it no longer assigns agency and no longer drives any split. Canonical JQ = strip leading space, zero-pad 8 → `JQ-NNNNNNNN`. Reason: finance confirmed the old SO_Detail multi-agency split was wrong (a single JQ appearing under many agencies in SO_Detail must not be split; the supplier sheet states the one correct agency per invoice).
+- **No multi-agency splitting from SO_Detail.** A JQ that maps to multiple agencies in SO_Detail is NOT split; the supplier sheet's stated agency wins. Legitimate multi-line invoices in the supplier sheet (different agency per sub-line, e.g. 03948 = KLS Martin + Thermo) are honored as the supplier sheet's own allocation, NOT an SO_Detail split. The old `per_jq_agency_even` / salesperson-split paths are removed.
+- **Missing JQ in loaded SO_Detail => YELLOW** (review), agency still taken from supplier sheet. Never RED for that reason alone; monotonic severity still holds (YELLOW never downgrades RED).
 - **Option-A CC/DIV inheritance:** split rows inherit the JQ's supplier Cost Center / Cost Name / DIV / Contribution / Solution; ONLY agency code+name+salesperson vary per split. Prevents blank CC on employee-less agencies.
 - **GL Description = 8-part Jawal format:** `GL · Cost Name · Contribution · Solution Name · Agency Name · 00000 · 00 · 000000` (blank/#N/A → `—`). Local helper `_build_gl_description`; does NOT import Jawal.
 - **Severity is monotonic:** a YELLOW override never downgrades an existing RED. SO_Detail "JQ not in export" review runs only when SO_Detail is actually loaded.

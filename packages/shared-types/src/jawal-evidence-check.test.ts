@@ -410,6 +410,18 @@ describe('extractJawalInvoiceLines missing-identifier rows', () => {
     expect(result.findings.some((f) => f.code === 'JAWAL_STRUCTURE_INVALID')).toBe(true);
   });
 
+  it('surfaces a row with account/type data but no description or identifiers', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description', 'Account', 'Type'],
+        ['', '', '', '51000001', 'Travel'],
+      ],
+    ]);
+    expect(lines).toHaveLength(1);
+    const result = validateJawalEvidencePack({ lines, files: [] });
+    expect(result.findings.some((f) => f.code === 'JAWAL_STRUCTURE_INVALID')).toBe(true);
+  });
+
   it('ignores totals / summary rows without identifiers', () => {
     const lines = extractJawalInvoiceLines([
       [

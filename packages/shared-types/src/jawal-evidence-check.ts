@@ -425,7 +425,10 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
       const opexSerial =
         header.columns.opex !== null ? cellText(cells[header.columns.opex]) || null : null;
 
-      if (!ref && !ticketRaw && !description) {
+      // A row counts as blank only when EVERY content column is empty. Rows that
+      // carry account/type/OPEX data (but no description) must not be treated as
+      // spacers, otherwise the B1 missing-identifier check below never sees them.
+      if (!ref && !ticketRaw && !description && !account && !type && !opexSerial) {
         emptyStreak += 1;
         if (emptyStreak >= 5) break;
         continue;

@@ -612,10 +612,6 @@ function lineFolderKeys(line: JawalInvoiceLine, allLines: JawalInvoiceLine[]): s
   return [...new Set(keys.filter(Boolean))];
 }
 
-function lineFolderKey(line: JawalInvoiceLine, allLines: JawalInvoiceLine[]): string | null {
-  return lineFolderKeys(line, allLines)[0] ?? null;
-}
-
 function folderContainsEmpId(
   folder: string,
   line: JawalInvoiceLine,

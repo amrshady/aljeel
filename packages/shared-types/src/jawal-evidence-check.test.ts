@@ -394,6 +394,75 @@ describe('validateJawalEvidencePack', () => {
   });
 });
 
+describe('extractJawalInvoiceLines missing-identifier rows', () => {
+  it('surfaces a content row missing both Ref.No and Ticket (B1)', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description', 'Account', 'Type'],
+        ['', '', 'Staff travel RUH-JED', '51000001', 'Travel'],
+      ],
+    ]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.ref).toBe('');
+    expect(lines[0]?.ticket).toBeNull();
+
+    const result = validateJawalEvidencePack({ lines, files: [] });
+    expect(result.findings.some((f) => f.code === 'JAWAL_STRUCTURE_INVALID')).toBe(true);
+  });
+
+  it('ignores totals / summary rows without identifiers', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description', 'Account'],
+        ['SIS-14', '6905428831', 'Travel', '51000001'],
+        ['', '', 'Grand Total', ''],
+      ],
+    ]);
+    expect(lines).toHaveLength(1);
+  });
+});
+
+describe('empty-folder detection', () => {
+  it('flags a folder whose only file is OS junk', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description'],
+        ['SIS-14', '6905428831', 'Travel'],
+      ],
+    ]);
+    const result = validateJawalEvidencePack({
+      lines,
+      files: [
+        { fileName: 'SIS-14/approval.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/eticket.pdf', sizeBytes: 100 },
+        { fileName: 'SIS-99/.DS_Store', sizeBytes: 6148 },
+      ],
+    });
+    expect(
+      result.findings.some(
+        (f) => f.code === 'JAWAL_EMPTY_FOLDER' && f.path === 'SIS-99',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not flag folders that contain real files', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description'],
+        ['SIS-14', '6905428831', 'Travel'],
+      ],
+    ]);
+    const result = validateJawalEvidencePack({
+      lines,
+      files: [
+        { fileName: 'SIS-14/approval.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/eticket.pdf', sizeBytes: 100 },
+      ],
+    });
+    expect(result.findings.some((f) => f.code === 'JAWAL_EMPTY_FOLDER')).toBe(false);
+  });
+});
+
 describe('sniffContainerMagic', () => {
   it('accepts %PDF magic', () => {
     const bytes = new TextEncoder().encode('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n%%EOF\n');
@@ -403,5 +472,28 @@ describe('sniffContainerMagic', () => {
   it('rejects pdf extension with zip magic', () => {
     const bytes = Uint8Array.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00]);
     expect(sniffContainerMagic('fake.pdf', bytes).ok).toBe(false);
+  });
+
+  it('rejects a large truncated PDF missing %%EOF', () => {
+    const filler = 'a'.repeat(4096);
+    const bytes = new TextEncoder().encode(`%PDF-1.7\n${filler}`);
+    expect(bytes.length).toBeGreaterThan(64);
+    expect(sniffContainerMagic('truncated.pdf', bytes).ok).toBe(false);
+  });
+
+  it('validates image magic bytes', () => {
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+    expect(sniffContainerMagic('scan.png', png).ok).toBe(true);
+    const notPng = Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]);
+    expect(sniffContainerMagic('scan.png', notPng).ok).toBe(false);
+  });
+
+  it('validates .eml RFC 822 headers', () => {
+    const eml = new TextEncoder().encode(
+      'From: a@b.com\r\nSubject: Approval\r\nDate: Mon, 1 Jan 2026 00:00:00 +0000\r\n\r\nbody',
+    );
+    expect(sniffContainerMagic('approval.eml', eml).ok).toBe(true);
+    const binary = Uint8Array.from([0xd0, 0xcf, 0x11, 0xe0, 0x00, 0x01]);
+    expect(sniffContainerMagic('approval.eml', binary).ok).toBe(false);
   });
 });

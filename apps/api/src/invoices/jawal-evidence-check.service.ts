@@ -70,7 +70,9 @@ export class JawalEvidenceCheckService {
 
       const needsBytes =
         isXlsxFileName(document.fileName) ||
-        /\.(pdf|msg|xlsx|xlsm|xls)$/i.test(document.fileName);
+        /\.(pdf|msg|eml|xlsx|xlsm|xls|png|jpe?g|gif|webp|tiff?|bmp)$/i.test(
+          document.fileName,
+        );
 
       if (needsBytes) {
         try {

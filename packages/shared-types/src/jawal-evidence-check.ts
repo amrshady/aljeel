@@ -431,7 +431,23 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
         continue;
       }
       emptyStreak = 0;
-      if (!ref && !ticketRaw) continue;
+
+      if (!ref && !ticketRaw) {
+        // A data row that carries line content (passenger/route, account, type or
+        // OPEX) but is missing BOTH Ref.No and Ticket is a structural defect the
+        // validator must surface (B1) — don't silently drop it. Skip totals /
+        // summary rows so we don't block on non-line-item footers.
+        const hasLineContent =
+          description.length > 0 ||
+          account.length > 0 ||
+          type.length > 0 ||
+          (opexSerial ?? '').length > 0;
+        const looksLikeTotalsRow =
+          /\b(total|subtotal|grand\s*total|vat|tax|balance|summary|amount\s*due)\b/i.test(
+            description,
+          ) || /المجموع|الإجمالي|الاجمالي|ضريبة/.test(description);
+        if (!hasLineContent || looksLikeTotalsRow) continue;
+      }
 
       lines.push({
         row: row + 1,
@@ -508,6 +524,13 @@ function folderMatchesKey(folder: string, key: string): boolean {
     if (slugsShareEventStem(folder, key)) return true;
   }
   return false;
+}
+
+/** OS / archive junk that carries no evidence value. */
+export function isJunkEvidenceFile(fileName: string): boolean {
+  const base = basename(fileName);
+  if (/^\._/.test(base)) return true; // AppleDouble resource forks
+  return /^(\.ds_store|thumbs\.db|desktop\.ini|\.gitkeep|\.keep|__macosx)$/i.test(base);
 }
 
 function isSpreadsheetName(fileName: string): boolean {
@@ -752,19 +775,25 @@ export function validateJawalEvidencePack(input: {
     }
   }
 
-  // Empty folders: folder segment present with zero nested files (defensive).
-  const folderCounts = new Map<string, number>();
+  // Empty folders: a folder segment whose only contents are OS junk files
+  // (.DS_Store, Thumbs.db, AppleDouble ._*, …) or zero-byte placeholders holds
+  // no real evidence, even though it technically has file entries.
+  const folderAnyFiles = new Set<string>();
+  const folderRealFiles = new Set<string>();
   for (const file of files) {
     const folder = evidenceFolderName(file.fileName);
     if (!folder) continue;
     const key = normalizeCanonicalToken(folder);
-    folderCounts.set(key, (folderCounts.get(key) ?? 0) + 1);
+    folderAnyFiles.add(key);
+    if (!isJunkEvidenceFile(file.fileName) && file.sizeBytes > 0 && !file.zeroBytes) {
+      folderRealFiles.add(key);
+    }
   }
-  for (const [folder, count] of folderCounts) {
-    if (count <= 0) {
+  for (const folder of folderAnyFiles) {
+    if (!folderRealFiles.has(folder)) {
       findings.push({
         code: 'JAWAL_EMPTY_FOLDER',
-        message: `Evidence folder is empty: ${folder}`,
+        message: `Evidence folder has no usable files (only empty/system files): ${folder}`,
         gate: 'A',
         path: folder,
       });
@@ -1022,15 +1051,84 @@ export function sniffPdfBuffer(bytes: Uint8Array): { ok: boolean; reason?: strin
   if (bytes.length < 5) return { ok: false, reason: 'too small' };
   const head = String.fromCharCode(bytes[0]!, bytes[1]!, bytes[2]!, bytes[3]!, bytes[4]!);
   if (!head.startsWith('%PDF-')) return { ok: false, reason: 'bad magic' };
-  const tail = bytes.slice(Math.max(0, bytes.length - 1024));
+  // A well-formed PDF ends with the `%%EOF` marker (optionally followed by a few
+  // trailing whitespace bytes). Its absence anywhere in the tail means the file
+  // was truncated mid-upload — flag it regardless of overall size.
+  const tail = bytes.slice(Math.max(0, bytes.length - 2048));
   const text = Array.from(tail, (b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : ' ')).join('');
-  if (!/%%EOF/i.test(text) && bytes.length < 64) {
-    return { ok: false, reason: 'missing EOF' };
+  if (!/%%EOF/i.test(text)) {
+    return { ok: false, reason: 'missing EOF (truncated PDF)' };
   }
   return { ok: true };
 }
 
-/** ZIP/OLE sniff for .xlsx / .msg. */
+/** Extension image formats we can validate by magic bytes. */
+export const JAWAL_IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|tiff?|bmp)$/i;
+
+function startsWithSignature(bytes: Uint8Array, signature: number[]): boolean {
+  if (bytes.length < signature.length) return false;
+  return signature.every((value, index) => bytes[index] === value);
+}
+
+/** Raster-image magic sniff (PNG/JPEG/GIF/WEBP/TIFF/BMP). */
+export function sniffImageMagic(
+  fileName: string,
+  bytes: Uint8Array,
+): { ok: boolean; reason?: string } {
+  const base = basename(fileName).toLowerCase();
+  if (bytes.length < 4) return { ok: false, reason: 'too small' };
+
+  if (/\.png$/i.test(base)) {
+    return startsWithSignature(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+      ? { ok: true }
+      : { ok: false, reason: 'expected png' };
+  }
+  if (/\.jpe?g$/i.test(base)) {
+    return startsWithSignature(bytes, [0xff, 0xd8, 0xff])
+      ? { ok: true }
+      : { ok: false, reason: 'expected jpeg' };
+  }
+  if (/\.gif$/i.test(base)) {
+    return startsWithSignature(bytes, [0x47, 0x49, 0x46, 0x38])
+      ? { ok: true }
+      : { ok: false, reason: 'expected gif' };
+  }
+  if (/\.webp$/i.test(base)) {
+    const riff = startsWithSignature(bytes, [0x52, 0x49, 0x46, 0x46]);
+    const webp =
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    return riff && webp ? { ok: true } : { ok: false, reason: 'expected webp' };
+  }
+  if (/\.tiff?$/i.test(base)) {
+    const le = startsWithSignature(bytes, [0x49, 0x49, 0x2a, 0x00]);
+    const be = startsWithSignature(bytes, [0x4d, 0x4d, 0x00, 0x2a]);
+    return le || be ? { ok: true } : { ok: false, reason: 'expected tiff' };
+  }
+  if (/\.bmp$/i.test(base)) {
+    return startsWithSignature(bytes, [0x42, 0x4d])
+      ? { ok: true }
+      : { ok: false, reason: 'expected bmp' };
+  }
+  return { ok: true };
+}
+
+/** RFC 822 / MIME header sniff for .eml (a renamed binary won't have headers). */
+export function sniffEmlMagic(bytes: Uint8Array): { ok: boolean; reason?: string } {
+  if (bytes.length === 0) return { ok: false, reason: 'empty' };
+  const head = Array.from(bytes.slice(0, 4096), (b) =>
+    b === 9 || b === 10 || b === 13 || (b >= 32 && b < 127) ? String.fromCharCode(b) : '\uFFFD',
+  ).join('');
+  if (
+    /^\s*(from|to|cc|subject|date|received|message-id|mime-version|return-path|delivered-to|content-type)\s*:/im.test(
+      head,
+    )
+  ) {
+    return { ok: true };
+  }
+  return { ok: false, reason: 'not an email (no RFC 822 headers)' };
+}
+
+/** ZIP/OLE sniff for .xlsx / .msg, plus PDF, image and .eml validation. */
 export function sniffContainerMagic(
   fileName: string,
   bytes: Uint8Array,
@@ -1050,9 +1148,13 @@ export function sniffContainerMagic(
     return isOle || isZip ? { ok: true } : { ok: false, reason: 'expected ole/msg' };
   }
   if (/\.pdf$/i.test(base)) {
-    return sniffPdfBuffer(bytes).ok
-      ? { ok: true }
-      : { ok: false, reason: sniffPdfBuffer(bytes).reason };
+    return sniffPdfBuffer(bytes);
+  }
+  if (JAWAL_IMAGE_EXTENSION.test(base)) {
+    return sniffImageMagic(base, bytes);
+  }
+  if (/\.eml$/i.test(base)) {
+    return sniffEmlMagic(bytes);
   }
   return { ok: true };
 }

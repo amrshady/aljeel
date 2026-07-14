@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Res,
   StreamableFile,
@@ -146,6 +147,20 @@ export class DocumentsController {
       'Content-Disposition': `inline; filename="${encodeURIComponent(document.fileName)}"`,
     });
     stream.pipe(res);
+  }
+
+  @Patch('documents/:id')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @ApiOperation({
+    summary:
+      'Rename a document on a Jawal draft/rejected invoice (logical path only; before submit)',
+  })
+  rename(
+    @CurrentUser() user: AuthUser,
+    @Param('id') documentId: string,
+    @Body() body: unknown,
+  ) {
+    return this.documentsService.rename(user, documentId, body);
   }
 
   @Delete('documents/:id')

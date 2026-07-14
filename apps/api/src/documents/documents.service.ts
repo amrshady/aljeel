@@ -11,7 +11,10 @@ import {
 } from '@aljeel/kb-upload';
 import {
   MAX_DOCUMENT_SIZE_BYTES,
+  RenameDocumentSchema,
   UploadDocumentMetaSchema,
+  isUnsafeEvidenceFileName,
+  normalizeDocumentRelativePath,
   resolveDocumentMimeType,
   sanitizeEvidenceRelativePath,
   type DocumentType,
@@ -52,6 +55,9 @@ const UPLOAD_ALLOWED_STATUSES = new Set([
   'UNDER_REVIEW',
   'ON_HOLD',
 ]);
+
+/** Rename is pre-submit only (Jawal vendors need to fix evidence paths before Gate B). */
+const RENAME_ALLOWED_STATUSES = new Set(['DRAFT', 'REJECTED']);
 
 function serializeDocument(doc: DocumentRow) {
   return {
@@ -335,6 +341,97 @@ export class DocumentsService {
     const localKey = document.storageKey.replace(/^local:/, '');
     const stream = this.storage.createReadStream(localKey);
     return { document, stream };
+  }
+
+  async rename(user: AuthUser, documentId: string, body: unknown) {
+    const { fileName: requestedName } = RenameDocumentSchema.parse(body);
+    if (isUnsafeEvidenceFileName(requestedName)) {
+      throw new UnprocessableEntityException({
+        code: 'INVALID_FILENAME',
+        message: 'That file name is not allowed.',
+      });
+    }
+
+    const nextFileName = normalizeDocumentRelativePath(requestedName);
+    if (!nextFileName || isUnsafeEvidenceFileName(nextFileName)) {
+      throw new UnprocessableEntityException({
+        code: 'INVALID_FILENAME',
+        message: 'That file name is not allowed.',
+      });
+    }
+
+    const supplierId = requireSupplierId(user);
+    const document = await this.prisma.document.findFirst({
+      where: { id: documentId, invoice: { supplierId } },
+      include: {
+        invoice: {
+          include: { supplier: { select: { erpIntegration: true } } },
+        },
+      },
+    });
+    if (!document) {
+      throw this.documentNotFound();
+    }
+
+    if (document.invoice.supplier.erpIntegration !== 'JAWAL') {
+      throw new UnprocessableEntityException({
+        code: 'RENAME_NOT_ALLOWED',
+        message: 'Only Jawal suppliers can rename documents before submission.',
+      });
+    }
+    if (!RENAME_ALLOWED_STATUSES.has(document.invoice.status)) {
+      throw new UnprocessableEntityException({
+        code: 'RENAME_NOT_ALLOWED',
+        message: 'Documents can only be renamed before the invoice is submitted.',
+        details: { status: document.invoice.status },
+      });
+    }
+    if (document.type === 'ORACLE_UPLOAD') {
+      throw new UnprocessableEntityException({
+        code: 'RENAME_NOT_ALLOWED',
+        message: 'This document cannot be renamed.',
+      });
+    }
+
+    if (document.fileName === nextFileName) {
+      return serializeDocument(document);
+    }
+
+    const clash = await this.prisma.document.findFirst({
+      where: {
+        invoiceId: document.invoiceId,
+        fileName: nextFileName,
+        id: { not: documentId },
+      },
+      select: { id: true },
+    });
+    if (clash) {
+      throw new UnprocessableEntityException({
+        code: 'FILENAME_TAKEN',
+        message: 'Another document on this invoice already uses that name.',
+        details: { fileName: nextFileName },
+      });
+    }
+
+    const nextMimeType = resolveDocumentMimeType(nextFileName, document.mimeType);
+    const updated = await this.prisma.document.update({
+      where: { id: documentId },
+      data: {
+        fileName: nextFileName,
+        mimeType: nextMimeType,
+      },
+    });
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Document',
+      entityId: documentId,
+      action: 'RENAME',
+      before: { invoiceId: document.invoiceId, fileName: document.fileName },
+      after: { invoiceId: document.invoiceId, fileName: nextFileName },
+    });
+
+    return serializeDocument(updated);
   }
 
   async remove(user: AuthUser, documentId: string) {

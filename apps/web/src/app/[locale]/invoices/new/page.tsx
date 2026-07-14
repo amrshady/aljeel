@@ -357,6 +357,7 @@ function InvoiceUploadContent() {
                 }}
                 blockNewFiles={!canAddFiles}
                 allowFolder
+                canRename={isJawalSupplier}
                 onFolderName={(name) => {
                   setFolderName((prev) => {
                     if (prev !== name) setDraftInvoiceId(null);

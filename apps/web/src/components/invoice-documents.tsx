@@ -6,7 +6,11 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ApiClientError } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
-import { deleteInvoiceDocument, listInvoiceDocuments } from '@/lib/invoices-api';
+import {
+  deleteInvoiceDocument,
+  listInvoiceDocuments,
+  renameInvoiceDocument,
+} from '@/lib/invoices-api';
 import { uploadInvoiceDocumentViaKb } from '@/lib/kb-upload-api';
 import {
   KbFileUploader,
@@ -22,6 +26,8 @@ import {
 interface InvoiceDocumentsProps {
   invoiceId: string;
   editable: boolean;
+  /** Jawal + draft/rejected only — rename logical evidence paths before submit. */
+  canRename?: boolean;
   viewable?: boolean;
   selectedDocumentId?: string | null;
   onSelectDocument?: (documentId: string) => void;
@@ -43,17 +49,28 @@ function DocumentSkeleton() {
 function PendingFileRow({
   item,
   onRemove,
+  onRename,
   canRemove,
+  canRename,
   t,
 }: {
   item: KbQueuedFile;
   onRemove?: () => void;
+  onRename?: (nextPath: string) => void;
   canRemove: boolean;
+  canRename: boolean;
   t: ReturnType<typeof useTranslations<'documents'>>;
 }) {
   return (
     <li className="px-2 py-1">
-      <KbUploadRow item={item} onRemove={onRemove} canRemove={canRemove} t={t} />
+      <KbUploadRow
+        item={item}
+        onRemove={onRemove}
+        onRename={onRename}
+        canRemove={canRemove}
+        canRename={canRename}
+        t={t}
+      />
     </li>
   );
 }
@@ -61,6 +78,7 @@ function PendingFileRow({
 export function InvoiceDocuments({
   invoiceId,
   editable,
+  canRename = false,
   viewable = false,
   selectedDocumentId,
   onSelectDocument,
@@ -70,6 +88,8 @@ export function InvoiceDocuments({
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<KbQueuedFile[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['invoices', invoiceId, 'documents'],
@@ -134,10 +154,64 @@ export function InvoiceDocuments({
     },
   });
 
-  const busy = uploadMutation.isPending || deleteMutation.isPending;
+  const renameMutation = useMutation({
+    mutationFn: ({ documentId, fileName }: { documentId: string; fileName: string }) =>
+      renameInvoiceDocument(documentId, fileName),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['invoices', invoiceId, 'documents'] });
+      setEditingId(null);
+      setDraftName('');
+      setError(null);
+    },
+    onError: (err) => {
+      setError(err instanceof ApiClientError ? err.message : t('renameError'));
+    },
+  });
+
+  const busy =
+    uploadMutation.isPending || deleteMutation.isPending || renameMutation.isPending;
   const pendingUploads = pending.filter((f) => f.status === 'pending');
   const uploading = pending.filter((f) => !['pending'].includes(f.status));
-  const showList = isLoading || uploading.length > 0 || documents.length > 0;
+  const showList =
+    isLoading ||
+    uploading.length > 0 ||
+    pendingUploads.length > 0 ||
+    documents.length > 0;
+
+  function startRename(documentId: string, fileName: string) {
+    setEditingId(documentId);
+    setDraftName(fileName);
+    setError(null);
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setDraftName('');
+  }
+
+  function saveRename(documentId: string) {
+    const next = draftName.trim();
+    if (!next) {
+      setError(t('renameEmpty'));
+      return;
+    }
+    renameMutation.mutate({ documentId, fileName: next });
+  }
+
+  function renamePending(item: KbQueuedFile, nextPath: string) {
+    const key = kbFileKey(item);
+    const trimmed = nextPath.trim();
+    if (!trimmed) {
+      setError(t('renameEmpty'));
+      return;
+    }
+    setPending((current) =>
+      patchKbFile(current, key, {
+        relativePath: trimmed,
+      }),
+    );
+    setError(null);
+  }
 
   return (
     <section className={compact ? undefined : 'mt-8'}>
@@ -163,44 +237,127 @@ export function InvoiceDocuments({
             )}
             {!isLoading &&
               uploading.map((item) => (
-                <PendingFileRow key={kbFileKey(item)} item={item} canRemove={false} t={t} />
+                <PendingFileRow
+                  key={kbFileKey(item)}
+                  item={item}
+                  canRemove={false}
+                  canRename={false}
+                  t={t}
+                />
               ))}
             {!isLoading &&
-              documents.map((doc) => (
-                <li
-                  key={doc.id}
-                  className={`flex items-center justify-between gap-3 p-3 text-sm ${
-                    viewable ? 'cursor-pointer hover:bg-muted/50' : ''
-                  } ${selectedDocumentId === doc.id ? 'bg-muted' : ''}`}
-                  onClick={
-                    viewable && onSelectDocument
-                      ? () => onSelectDocument(doc.id)
-                      : undefined
+              pendingUploads.map((item) => (
+                <PendingFileRow
+                  key={kbFileKey(item)}
+                  item={item}
+                  canRemove={editable && !busy}
+                  canRename={canRename && !busy}
+                  onRemove={() =>
+                    setPending((current) =>
+                      current.filter((file) => kbFileKey(file) !== kbFileKey(item)),
+                    )
                   }
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="text-lg leading-none" aria-hidden>
-                      {fileIcon(doc.fileName)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{doc.fileName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatBytes(doc.sizeBytes)} · {t(`scan.${doc.virusScanStatus}`)}
-                      </p>
-                    </div>
-                  </div>
-                  {editable && (
-                    <button
-                      type="button"
-                      onClick={() => deleteMutation.mutate(doc.id)}
-                      disabled={busy}
-                      className="shrink-0 text-xs text-destructive hover:underline disabled:opacity-50"
-                    >
-                      {t('remove')}
-                    </button>
-                  )}
-                </li>
+                  onRename={(next) => renamePending(item, next)}
+                  t={t}
+                />
               ))}
+            {!isLoading &&
+              documents.map((doc) => {
+                const editing = editingId === doc.id;
+                return (
+                  <li
+                    key={doc.id}
+                    className={`flex items-center justify-between gap-3 p-3 text-sm ${
+                      viewable && !editing ? 'cursor-pointer hover:bg-muted/50' : ''
+                    } ${selectedDocumentId === doc.id ? 'bg-muted' : ''}`}
+                    onClick={
+                      viewable && onSelectDocument && !editing
+                        ? () => onSelectDocument(doc.id)
+                        : undefined
+                    }
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <span className="text-lg leading-none" aria-hidden>
+                        {fileIcon(doc.fileName)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        {editing ? (
+                          <form
+                            className="space-y-2"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              saveRename(doc.id);
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <input
+                              autoFocus
+                              value={draftName}
+                              onChange={(event) => setDraftName(event.target.value)}
+                              disabled={renameMutation.isPending}
+                              className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                              aria-label={t('rename')}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="submit"
+                                disabled={renameMutation.isPending}
+                                className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                              >
+                                {t('saveRename')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelRename}
+                                disabled={renameMutation.isPending}
+                                className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
+                              >
+                                {t('cancelRename')}
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <>
+                            <p className="truncate font-medium" title={doc.fileName}>
+                              {doc.fileName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatBytes(doc.sizeBytes)} · {t(`scan.${doc.virusScanStatus}`)}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {!editing && (canRename || editable) && (
+                      <div
+                        className="flex shrink-0 items-center gap-3"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {canRename && (
+                          <button
+                            type="button"
+                            onClick={() => startRename(doc.id, doc.fileName)}
+                            disabled={busy}
+                            className="text-xs text-primary hover:underline disabled:opacity-50"
+                          >
+                            {t('rename')}
+                          </button>
+                        )}
+                        {editable && (
+                          <button
+                            type="button"
+                            onClick={() => deleteMutation.mutate(doc.id)}
+                            disabled={busy}
+                            className="text-xs text-destructive hover:underline disabled:opacity-50"
+                          >
+                            {t('remove')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
           </ul>
         </div>
       )}

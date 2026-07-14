@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  SupplierProfileSchema,
   validateInvoiceSubmitDocuments,
   type ApInvoiceDetail,
   type UserRole,
@@ -10,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import { ApReviewActions } from '@/components/ap-review-actions';
 import { ReconciliationPanel } from '@/components/reconciliation-panel';
 import { AppShell } from '@/components/app-shell';
@@ -19,6 +21,7 @@ import { DocumentEvidenceViewer } from '@/components/document-evidence-viewer';
 import { InvoiceDocuments } from '@/components/invoice-documents';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
+import { apiFetch } from '@/lib/api-client';
 import { formatInvoiceError } from '@/lib/format-error';
 import { getApInvoice } from '@/lib/ap-api';
 import { getInvoice, listInvoiceDocuments, submitInvoice } from '@/lib/invoices-api';
@@ -43,6 +46,16 @@ function InvoiceDetailContent() {
       isApUser ? getApInvoice(params.id) : getInvoice(params.id),
     enabled: !!user,
   });
+
+  const { data: supplier } = useQuery({
+    queryKey: ['supplier', 'me'],
+    queryFn: () =>
+      apiFetch('/suppliers/me', {
+        schema: z.union([SupplierProfileSchema, z.null()]),
+      }),
+    enabled: !!user?.supplierId && !isApUser,
+  });
+  const isJawalSupplier = supplier?.erpIntegration === 'JAWAL';
 
   const { data: documents } = useQuery({
     queryKey: ['invoices', params.id, 'documents'],
@@ -106,6 +119,7 @@ function InvoiceDetailContent() {
   const canSubmit = !isApUser && (invoice.status === 'DRAFT' || invoice.status === 'REJECTED');
   const canUploadDocs =
     !isApUser && !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
+  const canRenameDocs = canSubmit && isJawalSupplier;
   const supplierName = 'supplierName' in invoice ? invoice.supplierName : undefined;
   const apInvoice = isApUser ? (invoice as ApInvoiceDetail) : null;
 
@@ -157,12 +171,17 @@ function InvoiceDetailContent() {
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t('documentsTitle')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {invoice.status === 'DRAFT' ? t('documentsDraftHint') : t('documentsHint')}
+          {canRenameDocs
+            ? t('documentsRenameHint')
+            : invoice.status === 'DRAFT'
+              ? t('documentsDraftHint')
+              : t('documentsHint')}
         </p>
         <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:items-start">
           <InvoiceDocuments
             invoiceId={invoice.id}
             editable={canUploadDocs}
+            canRename={canRenameDocs}
             viewable
             compact
             selectedDocumentId={selectedDocumentId}

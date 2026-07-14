@@ -49,6 +49,8 @@ interface KbFileUploaderProps {
   hint?: string;
   /** When false, only renders the dropzone (file list shown elsewhere). */
   showFileList?: boolean;
+  /** Jawal: let vendors fix evidence relative paths before upload/submit. */
+  canRename?: boolean;
   /** Scroll target for the file list (e.g. during submit). */
   listRef?: RefObject<HTMLDivElement | null>;
 }
@@ -301,12 +303,16 @@ const FILE_ROW_TRANSITION_MS = 200;
 function KbUploadRowAnimated({
   item,
   onRemove,
+  onRename,
   canRemove,
+  canRename,
   t,
 }: {
   item: KbQueuedFile;
   onRemove: () => void;
+  onRename?: (nextPath: string) => void;
   canRemove: boolean;
+  canRename?: boolean;
   t: ReturnType<typeof useTranslations<'documents'>>;
 }) {
   const [entered, setEntered] = useState(false);
@@ -345,7 +351,9 @@ function KbUploadRowAnimated({
       <KbUploadRow
         item={item}
         onRemove={handleRemove}
+        onRename={onRename}
         canRemove={canRemove && !exiting}
+        canRename={canRename && !exiting}
         t={t}
       />
     </div>
@@ -355,19 +363,38 @@ function KbUploadRowAnimated({
 export function KbUploadRow({
   item,
   onRemove,
+  onRename,
   canRemove,
+  canRename,
   t,
 }: {
   item: KbQueuedFile;
   onRemove?: () => void;
+  onRename?: (nextPath: string) => void;
   canRemove?: boolean;
+  canRename?: boolean;
   t: ReturnType<typeof useTranslations<'documents'>>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(displayPath(item));
   const active = ['queued', 'signing', 'uploading', 'finalizing'].includes(item.status);
   const isDone = item.status === 'done';
   const isSkipped = item.status === 'skipped';
   const isError = item.status === 'error';
   const showProgress = active || isDone || isSkipped || isError;
+  const allowRename = Boolean(canRename && onRename && item.status === 'pending');
+
+  function startRename() {
+    setDraftName(displayPath(item));
+    setEditing(true);
+  }
+
+  function saveRename() {
+    const next = draftName.trim();
+    if (!next || !onRename) return;
+    onRename(next);
+    setEditing(false);
+  }
 
   return (
     <div
@@ -386,7 +413,37 @@ export function KbUploadRow({
       <span className="shrink-0 text-base leading-none" aria-hidden>
         {fileIcon(item.file.name)}
       </span>
-      <p className="min-w-0 flex-1 truncate font-medium">{displayPath(item)}</p>
+      {editing ? (
+        <form
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveRename();
+          }}
+        >
+          <input
+            autoFocus
+            value={draftName}
+            onChange={(event) => setDraftName(event.target.value)}
+            className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1 text-sm"
+            aria-label={t('rename')}
+          />
+          <button type="submit" className="text-xs font-medium text-primary hover:underline">
+            {t('saveRename')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="text-xs text-muted-foreground hover:underline"
+          >
+            {t('cancelRename')}
+          </button>
+        </form>
+      ) : (
+        <p className="min-w-0 flex-1 truncate font-medium" title={displayPath(item)}>
+          {displayPath(item)}
+        </p>
+      )}
       {showProgress && (
         <UploadProgressBar status={item.status} progress={item.progress} compact />
       )}
@@ -406,14 +463,27 @@ export function KbUploadRow({
           {isError ? t('statusFailed') : uploadStatusText(item.status, item.progress, t)}
         </span>
       )}
-      {item.status === 'pending' && canRemove && onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="shrink-0 text-xs text-destructive hover:underline"
-        >
-          {t('remove')}
-        </button>
+      {!editing && item.status === 'pending' && (
+        <div className="flex shrink-0 items-center gap-3">
+          {allowRename && (
+            <button
+              type="button"
+              onClick={startRename}
+              className="text-xs text-primary hover:underline"
+            >
+              {t('rename')}
+            </button>
+          )}
+          {canRemove && onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-xs text-destructive hover:underline"
+            >
+              {t('remove')}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -432,6 +502,7 @@ export function KbFileUploader({
   title,
   hint,
   showFileList = true,
+  canRename = false,
   listRef,
 }: KbFileUploaderProps) {
   const t = useTranslations('documents');
@@ -497,6 +568,16 @@ export function KbFileUploader({
 
   function removeByKey(key: string) {
     onChange(files.filter((item) => kbFileKey(item) !== key));
+  }
+
+  function renameByKey(key: string, nextPath: string) {
+    const trimmed = nextPath.trim();
+    if (!trimmed) return;
+    onChange(
+      files.map((item) =>
+        kbFileKey(item) === key ? { ...item, relativePath: trimmed } : item,
+      ),
+    );
   }
 
   return (
@@ -620,7 +701,9 @@ export function KbFileUploader({
               key={kbFileKey(item)}
               item={item}
               canRemove={!zoneDisabled}
+              canRename={canRename && !zoneDisabled}
               onRemove={() => removeByKey(kbFileKey(item))}
+              onRename={(nextPath) => renameByKey(kbFileKey(item), nextPath)}
               t={t}
             />
           ))}

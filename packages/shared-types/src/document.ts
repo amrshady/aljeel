@@ -36,6 +36,12 @@ export const UploadDocumentMetaSchema = z.object({
 });
 export type UploadDocumentMeta = z.infer<typeof UploadDocumentMetaSchema>;
 
+/** Rename payload — logical path only (folder/file); storage key is unchanged. */
+export const RenameDocumentSchema = z.object({
+  fileName: z.string().trim().min(1).max(500),
+});
+export type RenameDocument = z.infer<typeof RenameDocumentSchema>;
+
 export const DocumentSchema = z.object({
   id: z.string(),
   invoiceId: z.string(),
@@ -51,6 +57,20 @@ export type Document = z.infer<typeof DocumentSchema>;
 
 export const DocumentListSchema = z.array(DocumentSchema);
 export type DocumentList = z.infer<typeof DocumentListSchema>;
+
+/**
+ * Soft path normalize for vendor renames: keep spaces/Unicode for evidence matching,
+ * strip traversal and empty segments only.
+ */
+export function normalizeDocumentRelativePath(name: string): string {
+  const normalized = name.replace(/\\/g, '/').replace(/^\/+/, '').trim();
+  const parts = normalized
+    .split('/')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && part !== '.' && part !== '..');
+  if (parts.length === 0) return '';
+  return parts.join('/').slice(0, 500);
+}
 
 /** Presigned URL returned by GET /documents/:id/content when using KB storage. */
 export const DocumentContentUrlSchema = z.object({

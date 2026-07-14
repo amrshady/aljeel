@@ -2,6 +2,7 @@ import {
   CreateInvoiceDraftSchema,
   DocumentContentUrlSchema,
   DocumentListSchema,
+  DocumentSchema,
   InvoiceDetailSchema,
   InvoiceFolderListItemSchema,
   InvoiceSchema,
@@ -113,5 +114,13 @@ export function deleteInvoiceDocument(documentId: string) {
   return apiFetch(`/documents/${documentId}`, {
     method: 'DELETE',
     schema: DeletedDocumentSchema,
+  });
+}
+
+export function renameInvoiceDocument(documentId: string, fileName: string) {
+  return apiFetch(`/documents/${documentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fileName }),
+    schema: DocumentSchema,
   });
 }

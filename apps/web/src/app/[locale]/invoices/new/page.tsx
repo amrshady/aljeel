@@ -3,6 +3,7 @@
 import {
   ASATEEL_REGION_CODES,
   ASATEEL_REGION_VALUES,
+  SupplierProfileSchema,
   validateInvoiceSubmitDocuments,
   type AsateelRegion,
 } from '@aljeel/shared-types';
@@ -11,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, FileWarning } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { FormEvent, useRef, useState } from 'react';
+import { z } from 'zod';
 import { AppShell } from '@/components/app-shell';
 import { displayInvoiceName } from '@/components/invoice-folder-table';
 import {
@@ -21,9 +23,16 @@ import {
   type KbQueuedFile,
 } from '@/components/kb-file-uploader';
 import { RequireAuth } from '@/components/require-auth';
+import { useAuth } from '@/components/auth-provider';
+import { apiFetch } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
 import { validateLocalAsateelManifest } from '@/lib/asateel-manifest-validation';
-import { formatAsateelManifestIssue, formatInvoiceError } from '@/lib/format-error';
+import { validateLocalJawalEvidence } from '@/lib/jawal-evidence-validation';
+import {
+  formatAsateelManifestIssue,
+  formatInvoiceError,
+  formatJawalEvidenceIssue,
+} from '@/lib/format-error';
 import {
   createInvoiceDraft,
   listInvoiceDocuments,
@@ -42,6 +51,7 @@ function InvoiceUploadContent() {
   const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
   const [folderName, setFolderName] = useState<string | null>(null);
@@ -51,6 +61,25 @@ function InvoiceUploadContent() {
   const [warning, setWarning] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<'idle' | 'uploading' | 'submitting'>('idle');
+
+  const { data: supplier, isFetched: supplierFetched } = useQuery({
+    queryKey: ['supplier', 'me'],
+    queryFn: () =>
+      apiFetch('/suppliers/me', {
+        schema: z.union([SupplierProfileSchema, z.null()]),
+      }),
+    enabled: !!user?.supplierId,
+  });
+  const isJawalSupplier = supplier?.erpIntegration === 'JAWAL';
+  const isAsateelSupplier = supplier?.erpIntegration === 'ASATEEL';
+  // Until supplier profile loads, let the API decide (Jawal skips; Asateel still blocks).
+  const skipXlsxRequirement =
+    isJawalSupplier || Boolean(user?.supplierId && !supplierFetched);
+  const filesHint = isAsateelSupplier
+    ? t('filesHintAsateel')
+    : isJawalSupplier
+      ? t('filesHintJawal')
+      : t('filesHint');
 
   const { data: draftInvoices } = useQuery({
     queryKey: ['invoices', 'drafts', 'new-upload'],
@@ -67,16 +96,22 @@ function InvoiceUploadContent() {
     return item.relativePath ?? item.file.name;
   }
 
-  function submitValidationError(fileNames: string[]): string | null {
-    const issue = validateInvoiceSubmitDocuments(fileNames);
+  function submitValidationError(
+    fileNames: string[],
+    options?: { skipXlsxRequirement?: boolean },
+  ): string | null {
+    const issue = validateInvoiceSubmitDocuments(fileNames, options);
     if (!issue) return null;
     if (issue.code === 'XLSX_REQUIRED') return t('errors.xlsxRequired');
     return t('errors.filesRequired');
   }
 
-  function validateForm(requireFiles: boolean): string | null {
+  function validateForm(
+    requireFiles: boolean,
+    options?: { skipXlsxRequirement?: boolean },
+  ): string | null {
     if (!requireFiles) return null;
-    return submitValidationError(files.map(fileLabel));
+    return submitValidationError(files.map(fileLabel), options);
   }
 
   async function uploadOne(invoiceId: string, item: KbQueuedFile) {
@@ -91,6 +126,7 @@ function InvoiceUploadContent() {
           setFiles((current) => applyKbUploadProgress(current, key, progress));
         },
         item.checksumSha256,
+        item.relativePath,
       );
       setFiles((current) => patchKbFile(current, key, { status: 'done', progress: 100 }));
     } catch (err) {
@@ -116,24 +152,59 @@ function InvoiceUploadContent() {
   }
 
   async function persistInvoice(submitAfter: boolean) {
-    const validationError = validateForm(submitAfter);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     if (submitAfter) {
       const folderFiles = files.filter((file) => file.status !== 'skipped');
-      const manifest = await validateLocalAsateelManifest(folderFiles);
-      if (manifest?.error) {
-        setError(formatAsateelManifestIssue(manifest.error, t));
-        setWarning(null);
+      // Skip dual-.xlsx for Jawal suppliers. Asateel still requires 2.
+      const jawal = isJawalSupplier ? await validateLocalJawalEvidence(folderFiles) : null;
+      const skipXlsx = skipXlsxRequirement || jawal !== null;
+
+      const validationError = validateForm(true, { skipXlsxRequirement: skipXlsx });
+      if (validationError) {
+        setError(validationError);
         return;
       }
-      setWarning(
-        manifest?.warning ? formatAsateelManifestIssue(manifest.warning, t) : null,
-      );
+
+      if (isJawalSupplier) {
+        // Jawal gate owns spreadsheet/evidence rules — run even if sniff returned null
+        // (server will also enforce). Prefer client findings when available.
+        if (jawal === null) {
+          setError(t('errors.jawalTableRequired'));
+          setWarning(null);
+          return;
+        }
+        if (jawal.error) {
+          setError(formatJawalEvidenceIssue(jawal.error, t));
+          setWarning(null);
+          return;
+        }
+        setWarning(null);
+      } else {
+        const pack = jawal ?? (await validateLocalJawalEvidence(folderFiles));
+        if (pack?.error) {
+          setError(formatJawalEvidenceIssue(pack.error, t));
+          setWarning(null);
+          return;
+        }
+        if (pack) {
+          setWarning(null);
+        } else {
+          const manifest = await validateLocalAsateelManifest(folderFiles);
+          if (manifest?.error) {
+            setError(formatAsateelManifestIssue(manifest.error, t));
+            setWarning(null);
+            return;
+          }
+          setWarning(
+            manifest?.warning ? formatAsateelManifestIssue(manifest.warning, t) : null,
+          );
+        }
+      }
     } else {
+      const validationError = validateForm(false);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
       setWarning(null);
     }
 
@@ -158,7 +229,7 @@ function InvoiceUploadContent() {
       if (!invoiceId) {
         const invoice = await createInvoiceDraft(
           folderName ?? undefined,
-          asateelRegion || undefined,
+          isAsateelSupplier ? asateelRegion || undefined : undefined,
         );
         invoiceId = invoice.id;
         setDraftInvoiceId(invoice.id);
@@ -172,7 +243,10 @@ function InvoiceUploadContent() {
 
       if (submitAfter) {
         const finalDocuments = await listInvoiceDocuments(invoiceId);
-        const submitError = submitValidationError(finalDocuments.map((doc) => doc.fileName));
+        const submitError = submitValidationError(
+          finalDocuments.map((doc) => doc.fileName),
+          { skipXlsxRequirement: skipXlsxRequirement },
+        );
         if (submitError) {
           setError(submitError);
           setSubmitPhase('idle');
@@ -272,7 +346,7 @@ function InvoiceUploadContent() {
         <form className="mt-8 space-y-8">
           <div>
             <h2 className="font-semibold">{t('filesTitle')}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t('filesHint')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{filesHint}</p>
             <div className="mt-3">
               <KbFileUploader
                 files={files}
@@ -298,25 +372,27 @@ function InvoiceUploadContent() {
             </div>
           </div>
 
-          <div className="max-w-xs">
-            <label className="text-sm font-medium">{t('asateelRegion')}</label>
-            <select
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              value={asateelRegion}
-              disabled={uploading}
-              onChange={(event) => {
-                setAsateelRegion(event.target.value as AsateelRegion | '');
-                setDraftInvoiceId(null);
-              }}
-            >
-              <option value="">{t('asateelRegionPlaceholder')}</option>
-              {ASATEEL_REGION_VALUES.map((region) => (
-                <option key={region} value={region}>
-                  {t(`asateelRegions.${region}`, { code: ASATEEL_REGION_CODES[region] })}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isAsateelSupplier && (
+            <div className="max-w-xs">
+              <label className="text-sm font-medium">{t('asateelRegion')}</label>
+              <select
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={asateelRegion}
+                disabled={uploading}
+                onChange={(event) => {
+                  setAsateelRegion(event.target.value as AsateelRegion | '');
+                  setDraftInvoiceId(null);
+                }}
+              >
+                <option value="">{t('asateelRegionPlaceholder')}</option>
+                {ASATEEL_REGION_VALUES.map((region) => (
+                  <option key={region} value={region}>
+                    {t(`asateelRegions.${region}`, { code: ASATEEL_REGION_CODES[region] })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {warning && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">

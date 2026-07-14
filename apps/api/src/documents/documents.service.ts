@@ -13,6 +13,7 @@ import {
   MAX_DOCUMENT_SIZE_BYTES,
   UploadDocumentMetaSchema,
   resolveDocumentMimeType,
+  sanitizeEvidenceRelativePath,
   type DocumentType,
 } from '@aljeel/shared-types';
 import { Prisma } from '@prisma/client';
@@ -67,6 +68,12 @@ function serializeDocument(doc: DocumentRow) {
 }
 
 function sanitizeFileName(name: string): string {
+  // Preserve nested evidence paths (Jawal ticket/ref folders); storage keys still
+  // use the basename via kb-upload sanitizeKbFileName.
+  return sanitizeEvidenceRelativePath(name);
+}
+
+function storageBaseName(name: string): string {
   const base = name.split(/[\\/]/).pop() ?? 'file';
   return base.replace(/[^\w.\-]+/g, '_').slice(0, 200) || 'file';
 }
@@ -109,7 +116,7 @@ export class DocumentsService {
     const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
     this.assertUploadAllowed(invoice.status);
 
-    const signed = await this.kb.createUploadUrl(invoiceId, sanitizeFileName(fileName));
+    const signed = await this.kb.createUploadUrl(invoiceId, storageBaseName(fileName));
     return { ...signed, type };
   }
 
@@ -236,8 +243,12 @@ export class DocumentsService {
     const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
     this.assertUploadAllowed(invoice.status);
 
-    const fileName = sanitizeFileName(file.originalname);
-    const storageKey = `local:${supplierId}/${invoiceId}/${crypto.randomUUID()}-${fileName}`;
+    const relativePath =
+      meta && typeof meta === 'object' && 'relativePath' in meta
+        ? String((meta as { relativePath?: unknown }).relativePath ?? '')
+        : '';
+    const fileName = sanitizeFileName(relativePath || file.originalname);
+    const storageKey = `local:${supplierId}/${invoiceId}/${crypto.randomUUID()}-${storageBaseName(fileName)}`;
     await this.storage.save(storageKey.replace(/^local:/, ''), file.buffer);
 
     const document = await this.prisma.document.create({

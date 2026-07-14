@@ -1,10 +1,10 @@
 import type { Document } from '@aljeel/shared-types';
+import { sanitizeEvidenceRelativePath } from '@aljeel/shared-types';
 import { sha256File } from '@aljeel/kb-upload';
 import type { KbQueuedFile } from '@/components/kb-file-uploader';
 
 export function sanitizeDocumentFileName(name: string): string {
-  const base = name.split(/[\\/]/).pop() ?? 'file';
-  return base.replace(/[^\w.\-]+/g, '_').slice(0, 200) || 'file';
+  return sanitizeEvidenceRelativePath(name);
 }
 
 function dedupKey(fileName: string, sizeBytes: number, checksumSha256: string): string {
@@ -31,7 +31,7 @@ export async function markAlreadyUploadedFiles(
 
   for (const item of queue) {
     const checksumSha256 = item.checksumSha256 ?? (await sha256File(item.file));
-    const fileName = sanitizeDocumentFileName(item.file.name);
+    const fileName = sanitizeDocumentFileName(item.relativePath ?? item.file.name);
     const nextItem = { ...item, checksumSha256 };
     if (existing.has(dedupKey(fileName, item.file.size, checksumSha256))) {
       nextQueue.push({ ...nextItem, status: 'skipped', progress: 100, error: undefined });

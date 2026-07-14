@@ -104,6 +104,7 @@ export function InvoiceDocuments({
             (progress) =>
               setPending((current) => applyKbUploadProgress(current, key, progress)),
             item.checksumSha256,
+            item.relativePath,
           );
           setPending((current) => patchKbFile(current, key, { status: 'done', progress: 100 }));
         } catch (err) {

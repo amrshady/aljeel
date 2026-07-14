@@ -25,6 +25,14 @@ describe('validateInvoiceSubmitDocuments', () => {
       ]),
     ).toBeNull();
   });
+
+  it('skips the dual-xlsx rule when requested (Jawal)', () => {
+    expect(
+      validateInvoiceSubmitDocuments(['invoice-source.xlsx', 'SIS-14/ticket.pdf'], {
+        skipXlsxRequirement: true,
+      }),
+    ).toBeNull();
+  });
 });
 
 describe('isXlsxFileName', () => {

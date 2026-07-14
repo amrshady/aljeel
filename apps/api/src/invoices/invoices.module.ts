@@ -5,11 +5,12 @@ import { StorageModule } from '../storage/storage.module';
 import { AsateelInvoiceManifestService } from './asateel-invoice-manifest.service';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
+import { JawalEvidenceCheckService } from './jawal-evidence-check.service';
 
 @Module({
   imports: [StorageModule, KbModule, NotificationsModule],
   controllers: [InvoicesController],
-  providers: [InvoicesService, AsateelInvoiceManifestService],
+  providers: [InvoicesService, AsateelInvoiceManifestService, JawalEvidenceCheckService],
   exports: [InvoicesService],
 })
 export class InvoicesModule {}

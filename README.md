@@ -90,6 +90,32 @@ pnpm --filter @aljeel/api prisma:seed
 pnpm dev
 ```
 
+### Local sign-in (without Cloudflare Access)
+
+Production uses Cloudflare Access for passwordless login. Locally, enable the API dev
+auth bypass and point the web app at it:
+
+```bash
+# apps/api/.env
+AUTH_DEV_MODE=true
+AUTH_DEV_EMAIL=amr+apadmin@accordpartners.ai   # AP clerk (see prisma/seed.sql)
+
+# apps/web/.env.local
+NEXT_PUBLIC_AUTH_DEV_MODE=true
+```
+
+Restart `pnpm dev` after changing env files. Then open http://localhost:3000/en/login
+and click **Continue to portal**, or go straight to http://localhost:3000/en/dashboard.
+
+Other seeded identities you can use for `AUTH_DEV_EMAIL`:
+
+| Email | Role |
+|---|---|
+| `amr+apadmin@accordpartners.ai` | AP clerk (internal) |
+| `admin@supplier-a.com` | Supplier A admin |
+| `admin@supplier-b.com` | Supplier B admin |
+| `amr+asateel@accordpartners.ai` | Asateel supplier admin |
+
 - **Web:** http://localhost:3000
 - **API:** http://localhost:3002/api/v1/health
 - **Swagger:** http://localhost:3002/api/docs

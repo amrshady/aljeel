@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SupplierStatusSchema } from './index';
+import { SupplierErpIntegrationSchema, SupplierStatusSchema } from './index';
 
 export const SupplierProfileSchema = z.object({
   id: z.string(),
@@ -10,6 +10,7 @@ export const SupplierProfileSchema = z.object({
   paymentTerms: z.string().nullable(),
   defaultCurrency: z.string(),
   erpVendorId: z.string().nullable(),
+  erpIntegration: SupplierErpIntegrationSchema.nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

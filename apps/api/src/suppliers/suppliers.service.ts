@@ -13,6 +13,18 @@ export class SuppliersService {
     if (!supplier) {
       throw supplierNotFound();
     }
-    return supplier;
+    return {
+      id: supplier.id,
+      legalName: supplier.legalName,
+      crNumber: supplier.crNumber,
+      vatNumber: supplier.vatNumber,
+      status: supplier.status,
+      paymentTerms: supplier.paymentTerms,
+      defaultCurrency: supplier.defaultCurrency,
+      erpVendorId: supplier.erpVendorId,
+      erpIntegration: supplier.erpIntegration,
+      createdAt: supplier.createdAt.toISOString(),
+      updatedAt: supplier.updatedAt.toISOString(),
+    };
   }
 }

@@ -59,15 +59,13 @@ function InvoiceDetailContent() {
 
   async function onSubmit() {
     if (!invoice) return;
+    // Dual-xlsx is Asateel-only; the API skips it for Jawal and enforces Gate B instead.
     const validationIssue = validateInvoiceSubmitDocuments(
       documents?.map((doc) => doc.fileName) ?? [],
+      { skipXlsxRequirement: true },
     );
     if (validationIssue) {
-      setError(
-        validationIssue.code === 'XLSX_REQUIRED'
-          ? t('xlsxRequired')
-          : t('filesRequired'),
-      );
+      setError(t('filesRequired'));
       return;
     }
     setSubmitting(true);

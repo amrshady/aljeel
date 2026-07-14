@@ -27,6 +27,7 @@ import type { AuthUser } from '../auth/auth.types';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
 import { InvoiceSubmitNotificationService } from '../notifications/invoice-submit-notification.service';
 import { AsateelInvoiceManifestService } from './asateel-invoice-manifest.service';
+import { JawalEvidenceCheckService } from './jawal-evidence-check.service';
 
 export function serializeInvoice(
   invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>,
@@ -87,6 +88,7 @@ export class InvoicesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly asateelManifest: AsateelInvoiceManifestService,
+    private readonly jawalEvidence: JawalEvidenceCheckService,
     private readonly invoiceSubmitNotification: InvoiceSubmitNotificationService,
   ) {}
 
@@ -355,10 +357,17 @@ export class InvoicesService {
 
     const documents = await this.prisma.document.findMany({
       where: { invoiceId: id },
-      select: { fileName: true, storageKey: true },
+      select: { fileName: true, storageKey: true, sizeBytes: true },
     });
+
+    const supplier = await this.prisma.supplier.findUnique({
+      where: { id: supplierId },
+      select: { erpIntegration: true, legalName: true },
+    });
+
     const documentIssue = validateInvoiceSubmitDocuments(
       documents.map((document) => document.fileName),
+      { skipXlsxRequirement: supplier?.erpIntegration === 'JAWAL' },
     );
     if (documentIssue) {
       throw new UnprocessableEntityException({
@@ -367,10 +376,6 @@ export class InvoicesService {
       });
     }
 
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId },
-      select: { erpIntegration: true, legalName: true },
-    });
     if (supplier?.erpIntegration === 'ASATEEL') {
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
       if (manifest.error) {
@@ -378,6 +383,16 @@ export class InvoicesService {
           code: manifest.error.code,
           message: manifest.error.message,
           details: manifest.error.details,
+        });
+      }
+    }
+    if (supplier?.erpIntegration === 'JAWAL') {
+      const evidence = await this.jawalEvidence.validateUploadedFolder(documents);
+      if (evidence.error) {
+        throw new UnprocessableEntityException({
+          code: evidence.error.code,
+          message: evidence.error.message,
+          details: evidence.error.details,
         });
       }
     }

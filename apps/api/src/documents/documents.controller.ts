@@ -76,6 +76,7 @@ export class DocumentsController {
           type: 'string',
           enum: ['INVOICE', 'DELIVERY_NOTE', 'GRN_COPY', 'CONTRACT', 'TIMESHEET', 'OTHER'],
         },
+        relativePath: { type: 'string' },
       },
     },
   })
@@ -86,7 +87,7 @@ export class DocumentsController {
     @CurrentUser() user: AuthUser,
     @Param('id') invoiceId: string,
     @UploadedFile() file: UploadedMulterFile | undefined,
-    @Body() body: { type?: string },
+    @Body() body: { type?: string; relativePath?: string },
   ) {
     return this.documentsService.upload(user, invoiceId, file, body);
   }

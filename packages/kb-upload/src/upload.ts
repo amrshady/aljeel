@@ -56,14 +56,16 @@ export async function uploadFileViaKb(
   type: DocumentType,
   onProgress?: (progress: KbUploadProgress) => void,
   knownChecksumSha256?: string,
+  displayFileName?: string,
 ): Promise<{ storageKey: string }> {
   const mimeType = resolveDocumentMimeType(file.name, file.type);
+  const storedFileName = displayFileName?.trim() || file.name;
   report(onProgress, 'signing', 0, file.size);
   const checksumSha256 = knownChecksumSha256 ?? (await sha256File(file));
 
   const sign = await api.requestUploadUrl({
     invoiceId,
-    fileName: file.name,
+    fileName: storedFileName,
     sizeBytes: file.size,
     type,
   });
@@ -76,7 +78,7 @@ export async function uploadFileViaKb(
   report(onProgress, 'finalizing', file.size, file.size);
   const complete: DocumentCompleteUpload = {
     storageKey: sign.storageKey,
-    fileName: file.name,
+    fileName: storedFileName,
     mimeType,
     sizeBytes: file.size,
     checksumSha256,

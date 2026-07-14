@@ -44,6 +44,7 @@ function uploadInvoiceDocumentMultipart(
   file: File,
   type: DocumentType = 'OTHER',
   onProgress?: (progress: KbUploadProgress) => void,
+  relativePath?: string,
 ): Promise<unknown> {
   const normalizedType = resolveDocumentMimeType(file.name, file.type);
   const normalized =
@@ -53,6 +54,7 @@ function uploadInvoiceDocumentMultipart(
   const form = new FormData();
   form.append('file', normalized);
   form.append('type', type);
+  if (relativePath) form.append('relativePath', relativePath);
 
   onProgress?.({ phase: 'signing', loaded: 0, total: file.size, percent: 0 });
   onProgress?.({ phase: 'uploading', loaded: 0, total: file.size, percent: 0 });
@@ -106,6 +108,7 @@ export async function uploadInvoiceDocumentViaKb(
   type: DocumentType = 'OTHER',
   onProgress?: (progress: KbUploadProgress) => void,
   checksumSha256?: string,
+  relativePath?: string,
 ) {
   try {
     return await uploadFileViaKb(
@@ -115,10 +118,11 @@ export async function uploadInvoiceDocumentViaKb(
       type,
       onProgress,
       checksumSha256,
+      relativePath,
     );
   } catch (err) {
     if (err instanceof ApiClientError && err.code === 'KB_UPLOAD_NOT_CONFIGURED') {
-      await uploadInvoiceDocumentMultipart(invoiceId, file, type, onProgress);
+      await uploadInvoiceDocumentMultipart(invoiceId, file, type, onProgress, relativePath);
       return { storageKey: 'local' };
     }
     throw err;

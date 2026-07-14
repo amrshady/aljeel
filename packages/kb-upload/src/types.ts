@@ -2,7 +2,7 @@ import { DocumentTypeSchema } from '@aljeel/shared-types';
 import { z } from 'zod';
 
 export const DocumentUploadUrlRequestSchema = z.object({
-  fileName: z.string().min(1).max(255),
+  fileName: z.string().min(1).max(500),
   sizeBytes: z.number().int().positive(),
   type: DocumentTypeSchema.default('INVOICE'),
 });
@@ -18,7 +18,7 @@ export type DocumentUploadUrlResponse = z.infer<typeof DocumentUploadUrlResponse
 
 export const DocumentCompleteUploadSchema = z.object({
   storageKey: z.string().min(1),
-  fileName: z.string().min(1),
+  fileName: z.string().min(1).max(500),
   mimeType: z.string().min(1),
   sizeBytes: z.number().int().nonnegative(),
   checksumSha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),

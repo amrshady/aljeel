@@ -1,5 +1,8 @@
 import { ZodError } from 'zod';
-import type { AsateelInvoiceManifestIssue } from '@aljeel/shared-types';
+import type {
+  AsateelInvoiceManifestIssue,
+  JawalEvidenceIssue,
+} from '@aljeel/shared-types';
 import { ApiClientError } from './api-client';
 
 type InvoiceErrorTranslator = (
@@ -24,11 +27,31 @@ function formatValidationFields(fields: unknown[]): string | null {
   return messages.length > 0 ? messages.join(' · ') : null;
 }
 
+function formatJawalFindingSummary(details: Record<string, unknown> | undefined): string | null {
+  const findings = details?.findings;
+  if (!Array.isArray(findings) || findings.length === 0) return null;
+  return findings
+    .slice(0, 5)
+    .map((finding) => {
+      if (typeof finding === 'object' && finding !== null && 'message' in finding) {
+        return String((finding as { message: string }).message);
+      }
+      return null;
+    })
+    .filter(Boolean)
+    .join(' · ');
+}
+
 export function formatClientError(err: unknown, fallback: string): string {
   if (err instanceof ApiClientError) {
     const missingInvoiceNos = err.details?.missingInvoiceNos;
     if (Array.isArray(missingInvoiceNos) && missingInvoiceNos.length > 0) {
       return `Missing uploaded files for invoice numbers: ${missingInvoiceNos.join(', ')}.`;
+    }
+
+    const jawalSummary = formatJawalFindingSummary(err.details);
+    if (jawalSummary && String(err.code).startsWith('JAWAL_')) {
+      return jawalSummary;
     }
 
     const fields = err.details?.fields;
@@ -72,6 +95,17 @@ export function formatInvoiceError(
       return t('errors.asateelFilesMissing', { numbers });
     }
 
+    if (String(err.code).startsWith('JAWAL_')) {
+      return formatJawalEvidenceIssue(
+        {
+          code: err.code as JawalEvidenceIssue['code'],
+          message: err.message,
+          details: err.details as JawalEvidenceIssue['details'],
+        },
+        t,
+      );
+    }
+
     switch (err.code) {
       case 'ASATEEL_INVOICE_TABLE_REQUIRED':
         return t('errors.asateelTableRequired');
@@ -112,6 +146,46 @@ export function formatAsateelManifestIssue(
     case 'ASATEEL_INVOICE_FILES_EXTRA':
       return t('errors.asateelFilesExtra', {
         files: issue.details?.extraFileNames?.join(', ') ?? '',
+      });
+    default:
+      return issue.message;
+  }
+}
+
+export function formatJawalEvidenceIssue(
+  issue: JawalEvidenceIssue,
+  t: InvoiceErrorTranslator,
+): string {
+  const findings = issue.details?.findings ?? [];
+  if (findings.length > 0) {
+    return findings
+      .slice(0, 5)
+      .map((finding) => finding.message)
+      .join(' · ');
+  }
+
+  switch (issue.code) {
+    case 'JAWAL_TABLE_REQUIRED':
+      return t('errors.jawalTableRequired');
+    case 'JAWAL_TABLE_EMPTY':
+      return t('errors.jawalTableEmpty');
+    case 'JAWAL_REF_MALFORMED':
+      return t('errors.jawalRefMalformed', {
+        refs: issue.details?.malformedRefs?.join(', ') ?? '',
+      });
+    case 'JAWAL_REF_DUPLICATE':
+      return t('errors.jawalRefDuplicate', {
+        refs: issue.details?.duplicateRefs?.join(', ') ?? '',
+      });
+    case 'JAWAL_FOLDER_MISMATCH':
+      return t('errors.jawalFolderMismatch', {
+        folders: issue.details?.missingFolders?.join(', ') ?? '',
+      });
+    case 'JAWAL_APPROVAL_MISSING':
+      return t('errors.jawalApprovalMissing');
+    case 'JAWAL_ORPHAN_FOLDER':
+      return t('errors.jawalOrphanFolder', {
+        folders: issue.details?.orphanFolders?.join(', ') ?? '',
       });
     default:
       return issue.message;

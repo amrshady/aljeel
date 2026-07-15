@@ -1278,7 +1278,9 @@ def normalize_exclusive_amount(amount: float | None, subtotal: float | None, tot
 
 def _canonical_jq(raw: Any, *, allow_bare: bool = True) -> str:
     text = _clean(raw).upper()
-    m = re.search(r"\bJQ\s*-\s*(\d+)\b", text)
+    # An underscore is a regex "word" character, so a plain trailing \b does
+    # not match suffixed SO_Detail values such as JQ-26124165_2.
+    m = re.search(r"\bJQ\s*-\s*(\d+)(?=\b|_)", text)
     if m:
         return f"JQ-{m.group(1).zfill(8)}"
     if allow_bare and re.fullmatch(r"\d+", text):
@@ -1354,30 +1356,42 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
     if not path or not path.exists():
         return {}
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    if "Sheet1" not in wb.sheetnames:
-        wb.close()
-        return {}
-    ws = wb["Sheet1"]
-    headers = {
-        _clean(cell.value): idx
-        for idx, cell in enumerate(ws[5], start=1)
-        if _clean(cell.value)
-    }
     # LOCKED: SO_Detail validates only that a canonical JQ exists. Agency,
     # salesperson, and organization columns must not influence allocation.
-    required = ["ORDER_NUMBER"]
-    missing = [name for name in required if name not in headers]
-    if missing:
+    # Keep the full export's Sheet1/row-5 layout as the first choice, while
+    # also accepting slim exports whose ORDER_NUMBER header is in rows 1..6
+    # on any sheet.
+    header_locations = []
+    if "Sheet1" in wb.sheetnames:
+        header_locations.append((wb["Sheet1"], 5))
+    header_locations.extend(
+        (candidate_ws, header_row)
+        for candidate_ws in wb.worksheets
+        for header_row in range(1, min(6, candidate_ws.max_row) + 1)
+        if not (candidate_ws.title == "Sheet1" and header_row == 5)
+    )
+
+    ws = None
+    order_number_col = None
+    data_start_row = None
+    for candidate_ws, header_row in header_locations:
+        for idx, cell in enumerate(candidate_ws[header_row], start=1):
+            if _clean(cell.value).upper() == "ORDER_NUMBER":
+                ws = candidate_ws
+                order_number_col = idx
+                data_start_row = header_row + 1
+                break
+        if ws is not None:
+            break
+
+    if ws is None or order_number_col is None or data_start_row is None:
         wb.close()
-        raise RuntimeError(f"SO_Detail missing required columns: {', '.join(missing)}")
+        raise RuntimeError("SO_Detail missing required columns: ORDER_NUMBER")
 
     by_jq_rows: dict[str, list[dict[str, Any]]] = {}
-    for ridx, row in enumerate(ws.iter_rows(min_row=6, values_only=True), start=6):
-        def val(name: str) -> Any:
-            pos = headers[name] - 1
-            return row[pos] if pos < len(row) else ""
-
-        raw_jq = _clean(val("ORDER_NUMBER"))
+    for ridx, row in enumerate(ws.iter_rows(min_row=data_start_row, values_only=True), start=data_start_row):
+        pos = order_number_col - 1
+        raw_jq = _clean(row[pos] if pos < len(row) else "")
         jq = _canonical_jq(raw_jq)
         if not jq:
             continue
@@ -2181,7 +2195,11 @@ def build_rows(
             jq_display = ""
             if supplier_match:
                 jq_key = _canonical_jq(supplier_match.get("jq"))
-                jq_display = _clean((so_detail_index.get(jq_key) or {}).get("raw_jq"))
+                matched_so_detail = so_detail_index.get(jq_key)
+                if matched_so_detail:
+                    # Match on the canonical key, but preserve SO_Detail's
+                    # exact ORDER_NUMBER (including zeros/suffixes) in output.
+                    jq_display = _clean(matched_so_detail.get("raw_jq"))
             additional_info = _additional_info(supplier_match, jq_display)
             if supplier_match and not additional_info:
                 notes.append("Employee Number and JQ unavailable for matched Supplier Expenses Format line")

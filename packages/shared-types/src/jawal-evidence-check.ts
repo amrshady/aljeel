@@ -634,14 +634,6 @@ function passengerKey(line: JawalInvoiceLine): string {
   return normalizeCanonicalToken(line.description).replace(/[^A-Z0-9]+/g, '');
 }
 
-function amountKey(line: JawalInvoiceLine): string {
-  return normalizeCanonicalToken(line.amount ?? '').replace(/[^A-Z0-9.]+/g, '');
-}
-
-function dateKey(line: JawalInvoiceLine): string {
-  return normalizeCanonicalToken(line.date ?? '').replace(/[^A-Z0-9]+/g, '');
-}
-
 function parseComparableDate(value: string | null): number | null {
   const raw = String(value ?? '').trim();
   if (!raw) return null;
@@ -665,21 +657,6 @@ function isExactlyOneDayLater(current: string | null, previous: string | null): 
   const previousDate = parseComparableDate(previous);
   if (currentDate === null || previousDate === null) return false;
   return currentDate - previousDate === 24 * 60 * 60 * 1000;
-}
-
-function duplicateRefCompoundKey(line: JawalInvoiceLine): string | null {
-  const refKey = normalizeCanonicalToken(line.ref).replace(/[^A-Z0-9-]/g, '');
-  if (!refKey) return null;
-
-  const parts = [
-    amountKey(line),
-    passengerKey(line),
-    line.ticket ? normalizeCanonicalToken(normalizeJawalTicket(line.ticket)) : '',
-    dateKey(line),
-  ].filter(Boolean);
-
-  if (parts.length === 0) return null;
-  return [refKey, ...parts].join('|');
 }
 
 function lineFolderKeys(line: JawalInvoiceLine, allLines: JawalInvoiceLine[]): string[] {
@@ -912,8 +889,10 @@ export function validateJawalEvidencePack(input: {
   }
 
   // ── Gate B1a ────────────────────────────────────────────────────────────
-  const seenRefs = new Map<string, number>();
-  const seenRefCompoundKeys = new Map<string, number>();
+  // Policy: repeated letter-prefix Ref.No is WARN only; exact duplicate tickets BLOCK.
+  // Store the prior date with the first sighting so next-day checks do not depend on
+  // sheet-relative row numbers (multi-sheet extracts can reuse the same row value).
+  const seenRefs = new Map<string, { row: number; date: string | null }>();
   const seenTickets = new Map<string, number>();
   const malformedRefs: string[] = [];
   const blockingDuplicateRefs: string[] = [];
@@ -933,43 +912,23 @@ export function validateJawalEvidencePack(input: {
         });
       } else if (isLetterPrefixRef(line.ref)) {
         // Duplicate employee ids / free-text hotel refs are normal on Jawwal tax invoices.
-        // Prefix serials may repeat across related event lines, so only block when
-        // the repeated Ref.No also matches a stronger beneficiary/amount/ticket/date signature.
+        // Prefix serials may also repeat across group/event lines — warn, never hard-block.
         const key = normalizeCanonicalToken(line.ref).replace(/[^A-Z0-9-]/g, '');
         const first = seenRefs.get(key);
-        const compoundKey = duplicateRefCompoundKey(line);
-        const compoundFirst =
-          compoundKey !== null ? seenRefCompoundKeys.get(compoundKey) : undefined;
         if (first !== undefined) {
-          if (compoundFirst !== undefined) {
-            blockingDuplicateRefs.push(line.ref);
-            pushBlock({
-              code: 'JAWAL_REF_DUPLICATE',
-              message: `Duplicate Ref.No "${line.ref}" with matching event details (rows ${compoundFirst} and ${line.row}).`,
-              gate: 'B',
-              rule: 'B1a',
-              ref: line.ref,
-              row: line.row,
-            });
-          } else {
-            const previousLine = lines.find((candidate) => candidate.row === first);
-            warningDuplicateRefs.push(line.ref);
-            pushWarning({
-              code: 'JAWAL_REF_DUPLICATE',
-              message: isExactlyOneDayLater(line.date, previousLine?.date ?? null)
-                ? `Repeated Ref.No "${line.ref}" (rows ${first} and ${line.row}) has an invoice date exactly one day later, so it is treated as a warning.`
-                : `Repeated Ref.No "${line.ref}" (rows ${first} and ${line.row}) looks like a shared event reference, so it is a warning unless other details also match.`,
-              gate: 'B',
-              rule: 'B1a',
-              ref: line.ref,
-              row: line.row,
-            });
-          }
+          warningDuplicateRefs.push(line.ref);
+          pushWarning({
+            code: 'JAWAL_REF_DUPLICATE',
+            message: isExactlyOneDayLater(line.date, first.date)
+              ? `Repeated Ref.No "${line.ref}" (rows ${first.row} and ${line.row}) has an invoice date exactly one day later, so it is treated as a warning.`
+              : `Repeated Ref.No "${line.ref}" (rows ${first.row} and ${line.row}) looks like a shared event reference — warning only; exact duplicate tickets still block.`,
+            gate: 'B',
+            rule: 'B1a',
+            ref: line.ref,
+            row: line.row,
+          });
         } else {
-          seenRefs.set(key, line.row);
-        }
-        if (compoundKey !== null && compoundFirst === undefined) {
-          seenRefCompoundKeys.set(compoundKey, line.row);
+          seenRefs.set(key, { row: line.row, date: line.date });
         }
       }
     }

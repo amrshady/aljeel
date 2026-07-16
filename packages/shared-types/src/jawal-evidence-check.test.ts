@@ -332,6 +332,7 @@ describe('validateJawalEvidencePack', () => {
     });
     expect(prefixDup.error).toBeNull();
     expect(prefixDup.warning?.code).toBe('JAWAL_REF_DUPLICATE');
+    expect(prefixDup.warning?.details?.duplicateRefs).toEqual(['SIS-14']);
   });
 
   it('warns when the same Ref.No repeats with an invoice date exactly one day later', () => {
@@ -356,6 +357,73 @@ describe('validateJawalEvidencePack', () => {
     expect(result.warning?.message).toContain('exactly one day later');
   });
 
+  it('warns on same Ref.No with different tickets even when amount and beneficiary match', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description', 'Date', 'Amount'],
+          ['SIS-14', '6905428831', 'ABDULLAH SALEH', '2026-05-01', '1000'],
+          ['SIS-14', '6905428832', 'ABDULLAH SALEH', '2026-05-01', '1000'],
+        ],
+      ]),
+      files: [
+        { fileName: 'SIS-14/a.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/a.pdf', sizeBytes: 100 },
+        { fileName: '6905428832/b.msg', sizeBytes: 100 },
+        { fileName: '6905428832/b.pdf', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.warning?.code).toBe('JAWAL_REF_DUPLICATE');
+    expect(result.warning?.details?.duplicateRefs).toEqual(['SIS-14']);
+  });
+
+  it('blocks exact duplicate tickets with distinct Ref.No values', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['SIS-14', '6905428831', 'Travel A'],
+          ['SIS-15', '6905428831', 'Travel B'],
+        ],
+      ]),
+      files: [
+        { fileName: 'SIS-14/a.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/a.pdf', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.error?.code).toBe('JAWAL_REF_DUPLICATE');
+    expect(result.error?.details?.duplicateRefs).toEqual(['6905428831']);
+    expect(result.error?.message).toContain('Duplicate Ticket');
+    expect(result.warning).toBeNull();
+  });
+
+  it('keeps Ref.No warnings when a separate ticket duplicate also blocks', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['SIS-14', '6905428831', 'Travel A'],
+          ['SIS-14', '6905428832', 'Travel B'],
+          ['SIS-15', '6905428831', 'Travel C'],
+        ],
+      ]),
+      files: [
+        { fileName: 'SIS-14/a.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/a.pdf', sizeBytes: 100 },
+        { fileName: '6905428832/b.msg', sizeBytes: 100 },
+        { fileName: '6905428832/b.pdf', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.error?.code).toBe('JAWAL_REF_DUPLICATE');
+    expect(result.error?.details?.duplicateRefs).toEqual(['6905428831']);
+    expect(result.warning?.code).toBe('JAWAL_REF_DUPLICATE');
+    expect(result.warning?.details?.duplicateRefs).toEqual(['SIS-14']);
+  });
+
   it('blocks exact duplicate tickets and orphan folders (B6)', () => {
     const lines = extractJawalInvoiceLines([
       [
@@ -376,27 +444,6 @@ describe('validateJawalEvidencePack', () => {
 
     expect(result.findings.some((f) => f.code === 'JAWAL_REF_DUPLICATE')).toBe(true);
     expect(result.findings.some((f) => f.code === 'JAWAL_ORPHAN_FOLDER')).toBe(true);
-  });
-
-  it('escalates repeated event Ref.No to block when compound details also match', () => {
-    const lines = extractJawalInvoiceLines([
-      [
-        ['Ref.No', 'Ticket', 'Description', 'Date', 'Amount'],
-        ['SIS-14', '6905428831', 'ABDULLAH SALEH', '2026-05-01', '1000'],
-        ['SIS-14', '6905428831', 'ABDULLAH SALEH', '2026-05-01', '1000'],
-      ],
-    ]);
-
-    const result = validateJawalEvidencePack({
-      lines,
-      files: [
-        { fileName: 'SIS-14/approval.msg', sizeBytes: 100 },
-        { fileName: 'SIS-14/eticket.pdf', sizeBytes: 100 },
-      ],
-    });
-
-    expect(result.error?.code).toBe('JAWAL_REF_DUPLICATE');
-    expect(result.warning).toBeNull();
   });
 
   it('does not treat SIS-15 as a match for SIS-14', () => {

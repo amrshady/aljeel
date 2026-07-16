@@ -18,6 +18,7 @@ import {
   validateInvoiceSubmitDocuments,
   type CreateInvoiceDraft,
   type InvoiceListQuery,
+  type JawalEvidenceIssue,
   type UpsertInvoiceDraft,
 } from '@aljeel/shared-types';
 import type { Prisma } from '@prisma/client';
@@ -376,6 +377,7 @@ export class InvoicesService {
       });
     }
 
+    let jawalWarning: JawalEvidenceIssue | null = null;
     if (supplier?.erpIntegration === 'ASATEEL') {
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
       if (manifest.error) {
@@ -395,6 +397,7 @@ export class InvoicesService {
           details: evidence.error.details,
         });
       }
+      jawalWarning = evidence.warning;
     }
 
     if (invoice.lines.length > 0) {
@@ -444,7 +447,18 @@ export class InvoicesService {
       entityId: id,
       action: 'SUBMIT',
       before: { status: invoice.status },
-      after: { status: 'SUBMITTED' },
+      after: {
+        status: 'SUBMITTED',
+        ...(jawalWarning
+          ? {
+              jawalEvidenceWarning: {
+                code: jawalWarning.code,
+                message: jawalWarning.message,
+                details: jawalWarning.details ?? null,
+              },
+            }
+          : {}),
+      },
     });
 
     assertInvoiceTransition('SUBMITTED', 'UNDER_REVIEW');

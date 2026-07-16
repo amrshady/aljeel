@@ -339,13 +339,13 @@ describe('validateJawalEvidencePack', () => {
       lines: extractJawalInvoiceLines([
         [
           ['Ref.No', 'Ticket', 'Description', 'Date'],
-          ['CRM-2026-40', '6905428831', 'Event A', '2026-05-01'],
-          ['CRM-2026-40', '6905428832', 'Event B', '2026-05-02'],
+          ['SIS-14', '6905428831', 'Travel A', '2026-05-01'],
+          ['SIS-14', '6905428832', 'Travel B', '2026-05-02'],
         ],
       ]),
       files: [
-        { fileName: '6905428831/a.msg', sizeBytes: 100 },
-        { fileName: '6905428831/a.pdf', sizeBytes: 100 },
+        { fileName: 'SIS-14/a.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/a.pdf', sizeBytes: 100 },
         { fileName: '6905428832/b.msg', sizeBytes: 100 },
         { fileName: '6905428832/b.pdf', sizeBytes: 100 },
       ],
@@ -382,18 +382,16 @@ describe('validateJawalEvidencePack', () => {
     const lines = extractJawalInvoiceLines([
       [
         ['Ref.No', 'Ticket', 'Description', 'Date', 'Amount'],
-        ['CE-20-2026', '6905428831', 'ABDULLAH SALEH', '2026-05-01', '1000'],
-        ['CE-20-2026', '6905428832', 'ABDULLAH SALEH', '2026-05-01', '1000'],
+        ['SIS-14', '6905428831', 'ABDULLAH SALEH', '2026-05-01', '1000'],
+        ['SIS-14', '6905428831', 'ABDULLAH SALEH', '2026-05-01', '1000'],
       ],
     ]);
 
     const result = validateJawalEvidencePack({
       lines,
       files: [
-        { fileName: '6905428831/a.msg', sizeBytes: 100 },
-        { fileName: '6905428831/a.pdf', sizeBytes: 100 },
-        { fileName: '6905428832/b.msg', sizeBytes: 100 },
-        { fileName: '6905428832/b.pdf', sizeBytes: 100 },
+        { fileName: 'SIS-14/approval.msg', sizeBytes: 100 },
+        { fileName: 'SIS-14/eticket.pdf', sizeBytes: 100 },
       ],
     });
 

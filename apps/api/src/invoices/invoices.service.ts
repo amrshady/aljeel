@@ -458,7 +458,7 @@ export class InvoicesService {
               },
             }
           : {}),
-      },
+      } as Prisma.InputJsonValue,
     });
 
     assertInvoiceTransition('SUBMITTED', 'UNDER_REVIEW');

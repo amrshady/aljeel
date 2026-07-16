@@ -338,7 +338,11 @@ def _summary(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run production Asateel v6 allocation pipeline locally")
-    parser.add_argument("--folder", choices=["PROJECTS", "ADMIN", "CENTRAL", "ALL"], default=DEFAULT_FOLDER)
+    parser.add_argument(
+        "--folder",
+        choices=["PROJECTS", "ADMIN", "CENTRAL", "MAIN", "EASTERN", "WESTERN", "ALL"],
+        default=DEFAULT_FOLDER,
+    )
     parser.add_argument("--pdf-dir", default="", help="Optional directory of *_0001.pdf files to process with the folder label")
     parser.add_argument("--full", action="store_true", default=True, help="Process every *_0001.pdf in the selected folder")
     parser.add_argument("--sample", action="store_false", dest="full", help="Process only the POC sample set")

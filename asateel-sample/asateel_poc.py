@@ -2922,7 +2922,11 @@ def print_summary(
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Asateel POC Oracle-Fusion workbook generator")
-    parser.add_argument("--folder", choices=["PROJECTS", "ADMIN", "CENTRAL", "ALL"], help="Folder label to process")
+    parser.add_argument(
+        "--folder",
+        choices=["PROJECTS", "ADMIN", "CENTRAL", "MAIN", "EASTERN", "WESTERN", "ALL"],
+        help="Folder label to process",
+    )
     parser.add_argument("--pdf-dir", default="", help="Optional directory of *_0001.pdf files to process with the folder label")
     parser.add_argument("--full", action="store_true", help="Enumerate every *_0001.pdf in the selected folder")
     parser.add_argument("--out-suffix", default="", help="Optional label appended to output filenames")

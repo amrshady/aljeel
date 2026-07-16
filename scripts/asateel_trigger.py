@@ -37,8 +37,15 @@ SO_DETAIL = ROOT / "reference" / "SO_Detail_Labadi_1_R21_AA.xlsx"
 OPENAPI_SPEC = ROOT / "docs" / "asateel-trigger-api.openapi.yaml"
 PIPELINE_TIMEOUT_SECONDS = 3 * 60 * 60
 DEFAULT_RECIPIENTS = ["amr@accordpartners.ai"]
-ALLOWED_REGIONS = {"CENTRAL", "PROJECTS", "ADMIN"}
-REGION_TITLES = {"CENTRAL": "Central", "PROJECTS": "Projects", "ADMIN": "Admin"}
+ALLOWED_REGIONS = {"CENTRAL", "PROJECTS", "ADMIN", "MAIN", "EASTERN", "WESTERN"}
+REGION_TITLES = {
+    "CENTRAL": "Central",
+    "PROJECTS": "Projects",
+    "ADMIN": "Admin",
+    "MAIN": "Main",
+    "EASTERN": "Eastern",
+    "WESTERN": "Western",
+}
 GOG_BIN = "/usr/local/bin/gog"
 GOG_ACCOUNT = "aljeel@accordpartners.ai"
 HOUSE_CC = "amr@accordpartners.ai"
@@ -136,7 +143,7 @@ def _parse_payload(payload: Any) -> dict[str, Any]:
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", archive_date):
         raise ValueError("archive_date must match YYYY-MM-DD")
     if region not in ALLOWED_REGIONS:
-        raise ValueError("region must be one of CENTRAL, PROJECTS, ADMIN")
+        raise ValueError("region must be one of CENTRAL, PROJECTS, ADMIN, MAIN, EASTERN, WESTERN")
     if not folder_name:
         raise ValueError("folder_name is required")
     if not batch_id:

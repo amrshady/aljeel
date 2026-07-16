@@ -30,6 +30,14 @@ export const CreateInvoiceDraftSchema = z
   .strict();
 export type CreateInvoiceDraft = z.infer<typeof CreateInvoiceDraftSchema>;
 
+/** Set Asateel region on an editable draft before submit. */
+export const UpdateAsateelRegionSchema = z
+  .object({
+    asateelRegion: AsateelRegionSchema,
+  })
+  .strict();
+export type UpdateAsateelRegion = z.infer<typeof UpdateAsateelRegionSchema>;
+
 export const PLACEHOLDER_INVOICE_NUMBER_PREFIX = 'DRAFT-';
 
 export function isPlaceholderInvoiceNumber(invoiceNumber: string): boolean {

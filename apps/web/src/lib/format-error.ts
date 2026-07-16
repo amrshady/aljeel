@@ -111,6 +111,8 @@ export function formatInvoiceError(
         return t('errors.asateelTableRequired');
       case 'ASATEEL_INVOICE_TABLE_EMPTY':
         return t('errors.asateelTableEmpty');
+      case 'ASATEEL_REGION_REQUIRED':
+        return t('errors.asateelRegionRequired');
       case 'INVOICE_NUMBER_TAKEN':
       case 'INVOICE_DUPLICATE': {
         const name = String(err.details?.invoiceNumber ?? '').trim();

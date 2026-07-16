@@ -1,9 +1,12 @@
 'use client';
 
 import {
+  ASATEEL_REGION_CODES,
+  ASATEEL_REGION_VALUES,
   SupplierProfileSchema,
   validateInvoiceSubmitDocuments,
   type ApInvoiceDetail,
+  type AsateelRegion,
   type UserRole,
 } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
@@ -24,7 +27,12 @@ import { RequireAuth } from '@/components/require-auth';
 import { apiFetch } from '@/lib/api-client';
 import { formatInvoiceError } from '@/lib/format-error';
 import { getApInvoice } from '@/lib/ap-api';
-import { getInvoice, listInvoiceDocuments, submitInvoice } from '@/lib/invoices-api';
+import {
+  getInvoice,
+  listInvoiceDocuments,
+  submitInvoice,
+  updateInvoiceAsateelRegion,
+} from '@/lib/invoices-api';
 import { Link } from '@/i18n/routing';
 
 const AP_ROLES = new Set<UserRole>(['AP_CLERK', 'AP_APPROVER']);
@@ -37,8 +45,10 @@ function InvoiceDetailContent() {
   const { user } = useAuth();
   const isApUser = !!(user && AP_ROLES.has(user.role));
   const [submitting, setSubmitting] = useState(false);
+  const [savingRegion, setSavingRegion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
 
   const { data: invoice, isLoading, isError } = useQuery({
     queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
@@ -56,6 +66,7 @@ function InvoiceDetailContent() {
     enabled: !!user?.supplierId && !isApUser,
   });
   const isJawalSupplier = supplier?.erpIntegration === 'JAWAL';
+  const isAsateelSupplier = supplier?.erpIntegration === 'ASATEEL';
 
   const { data: documents } = useQuery({
     queryKey: ['invoices', params.id, 'documents'],
@@ -70,8 +81,33 @@ function InvoiceDetailContent() {
     }
   }, [documents, selectedDocumentId]);
 
+  useEffect(() => {
+    if (invoice?.asateelRegion) {
+      setAsateelRegion(invoice.asateelRegion);
+    }
+  }, [invoice?.asateelRegion]);
+
+  async function onRegionChange(value: AsateelRegion | '') {
+    setAsateelRegion(value);
+    setError(null);
+    if (!invoice || !value) return;
+    setSavingRegion(true);
+    try {
+      await updateInvoiceAsateelRegion(invoice.id, value);
+      await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
+    } catch (err) {
+      setError(formatInvoiceError(err, tForm, t('submitError')));
+    } finally {
+      setSavingRegion(false);
+    }
+  }
+
   async function onSubmit() {
     if (!invoice) return;
+    if (isAsateelSupplier && !asateelRegion) {
+      setError(tForm('errors.asateelRegionRequired'));
+      return;
+    }
     // Dual-xlsx is Asateel-only; the API skips it for Jawal and enforces Gate B instead.
     const validationIssue = validateInvoiceSubmitDocuments(
       documents?.map((doc) => doc.fileName) ?? [],
@@ -84,6 +120,9 @@ function InvoiceDetailContent() {
     setSubmitting(true);
     setError(null);
     try {
+      if (isAsateelSupplier && asateelRegion && invoice.asateelRegion !== asateelRegion) {
+        await updateInvoiceAsateelRegion(invoice.id, asateelRegion);
+      }
       await submitInvoice(invoice.id);
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
       await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
@@ -141,11 +180,38 @@ function InvoiceDetailContent() {
           </p>
         </div>
         {canSubmit && (
-          <Button onClick={onSubmit} disabled={submitting}>
+          <Button onClick={onSubmit} disabled={submitting || savingRegion}>
             {submitting ? t('submitting') : t('submit')}
           </Button>
         )}
       </div>
+
+      {canSubmit && isAsateelSupplier && (
+        <div className="mt-4 max-w-xs">
+          <label className="text-sm font-medium" htmlFor="asateel-region">
+            {tForm('asateelRegion')}
+            <span className="text-destructive"> *</span>
+          </label>
+          <select
+            id="asateel-region"
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            value={asateelRegion}
+            disabled={submitting || savingRegion}
+            required
+            aria-required="true"
+            onChange={(event) => {
+              void onRegionChange(event.target.value as AsateelRegion | '');
+            }}
+          >
+            <option value="">{tForm('asateelRegionPlaceholder')}</option>
+            {ASATEEL_REGION_VALUES.map((region) => (
+              <option key={region} value={region}>
+                {tForm(`asateelRegions.${region}`, { code: ASATEEL_REGION_CODES[region] })}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 

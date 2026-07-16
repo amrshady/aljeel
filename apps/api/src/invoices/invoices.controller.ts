@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InvoicePipelineCountsSchema } from '@aljeel/shared-types';
 import { InvoicesService } from './invoices.service';
@@ -62,6 +62,17 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Update draft invoice' })
   updateDraft(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: unknown) {
     return this.invoicesService.updateDraft(user, id, body);
+  }
+
+  @Patch(':id/asateel-region')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @ApiOperation({ summary: 'Set Asateel region on a draft invoice' })
+  updateAsateelRegion(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.invoicesService.updateAsateelRegion(user, id, body);
   }
 
   @Post(':id/submit')

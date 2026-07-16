@@ -9,6 +9,7 @@ import {
   PaginatedResponseSchema,
   SubmitInvoiceResponseSchema,
   UpsertInvoiceDraftSchema,
+  UpdateAsateelRegionSchema,
   ArchiveInvoiceResponseSchema,
   type UpsertInvoiceDraft,
   type AsateelRegion,
@@ -51,6 +52,15 @@ export function updateInvoiceDraft(id: string, body: UpsertInvoiceDraft) {
   const payload = UpsertInvoiceDraftSchema.parse(body);
   return apiFetch(`/invoices/${id}`, {
     method: 'PUT',
+    body: JSON.stringify(payload),
+    schema: InvoiceSchema,
+  });
+}
+
+export function updateInvoiceAsateelRegion(id: string, asateelRegion: AsateelRegion) {
+  const payload = UpdateAsateelRegionSchema.parse({ asateelRegion });
+  return apiFetch(`/invoices/${id}/asateel-region`, {
+    method: 'PATCH',
     body: JSON.stringify(payload),
     schema: InvoiceSchema,
   });

@@ -9,6 +9,7 @@ import {
   CreateInvoiceDraftSchema,
   InvoiceListQuerySchema,
   PLACEHOLDER_INVOICE_NUMBER_PREFIX,
+  UpdateAsateelRegionSchema,
   UpsertInvoiceDraftSchema,
   assertInvoiceTransition,
   computeInvoiceTotals,
@@ -19,6 +20,7 @@ import {
   type CreateInvoiceDraft,
   type InvoiceListQuery,
   type JawalEvidenceIssue,
+  type UpdateAsateelRegion,
   type UpsertInvoiceDraft,
 } from '@aljeel/shared-types';
 import type { Prisma } from '@prisma/client';
@@ -107,6 +109,25 @@ export class InvoicesService {
         include: { lines: true },
       });
       if (existingDraft) {
+        if (
+          dto.asateelRegion &&
+          dto.asateelRegion !== existingDraft.asateelRegion
+        ) {
+          const updated = await this.prisma.invoice.update({
+            where: { id: existingDraft.id },
+            data: { asateelRegion: dto.asateelRegion },
+            include: { lines: true },
+          });
+          await this.audit.record({
+            actorId: user.sub,
+            entity: 'Invoice',
+            entityId: updated.id,
+            action: 'UPDATE',
+            before: { asateelRegion: existingDraft.asateelRegion },
+            after: { asateelRegion: updated.asateelRegion },
+          });
+          return serializeInvoice(updated);
+        }
         return serializeInvoice(existingDraft);
       }
 
@@ -147,6 +168,36 @@ export class InvoicesService {
       entityId: invoice.id,
       action: 'CREATE',
       after: { status: 'DRAFT', invoiceNumber: invoice.invoiceNumber },
+    });
+
+    return serializeInvoice(invoice);
+  }
+
+  async updateAsateelRegion(user: AuthUser, id: string, body: unknown) {
+    const dto: UpdateAsateelRegion = UpdateAsateelRegionSchema.parse(body);
+    const supplierId = requireSupplierId(user);
+    const existing = await this.findOwnedInvoice(supplierId, id);
+
+    if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
+      throw new UnprocessableEntityException({
+        code: 'INVOICE_NOT_EDITABLE',
+        message: 'Only draft or rejected invoices can be edited.',
+      });
+    }
+
+    const invoice = await this.prisma.invoice.update({
+      where: { id },
+      data: { asateelRegion: dto.asateelRegion },
+      include: { lines: true },
+    });
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Invoice',
+      entityId: invoice.id,
+      action: 'UPDATE',
+      before: { asateelRegion: existing.asateelRegion },
+      after: { asateelRegion: invoice.asateelRegion },
     });
 
     return serializeInvoice(invoice);
@@ -379,6 +430,12 @@ export class InvoicesService {
 
     let jawalWarning: JawalEvidenceIssue | null = null;
     if (supplier?.erpIntegration === 'ASATEEL') {
+      if (!invoice.asateelRegion) {
+        throw new UnprocessableEntityException({
+          code: 'ASATEEL_REGION_REQUIRED',
+          message: 'Select an Asateel region before submitting this invoice.',
+        });
+      }
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
       if (manifest.error) {
         throw new UnprocessableEntityException({

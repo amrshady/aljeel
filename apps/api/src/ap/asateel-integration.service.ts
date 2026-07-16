@@ -163,7 +163,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       const payload = {
         archive_date: this.archiveDate(invoice),
         folder_name: folderName,
-        region: getAsateelRegionCode(region),
+        region: region,
         batch_id: invoice.invoiceNumber,
       };
       const trigger = await this.enqueueRun(payload);

@@ -6,7 +6,6 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
-  getAsateelRegionCode,
   getAsateelRegionFilePrefix,
   parseAsateelRegionFromFolderName,
 } from '@aljeel/shared-types';

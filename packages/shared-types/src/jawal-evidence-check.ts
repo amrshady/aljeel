@@ -952,10 +952,11 @@ export function validateJawalEvidencePack(input: {
               row: line.row,
             });
           } else {
+            const previousLine = lines.find((candidate) => candidate.row === first);
             warningDuplicateRefs.push(line.ref);
             pushWarning({
               code: 'JAWAL_REF_DUPLICATE',
-              message: isExactlyOneDayLater(line.date, lines[first - 1]?.date ?? null)
+              message: isExactlyOneDayLater(line.date, previousLine?.date ?? null)
                 ? `Repeated Ref.No "${line.ref}" (rows ${first} and ${line.row}) has an invoice date exactly one day later, so it is treated as a warning.`
                 : `Repeated Ref.No "${line.ref}" (rows ${first} and ${line.row}) looks like a shared event reference, so it is a warning unless other details also match.`,
               gate: 'B',

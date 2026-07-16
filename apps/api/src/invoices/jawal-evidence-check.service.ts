@@ -44,6 +44,7 @@ export class JawalEvidenceCheckService {
           message:
             'Upload a Jawal travel spreadsheet with Ref.No and Ticket columns, plus the evidence folder tree.',
         },
+        warning: null,
         findings: [
           {
             code: 'JAWAL_TABLE_REQUIRED',
@@ -129,6 +130,7 @@ export class JawalEvidenceCheckService {
           message:
             'None of the uploaded spreadsheets contain Ref.No and Ticket columns required for Jawal evidence checks.',
         },
+        warning: null,
         findings: [
           {
             code: 'JAWAL_TABLE_REQUIRED',
@@ -157,10 +159,30 @@ export class JawalEvidenceCheckService {
             sourceSpreadsheet,
           },
         },
+        warning: result.warning
+          ? {
+              ...result.warning,
+              details: {
+                ...result.warning.details,
+                sourceSpreadsheet,
+              },
+            }
+          : null,
       };
     }
 
-    return result;
+    return result.warning
+      ? {
+          ...result,
+          warning: {
+            ...result.warning,
+            details: {
+              ...result.warning.details,
+              sourceSpreadsheet,
+            },
+          },
+        }
+      : result;
   }
 
   private parseWorkbookSheets(buffer: Buffer): unknown[][][] {

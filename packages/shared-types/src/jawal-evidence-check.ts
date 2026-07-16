@@ -50,6 +50,7 @@ export interface JawalEvidenceIssue {
 
 export interface JawalEvidenceValidation {
   error: JawalEvidenceIssue | null;
+  warning: JawalEvidenceIssue | null;
   findings: JawalEvidenceFinding[];
 }
 
@@ -75,6 +76,8 @@ export interface JawalInvoiceLine {
   account: string;
   type: string;
   opexSerial: string | null;
+  date: string | null;
+  amount: string | null;
   kind: JawalLineKind;
 }
 
@@ -141,6 +144,18 @@ function isAccountHeader(label: string): boolean {
 function isTypeHeader(label: string): boolean {
   const normalized = normalizeHeaderLabel(label);
   return /^(type|category|nature|line\s*type)$/i.test(normalized);
+}
+
+function isDateHeader(label: string): boolean {
+  const normalized = normalizeHeaderLabel(label);
+  if (!normalized) return false;
+  return /^(date|issue\s*date|travel\s*date|service\s*date|document\s*date)$/i.test(normalized);
+}
+
+function isAmountHeader(label: string): boolean {
+  const normalized = normalizeHeaderLabel(label);
+  if (!normalized) return false;
+  return /^(amount|line\s*amount|total\s*amount|net\s*amount|gross\s*amount)$/i.test(normalized);
 }
 
 function isOpexHeader(label: string): boolean {
@@ -363,6 +378,8 @@ function findHeaderMap(grid: unknown[][]): {
     description: number | null;
     account: number | null;
     type: number | null;
+    date: number | null;
+    amount: number | null;
     opex: number | null;
   };
 } | null {
@@ -374,6 +391,8 @@ function findHeaderMap(grid: unknown[][]): {
     let description: number | null = null;
     let account: number | null = null;
     let type: number | null = null;
+    let date: number | null = null;
+    let amount: number | null = null;
     let opex: number | null = null;
 
     for (let column = 0; column < cells.length; column += 1) {
@@ -384,13 +403,15 @@ function findHeaderMap(grid: unknown[][]): {
       else if (description === null && isDescriptionHeader(label)) description = column;
       else if (account === null && isAccountHeader(label)) account = column;
       else if (type === null && isTypeHeader(label)) type = column;
+      else if (date === null && isDateHeader(label)) date = column;
+      else if (amount === null && isAmountHeader(label)) amount = column;
       else if (opex === null && isOpexHeader(label)) opex = column;
     }
 
     if (ref !== null && ticket !== null) {
       return {
         headerRow: row,
-        columns: { ref, ticket, description, account, type, opex },
+        columns: { ref, ticket, description, account, type, date, amount, opex },
       };
     }
   }
@@ -422,6 +443,10 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
         header.columns.account !== null ? cellText(cells[header.columns.account]) : '';
       const type =
         header.columns.type !== null ? cellText(cells[header.columns.type]) : '';
+      const date =
+        header.columns.date !== null ? cellText(cells[header.columns.date]) || null : null;
+      const amount =
+        header.columns.amount !== null ? cellText(cells[header.columns.amount]) || null : null;
       const opexSerial =
         header.columns.opex !== null ? cellText(cells[header.columns.opex]) || null : null;
 
@@ -459,6 +484,8 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
         description,
         account,
         type,
+        date,
+        amount,
         opexSerial,
         kind: classifyJawalLineKind({ ref, description, account, type }),
       });
@@ -607,6 +634,54 @@ function passengerKey(line: JawalInvoiceLine): string {
   return normalizeCanonicalToken(line.description).replace(/[^A-Z0-9]+/g, '');
 }
 
+function amountKey(line: JawalInvoiceLine): string {
+  return normalizeCanonicalToken(line.amount ?? '').replace(/[^A-Z0-9.]+/g, '');
+}
+
+function dateKey(line: JawalInvoiceLine): string {
+  return normalizeCanonicalToken(line.date ?? '').replace(/[^A-Z0-9]+/g, '');
+}
+
+function parseComparableDate(value: string | null): number | null {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+
+  const iso = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (iso) {
+    const year = Number(iso[1]);
+    const month = Number(iso[2]);
+    const day = Number(iso[3]);
+    return Date.UTC(year, month - 1, day);
+  }
+
+  const parsed = Date.parse(raw);
+  if (!Number.isFinite(parsed)) return null;
+  const date = new Date(parsed);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function isExactlyOneDayLater(current: string | null, previous: string | null): boolean {
+  const currentDate = parseComparableDate(current);
+  const previousDate = parseComparableDate(previous);
+  if (currentDate === null || previousDate === null) return false;
+  return currentDate - previousDate === 24 * 60 * 60 * 1000;
+}
+
+function duplicateRefCompoundKey(line: JawalInvoiceLine): string | null {
+  const refKey = normalizeCanonicalToken(line.ref).replace(/[^A-Z0-9-]/g, '');
+  if (!refKey) return null;
+
+  const parts = [
+    amountKey(line),
+    passengerKey(line),
+    line.ticket ? normalizeCanonicalToken(normalizeJawalTicket(line.ticket)) : '',
+    dateKey(line),
+  ].filter(Boolean);
+
+  if (parts.length === 0) return null;
+  return [refKey, ...parts].join('|');
+}
+
 function lineFolderKeys(line: JawalInvoiceLine, allLines: JawalInvoiceLine[]): string[] {
   const keys: string[] = [];
   // Jawwal evidence trees are usually keyed by ticket body; older packs / CE-SIS
@@ -724,7 +799,7 @@ function folderMatchesLine(
 }
 
 /**
- * Pure pass/fail Jawal upload checker. All findings are BLOCK severity.
+ * Jawal upload checker with blocking findings plus non-blocking warnings.
  */
 export function validateJawalEvidencePack(input: {
   lines: JawalInvoiceLine[];
@@ -732,12 +807,22 @@ export function validateJawalEvidencePack(input: {
   sourceSpreadsheet?: string;
 }): JawalEvidenceValidation {
   const findings: JawalEvidenceFinding[] = [];
+  const blockingFindings: JawalEvidenceFinding[] = [];
+  const warningFindings: JawalEvidenceFinding[] = [];
   const { lines, files } = input;
+  const pushBlock = (finding: JawalEvidenceFinding) => {
+    findings.push(finding);
+    blockingFindings.push(finding);
+  };
+  const pushWarning = (finding: JawalEvidenceFinding) => {
+    findings.push(finding);
+    warningFindings.push(finding);
+  };
 
   // ── Gate A ──────────────────────────────────────────────────────────────
   for (const file of files) {
     if (file.zeroBytes || file.sizeBytes <= 0) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_FILE_EMPTY',
         message: `Empty file is not allowed: ${file.fileName}`,
         gate: 'A',
@@ -745,7 +830,7 @@ export function validateJawalEvidencePack(input: {
       });
     }
     if (file.unsafeName || isUnsafeEvidenceFileName(file.fileName)) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_UNSAFE_FILENAME',
         message: `Unsafe file name: ${file.fileName}`,
         gate: 'A',
@@ -753,7 +838,7 @@ export function validateJawalEvidencePack(input: {
       });
     }
     if (file.magicMismatch) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_MAGIC_MISMATCH',
         message: `File content does not match its extension: ${file.fileName}`,
         gate: 'A',
@@ -761,7 +846,7 @@ export function validateJawalEvidencePack(input: {
       });
     }
     if (file.pdfInvalid) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_PDF_INVALID',
         message: `PDF could not be opened: ${file.fileName}`,
         gate: 'A',
@@ -769,7 +854,7 @@ export function validateJawalEvidencePack(input: {
       });
     }
     if (file.workbookInvalid) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_WORKBOOK_INVALID',
         message: `Workbook is not a valid Excel file: ${file.fileName}`,
         gate: 'A',
@@ -794,7 +879,7 @@ export function validateJawalEvidencePack(input: {
   }
   for (const folder of folderAnyFiles) {
     if (!folderRealFiles.has(folder)) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_EMPTY_FOLDER',
         message: `Evidence folder has no usable files (only empty/system files): ${folder}`,
         gate: 'A',
@@ -805,7 +890,7 @@ export function validateJawalEvidencePack(input: {
 
   // ── Gate B1 ─────────────────────────────────────────────────────────────
   if (lines.length === 0) {
-    findings.push({
+    pushBlock({
       code: 'JAWAL_TABLE_EMPTY',
       message:
         'The Jawal spreadsheet has Ref.No / Ticket headers but no line items to validate.',
@@ -816,7 +901,7 @@ export function validateJawalEvidencePack(input: {
 
   for (const line of lines) {
     if (!line.ref && !line.ticket) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_STRUCTURE_INVALID',
         message: `Row ${line.row} is missing both Ref.No and Ticket.`,
         gate: 'B',
@@ -828,15 +913,17 @@ export function validateJawalEvidencePack(input: {
 
   // ── Gate B1a ────────────────────────────────────────────────────────────
   const seenRefs = new Map<string, number>();
+  const seenRefCompoundKeys = new Map<string, number>();
   const seenTickets = new Map<string, number>();
   const malformedRefs: string[] = [];
-  const duplicateRefs: string[] = [];
+  const blockingDuplicateRefs: string[] = [];
+  const warningDuplicateRefs: string[] = [];
 
   for (const line of lines) {
     if (line.ref) {
       if (!isCanonicalJawalRef(line.ref)) {
         malformedRefs.push(line.ref);
-        findings.push({
+        pushBlock({
           code: 'JAWAL_REF_MALFORMED',
           message: `Ref.No "${line.ref}" is malformed (row ${line.row}). Fix the spreadsheet — it will not be auto-corrected.`,
           gate: 'B',
@@ -846,21 +933,42 @@ export function validateJawalEvidencePack(input: {
         });
       } else if (isLetterPrefixRef(line.ref)) {
         // Duplicate employee ids / free-text hotel refs are normal on Jawwal tax invoices.
-        // Prefix serials (CE-/SIS-/EP-) must still be unique.
+        // Prefix serials may repeat across related event lines, so only block when
+        // the repeated Ref.No also matches a stronger beneficiary/amount/ticket/date signature.
         const key = normalizeCanonicalToken(line.ref).replace(/[^A-Z0-9-]/g, '');
         const first = seenRefs.get(key);
+        const compoundKey = duplicateRefCompoundKey(line);
+        const compoundFirst =
+          compoundKey !== null ? seenRefCompoundKeys.get(compoundKey) : undefined;
         if (first !== undefined) {
-          duplicateRefs.push(line.ref);
-          findings.push({
-            code: 'JAWAL_REF_DUPLICATE',
-            message: `Duplicate Ref.No "${line.ref}" (rows ${first} and ${line.row}).`,
-            gate: 'B',
-            rule: 'B1a',
-            ref: line.ref,
-            row: line.row,
-          });
+          if (compoundFirst !== undefined) {
+            blockingDuplicateRefs.push(line.ref);
+            pushBlock({
+              code: 'JAWAL_REF_DUPLICATE',
+              message: `Duplicate Ref.No "${line.ref}" with matching event details (rows ${compoundFirst} and ${line.row}).`,
+              gate: 'B',
+              rule: 'B1a',
+              ref: line.ref,
+              row: line.row,
+            });
+          } else {
+            warningDuplicateRefs.push(line.ref);
+            pushWarning({
+              code: 'JAWAL_REF_DUPLICATE',
+              message: isExactlyOneDayLater(line.date, lines[first - 1]?.date ?? null)
+                ? `Repeated Ref.No "${line.ref}" (rows ${first} and ${line.row}) has an invoice date exactly one day later, so it is treated as a warning.`
+                : `Repeated Ref.No "${line.ref}" (rows ${first} and ${line.row}) looks like a shared event reference, so it is a warning unless other details also match.`,
+              gate: 'B',
+              rule: 'B1a',
+              ref: line.ref,
+              row: line.row,
+            });
+          }
         } else {
           seenRefs.set(key, line.row);
+        }
+        if (compoundKey !== null && compoundFirst === undefined) {
+          seenRefCompoundKeys.set(compoundKey, line.row);
         }
       }
     }
@@ -868,7 +976,7 @@ export function validateJawalEvidencePack(input: {
     if (line.ticket) {
       if (!isCanonicalJawalTicket(line.ticket)) {
         malformedRefs.push(line.ticket);
-        findings.push({
+        pushBlock({
           code: 'JAWAL_REF_MALFORMED',
           message: `Ticket "${line.ticket}" is malformed (row ${line.row}). Fix the spreadsheet — it will not be auto-corrected.`,
           gate: 'B',
@@ -880,8 +988,8 @@ export function validateJawalEvidencePack(input: {
         const key = normalizeCanonicalToken(normalizeJawalTicket(line.ticket));
         const first = seenTickets.get(key);
         if (first !== undefined) {
-          duplicateRefs.push(line.ticket);
-          findings.push({
+          blockingDuplicateRefs.push(line.ticket);
+          pushBlock({
             code: 'JAWAL_REF_DUPLICATE',
             message: `Duplicate Ticket "${line.ticket}" (rows ${first} and ${line.row}).`,
             gate: 'B',
@@ -900,7 +1008,7 @@ export function validateJawalEvidencePack(input: {
         isCanonicalJawalRef(line.opexSerial) ||
         (!!line.ref && exactCanonicalMatch(line.opexSerial, line.ref));
       if (!serialOk) {
-        findings.push({
+        pushBlock({
           code: 'JAWAL_REF_MALFORMED',
           message: `OPEX serial "${line.opexSerial}" is malformed (row ${line.row}).`,
           gate: 'B',
@@ -929,7 +1037,7 @@ export function validateJawalEvidencePack(input: {
     const folderKey = folderKeys[0]!;
     if (!matched) {
       missingFolders.push(folderKey);
-      findings.push({
+      pushBlock({
         code: 'JAWAL_FOLDER_MISMATCH',
         message: `No evidence folder exactly matching "${folderKey}" (row ${line.row}). Prefix-similar names do not count.`,
         gate: 'B',
@@ -942,7 +1050,7 @@ export function validateJawalEvidencePack(input: {
     }
 
     if (line.opexSerial && !folderHasOpex(files, matched, line.opexSerial)) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_FOLDER_MISMATCH',
         message: `OPEX serial "${line.opexSerial}" does not exactly match files in folder "${matched}" (row ${line.row}).`,
         gate: 'B',
@@ -954,7 +1062,7 @@ export function validateJawalEvidencePack(input: {
     }
 
     if (!folderHasSupportingDoc(files, matched)) {
-      findings.push({
+      pushBlock({
         code: 'JAWAL_SUPPORTING_DOC_MISSING',
         message: `Folder "${matched}" has no supporting document (row ${line.row}).`,
         gate: 'B',
@@ -967,7 +1075,7 @@ export function validateJawalEvidencePack(input: {
     if (line.kind === 'EVENT_SPONSORSHIP') {
       const hasOpex = folderHasOpex(files, matched, line.opexSerial);
       if (!hasOpex) {
-        findings.push({
+        pushBlock({
           code: 'JAWAL_APPROVAL_MISSING',
           message: `Event/sponsorship line "${folderKey}" requires an OPEX form — a .msg alone is not enough (row ${line.row}).`,
           gate: 'B',
@@ -976,7 +1084,7 @@ export function validateJawalEvidencePack(input: {
           path: matched,
           row: line.row,
         });
-        findings.push({
+        pushBlock({
           code: 'JAWAL_EVENT_INCOMPLETE',
           message: `Event/sponsorship evidence incomplete for "${folderKey}" (row ${line.row}).`,
           gate: 'B',
@@ -990,7 +1098,7 @@ export function validateJawalEvidencePack(input: {
       const hasMsg = folderHasMsg(files, matched);
       const hasOpex = folderHasOpex(files, matched, line.opexSerial);
       if (!hasMsg && !hasOpex) {
-        findings.push({
+        pushBlock({
           code: 'JAWAL_APPROVAL_MISSING',
           message: `Travel/ticket line "${folderKey}" needs approval evidence (.msg thread or OPEX) (row ${line.row}).`,
           gate: 'B',
@@ -1005,17 +1113,12 @@ export function validateJawalEvidencePack(input: {
   }
 
   // ── Gate B6 reverse coverage ────────────────────────────────────────────
-  const covered = new Set<string>();
-  for (const line of lines) {
-    for (const key of lineFolderKeys(line, lines)) covered.add(key);
-  }
-
   const orphanFolders: string[] = [];
   for (const folder of uniqueFolders(files)) {
     if (TOP_LEVEL_SKIP.test(folder) || isWrapperSegment(folder)) continue;
     if (lines.some((line) => folderMatchesLine(folder, line, files, lines))) continue;
     orphanFolders.push(folder);
-    findings.push({
+    pushBlock({
       code: 'JAWAL_ORPHAN_FOLDER',
       message: `Evidence folder "${folder}" is not listed on any Ref.No / Ticket line.`,
       gate: 'B',
@@ -1025,26 +1128,50 @@ export function validateJawalEvidencePack(input: {
   }
 
   if (findings.length === 0) {
-    return { error: null, findings: [] };
+    return { error: null, warning: null, findings: [] };
   }
 
-  const primary = findings[0]!;
+  const primary = blockingFindings[0] ?? null;
+  const warningPrimary = warningFindings[0] ?? null;
+
   return {
-    error: {
-      code: primary.code,
-      message:
-        findings.length === 1
-          ? primary.message
-          : `${primary.message} (+${findings.length - 1} more Jawal evidence issue${findings.length === 2 ? '' : 's'})`,
-      details: {
-        findings,
-        malformedRefs: malformedRefs.length > 0 ? [...new Set(malformedRefs)] : undefined,
-        duplicateRefs: duplicateRefs.length > 0 ? [...new Set(duplicateRefs)] : undefined,
-        missingFolders: missingFolders.length > 0 ? [...new Set(missingFolders)] : undefined,
-        orphanFolders: orphanFolders.length > 0 ? orphanFolders : undefined,
-        sourceSpreadsheet: input.sourceSpreadsheet,
-      },
-    },
+    error: primary
+      ? {
+          code: primary.code,
+          message:
+            blockingFindings.length === 1
+              ? primary.message
+              : `${primary.message} (+${blockingFindings.length - 1} more Jawal evidence issue${blockingFindings.length === 2 ? '' : 's'})`,
+          details: {
+            findings: blockingFindings,
+            malformedRefs: malformedRefs.length > 0 ? [...new Set(malformedRefs)] : undefined,
+            duplicateRefs:
+              blockingDuplicateRefs.length > 0
+                ? [...new Set(blockingDuplicateRefs)]
+                : undefined,
+            missingFolders: missingFolders.length > 0 ? [...new Set(missingFolders)] : undefined,
+            orphanFolders: orphanFolders.length > 0 ? orphanFolders : undefined,
+            sourceSpreadsheet: input.sourceSpreadsheet,
+          },
+        }
+      : null,
+    warning: warningPrimary
+      ? {
+          code: warningPrimary.code,
+          message:
+            warningFindings.length === 1
+              ? warningPrimary.message
+              : `${warningPrimary.message} (+${warningFindings.length - 1} more Jawal warning${warningFindings.length === 2 ? '' : 's'})`,
+          details: {
+            findings: warningFindings,
+            duplicateRefs:
+              warningDuplicateRefs.length > 0
+                ? [...new Set(warningDuplicateRefs)]
+                : undefined,
+            sourceSpreadsheet: input.sourceSpreadsheet,
+          },
+        }
+      : null,
     findings,
   };
 }

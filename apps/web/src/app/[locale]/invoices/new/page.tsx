@@ -177,7 +177,7 @@ function InvoiceUploadContent() {
           setWarning(null);
           return;
         }
-        setWarning(null);
+        setWarning(jawal.warning ? formatJawalEvidenceIssue(jawal.warning, t) : null);
       } else {
         const pack = jawal ?? (await validateLocalJawalEvidence(folderFiles));
         if (pack?.error) {
@@ -186,7 +186,7 @@ function InvoiceUploadContent() {
           return;
         }
         if (pack) {
-          setWarning(null);
+          setWarning(pack.warning ? formatJawalEvidenceIssue(pack.warning, t) : null);
         } else {
           const manifest = await validateLocalAsateelManifest(folderFiles);
           if (manifest?.error) {

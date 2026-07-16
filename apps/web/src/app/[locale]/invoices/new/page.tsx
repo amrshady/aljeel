@@ -110,6 +110,9 @@ function InvoiceUploadContent() {
     requireFiles: boolean,
     options?: { skipXlsxRequirement?: boolean },
   ): string | null {
+    if (requireFiles && isAsateelSupplier && !asateelRegion) {
+      return t('errors.asateelRegionRequired');
+    }
     if (!requireFiles) return null;
     return submitValidationError(files.map(fileLabel), options);
   }
@@ -375,14 +378,21 @@ function InvoiceUploadContent() {
 
           {isAsateelSupplier && (
             <div className="max-w-xs">
-              <label className="text-sm font-medium">{t('asateelRegion')}</label>
+              <label className="text-sm font-medium" htmlFor="asateel-region">
+                {t('asateelRegion')}
+                <span className="text-destructive"> *</span>
+              </label>
               <select
+                id="asateel-region"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={asateelRegion}
                 disabled={uploading}
+                required
+                aria-required="true"
                 onChange={(event) => {
                   setAsateelRegion(event.target.value as AsateelRegion | '');
                   setDraftInvoiceId(null);
+                  setError(null);
                 }}
               >
                 <option value="">{t('asateelRegionPlaceholder')}</option>

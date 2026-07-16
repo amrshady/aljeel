@@ -147,6 +147,7 @@
       "asateelFilesExtra": "These files are not listed in the spreadsheet Invoice No column: {files}",
       "asateelTableRequired": "Upload a spreadsheet with an Invoice No column (Asateel shipping report).",
       "asateelTableEmpty": "The spreadsheet has no invoice numbers in the Invoice No column.",
+      "asateelRegionRequired": "Please select an Asateel region before submitting for review",
       "jawalTableRequired": "Upload a Jawal travel spreadsheet with Ref.No and Ticket columns, plus the evidence folder tree.",
       "jawalTableEmpty": "The Jawal spreadsheet has Ref.No / Ticket headers but no line items.",
       "jawalRefMalformed": "Malformed Ref.No / Ticket values (not auto-corrected): {refs}",

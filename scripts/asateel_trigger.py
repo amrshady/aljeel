@@ -37,9 +37,19 @@ SO_DETAIL = ROOT / "reference" / "SO_Detail_Labadi_1_R21_AA.xlsx"
 OPENAPI_SPEC = ROOT / "docs" / "asateel-trigger-api.openapi.yaml"
 PIPELINE_TIMEOUT_SECONDS = 3 * 60 * 60
 DEFAULT_RECIPIENTS = ["amr@accordpartners.ai"]
-ALLOWED_REGIONS = {"CENTRAL", "PROJECTS", "ADMIN", "MAIN", "EASTERN", "WESTERN"}
+ALLOWED_REGIONS = {"CENTRAL", "PT_PROJECT", "PROJECTS", "ADMIN", "MAIN", "EASTERN", "WESTERN"}
+REGION_ENGINE_FOLDERS = {
+    "CENTRAL": "CENTRAL",
+    "PT_PROJECT": "PROJECTS",
+    "PROJECTS": "PROJECTS",
+    "ADMIN": "ADMIN",
+    "MAIN": "MAIN",
+    "EASTERN": "EASTERN",
+    "WESTERN": "WESTERN",
+}
 REGION_TITLES = {
     "CENTRAL": "Central",
+    "PT_PROJECT": "P&T",
     "PROJECTS": "Projects",
     "ADMIN": "Admin",
     "MAIN": "Main",
@@ -143,7 +153,9 @@ def _parse_payload(payload: Any) -> dict[str, Any]:
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", archive_date):
         raise ValueError("archive_date must match YYYY-MM-DD")
     if region not in ALLOWED_REGIONS:
-        raise ValueError("region must be one of CENTRAL, PROJECTS, ADMIN, MAIN, EASTERN, WESTERN")
+        raise ValueError(
+            "region must be one of CENTRAL, PT_PROJECT, PROJECTS, ADMIN, MAIN, EASTERN, WESTERN"
+        )
     if not folder_name:
         raise ValueError("folder_name is required")
     if not batch_id:
@@ -417,7 +429,7 @@ def _execute_job(job: AsateelJob) -> None:
         "python3",
         str(ROOT / "pipelines" / "asateel.py"),
         "--folder",
-        job.region,
+        REGION_ENGINE_FOLDERS[job.region],
         "--full",
         "--pdf-dir",
         str(src_dir),

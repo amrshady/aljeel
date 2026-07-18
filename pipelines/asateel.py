@@ -419,6 +419,8 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         project_lookup=project_lookup,
         project_master_fallback=args.folder == "PROJECTS",
     )
+    # Apply the AP whole-riyal control on the rows that feed the Oracle workbook.
+    whole_riyal_invoice_totals = engine.enforce_whole_riyal_invoice_totals(rows)
     validation = engine.validate(rows, lookups)
     engine.write_excel(rows, ORACLE_XLSX)
     header_diffs = engine.validate_output_headers(ORACLE_XLSX)
@@ -438,6 +440,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "input_fingerprints": input_fingerprints,
         "provenance": provenance,
         "validation": validation,
+        "whole_riyal_invoice_totals": whole_riyal_invoice_totals,
         "header_validation": summary["header_validation"],
         "output_files": {
             "oracle_xlsx": str(ORACLE_XLSX),

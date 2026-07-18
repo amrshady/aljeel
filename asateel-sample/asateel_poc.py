@@ -2528,6 +2528,47 @@ def write_excel(rows: list[dict[str, Any]], path: Path) -> None:
     wb.close()
 
 
+def enforce_whole_riyal_invoice_totals(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Adjust invoice line amounts by at most two halalas to reach a whole SAR total."""
+    invoice_rows: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        invoice_rows.setdefault(_clean(row.get("*Invoice Number")), []).append(row)
+
+    results = []
+    for invoice_no, line_rows in invoice_rows.items():
+        # Work only in integer halalas so binary floating-point cannot affect the rule.
+        amounts = [int(round(float(row.get("*Amount") or 0) * 100)) for row in line_rows]
+        total_halala = sum(amounts)
+        remainder = total_halala % 100
+        adjustment = -remainder if remainder <= 50 else 100 - remainder
+        result = {
+            "invoice_no": invoice_no,
+            "original_total_halala": total_halala,
+            "adjustment_halala": adjustment,
+            "status": "already_whole" if adjustment == 0 else "manual_review",
+        }
+
+        if 0 < abs(adjustment) <= 2 and len(line_rows) >= abs(adjustment):
+            direction = 1 if adjustment > 0 else -1
+            for index in range(abs(adjustment)):
+                amounts[index] += direction
+                adjusted_amount = amounts[index] / 100
+                line_rows[index]["line_amount"] = adjusted_amount
+                line_rows[index]["*Amount"] = adjusted_amount
+            result["status"] = "adjusted"
+            result["adjusted_line_count"] = abs(adjustment)
+        elif adjustment:
+            message = (
+                f"Whole-riyal total requires {adjustment:+d} halalas; "
+                "left unchanged for manual review"
+            )
+            line_rows[0]["notes"] = "; ".join(filter(None, [line_rows[0].get("notes"), message]))
+
+        result["final_total_halala"] = sum(amounts)
+        results.append(result)
+    return results
+
+
 def parse_distribution(combo: Any) -> dict[str, str]:
     s = _clean(combo)
     if not s:
@@ -3015,6 +3056,8 @@ def main(argv: list[str] | None = None) -> int:
         project_lookup=project_lookup,
         project_master_fallback=args.folder == "PROJECTS",
     )
+    # AP control: enforce whole-riyal line totals at the final output boundary.
+    trace["whole_riyal_invoice_totals"] = enforce_whole_riyal_invoice_totals(rows)
     trace["supplier_expenses_format_path"] = str(Path(args.expenses_format))
     trace["so_detail_path"] = str(Path(args.so_detail))
     trace["project_allocation_lookup_path"] = (

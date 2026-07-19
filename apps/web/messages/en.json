@@ -204,6 +204,8 @@
     "browseOr": "or",
     "browseFolderLink": "browse folder",
     "scanningFolder": "Reading folder…",
+    "folderScanEmpty": "No files found in the dropped folder. On Windows, try “browse folder”, or copy the folder out of OneDrive/network drives to your Desktop first.",
+    "folderScanError": "Could not read the dropped folder. On Windows use Chrome or Edge, or click “browse folder” instead.",
     "statusQueued": "queued",
     "statusSigning": "signing…",
     "statusUploadingStart": "uploading…",

@@ -204,6 +204,8 @@
     "browseOr": "أو",
     "browseFolderLink": "تصفح مجلد",
     "scanningFolder": "جاري قراءة المجلد…",
+    "folderScanEmpty": "لم يُعثر على ملفات في المجلد المُسقط. على Windows جرّب «تصفح مجلد»، أو انسخ المجلد من OneDrive/الشبكة إلى سطح المكتب أولاً.",
+    "folderScanError": "تعذر قراءة المجلد المُسقط. على Windows استخدم Chrome أو Edge، أو انقر «تصفح مجلد» بدلاً من السحب.",
     "statusQueued": "في الانتظار",
     "statusSigning": "جاري التجهيز…",
     "statusUploadingStart": "جاري الرفع…",

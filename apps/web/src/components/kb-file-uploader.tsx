@@ -69,7 +69,9 @@ function displayPath(item: KbQueuedFile): string {
 
 function fileRelativePath(file: File): string | undefined {
   const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
-  return path && path.length > 0 ? path : undefined;
+  if (!path || path.length === 0) return undefined;
+  // Windows Explorer can produce backslashes in relative paths.
+  return path.replace(/\\/g, '/');
 }
 
 function folderNameFromFiles(files: File[]): string | null {
@@ -84,65 +86,206 @@ function folderNameFromFiles(files: File[]): string | null {
 
 type ScannedFile = { file: File; relativePath: string };
 
-async function readDirectoryEntry(
-  entry: FileSystemDirectoryEntry,
+/** File System Access drop API — not always in TS DOM libs. */
+type DropFileSystemHandle = {
+  kind: 'file' | 'directory';
+  name: string;
+  getFile?: () => Promise<File>;
+  values?: () => AsyncIterable<DropFileSystemHandle>;
+};
+
+type DataTransferItemWithFs = DataTransferItem & {
+  getAsFileSystemHandle?: () => Promise<DropFileSystemHandle | null>;
+};
+
+type DropCapture =
+  | { kind: 'handles'; handles: Promise<DropFileSystemHandle | null>[] }
+  | { kind: 'entries'; entries: FileSystemEntry[] };
+
+function supportsFileSystemAccessDrop(): boolean {
+  return (
+    typeof DataTransferItem !== 'undefined' &&
+    'getAsFileSystemHandle' in DataTransferItem.prototype
+  );
+}
+
+/**
+ * Capture drop items synchronously in the drop event tick.
+ * Prefer File System Access handles (Chrome/Edge on Windows) — they survive
+ * long async walks. webkitGetAsEntry() drag data can expire mid-traversal on
+ * Windows (AV/NTFS), which silently drops nested folders and keeps only root.
+ */
+function captureDrop(dt: DataTransfer): DropCapture {
+  const items = Array.from(dt.items).filter((item) => item.kind === 'file');
+
+  if (supportsFileSystemAccessDrop() && items.length > 0) {
+    // Start every handle promise in this tick — awaiting one before creating
+    // the rest makes later items resolve to null (MDN).
+    return {
+      kind: 'handles',
+      handles: items.map((item) => {
+        const withFs = item as DataTransferItemWithFs;
+        return withFs.getAsFileSystemHandle?.() ?? Promise.resolve(null);
+      }),
+    };
+  }
+
+  return {
+    kind: 'entries',
+    entries: items
+      .map((item) => item.webkitGetAsEntry())
+      .filter((entry): entry is FileSystemEntry => entry != null),
+  };
+}
+
+function filesFromFileList(fileList: FileList | File[]): ScannedFile[] {
+  return Array.from(fileList).map((file) => ({
+    file,
+    relativePath: fileRelativePath(file) ?? file.name,
+  }));
+}
+
+/** Some Chromium builds already flatten the tree into dt.files with relative paths. */
+function nestedFilesFromDataTransfer(dt: DataTransfer): ScannedFile[] | null {
+  const plain = Array.from(dt.files);
+  if (plain.length === 0) return null;
+  const nested = plain.filter((file) => {
+    const path = fileRelativePath(file);
+    return Boolean(path && path.includes('/'));
+  });
+  // Only trust this path when we clearly got a folder tree, not a flat multi-file drop.
+  if (nested.length === 0) return null;
+  return filesFromFileList(plain);
+}
+
+async function readDirectoryHandle(
+  dir: DropFileSystemHandle,
   pathPrefix: string,
 ): Promise<ScannedFile[]> {
-  const reader = entry.createReader();
   const results: ScannedFile[] = [];
+  const subdirs: Array<{ handle: DropFileSystemHandle; path: string }> = [];
+  const iterable = dir.values?.();
+  if (!iterable) return results;
 
-  const readEntries = (): Promise<FileSystemEntry[]> =>
-    new Promise((resolve, reject) => {
-      reader.readEntries(resolve, reject);
-    });
-
-  let entries = await readEntries();
-  while (entries.length > 0) {
-    for (const child of entries) {
-      const childPath = pathPrefix ? `${pathPrefix}/${child.name}` : child.name;
-      if (child.isFile) {
-        const file = await new Promise<File>((resolve, reject) => {
-          (child as FileSystemFileEntry).file(resolve, reject);
-        });
-        results.push({ file, relativePath: childPath });
-      } else if (child.isDirectory) {
-        results.push(
-          ...(await readDirectoryEntry(child as FileSystemDirectoryEntry, childPath)),
-        );
-      }
+  for await (const handle of iterable) {
+    const childPath = pathPrefix ? `${pathPrefix}/${handle.name}` : handle.name;
+    if (handle.kind === 'file') {
+      const file = await handle.getFile?.();
+      if (file) results.push({ file, relativePath: childPath });
+    } else if (handle.kind === 'directory') {
+      subdirs.push({ handle, path: childPath });
     }
-    entries = await readEntries();
+  }
+
+  for (const sub of subdirs) {
+    results.push(...(await readDirectoryHandle(sub.handle, sub.path)));
   }
   return results;
 }
 
-async function scanDataTransfer(dt: DataTransfer): Promise<{
-  files: ScannedFile[];
-  folderName: string | null;
-}> {
-  const items = Array.from(dt.items);
-  const entries = items
-    .map((item) => (item.kind === 'file' ? item.webkitGetAsEntry() : null))
-    .filter((entry): entry is FileSystemEntry => entry != null);
+/**
+ * Chromium returns at most ~100 entries per readEntries() call.
+ * Exhaust every batch before recursing (Firefox fallback path).
+ */
+async function readAllDirectoryEntries(
+  entry: FileSystemDirectoryEntry,
+): Promise<FileSystemEntry[]> {
+  const reader = entry.createReader();
+  const all: FileSystemEntry[] = [];
+  for (;;) {
+    const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
+      reader.readEntries(resolve, reject);
+    });
+    if (batch.length === 0) break;
+    all.push(...batch);
+  }
+  return all;
+}
 
-  if (entries.length === 0) {
-    const plainFiles = Array.from(dt.files);
-    return {
-      files: plainFiles.map((file) => ({
-        file,
-        relativePath: fileRelativePath(file) ?? file.name,
-      })),
-      folderName: folderNameFromFiles(plainFiles),
-    };
+/**
+ * BFS collect FileSystemFileEntry first (open every directory reader ASAP),
+ * then resolve File blobs. Reduces Windows expiry risk vs depth-first awaits.
+ */
+async function readDirectoryEntry(
+  entry: FileSystemDirectoryEntry,
+  pathPrefix: string,
+): Promise<ScannedFile[]> {
+  const fileEntries: Array<{ entry: FileSystemFileEntry; relativePath: string }> = [];
+  const queue: Array<{ entry: FileSystemEntry; path: string }> = [
+    { entry, path: pathPrefix },
+  ];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) break;
+
+    if (current.entry.isFile) {
+      fileEntries.push({
+        entry: current.entry as FileSystemFileEntry,
+        relativePath: current.path || current.entry.name,
+      });
+      continue;
+    }
+
+    if (!current.entry.isDirectory) continue;
+
+    const children = await readAllDirectoryEntries(
+      current.entry as FileSystemDirectoryEntry,
+    );
+    for (const child of children) {
+      const childPath = current.path
+        ? `${current.path}/${child.name}`
+        : child.name;
+      queue.push({ entry: child, path: childPath });
+    }
   }
 
+  const results: ScannedFile[] = [];
+  for (const item of fileEntries) {
+    const file = await new Promise<File>((resolve, reject) => {
+      item.entry.file(resolve, reject);
+    });
+    results.push({ file, relativePath: item.relativePath });
+  }
+  return results;
+}
+
+async function scanFromHandles(
+  handlePromises: Promise<DropFileSystemHandle | null>[],
+): Promise<{ files: ScannedFile[]; folderName: string | null }> {
+  const handles = await Promise.all(handlePromises);
+  const all: ScannedFile[] = [];
+  let folderName: string | null = null;
+
+  for (const handle of handles) {
+    if (!handle) continue;
+    if (handle.kind === 'directory') {
+      folderName = folderName ?? handle.name;
+      all.push(...(await readDirectoryHandle(handle, handle.name)));
+    } else if (handle.kind === 'file') {
+      const file = await handle.getFile?.();
+      if (file) all.push({ file, relativePath: file.name });
+    }
+  }
+
+  return { files: all, folderName };
+}
+
+async function scanFromEntries(
+  entries: FileSystemEntry[],
+): Promise<{ files: ScannedFile[]; folderName: string | null }> {
   const all: ScannedFile[] = [];
   let folderName: string | null = null;
 
   for (const entry of entries) {
     if (entry.isDirectory) {
       folderName = folderName ?? entry.name;
-      all.push(...(await readDirectoryEntry(entry as FileSystemDirectoryEntry, entry.name)));
+      all.push(
+        ...(await readDirectoryEntry(
+          entry as FileSystemDirectoryEntry,
+          entry.name,
+        )),
+      );
     } else if (entry.isFile) {
       const file = await new Promise<File>((resolve, reject) => {
         (entry as FileSystemFileEntry).file(resolve, reject);
@@ -152,6 +295,39 @@ async function scanDataTransfer(dt: DataTransfer): Promise<{
   }
 
   return { files: all, folderName };
+}
+
+async function scanDataTransfer(
+  dt: DataTransfer,
+  capture: DropCapture,
+): Promise<{
+  files: ScannedFile[];
+  folderName: string | null;
+}> {
+  // Handles first (Chrome/Edge on Windows) — durable across long folder walks.
+  if (capture.kind === 'handles') {
+    const fromHandles = await scanFromHandles(capture.handles);
+    if (fromHandles.files.length > 0) return fromHandles;
+  } else if (capture.entries.length > 0) {
+    const fromEntries = await scanFromEntries(capture.entries);
+    if (fromEntries.files.length > 0) return fromEntries;
+  }
+
+  // Some Chromium builds flatten the tree into dt.files with relative paths.
+  const nestedFromFiles = nestedFilesFromDataTransfer(dt);
+  if (nestedFromFiles) {
+    return {
+      files: nestedFromFiles,
+      folderName: folderNameFromFiles(Array.from(dt.files)),
+    };
+  }
+
+  // Last resort: plain FileList (often root-only for folder drops).
+  const plainFiles = Array.from(dt.files);
+  return {
+    files: filesFromFileList(plainFiles),
+    folderName: folderNameFromFiles(plainFiles),
+  };
 }
 
 export function patchKbFile(
@@ -553,10 +729,22 @@ export function KbFileUploader({
     if (zoneDisabled) return;
 
     if (allowFolder && e.dataTransfer.items?.length) {
+      // Capture handles/entries before any await — only valid in this tick.
+      const capture = captureDrop(e.dataTransfer);
       setScanning(true);
+      setWarning(null);
       try {
-        const { files: scanned, folderName } = await scanDataTransfer(e.dataTransfer);
+        const { files: scanned, folderName } = await scanDataTransfer(
+          e.dataTransfer,
+          capture,
+        );
+        if (scanned.length === 0) {
+          setWarning(t('folderScanEmpty'));
+          return;
+        }
         mergeIncoming(scanned, folderName);
+      } catch {
+        setWarning(t('folderScanError'));
       } finally {
         setScanning(false);
       }

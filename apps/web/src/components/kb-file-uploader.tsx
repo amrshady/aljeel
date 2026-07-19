@@ -699,20 +699,7 @@ export function KbFileUploader({
           </div>
         </div>
 
-        <input {...getInputProps({ id: inputId, accept })} />
-        <input
-          id={inputId + '-legacy'}
-          ref={inputRef}
-          type="file"
-          multiple={multiple}
-          accept={accept}
-          className="hidden"
-          disabled={zoneDisabled}
-          onChange={(e) => {
-            addFilesFromList(e.target.files);
-            e.target.value = '';
-          }}
-        />
+        <input {...getInputProps({ accept })} />
         {allowFolder && (
           <input
             id={folderInputId}

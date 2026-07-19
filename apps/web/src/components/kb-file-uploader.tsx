@@ -98,9 +98,11 @@ type DataTransferItemWithFs = DataTransferItem & {
   getAsFileSystemHandle?: () => Promise<DropFileSystemHandle | null>;
 };
 
-type DropCapture =
-  | { kind: 'handles'; handles: Promise<DropFileSystemHandle | null>[] }
-  | { kind: 'entries'; entries: FileSystemEntry[] };
+/** Capture both APIs in the drop tick so we can fall back if handles throw (OneDrive). */
+type DropCapture = {
+  handles: Promise<DropFileSystemHandle | null>[] | null;
+  entries: FileSystemEntry[];
+};
 
 function supportsFileSystemAccessDrop(): boolean {
   return (
@@ -111,31 +113,27 @@ function supportsFileSystemAccessDrop(): boolean {
 
 /**
  * Capture drop items synchronously in the drop event tick.
- * Prefer File System Access handles (Chrome/Edge on Windows) — they survive
- * long async walks. webkitGetAsEntry() drag data can expire mid-traversal on
- * Windows (AV/NTFS), which silently drops nested folders and keeps only root.
+ * Prefer File System Access handles (Chrome/Edge on Windows). Also keep
+ * webkitGetAsEntry() so OneDrive / cloud placeholder failures can fall back.
  */
 function captureDrop(dt: DataTransfer): DropCapture {
   const items = Array.from(dt.items).filter((item) => item.kind === 'file');
 
+  const entries = items
+    .map((item) => item.webkitGetAsEntry())
+    .filter((entry): entry is FileSystemEntry => entry != null);
+
+  let handles: Promise<DropFileSystemHandle | null>[] | null = null;
   if (supportsFileSystemAccessDrop() && items.length > 0) {
     // Start every handle promise in this tick — awaiting one before creating
     // the rest makes later items resolve to null (MDN).
-    return {
-      kind: 'handles',
-      handles: items.map((item) => {
-        const withFs = item as DataTransferItemWithFs;
-        return withFs.getAsFileSystemHandle?.() ?? Promise.resolve(null);
-      }),
-    };
+    handles = items.map((item) => {
+      const withFs = item as DataTransferItemWithFs;
+      return withFs.getAsFileSystemHandle?.() ?? Promise.resolve(null);
+    });
   }
 
-  return {
-    kind: 'entries',
-    entries: items
-      .map((item) => item.webkitGetAsEntry())
-      .filter((entry): entry is FileSystemEntry => entry != null),
-  };
+  return { handles, entries };
 }
 
 function filesFromFileList(fileList: FileList | File[]): ScannedFile[] {
@@ -167,18 +165,31 @@ async function readDirectoryHandle(
   const iterable = dir.values?.();
   if (!iterable) return results;
 
-  for await (const handle of iterable) {
-    const childPath = pathPrefix ? `${pathPrefix}/${handle.name}` : handle.name;
-    if (handle.kind === 'file') {
-      const file = await handle.getFile?.();
-      if (file) results.push({ file, relativePath: childPath });
-    } else if (handle.kind === 'directory') {
-      subdirs.push({ handle, path: childPath });
+  try {
+    for await (const handle of iterable) {
+      const childPath = pathPrefix ? `${pathPrefix}/${handle.name}` : handle.name;
+      try {
+        if (handle.kind === 'file') {
+          const file = await handle.getFile?.();
+          if (file) results.push({ file, relativePath: childPath });
+        } else if (handle.kind === 'directory') {
+          subdirs.push({ handle, path: childPath });
+        }
+      } catch {
+        // OneDrive online-only / permission hiccup — skip this child, keep going.
+      }
     }
+  } catch {
+    // Listing the directory itself failed (common with cloud placeholders).
+    return results;
   }
 
   for (const sub of subdirs) {
-    results.push(...(await readDirectoryHandle(sub.handle, sub.path)));
+    try {
+      results.push(...(await readDirectoryHandle(sub.handle, sub.path)));
+    } catch {
+      // Skip unreadable nested folders instead of aborting the whole pack.
+    }
   }
   return results;
 }
@@ -229,23 +240,31 @@ async function readDirectoryEntry(
 
     if (!current.entry.isDirectory) continue;
 
-    const children = await readAllDirectoryEntries(
-      current.entry as FileSystemDirectoryEntry,
-    );
-    for (const child of children) {
-      const childPath = current.path
-        ? `${current.path}/${child.name}`
-        : child.name;
-      queue.push({ entry: child, path: childPath });
+    try {
+      const children = await readAllDirectoryEntries(
+        current.entry as FileSystemDirectoryEntry,
+      );
+      for (const child of children) {
+        const childPath = current.path
+          ? `${current.path}/${child.name}`
+          : child.name;
+        queue.push({ entry: child, path: childPath });
+      }
+    } catch {
+      // Skip unreadable directories (cloud / permission).
     }
   }
 
   const results: ScannedFile[] = [];
   for (const item of fileEntries) {
-    const file = await new Promise<File>((resolve, reject) => {
-      item.entry.file(resolve, reject);
-    });
-    results.push({ file, relativePath: item.relativePath });
+    try {
+      const file = await new Promise<File>((resolve, reject) => {
+        item.entry.file(resolve, reject);
+      });
+      results.push({ file, relativePath: item.relativePath });
+    } catch {
+      // Skip unreadable files.
+    }
   }
   return results;
 }
@@ -253,18 +272,23 @@ async function readDirectoryEntry(
 async function scanFromHandles(
   handlePromises: Promise<DropFileSystemHandle | null>[],
 ): Promise<{ files: ScannedFile[]; folderName: string | null }> {
-  const handles = await Promise.all(handlePromises);
+  const settled = await Promise.allSettled(handlePromises);
   const all: ScannedFile[] = [];
   let folderName: string | null = null;
 
-  for (const handle of handles) {
-    if (!handle) continue;
-    if (handle.kind === 'directory') {
-      folderName = folderName ?? handle.name;
-      all.push(...(await readDirectoryHandle(handle, handle.name)));
-    } else if (handle.kind === 'file') {
-      const file = await handle.getFile?.();
-      if (file) all.push({ file, relativePath: file.name });
+  for (const result of settled) {
+    if (result.status !== 'fulfilled' || !result.value) continue;
+    const handle = result.value;
+    try {
+      if (handle.kind === 'directory') {
+        folderName = folderName ?? handle.name;
+        all.push(...(await readDirectoryHandle(handle, handle.name)));
+      } else if (handle.kind === 'file') {
+        const file = await handle.getFile?.();
+        if (file) all.push({ file, relativePath: file.name });
+      }
+    } catch {
+      // Continue with remaining dropped items.
     }
   }
 
@@ -278,19 +302,23 @@ async function scanFromEntries(
   let folderName: string | null = null;
 
   for (const entry of entries) {
-    if (entry.isDirectory) {
-      folderName = folderName ?? entry.name;
-      all.push(
-        ...(await readDirectoryEntry(
-          entry as FileSystemDirectoryEntry,
-          entry.name,
-        )),
-      );
-    } else if (entry.isFile) {
-      const file = await new Promise<File>((resolve, reject) => {
-        (entry as FileSystemFileEntry).file(resolve, reject);
-      });
-      all.push({ file, relativePath: file.name });
+    try {
+      if (entry.isDirectory) {
+        folderName = folderName ?? entry.name;
+        all.push(
+          ...(await readDirectoryEntry(
+            entry as FileSystemDirectoryEntry,
+            entry.name,
+          )),
+        );
+      } else if (entry.isFile) {
+        const file = await new Promise<File>((resolve, reject) => {
+          (entry as FileSystemFileEntry).file(resolve, reject);
+        });
+        all.push({ file, relativePath: file.name });
+      }
+    } catch {
+      // Continue with remaining dropped items.
     }
   }
 
@@ -305,12 +333,22 @@ async function scanDataTransfer(
   folderName: string | null;
 }> {
   // Handles first (Chrome/Edge on Windows) — durable across long folder walks.
-  if (capture.kind === 'handles') {
-    const fromHandles = await scanFromHandles(capture.handles);
-    if (fromHandles.files.length > 0) return fromHandles;
-  } else if (capture.entries.length > 0) {
-    const fromEntries = await scanFromEntries(capture.entries);
-    if (fromEntries.files.length > 0) return fromEntries;
+  if (capture.handles) {
+    try {
+      const fromHandles = await scanFromHandles(capture.handles);
+      if (fromHandles.files.length > 0) return fromHandles;
+    } catch {
+      // Fall through to entries / FileList (OneDrive often breaks handles).
+    }
+  }
+
+  if (capture.entries.length > 0) {
+    try {
+      const fromEntries = await scanFromEntries(capture.entries);
+      if (fromEntries.files.length > 0) return fromEntries;
+    } catch {
+      // Fall through.
+    }
   }
 
   // Some Chromium builds flatten the tree into dt.files with relative paths.
@@ -715,7 +753,10 @@ export function KbFileUploader({
   }
 
   function addFiles(incoming: FileList | null) {
-    if (!incoming) return;
+    if (!incoming || incoming.length === 0) {
+      if (allowFolder) setWarning(t('folderScanEmpty'));
+      return;
+    }
     const scanned = Array.from(incoming).map((file) => ({
       file,
       relativePath: fileRelativePath(file) ?? file.name,
@@ -729,7 +770,7 @@ export function KbFileUploader({
     if (zoneDisabled) return;
 
     if (allowFolder && e.dataTransfer.items?.length) {
-      // Capture handles/entries before any await — only valid in this tick.
+      // Capture handles + entries before any await — only valid in this tick.
       const capture = captureDrop(e.dataTransfer);
       setScanning(true);
       setWarning(null);
@@ -744,7 +785,8 @@ export function KbFileUploader({
         }
         mergeIncoming(scanned, folderName);
       } catch {
-        setWarning(t('folderScanError'));
+        // scanDataTransfer already soft-fails internally; this is a last resort.
+        setWarning(t('folderScanEmpty'));
       } finally {
         setScanning(false);
       }

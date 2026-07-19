@@ -3,14 +3,8 @@
 import { isAcceptedDocumentFile } from '@aljeel/shared-types';
 import { formatBytes, type KbUploadProgress } from '@aljeel/kb-upload';
 import { useTranslations } from 'next-intl';
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type DragEvent,
-  type RefObject,
-} from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
+import { useDropzone, type FileWithPath } from 'react-dropzone';
 
 export type KbFileStatus =
   | 'pending'
@@ -67,14 +61,16 @@ function displayPath(item: KbQueuedFile): string {
   return item.relativePath ?? item.file.name;
 }
 
-function fileRelativePath(file: File): string | undefined {
-  const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
-  if (!path || path.length === 0) return undefined;
-  // Windows Explorer can produce backslashes in relative paths.
-  return path.replace(/\\/g, '/');
+function fileRelativePath(file: File & { path?: string }): string | undefined {
+  const raw =
+    file.path ||
+    (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+  if (!raw || raw.length === 0) return undefined;
+  // Windows Explorer / dropzone can produce backslashes; dropzone may prefix "/".
+  return raw.replace(/\\/g, '/').replace(/^\//, '');
 }
 
-function folderNameFromFiles(files: File[]): string | null {
+function folderNameFromFiles(files: Array<File & { path?: string }>): string | null {
   for (const file of files) {
     const relativePath = fileRelativePath(file);
     if (relativePath?.includes('/')) {
@@ -86,7 +82,7 @@ function folderNameFromFiles(files: File[]): string | null {
 
 type ScannedFile = { file: File; relativePath: string };
 
-/** File System Access drop API — not always in TS DOM libs. */
+/** File System Access directory handle — not always in TS DOM libs. */
 type DropFileSystemHandle = {
   kind: 'file' | 'directory';
   name: string;
@@ -94,47 +90,9 @@ type DropFileSystemHandle = {
   values?: () => AsyncIterable<DropFileSystemHandle>;
 };
 
-type DataTransferItemWithFs = DataTransferItem & {
-  getAsFileSystemHandle?: () => Promise<DropFileSystemHandle | null>;
+type ShowDirectoryPickerWindow = Window & {
+  showDirectoryPicker?: (options?: { mode?: 'read' | 'readwrite' }) => Promise<DropFileSystemHandle>;
 };
-
-/** Capture both APIs in the drop tick so we can fall back if handles throw (OneDrive). */
-type DropCapture = {
-  handles: Promise<DropFileSystemHandle | null>[] | null;
-  entries: FileSystemEntry[];
-};
-
-function supportsFileSystemAccessDrop(): boolean {
-  return (
-    typeof DataTransferItem !== 'undefined' &&
-    'getAsFileSystemHandle' in DataTransferItem.prototype
-  );
-}
-
-/**
- * Capture drop items synchronously in the drop event tick.
- * Prefer File System Access handles (Chrome/Edge on Windows). Also keep
- * webkitGetAsEntry() so OneDrive / cloud placeholder failures can fall back.
- */
-function captureDrop(dt: DataTransfer): DropCapture {
-  const items = Array.from(dt.items).filter((item) => item.kind === 'file');
-
-  const entries = items
-    .map((item) => item.webkitGetAsEntry())
-    .filter((entry): entry is FileSystemEntry => entry != null);
-
-  let handles: Promise<DropFileSystemHandle | null>[] | null = null;
-  if (supportsFileSystemAccessDrop() && items.length > 0) {
-    // Start every handle promise in this tick — awaiting one before creating
-    // the rest makes later items resolve to null (MDN).
-    handles = items.map((item) => {
-      const withFs = item as DataTransferItemWithFs;
-      return withFs.getAsFileSystemHandle?.() ?? Promise.resolve(null);
-    });
-  }
-
-  return { handles, entries };
-}
 
 function filesFromFileList(fileList: FileList | File[]): ScannedFile[] {
   return Array.from(fileList).map((file) => ({
@@ -143,19 +101,21 @@ function filesFromFileList(fileList: FileList | File[]): ScannedFile[] {
   }));
 }
 
-/** Some Chromium builds already flatten the tree into dt.files with relative paths. */
-function nestedFilesFromDataTransfer(dt: DataTransfer): ScannedFile[] | null {
-  const plain = Array.from(dt.files);
-  if (plain.length === 0) return null;
-  const nested = plain.filter((file) => {
-    const path = fileRelativePath(file);
-    return Boolean(path && path.includes('/'));
+function scannedFromDropzoneFiles(
+  incoming: Array<File & { path?: string }>,
+): ScannedFile[] {
+  return incoming.map((file) => {
+    const path = (file.path ?? fileRelativePath(file) ?? file.name).replace(/\\/g, '/');
+    // react-dropzone / file-selector often prefixes with "/"
+    const relativePath = path.replace(/^\//, '') || file.name;
+    return { file, relativePath };
   });
-  // Only trust this path when we clearly got a folder tree, not a flat multi-file drop.
-  if (nested.length === 0) return null;
-  return filesFromFileList(plain);
 }
 
+/**
+ * Walk a directory handle from showDirectoryPicker (durable permission —
+ * not tied to expiring drag-data). Soft-fails on OneDrive placeholders.
+ */
 async function readDirectoryHandle(
   dir: DropFileSystemHandle,
   pathPrefix: string,
@@ -176,11 +136,10 @@ async function readDirectoryHandle(
           subdirs.push({ handle, path: childPath });
         }
       } catch {
-        // OneDrive online-only / permission hiccup — skip this child, keep going.
+        // Skip unreadable children (OneDrive online-only, etc.).
       }
     }
   } catch {
-    // Listing the directory itself failed (common with cloud placeholders).
     return results;
   }
 
@@ -188,184 +147,28 @@ async function readDirectoryHandle(
     try {
       results.push(...(await readDirectoryHandle(sub.handle, sub.path)));
     } catch {
-      // Skip unreadable nested folders instead of aborting the whole pack.
+      // Skip unreadable nested folders.
     }
   }
   return results;
 }
 
-/**
- * Chromium returns at most ~100 entries per readEntries() call.
- * Exhaust every batch before recursing (Firefox fallback path).
- */
-async function readAllDirectoryEntries(
-  entry: FileSystemDirectoryEntry,
-): Promise<FileSystemEntry[]> {
-  const reader = entry.createReader();
-  const all: FileSystemEntry[] = [];
-  for (;;) {
-    const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-      reader.readEntries(resolve, reject);
-    });
-    if (batch.length === 0) break;
-    all.push(...batch);
-  }
-  return all;
-}
-
-/**
- * BFS collect FileSystemFileEntry first (open every directory reader ASAP),
- * then resolve File blobs. Reduces Windows expiry risk vs depth-first awaits.
- */
-async function readDirectoryEntry(
-  entry: FileSystemDirectoryEntry,
-  pathPrefix: string,
-): Promise<ScannedFile[]> {
-  const fileEntries: Array<{ entry: FileSystemFileEntry; relativePath: string }> = [];
-  const queue: Array<{ entry: FileSystemEntry; path: string }> = [
-    { entry, path: pathPrefix },
-  ];
-
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) break;
-
-    if (current.entry.isFile) {
-      fileEntries.push({
-        entry: current.entry as FileSystemFileEntry,
-        relativePath: current.path || current.entry.name,
-      });
-      continue;
-    }
-
-    if (!current.entry.isDirectory) continue;
-
-    try {
-      const children = await readAllDirectoryEntries(
-        current.entry as FileSystemDirectoryEntry,
-      );
-      for (const child of children) {
-        const childPath = current.path
-          ? `${current.path}/${child.name}`
-          : child.name;
-        queue.push({ entry: child, path: childPath });
-      }
-    } catch {
-      // Skip unreadable directories (cloud / permission).
-    }
-  }
-
-  const results: ScannedFile[] = [];
-  for (const item of fileEntries) {
-    try {
-      const file = await new Promise<File>((resolve, reject) => {
-        item.entry.file(resolve, reject);
-      });
-      results.push({ file, relativePath: item.relativePath });
-    } catch {
-      // Skip unreadable files.
-    }
-  }
-  return results;
-}
-
-async function scanFromHandles(
-  handlePromises: Promise<DropFileSystemHandle | null>[],
-): Promise<{ files: ScannedFile[]; folderName: string | null }> {
-  const settled = await Promise.allSettled(handlePromises);
-  const all: ScannedFile[] = [];
-  let folderName: string | null = null;
-
-  for (const result of settled) {
-    if (result.status !== 'fulfilled' || !result.value) continue;
-    const handle = result.value;
-    try {
-      if (handle.kind === 'directory') {
-        folderName = folderName ?? handle.name;
-        all.push(...(await readDirectoryHandle(handle, handle.name)));
-      } else if (handle.kind === 'file') {
-        const file = await handle.getFile?.();
-        if (file) all.push({ file, relativePath: file.name });
-      }
-    } catch {
-      // Continue with remaining dropped items.
-    }
-  }
-
-  return { files: all, folderName };
-}
-
-async function scanFromEntries(
-  entries: FileSystemEntry[],
-): Promise<{ files: ScannedFile[]; folderName: string | null }> {
-  const all: ScannedFile[] = [];
-  let folderName: string | null = null;
-
-  for (const entry of entries) {
-    try {
-      if (entry.isDirectory) {
-        folderName = folderName ?? entry.name;
-        all.push(
-          ...(await readDirectoryEntry(
-            entry as FileSystemDirectoryEntry,
-            entry.name,
-          )),
-        );
-      } else if (entry.isFile) {
-        const file = await new Promise<File>((resolve, reject) => {
-          (entry as FileSystemFileEntry).file(resolve, reject);
-        });
-        all.push({ file, relativePath: file.name });
-      }
-    } catch {
-      // Continue with remaining dropped items.
-    }
-  }
-
-  return { files: all, folderName };
-}
-
-async function scanDataTransfer(
-  dt: DataTransfer,
-  capture: DropCapture,
-): Promise<{
+/** Chrome/Edge: durable folder picker. Returns null if cancelled / unsupported. */
+async function pickFolderViaDirectoryPicker(): Promise<{
   files: ScannedFile[];
-  folderName: string | null;
-}> {
-  // Handles first (Chrome/Edge on Windows) — durable across long folder walks.
-  if (capture.handles) {
-    try {
-      const fromHandles = await scanFromHandles(capture.handles);
-      if (fromHandles.files.length > 0) return fromHandles;
-    } catch {
-      // Fall through to entries / FileList (OneDrive often breaks handles).
-    }
-  }
+  folderName: string;
+} | null> {
+  const showPicker = (window as ShowDirectoryPickerWindow).showDirectoryPicker;
+  if (typeof showPicker !== 'function') return null;
 
-  if (capture.entries.length > 0) {
-    try {
-      const fromEntries = await scanFromEntries(capture.entries);
-      if (fromEntries.files.length > 0) return fromEntries;
-    } catch {
-      // Fall through.
-    }
+  try {
+    const dir = await showPicker({ mode: 'read' });
+    const files = await readDirectoryHandle(dir, dir.name);
+    return { files, folderName: dir.name };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return null;
+    throw err;
   }
-
-  // Some Chromium builds flatten the tree into dt.files with relative paths.
-  const nestedFromFiles = nestedFilesFromDataTransfer(dt);
-  if (nestedFromFiles) {
-    return {
-      files: nestedFromFiles,
-      folderName: folderNameFromFiles(Array.from(dt.files)),
-    };
-  }
-
-  // Last resort: plain FileList (often root-only for folder drops).
-  const plainFiles = Array.from(dt.files);
-  return {
-    files: filesFromFileList(plainFiles),
-    folderName: folderNameFromFiles(plainFiles),
-  };
 }
 
 export function patchKbFile(
@@ -720,11 +523,8 @@ export function KbFileUploader({
   listRef,
 }: KbFileUploaderProps) {
   const t = useTranslations('documents');
-  const inputId = useId();
   const folderInputId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
 
@@ -733,68 +533,87 @@ export function KbFileUploader({
   );
   const zoneDisabled = disabled || blockNewFiles || scanning;
 
-  function mergeIncoming(incoming: ScannedFile[], folderName: string | null) {
-    const accepted: KbQueuedFile[] = [];
-    const rejected: string[] = [];
-    for (const { file, relativePath } of incoming) {
-      if (!isAcceptedDocumentFile(file.name, file.type, file.size)) {
-        rejected.push(relativePath);
-      } else {
-        accepted.push({ file, relativePath, progress: 0, status: 'pending' });
+  const mergeIncoming = useCallback(
+    (incoming: ScannedFile[], folderName: string | null) => {
+      const accepted: KbQueuedFile[] = [];
+      const rejected: string[] = [];
+      for (const { file, relativePath } of incoming) {
+        if (!isAcceptedDocumentFile(file.name, file.type, file.size)) {
+          rejected.push(relativePath);
+        } else {
+          accepted.push({ file, relativePath, progress: 0, status: 'pending' });
+        }
       }
-    }
-    setWarning(rejected.length > 0 ? t('rejected', { files: rejected.join(', ') }) : null);
-    if (folderName) {
-      onFolderName?.(folderName);
-    }
-    if (accepted.length > 0) {
-      onChange(single ? accepted : [...files, ...accepted]);
-    }
-  }
+      setWarning(rejected.length > 0 ? t('rejected', { files: rejected.join(', ') }) : null);
+      if (folderName) {
+        onFolderName?.(folderName);
+      }
+      if (accepted.length > 0) {
+        onChange(single ? accepted : [...files, ...accepted]);
+      }
+    },
+    [files, onChange, onFolderName, single, t],
+  );
 
-  function addFiles(incoming: FileList | null) {
+  function addFilesFromList(incoming: FileList | null) {
     if (!incoming || incoming.length === 0) {
       if (allowFolder) setWarning(t('folderScanEmpty'));
       return;
     }
-    const scanned = Array.from(incoming).map((file) => ({
-      file,
-      relativePath: fileRelativePath(file) ?? file.name,
-    }));
+    const scanned = filesFromFileList(incoming);
     mergeIncoming(scanned, folderNameFromFiles(Array.from(incoming)));
   }
 
-  async function onDrop(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setDragging(false);
+  async function chooseFolder() {
     if (zoneDisabled) return;
-
-    if (allowFolder && e.dataTransfer.items?.length) {
-      // Capture handles + entries before any await — only valid in this tick.
-      const capture = captureDrop(e.dataTransfer);
-      setScanning(true);
-      setWarning(null);
-      try {
-        const { files: scanned, folderName } = await scanDataTransfer(
-          e.dataTransfer,
-          capture,
-        );
-        if (scanned.length === 0) {
+    setWarning(null);
+    setScanning(true);
+    try {
+      // Prefer durable Chrome/Edge directory picker over drag-drop (Windows/OneDrive).
+      const picked = await pickFolderViaDirectoryPicker();
+      if (picked) {
+        if (picked.files.length === 0) {
           setWarning(t('folderScanEmpty'));
           return;
         }
-        mergeIncoming(scanned, folderName);
-      } catch {
-        // scanDataTransfer already soft-fails internally; this is a last resort.
-        setWarning(t('folderScanEmpty'));
-      } finally {
-        setScanning(false);
+        mergeIncoming(picked.files, picked.folderName);
+        return;
       }
-      return;
+      // Fallback: native webkitdirectory input (works when showDirectoryPicker is missing).
+      folderInputRef.current?.click();
+    } catch {
+      setWarning(t('folderScanEmpty'));
+    } finally {
+      setScanning(false);
     }
-
-    addFiles(e.dataTransfer.files);
   }
+
+  const onDropzoneFiles = useCallback(
+    (incoming: FileWithPath[]) => {
+      if (zoneDisabled || incoming.length === 0) {
+        if (allowFolder && incoming.length === 0) setWarning(t('folderUseBrowse'));
+        return;
+      }
+      setWarning(null);
+      const scanned = scannedFromDropzoneFiles(incoming);
+      const folderName = folderNameFromFiles(incoming);
+      mergeIncoming(scanned, folderName);
+    },
+    [allowFolder, mergeIncoming, t, zoneDisabled],
+  );
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    // Keep classic <input> so webkitdirectory / multi-file both work on Windows.
+    useFsAccessApi: false,
+    noClick: true,
+    noKeyboard: true,
+    disabled: zoneDisabled,
+    multiple,
+    onDrop: (accepted) => onDropzoneFiles(accepted as unknown as FileWithPath[]),
+    onDropRejected: () => {
+      if (allowFolder) setWarning(t('folderUseBrowse'));
+    },
+  });
 
   function removeByKey(key: string) {
     onChange(files.filter((item) => kbFileKey(item) !== key));
@@ -813,30 +632,20 @@ export function KbFileUploader({
   return (
     <div className="space-y-3">
       <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !zoneDisabled && inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if ((e.key === 'Enter' || e.key === ' ') && !zoneDisabled) inputRef.current?.click();
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!zoneDisabled) setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        className={`rounded-xl border-2 border-dashed bg-card ${
-          dragging
-            ? 'border-primary bg-primary/5'
-            : isUploading
-              ? 'border-primary/40'
-              : 'border-muted-foreground/25 hover:border-primary/50'
-        } ${zoneDisabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:bg-muted/30'}`}
+        {...getRootProps({
+          className: `rounded-xl border-2 border-dashed bg-card ${
+            isDragActive
+              ? 'border-primary bg-primary/5'
+              : isUploading
+                ? 'border-primary/40'
+                : 'border-muted-foreground/25 hover:border-primary/50'
+          } ${zoneDisabled ? 'cursor-not-allowed opacity-70' : ''}`,
+        })}
       >
         <div className="flex flex-col items-center justify-center px-6 py-8 text-center sm:flex-row sm:gap-5 sm:text-start">
           <div
             className={`mb-3 flex h-14 w-14 shrink-0 items-center justify-center rounded-full sm:mb-0 ${
-              dragging || isUploading
+              isDragActive || isUploading
                 ? 'bg-primary/15 text-primary'
                 : 'bg-muted text-muted-foreground'
             }`}
@@ -847,48 +656,52 @@ export function KbFileUploader({
             <p className="text-sm font-semibold text-foreground">
               {scanning
                 ? t('scanningFolder')
-                : dragging
+                : isDragActive
                   ? allowFolder
                     ? t('dropActiveFolder')
                     : t('dropActive')
-                  : (title ?? t('dropTitle'))}
+                  : (title ?? (allowFolder ? t('dropTitleFolderFirst') : t('dropTitle')))}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{hint ?? t('dropHint')}</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {t('browsePrompt')}{' '}
-              <span className="font-medium text-primary underline-offset-2 hover:underline">
-                {t('browseLink')}
-              </span>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {hint ?? (allowFolder ? t('dropHintFolderFirst') : t('dropHint'))}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               {allowFolder && (
-                <>
-                  {' '}
-                  {t('browseOr')}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="font-medium text-primary underline-offset-2 hover:underline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!zoneDisabled) folderInputRef.current?.click();
-                    }}
-                    onKeyDown={(e) => {
-                      if ((e.key === 'Enter' || e.key === ' ') && !zoneDisabled) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        folderInputRef.current?.click();
-                      }
-                    }}
-                  >
-                    {t('browseFolderLink')}
-                  </span>
-                </>
+                <button
+                  type="button"
+                  disabled={zoneDisabled}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void chooseFolder();
+                  }}
+                  className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {t('chooseFolder')}
+                </button>
               )}
-            </p>
+              <button
+                type="button"
+                disabled={zoneDisabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (zoneDisabled) return;
+                  // Prefer dropzone open so accept/multiple props stay in sync.
+                  open();
+                }}
+                className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {t('chooseFiles')}
+              </button>
+            </div>
+            {allowFolder && (
+              <p className="mt-3 text-xs text-muted-foreground">{t('folderWindowsTip')}</p>
+            )}
           </div>
         </div>
 
+        <input {...getInputProps({ id: inputId, accept })} />
         <input
-          id={inputId}
+          id={inputId + '-legacy'}
           ref={inputRef}
           type="file"
           multiple={multiple}
@@ -896,7 +709,7 @@ export function KbFileUploader({
           className="hidden"
           disabled={zoneDisabled}
           onChange={(e) => {
-            addFiles(e.target.files);
+            addFilesFromList(e.target.files);
             e.target.value = '';
           }}
         />
@@ -911,7 +724,7 @@ export function KbFileUploader({
             className="hidden"
             disabled={zoneDisabled}
             onChange={(e) => {
-              addFiles(e.target.files);
+              addFilesFromList(e.target.files);
               e.target.value = '';
             }}
           />

@@ -114,7 +114,7 @@ function scannedFromDropzoneFiles(
 
 /**
  * Walk a directory handle from showDirectoryPicker (durable permission —
- * not tied to expiring drag-data). Soft-fails on OneDrive placeholders.
+ * not tied to expiring drag-data). Soft-fails on unreadable children.
  */
 async function readDirectoryHandle(
   dir: DropFileSystemHandle,
@@ -136,7 +136,7 @@ async function readDirectoryHandle(
           subdirs.push({ handle, path: childPath });
         }
       } catch {
-        // Skip unreadable children (OneDrive online-only, etc.).
+        // Skip unreadable children.
       }
     }
   } catch {
@@ -569,7 +569,7 @@ export function KbFileUploader({
     setWarning(null);
     setScanning(true);
     try {
-      // Prefer durable Chrome/Edge directory picker over drag-drop (Windows/OneDrive).
+      // Prefer durable Chrome/Edge directory picker over drag-drop.
       const picked = await pickFolderViaDirectoryPicker();
       if (picked) {
         if (picked.files.length === 0) {
@@ -693,9 +693,6 @@ export function KbFileUploader({
                 {t('chooseFiles')}
               </button>
             </div>
-            {allowFolder && (
-              <p className="mt-3 text-xs text-muted-foreground">{t('folderWindowsTip')}</p>
-            )}
           </div>
         </div>
 

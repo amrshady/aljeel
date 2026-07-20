@@ -1744,10 +1744,13 @@ def folder_files(folder_arg: str | None, full: bool, pdf_dir: str | None = None)
         label = folder_arg or "PDF_DIR"
         paths = sorted(Path(pdf_dir).expanduser().glob("*_0001.pdf"), key=_invoice_sort_key)
         out = []
+        seen_invoices = set()
         for path in paths:
             m = re.search(r"(\d{5})_0001\.pdf$", path.name)
-            if m:
-                out.append((label, m.group(1), path))
+            if m and m.group(1) not in seen_invoices:
+                invoice_no = m.group(1)
+                seen_invoices.add(invoice_no)
+                out.append((label, invoice_no, path))
         return out
 
     if not folder_arg:
@@ -1755,6 +1758,7 @@ def folder_files(folder_arg: str | None, full: bool, pdf_dir: str | None = None)
 
     labels = list(FOLDER_NAMES) if folder_arg == "ALL" else [folder_arg]
     out = []
+    seen_invoices = set()
     for label in labels:
         folder = FOLDER_NAMES[label]
         if full:
@@ -1762,8 +1766,10 @@ def folder_files(folder_arg: str | None, full: bool, pdf_dir: str | None = None)
             paths = sorted(folder_path.glob("*_0001.pdf"), key=_invoice_sort_key)
             for path in paths:
                 m = re.search(r"(\d{5})_0001\.pdf$", path.name)
-                if m:
-                    out.append((label, m.group(1), path))
+                if m and m.group(1) not in seen_invoices:
+                    invoice_no = m.group(1)
+                    seen_invoices.add(invoice_no)
+                    out.append((label, invoice_no, path))
         else:
             invs = next(invs for sample_label, _, invs in SAMPLES if sample_label == label)
             for inv in invs:

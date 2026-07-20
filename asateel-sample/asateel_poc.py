@@ -222,7 +222,7 @@ def _oracle_date_str(v: Any) -> str:
     if not v:
         return ""
     parsed = _parse_invoice_date(v)
-    return parsed.strftime("%d/%m/%Y") if parsed else _clean(v)
+    return parsed.strftime("%m/%d/%Y") if parsed else _clean(v)
 
 
 def _sha256_file(path: Path) -> str:
@@ -2518,7 +2518,7 @@ def write_excel(rows: list[dict[str, Any]], path: Path) -> None:
             cell = ws.cell(ridx, c)
             cell.value = value
             if header == "*Invoice Date":
-                cell.number_format = "dd/mm/yyyy"
+                cell.number_format = "mm/dd/yyyy"
 
         fill, font = _row_style(row.get("Row_Status") or "GREEN")
         for c in range(1, header_count + 1):

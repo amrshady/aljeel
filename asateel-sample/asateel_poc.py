@@ -1372,8 +1372,9 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
     if not path or not path.exists():
         return {}
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    # LOCKED: SO_Detail validates only that a canonical JQ exists. Agency,
-    # salesperson, and organization columns must not influence allocation.
+    # LOCKED: SO_Detail validates canonical JQ existence and supplies SPERSON
+    # only for the output Employee No column. Agency and organization columns
+    # must not influence allocation or splitting.
     # Keep the full export's Sheet1/row-5 layout as the first choice, while
     # also accepting slim exports whose ORDER_NUMBER header is in rows 1..6
     # on any sheet.
@@ -1389,6 +1390,7 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
 
     ws = None
     order_number_col = None
+    sperson_col = None
     data_start_row = None
     for candidate_ws, header_row in header_locations:
         for idx, cell in enumerate(candidate_ws[header_row], start=1):
@@ -1396,7 +1398,12 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
                 ws = candidate_ws
                 order_number_col = idx
                 data_start_row = header_row + 1
-                break
+        if ws is not None:
+            sperson_col = next(
+                (idx for idx, cell in enumerate(candidate_ws[header_row], start=1)
+                 if _clean(cell.value).upper() == "SPERSON"),
+                None,
+            )
         if ws is not None:
             break
 
@@ -1411,9 +1418,12 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
         jq = _canonical_jq(raw_jq)
         if not jq:
             continue
+        raw_sperson = _clean(row[sperson_col - 1]) if sperson_col and sperson_col <= len(row) else ""
+        sperson_employee_no = _code(raw_sperson.split("-", 1)[0]) if raw_sperson else ""
         by_jq_rows.setdefault(jq, []).append({
             "jq": jq,
             "raw_jq": raw_jq,
+            "sperson": sperson_employee_no,
             "row": ridx,
         })
     wb.close()
@@ -1423,10 +1433,23 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
         index[jq] = {
             "jq": jq,
             "raw_jq": rows_for_jq[0]["raw_jq"],
+            "sperson": rows_for_jq[0]["sperson"],
             "rows": rows_for_jq,
             "duplicate_row_count": max(0, len(rows_for_jq) - 1),
         }
     return index
+
+
+def load_bmx_junior_head_map(path: Path) -> dict[str, str]:
+    """Load the exact BMX junior-to-head employee-code rules from Book1 JSON."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        _code(junior.get("employee_no")): _code(head.get("employee_no"))
+        for rule in data.get("agency_rules", [])
+        if rule.get("employee_strategy") == "bmx_junior_to_head"
+        for head in rule.get("heads", [])
+        for junior in head.get("juniors", [])
+    }
 
 
 def _header_column(ws: Any, aliases: set[str], fallback: int) -> int:
@@ -1789,6 +1812,8 @@ def build_rows(
     allocation_mode: str = STANDARD_ALLOCATION_MODE,
     project_lookup: dict[str, Any] | None = None,
     project_master_fallback: bool = False,
+    employee_so_detail_index: dict[str, dict[str, Any]] | None = None,
+    bmx_junior_head_map: dict[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if allocation_mode not in {STANDARD_ALLOCATION_MODE, PROJECT_ALLOCATION_MODE}:
         raise ValueError(f"unsupported Asateel allocation mode: {allocation_mode}")
@@ -1798,6 +1823,9 @@ def build_rows(
     supplier_index = supplier_index or {}
     if so_detail_index is None:
         so_detail_index = {}
+    if employee_so_detail_index is None:
+        employee_so_detail_index = so_detail_index
+    bmx_junior_head_map = bmx_junior_head_map or {}
     so_detail_enabled = bool(so_detail_index) or bool(getattr(so_detail_index, "loaded", False))
     trace: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -2113,6 +2141,13 @@ def build_rows(
                 unit_jqs.append(_canonical_jq(supplier_match.get("jq")))
             unit_jqs.extend(_extract_pdf_jqs(ln, ext))
             unit_jq = next((jq for jq in unit_jqs if jq), "")
+            employee_so_detail = employee_so_detail_index.get(unit_jq) if unit_jq else None
+            sperson_employee_no = _code((employee_so_detail or {}).get("sperson"))
+            output_employee_no = (
+                bmx_junior_head_map.get(sperson_employee_no, sperson_employee_no)
+                if sperson_employee_no
+                else (_code(supplier_match.get("employee_number")) if supplier_match else "")
+            )
             if not so_detail_group and unit_jq:
                 so_detail_group = so_detail_index.get(unit_jq)
             if supplier_match:
@@ -2329,7 +2364,7 @@ def build_rows(
                 "*Type": "Item",
                 "*Amount": line_amount,
                 "Tax Classification Code[..]": "KSA VAT STANDARD",
-                "Employee No": _code(supplier_match.get("employee_number")) if supplier_match else "",
+                "Employee No": output_employee_no,
                 "Company": COMPANY,
                 "Location": DEFAULT_LOCATION,
                 "Account": GL_ACCOUNT,
@@ -3005,7 +3040,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--so-detail",
         default=str(DEFAULT_SO_DETAIL_XLSX),
-        help="SO_Detail export used only to validate canonical JQ existence",
+        help="SO_Detail export used for canonical JQ validation and output Employee No only",
     )
     parser.add_argument(
         "--allocation-mode",
@@ -3027,6 +3062,7 @@ def main(argv: list[str] | None = None) -> int:
     lookups = load_lookups()
     supplier_index = load_expenses_format(Path(args.expenses_format), lookups)
     so_detail_index = load_so_detail(Path(args.so_detail))
+    bmx_junior_head_map = load_bmx_junior_head_map(Path(args.project_allocation_lookup))
     project_lookup = None
     if args.allocation_mode == PROJECT_ALLOCATION_MODE:
         if args.folder not in {"PROJECTS", "ALL"}:
@@ -3061,6 +3097,8 @@ def main(argv: list[str] | None = None) -> int:
         allocation_mode=args.allocation_mode,
         project_lookup=project_lookup,
         project_master_fallback=args.folder == "PROJECTS",
+        employee_so_detail_index=so_detail_index,
+        bmx_junior_head_map=bmx_junior_head_map,
     )
     # AP control: enforce whole-riyal line totals at the final output boundary.
     trace["whole_riyal_invoice_totals"] = enforce_whole_riyal_invoice_totals(rows)

@@ -5,7 +5,7 @@ Production Asateel pipeline.
 The maintained allocation engine lives in asateel-sample/asateel_poc.py. The
 production entrypoint delegates to its supplier-authoritative allocation logic
 and adapts Oracle rows into the JSON contracts under matched/. SO_Detail is
-used only for canonical-JQ existence validation.
+used for canonical-JQ validation and the output Employee No column only.
 """
 from __future__ import annotations
 
@@ -374,6 +374,10 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     lookups = engine.load_lookups()
     supplier_index = engine.load_expenses_format(Path(args.expenses_format), lookups)
     so_detail_index = engine.load_so_detail(Path(args.so_detail)) if args.so_detail else {}
+    employee_so_detail_index = engine.load_so_detail(
+        Path(args.so_detail) if args.so_detail else DEFAULT_SO_DETAIL_XLSX
+    )
+    bmx_junior_head_map = engine.load_bmx_junior_head_map(Path(args.project_allocation_lookup))
     project_lookup = None
     if args.allocation_mode == PROJECT_ALLOCATION_MODE:
         if str(ROOT) not in sys.path:
@@ -418,6 +422,8 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         allocation_mode=args.allocation_mode,
         project_lookup=project_lookup,
         project_master_fallback=args.folder == "PROJECTS",
+        employee_so_detail_index=employee_so_detail_index,
+        bmx_junior_head_map=bmx_junior_head_map,
     )
     # Apply the AP whole-riyal control on the rows that feed the Oracle workbook.
     whole_riyal_invoice_totals = engine.enforce_whole_riyal_invoice_totals(rows)

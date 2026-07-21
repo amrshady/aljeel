@@ -409,7 +409,14 @@ export class InvoicesService {
 
     const documents = await this.prisma.document.findMany({
       where: { invoiceId: id },
-      select: { fileName: true, storageKey: true, sizeBytes: true },
+      select: {
+        id: true,
+        fileName: true,
+        storageKey: true,
+        sizeBytes: true,
+        checksumSha256: true,
+        virusScanStatus: true,
+      },
     });
 
     const supplier = await this.prisma.supplier.findUnique({
@@ -471,6 +478,51 @@ export class InvoicesService {
           code: 'VALIDATION_FAILED',
           message: 'Invoice validation failed.',
           details: { fields: mathIssues },
+        });
+      }
+    }
+
+    const documentChecksums = [
+      ...new Set(
+        documents
+          .filter(
+            (document) =>
+              document.virusScanStatus !== 'FAILED' &&
+              document.checksumSha256?.trim(),
+          )
+          .map((document) => document.checksumSha256!),
+      ),
+    ];
+    if (documentChecksums.length > 0) {
+      const duplicateDocument = await this.prisma.document.findFirst({
+        where: {
+          checksumSha256: { in: documentChecksums },
+          virusScanStatus: { not: 'FAILED' },
+          invoiceId: { not: id },
+          invoice: {
+            supplierId,
+            status: { notIn: ['DRAFT', 'REJECTED'] },
+          },
+        },
+        orderBy: [{ invoice: { createdAt: 'asc' } }, { createdAt: 'asc' }],
+        select: {
+          fileName: true,
+          invoice: {
+            select: { id: true, invoiceNumber: true, createdAt: true },
+          },
+        },
+      });
+      if (duplicateDocument) {
+        const priorSubmittedAt = duplicateDocument.invoice.createdAt.toISOString();
+        throw new ConflictException({
+          code: 'DUPLICATE_FILE_SUBMISSION',
+          message: `This file was already submitted on invoice ${duplicateDocument.invoice.invoiceNumber} (${priorSubmittedAt}).`,
+          details: {
+            fileName: duplicateDocument.fileName,
+            priorInvoiceNumber: duplicateDocument.invoice.invoiceNumber,
+            priorInvoiceId: duplicateDocument.invoice.id,
+            priorSubmittedAt,
+          },
         });
       }
     }

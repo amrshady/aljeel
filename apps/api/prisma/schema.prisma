@@ -283,6 +283,7 @@ model Document {
 
   @@index([invoiceId])
   @@index([invoiceId, fileName, sizeBytes])
+  @@index([checksumSha256])
 }
 
 model ApprovalStep {

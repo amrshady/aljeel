@@ -1268,16 +1268,6 @@ def expand_distribution_lines(lines: list[dict[str, Any]], ext: dict[str, Any]) 
             seen.add(key)
             signals.append(sig)
 
-    if len(lines) == 1 and len(signals) > 1:
-        base = dict(lines[0])
-        expanded = []
-        for idx, sig in enumerate(signals, start=1):
-            ln = dict(base)
-            ln["line_no"] = idx
-            ln["allocation_signal"] = sig
-            ln["_expanded_from_multi_signal"] = True
-            expanded.append(ln)
-        return expanded, True
     return lines, False
 
 

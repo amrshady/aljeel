@@ -1,16 +1,16 @@
 import { createHash } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
-import { KbStorageService } from '../src/kb/kb-storage.service.ts';
-import { StorageService } from '../src/storage/storage.service.ts';
+import { KbStorageService } from '../dist/src/kb/kb-storage.service.js';
+import { StorageService } from '../dist/src/storage/storage.service.js';
 
 const prisma = new PrismaClient();
 const kbStorage = new KbStorageService();
 const localStorage = new StorageService();
 
 async function checksumObject(storageKey) {
-  const stream = kbStorage.isEnabled()
-    ? await kbStorage.createReadStream(storageKey)
-    : localStorage.createReadStream(storageKey.replace(/^local:/, ''));
+  const stream = storageKey.startsWith('local:')
+    ? localStorage.createReadStream(storageKey.replace(/^local:/, ''))
+    : await kbStorage.createReadStream(storageKey);
   const hash = createHash('sha256');
   for await (const chunk of stream) hash.update(chunk);
   return hash.digest('hex');

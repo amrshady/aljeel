@@ -2144,7 +2144,7 @@ def build_rows(
             employee_so_detail = employee_so_detail_index.get(unit_jq) if unit_jq else None
             sperson_employee_no = _code((employee_so_detail or {}).get("sperson"))
             output_employee_no = (
-                bmx_junior_head_map.get(sperson_employee_no, sperson_employee_no)
+                (bmx_junior_head_map.get(sperson_employee_no, sperson_employee_no) if is_project_invoice else sperson_employee_no)
                 if sperson_employee_no
                 else (_code(supplier_match.get("employee_number")) if supplier_match else "")
             )

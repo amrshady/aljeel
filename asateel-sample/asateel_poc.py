@@ -52,6 +52,7 @@ GL_ACCOUNT = "61500027"
 GL_FALLBACK_DESC = "Transportation/Freight Expense"
 COMPANY = "03"
 DEFAULT_LOCATION = "20100"
+WAREHOUSE_DISTRIBUTION_COMBINATION = "03-40100-61500027-140040-190-00000-10200-00000-00-000000"
 SUPPLIER_NAME = "شركة اساطيل الطريق للنقل البري"
 BUSINESS_UNIT = "Al Jeel Medical BU"
 GEMINI_BASE_URL = os.environ.get(
@@ -1250,6 +1251,21 @@ def build_distribution_combination(row: dict[str, Any]) -> str:
     return "-".join(parts)
 
 
+def finalize_distribution(row: dict[str, Any], is_warehouse_cc: bool = False) -> None:
+    if not is_warehouse_cc:
+        row["Distribution Combination[..]"] = build_distribution_combination(row)
+        return
+
+    segments = WAREHOUSE_DISTRIBUTION_COMBINATION.split("-")
+    for field, value in zip(
+        ("Company", "Location", "Account", "Cost Center", "DIV", "Solution", "Agency", "Project", "Intercompany", "Future 1"),
+        segments,
+    ):
+        row[field] = value
+    row["Agency Name"] = "S&M"
+    row["Distribution Combination[..]"] = WAREHOUSE_DISTRIBUTION_COMBINATION
+
+
 def _valid_allocation_signal(sig: dict[str, Any]) -> bool:
     source = _clean(sig.get("source")).lower()
     code = _code(sig.get("matched_agency_code"), 5)
@@ -1947,7 +1963,7 @@ def build_rows(
                 "_supplier_allocation_action": "none",
             }
             row["GL Description"] = _build_gl_description(row)
-            row["Distribution Combination[..]"] = build_distribution_combination(row)
+            finalize_distribution(row)
             rows.append(row)
             continue
         ext = normalize_extraction(payload.get("extraction") or {})
@@ -2394,7 +2410,7 @@ def build_rows(
                 "_project_allocation_audit": project_audit,
             }
             row["GL Description"] = _build_gl_description(row)
-            row["Distribution Combination[..]"] = build_distribution_combination(row)
+            finalize_distribution(row, is_warehouse_cc)
             if invoice_trace["supplier_matches"]:
                 invoice_trace["supplier_matches"][-1]["manpower_home_agency"] = manpower_home_agency
                 invoice_trace["supplier_matches"][-1]["home_agency_discrepancy"] = supplier_home_agency_discrepancy

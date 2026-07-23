@@ -21,6 +21,14 @@ export const InvoiceLineSchema = InvoiceLineInputSchema.extend({
 });
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>;
 
+export const JAWAL_BATCH_ID_REGEX = /^J26-\d+$/;
+
+export function isValidJawalBatchId(value: string): boolean {
+  return JAWAL_BATCH_ID_REGEX.test(value);
+}
+
+export const JawalBatchIdSchema = z.string().regex(JAWAL_BATCH_ID_REGEX);
+
 /** Optional display name; server generates a placeholder when omitted. */
 export const CreateInvoiceDraftSchema = z
   .object({

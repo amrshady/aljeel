@@ -4,6 +4,7 @@ import {
   ASATEEL_REGION_CODES,
   ASATEEL_REGION_VALUES,
   SupplierProfileSchema,
+  isValidJawalBatchId,
   validateInvoiceSubmitDocuments,
   type AsateelRegion,
 } from '@aljeel/shared-types';
@@ -155,6 +156,11 @@ function InvoiceUploadContent() {
   }
 
   async function persistInvoice(submitAfter: boolean) {
+    if (isJawalSupplier && (!folderName || !isValidJawalBatchId(folderName))) {
+      setError(t('errors.jawalInvalidBatchId'));
+      return;
+    }
+
     if (submitAfter) {
       const folderFiles = files.filter((file) => file.status !== 'skipped');
       // Skip dual-.xlsx for Jawal suppliers. Asateel still requires 2.

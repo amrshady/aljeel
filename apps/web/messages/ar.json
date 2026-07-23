@@ -148,6 +148,7 @@
       "asateelTableRequired": "يرجى رفع جدول بيانات يحتوي على عمود Invoice No (تقرير شحن أساطيل).",
       "asateelTableEmpty": "لا يحتوي جدول البيانات على أرقام فواتير في عمود Invoice No.",
       "asateelRegionRequired": "يرجى اختيار منطقة أساطيل قبل التقديم للمراجعة",
+      "jawalInvalidBatchId": "اسم المجلد هو معرّف دفعة جوال ويجب أن يتبع تنسيق التسلسل J26-#### (مثال: J26-1080).",
       "jawalTableRequired": "يرجى رفع جدول جوال للسفر يتضمن عمودي Ref.No و Ticket مع مجلد الأدلة.",
       "jawalTableEmpty": "جدول جوال يحتوي على عناوين Ref.No / Ticket لكنه بلا بنود.",
       "jawalRefMalformed": "قيم Ref.No / Ticket غير صحيحة (لن تُصحح تلقائياً): {refs}",

@@ -148,6 +148,7 @@
       "asateelTableRequired": "Upload a spreadsheet with an Invoice No column (Asateel shipping report).",
       "asateelTableEmpty": "The spreadsheet has no invoice numbers in the Invoice No column.",
       "asateelRegionRequired": "Please select an Asateel region before submitting for review",
+      "jawalInvalidBatchId": "The folder name is the Jawal batch ID and must follow the sequence format J26-#### (for example J26-1080).",
       "jawalTableRequired": "Upload a Jawal travel spreadsheet with Ref.No and Ticket columns, plus the evidence folder tree.",
       "jawalTableEmpty": "The Jawal spreadsheet has Ref.No / Ticket headers but no line items.",
       "jawalRefMalformed": "Malformed Ref.No / Ticket values (not auto-corrected): {refs}",

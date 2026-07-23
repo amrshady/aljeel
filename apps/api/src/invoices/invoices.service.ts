@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -13,6 +14,7 @@ import {
   UpsertInvoiceDraftSchema,
   assertInvoiceTransition,
   computeInvoiceTotals,
+  isValidJawalBatchId,
   isPlaceholderInvoiceNumber,
   validateInvoiceMath,
   InvalidInvoiceTransitionError,
@@ -31,6 +33,9 @@ import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
 import { InvoiceSubmitNotificationService } from '../notifications/invoice-submit-notification.service';
 import { AsateelInvoiceManifestService } from './asateel-invoice-manifest.service';
 import { JawalEvidenceCheckService } from './jawal-evidence-check.service';
+
+const JAWAL_INVALID_BATCH_ID_MESSAGE =
+  'Batch ID must follow the sequence format J26-#### (for example J26-1080). A label like "01-07jul" can be the display title but the batch ID must match the sequence.';
 
 export function serializeInvoice(
   invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>,
@@ -98,6 +103,23 @@ export class InvoicesService {
   async createDraft(user: AuthUser, body: unknown) {
     const dto: CreateInvoiceDraft = CreateInvoiceDraftSchema.parse(body ?? {});
     const supplierId = requireSupplierId(user);
+
+    if (dto.invoiceNumber) {
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: supplierId },
+        select: { erpIntegration: true },
+      });
+      if (
+        supplier?.erpIntegration === 'JAWAL' &&
+        !isValidJawalBatchId(dto.invoiceNumber)
+      ) {
+        throw new BadRequestException({
+          code: 'JAWAL_INVALID_BATCH_ID',
+          message: JAWAL_INVALID_BATCH_ID_MESSAGE,
+          details: { invoiceNumber: dto.invoiceNumber },
+        });
+      }
+    }
 
     if (dto.invoiceNumber) {
       const existingDraft = await this.prisma.invoice.findFirst({
@@ -423,6 +445,18 @@ export class InvoicesService {
       where: { id: supplierId },
       select: { erpIntegration: true, legalName: true },
     });
+
+    if (
+      supplier?.erpIntegration === 'JAWAL' &&
+      !isPlaceholderInvoiceNumber(invoice.invoiceNumber) &&
+      !isValidJawalBatchId(invoice.invoiceNumber)
+    ) {
+      throw new BadRequestException({
+        code: 'JAWAL_INVALID_BATCH_ID',
+        message: JAWAL_INVALID_BATCH_ID_MESSAGE,
+        details: { invoiceNumber: invoice.invoiceNumber },
+      });
+    }
 
     const documentIssue = validateInvoiceSubmitDocuments(
       documents.map((document) => document.fileName),

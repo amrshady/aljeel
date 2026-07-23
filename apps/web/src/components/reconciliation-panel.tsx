@@ -72,8 +72,11 @@ export function ReconciliationPanel({ invoiceId, initialStatus }: Reconciliation
   }
 
   const vendor = status.vendor ?? 'DEFAULT';
+  const isActive = ACTIVE_STATUSES.has(status.status);
   const canDownload = status.status === 'DONE' && !!status.outputDocumentId;
-  const canRerun = status.status === 'FAILED' || status.status === 'STATUS_LOST';
+  const canRerun =
+    !isActive &&
+    (canDownload || status.status === 'FAILED' || status.status === 'STATUS_LOST');
   const label =
     status.status === 'DONE' && status.emailSent === false
       ? t('status.DONE_EMAIL_FAILED')

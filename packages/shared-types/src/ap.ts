@@ -65,3 +65,18 @@ export const ApActionResponseSchema = z.object({
   status: InvoiceStatusSchema,
 });
 export type ApActionResponse = z.infer<typeof ApActionResponseSchema>;
+
+export const ApRenameInvoiceFolderSchema = z
+  .object({
+    invoiceNumber: z.string().trim().min(1).max(100),
+  })
+  .strict();
+export type ApRenameInvoiceFolder = z.infer<typeof ApRenameInvoiceFolderSchema>;
+
+export const ApRenameInvoiceFolderResponseSchema = z.object({
+  id: z.string(),
+  invoiceNumber: z.string(),
+});
+export type ApRenameInvoiceFolderResponse = z.infer<
+  typeof ApRenameInvoiceFolderResponseSchema
+>;

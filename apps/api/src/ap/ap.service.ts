@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -6,6 +7,7 @@ import {
   ApExceptionListQuerySchema,
   ApHoldRequestSchema,
   ApRejectRequestSchema,
+  ApRenameInvoiceFolderSchema,
   assertInvoiceTransition,
   InvalidInvoiceTransitionError,
   type ApExceptionListQuery,
@@ -157,6 +159,50 @@ export class ApService {
   async rerunReconciliation(user: AuthUser, id: string) {
     const erpIntegration = await this.erpIntegrationForInvoice(id);
     return this.reconServiceFor(erpIntegration).rerun(id, user.sub);
+  }
+
+  async renameInvoiceFolder(user: AuthUser, id: string, body: unknown) {
+    const { invoiceNumber } = ApRenameInvoiceFolderSchema.parse(body);
+    const existing = await this.prisma.invoice.findUnique({ where: { id } });
+    if (!existing) {
+      throw invoiceNotFound();
+    }
+
+    if (existing.invoiceNumber === invoiceNumber) {
+      return { id, invoiceNumber };
+    }
+
+    const clash = await this.prisma.invoice.findFirst({
+      where: {
+        supplierId: existing.supplierId,
+        invoiceNumber,
+        id: { not: id },
+      },
+      select: { id: true },
+    });
+    if (clash) {
+      throw new ConflictException({
+        code: 'INVOICE_NUMBER_TAKEN',
+        message: `An invoice folder named "${invoiceNumber}" already exists for this supplier.`,
+        details: { invoiceNumber },
+      });
+    }
+
+    await this.prisma.invoice.update({
+      where: { id },
+      data: { invoiceNumber },
+    });
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Invoice',
+      entityId: id,
+      action: 'RENAME_FOLDER',
+      before: { invoiceNumber: existing.invoiceNumber },
+      after: { invoiceNumber },
+    });
+
+    return { id, invoiceNumber };
   }
 
   private async transition(

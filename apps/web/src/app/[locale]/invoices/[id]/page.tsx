@@ -21,12 +21,13 @@ import { AppShell } from '@/components/app-shell';
 import { PageLoading } from '@/components/loading-spinner';
 import { useAuth } from '@/components/auth-provider';
 import { DocumentEvidenceViewer } from '@/components/document-evidence-viewer';
+import { displayInvoiceName } from '@/components/invoice-folder-table';
 import { InvoiceDocuments } from '@/components/invoice-documents';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
 import { apiFetch } from '@/lib/api-client';
 import { formatInvoiceError } from '@/lib/format-error';
-import { getApInvoice } from '@/lib/ap-api';
+import { getApInvoice, renameApInvoiceFolder } from '@/lib/ap-api';
 import {
   getInvoice,
   listInvoiceDocuments,
@@ -46,6 +47,8 @@ function InvoiceDetailContent() {
   const isApUser = !!(user && AP_ROLES.has(user.role));
   const [submitting, setSubmitting] = useState(false);
   const [savingRegion, setSavingRegion] = useState(false);
+  const [savingFolderName, setSavingFolderName] = useState(false);
+  const [folderName, setFolderName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
@@ -86,6 +89,28 @@ function InvoiceDetailContent() {
       setAsateelRegion(invoice.asateelRegion);
     }
   }, [invoice?.asateelRegion]);
+
+  useEffect(() => {
+    if (invoice?.invoiceNumber) {
+      setFolderName(displayInvoiceName(invoice.invoiceNumber));
+    }
+  }, [invoice?.invoiceNumber]);
+
+  async function onSaveFolderName() {
+    if (!invoice) return;
+    const trimmed = folderName.trim();
+    if (!trimmed || trimmed === displayInvoiceName(invoice.invoiceNumber)) return;
+    setSavingFolderName(true);
+    setError(null);
+    try {
+      await renameApInvoiceFolder(invoice.id, trimmed);
+      await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
+    } catch (err) {
+      setError(formatInvoiceError(err, tForm, t('folderNameSaveError')));
+    } finally {
+      setSavingFolderName(false);
+    }
+  }
 
   async function onRegionChange(value: AsateelRegion | '') {
     setAsateelRegion(value);
@@ -157,8 +182,10 @@ function InvoiceDetailContent() {
 
   const canSubmit = !isApUser && (invoice.status === 'DRAFT' || invoice.status === 'REJECTED');
   const canUploadDocs =
-    !isApUser && !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
-  const canRenameDocs = canSubmit && isJawalSupplier;
+    isApUser ||
+    !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
+  const canRenameDocs = isApUser || (canSubmit && isJawalSupplier);
+  const canEditFolderName = isApUser;
   const supplierName = 'supplierName' in invoice ? invoice.supplierName : undefined;
   const apInvoice = isApUser ? (invoice as ApInvoiceDetail) : null;
 
@@ -172,7 +199,39 @@ function InvoiceDetailContent() {
           >
             {isApUser ? t('backToReview') : t('back')}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold">{invoice.invoiceNumber}</h1>
+          {canEditFolderName ? (
+            <div className="mt-2 flex flex-wrap items-end gap-2">
+              <div className="min-w-[12rem] flex-1">
+                <label className="text-sm font-medium" htmlFor="invoice-folder-name">
+                  {t('folderNameLabel')}
+                </label>
+                <input
+                  id="invoice-folder-name"
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-2xl font-bold"
+                  value={folderName}
+                  disabled={savingFolderName}
+                  onChange={(event) => setFolderName(event.target.value)}
+                />
+              </div>
+              <Button
+                variant="outline"
+                disabled={
+                  savingFolderName ||
+                  !folderName.trim() ||
+                  folderName.trim() === displayInvoiceName(invoice.invoiceNumber)
+                }
+                onClick={() => {
+                  void onSaveFolderName();
+                }}
+              >
+                {savingFolderName ? t('savingFolderName') : t('saveFolderName')}
+              </Button>
+            </div>
+          ) : (
+            <h1 className="mt-2 text-2xl font-bold">
+              {displayInvoiceName(invoice.invoiceNumber)}
+            </h1>
+          )}
           <p className="text-sm text-muted-foreground">
             {supplierName ? `${supplierName} · ` : ''}
             {new Date(invoice.invoiceDate).toLocaleDateString()} ·{' '}
@@ -238,7 +297,9 @@ function InvoiceDetailContent() {
         <h2 className="text-lg font-semibold">{t('documentsTitle')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {canRenameDocs
-            ? t('documentsRenameHint')
+            ? isApUser
+              ? t('documentsApEditHint')
+              : t('documentsRenameHint')
             : invoice.status === 'DRAFT'
               ? t('documentsDraftHint')
               : t('documentsHint')}

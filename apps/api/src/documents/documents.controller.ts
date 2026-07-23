@@ -43,7 +43,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post('invoices/:id/documents/upload-url')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Get a presigned URL for direct upload to KB storage (Spaces/MinIO)' })
   createUploadUrl(
     @CurrentUser() user: AuthUser,
@@ -54,7 +54,7 @@ export class DocumentsController {
   }
 
   @Post('invoices/:id/documents/complete')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Register a document after KB storage upload completes' })
   completeUpload(
     @CurrentUser() user: AuthUser,
@@ -65,7 +65,7 @@ export class DocumentsController {
   }
 
   @Post('invoices/:id/documents')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Upload a document via multipart (local dev fallback only)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -150,10 +150,10 @@ export class DocumentsController {
   }
 
   @Patch('documents/:id')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({
     summary:
-      'Rename a document on a Jawal draft/rejected invoice (logical path only; before submit)',
+      'Rename a document (Jawal pre-submit for suppliers; any status for AP)',
   })
   rename(
     @CurrentUser() user: AuthUser,
@@ -164,7 +164,7 @@ export class DocumentsController {
   }
 
   @Delete('documents/:id')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Delete a document from an editable invoice' })
   remove(@CurrentUser() user: AuthUser, @Param('id') documentId: string) {
     return this.documentsService.remove(user, documentId);

@@ -59,6 +59,10 @@ const UPLOAD_ALLOWED_STATUSES = new Set([
 /** Rename is pre-submit only (Jawal vendors need to fix evidence paths before Gate B). */
 const RENAME_ALLOWED_STATUSES = new Set(['DRAFT', 'REJECTED']);
 
+function canApEditDocuments(user: AuthUser): boolean {
+  return isApUser(user);
+}
+
 function serializeDocument(doc: DocumentRow) {
   return {
     id: doc.id,
@@ -118,9 +122,8 @@ export class DocumentsService {
       });
     }
 
-    const supplierId = requireSupplierId(user);
-    const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
-    this.assertUploadAllowed(invoice.status);
+    const invoice = await this.assertInvoiceAccess(user, invoiceId);
+    this.assertUploadAllowed(user, invoice.status);
 
     const signed = await this.kb.createUploadUrl(invoiceId, storageBaseName(fileName));
     return { ...signed, type };
@@ -152,9 +155,8 @@ export class DocumentsService {
       });
     }
 
-    const supplierId = requireSupplierId(user);
-    const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
-    this.assertUploadAllowed(invoice.status);
+    const invoice = await this.assertInvoiceAccess(user, invoiceId);
+    this.assertUploadAllowed(user, invoice.status);
 
     const sanitizedFileName = sanitizeFileName(fileName);
     const dedupLockKey = `${invoiceId}:${sanitizedFileName}:${sizeBytes}:${checksumSha256 ?? ''}`;
@@ -245,16 +247,15 @@ export class DocumentsService {
 
     const { type } = UploadDocumentMetaSchema.parse(meta ?? {});
     this.assertSupplierUploadType(type);
-    const supplierId = requireSupplierId(user);
-    const invoice = await this.findOwnedInvoice(supplierId, invoiceId);
-    this.assertUploadAllowed(invoice.status);
+    const invoice = await this.assertInvoiceAccess(user, invoiceId);
+    this.assertUploadAllowed(user, invoice.status);
 
     const relativePath =
       meta && typeof meta === 'object' && 'relativePath' in meta
         ? String((meta as { relativePath?: unknown }).relativePath ?? '')
         : '';
     const fileName = sanitizeFileName(relativePath || file.originalname);
-    const storageKey = `local:${supplierId}/${invoiceId}/${crypto.randomUUID()}-${storageBaseName(fileName)}`;
+    const storageKey = `local:${invoice.supplierId}/${invoiceId}/${crypto.randomUUID()}-${storageBaseName(fileName)}`;
     await this.storage.save(storageKey.replace(/^local:/, ''), file.buffer);
 
     const document = await this.prisma.document.create({
@@ -360,9 +361,8 @@ export class DocumentsService {
       });
     }
 
-    const supplierId = requireSupplierId(user);
-    const document = await this.prisma.document.findFirst({
-      where: { id: documentId, invoice: { supplierId } },
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
       include: {
         invoice: {
           include: { supplier: { select: { erpIntegration: true } } },
@@ -373,18 +373,26 @@ export class DocumentsService {
       throw this.documentNotFound();
     }
 
-    if (document.invoice.supplier.erpIntegration !== 'JAWAL') {
-      throw new UnprocessableEntityException({
-        code: 'RENAME_NOT_ALLOWED',
-        message: 'Only Jawal suppliers can rename documents before submission.',
-      });
-    }
-    if (!RENAME_ALLOWED_STATUSES.has(document.invoice.status)) {
-      throw new UnprocessableEntityException({
-        code: 'RENAME_NOT_ALLOWED',
-        message: 'Documents can only be renamed before the invoice is submitted.',
-        details: { status: document.invoice.status },
-      });
+    await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
+
+    if (!isApUser(user)) {
+      const supplierId = requireSupplierId(user);
+      if (document.invoice.supplierId !== supplierId) {
+        throw this.documentNotFound();
+      }
+      if (document.invoice.supplier.erpIntegration !== 'JAWAL') {
+        throw new UnprocessableEntityException({
+          code: 'RENAME_NOT_ALLOWED',
+          message: 'Only Jawal suppliers can rename documents before submission.',
+        });
+      }
+      if (!RENAME_ALLOWED_STATUSES.has(document.invoice.status)) {
+        throw new UnprocessableEntityException({
+          code: 'RENAME_NOT_ALLOWED',
+          message: 'Documents can only be renamed before the invoice is submitted.',
+          details: { status: document.invoice.status },
+        });
+      }
     }
     if (document.type === 'ORACLE_UPLOAD') {
       throw new UnprocessableEntityException({
@@ -435,20 +443,28 @@ export class DocumentsService {
   }
 
   async remove(user: AuthUser, documentId: string) {
-    const supplierId = requireSupplierId(user);
-    const document = await this.prisma.document.findFirst({
-      where: { id: documentId, invoice: { supplierId } },
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
       include: { invoice: true },
     });
     if (!document) {
       throw this.documentNotFound();
     }
-    if (!UPLOAD_ALLOWED_STATUSES.has(document.invoice.status)) {
-      throw new UnprocessableEntityException({
-        code: 'DELETE_NOT_ALLOWED',
-        message: 'Documents cannot be removed once an invoice is approved or paid.',
-        details: { status: document.invoice.status },
-      });
+
+    await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
+
+    if (!isApUser(user)) {
+      const supplierId = requireSupplierId(user);
+      if (document.invoice.supplierId !== supplierId) {
+        throw this.documentNotFound();
+      }
+      if (!UPLOAD_ALLOWED_STATUSES.has(document.invoice.status)) {
+        throw new UnprocessableEntityException({
+          code: 'DELETE_NOT_ALLOWED',
+          message: 'Documents cannot be removed once an invoice is approved or paid.',
+          details: { status: document.invoice.status },
+        });
+      }
     }
 
     await this.prisma.document.delete({ where: { id: documentId } });
@@ -474,7 +490,10 @@ export class DocumentsService {
     return storageKey.startsWith('invoices/');
   }
 
-  private assertUploadAllowed(status: string) {
+  private assertUploadAllowed(user: AuthUser, status: string) {
+    if (canApEditDocuments(user)) {
+      return;
+    }
     if (!UPLOAD_ALLOWED_STATUSES.has(status)) {
       throw new UnprocessableEntityException({
         code: 'UPLOAD_NOT_ALLOWED',

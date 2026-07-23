@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApService } from './ap.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -73,5 +73,16 @@ export class ApController {
   @ApiOperation({ summary: 'Resume review for an invoice on hold' })
   resume(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.apService.resume(user, id);
+  }
+
+  @Patch('invoices/:id/folder-name')
+  @Roles('AP_CLERK', 'AP_APPROVER')
+  @ApiOperation({ summary: 'Rename an invoice folder (any status)' })
+  renameInvoiceFolder(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.apService.renameInvoiceFolder(user, id, body);
   }
 }

@@ -235,4 +235,42 @@ describe('ApService', () => {
     expect(asateel.rerun).toHaveBeenCalledWith('inv1', 'clerk');
     expect(jawal.rerun).not.toHaveBeenCalled();
   });
+
+  it('renames an invoice folder for AP staff regardless of status', async () => {
+    const prisma = {
+      invoice: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'inv1',
+          supplierId: 'sup1',
+          invoiceNumber: 'OLD-NAME',
+          status: 'UNDER_REVIEW',
+        }),
+        findFirst: vi.fn().mockResolvedValue(null),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const result = await service.renameInvoiceFolder(clerk, 'inv1', {
+      invoiceNumber: 'NEW-NAME',
+    });
+
+    expect(result).toEqual({ id: 'inv1', invoiceNumber: 'NEW-NAME' });
+    expect(prisma.invoice.update).toHaveBeenCalledWith({
+      where: { id: 'inv1' },
+      data: { invoiceNumber: 'NEW-NAME' },
+    });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'RENAME_FOLDER',
+        before: { invoiceNumber: 'OLD-NAME' },
+        after: { invoiceNumber: 'NEW-NAME' },
+      }),
+    );
+  });
 });

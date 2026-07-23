@@ -5,6 +5,8 @@ import {
   ApInvoiceDetailSchema,
   ApReconciliationStatusSchema,
   ApRejectRequestSchema,
+  ApRenameInvoiceFolderResponseSchema,
+  ApRenameInvoiceFolderSchema,
 } from '@aljeel/shared-types';
 import { apiFetch } from './api-client';
 
@@ -65,5 +67,14 @@ export function rerunApReconciliation(id: string) {
   return apiFetch(`/ap/invoices/${id}/reconciliation/rerun`, {
     method: 'POST',
     schema: ApReconciliationStatusSchema,
+  });
+}
+
+export function renameApInvoiceFolder(id: string, invoiceNumber: string) {
+  const body = ApRenameInvoiceFolderSchema.parse({ invoiceNumber });
+  return apiFetch(`/ap/invoices/${id}/folder-name`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    schema: ApRenameInvoiceFolderResponseSchema,
   });
 }

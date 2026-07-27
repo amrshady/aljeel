@@ -160,33 +160,44 @@ def _stage_jawal_portal_docs(batch_id: str, folder_name: str) -> tuple[Path, Pat
     if not src.is_dir():
         raise FileNotFoundError(f"staged folder not found: {folder_name}")
 
-    excel_candidates: list[tuple[Path, str]] = []
-    other_files: list[tuple[Path, str]] = []
-    for entry in sorted(src.iterdir(), key=lambda p: p.name.lower()):
+    raw_root = raw_dir.resolve()
+
+    def raw_destination(relative_path: Path) -> Path:
+        destination = (raw_dir / relative_path).resolve()
+        try:
+            destination.relative_to(raw_root)
+        except ValueError as exc:
+            raise ValueError(f"staged file path escapes raw directory: {relative_path}") from exc
+        return destination
+
+    excel_candidates: list[tuple[Path, Path, str]] = []
+    other_files: list[tuple[Path, Path]] = []
+    for entry in sorted(src.rglob("*"), key=lambda p: str(p.relative_to(src)).lower()):
         if not entry.is_file():
             continue
         clean = _strip_doc_id_prefix(entry.name)
+        relative_path = entry.relative_to(src).parent / clean
         if entry.suffix.lower() in (".xlsx", ".xls"):
-            excel_candidates.append((entry, clean))
+            excel_candidates.append((entry, relative_path, clean))
         else:
-            other_files.append((entry, clean))
+            other_files.append((entry, relative_path))
 
     invoice_path = None
     invoice_entry = None
     if excel_candidates:
-        invoice_entry = next((i for i in excel_candidates if "inv" in i[1].lower()), excel_candidates[0])
+        invoice_entry = next((i for i in excel_candidates if "inv" in i[2].lower()), excel_candidates[0])
         dst_invoice = batch_dir / "invoice-source.xlsx"
         _atomic_copy(invoice_entry[0], dst_invoice)
         invoice_path = str(dst_invoice)
 
     staged = 0
-    for entry, clean in other_files:
-        _atomic_copy(entry, raw_dir / clean)
+    for entry, relative_path in other_files:
+        _atomic_copy(entry, raw_destination(relative_path))
         staged += 1
-    for entry, clean in excel_candidates:
+    for entry, relative_path, _clean_name in excel_candidates:
         if invoice_entry is not None and entry == invoice_entry[0]:
             continue
-        _atomic_copy(entry, raw_dir / clean)
+        _atomic_copy(entry, raw_destination(relative_path))
         staged += 1
     return batch_dir, raw_dir, invoice_path, staged
 

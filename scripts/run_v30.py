@@ -60,6 +60,7 @@ import re
 import traceback
 
 import argparse
+import atexit
 import concurrent.futures
 import json
 import os
@@ -2661,6 +2662,10 @@ SHORT_REF_SCAN_RE = re.compile(r"\b(\d{2}-\d{3,})\b")
 PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECASE)
 TRAILING_REF_RE = re.compile(r"\(([^)]+)\)\s*$")
 INVOICE_BASENAME_RE = re.compile(r"INV(?:OICE)?", re.IGNORECASE)
+NON_EVIDENCE_PDF_RE = re.compile(
+    r"(?:^|[^A-Z0-9])(?:SOA|STATEMENT[ _-]*OF[ _-]*ACCOUNT|REFUND)(?:[^A-Z0-9]|$)",
+    re.IGNORECASE,
+)
 _OPEX_PREFIX_RE = re.compile(r"^[A-Z]+-\d{4}-\d+-")
 _TITLE_TOKENS = {"MR", "MRS", "MS", "DR", "ENG", "CHD", "INF", "INFANT"}
 TRIP_PURPOSE_INHERIT_CONFIDENCE = 0.85
@@ -2985,6 +2990,7 @@ def build_ticket_folder_index(evidence_root: Path) -> set[str]:
                 file_path.resolve(strict=False) in invoice_skip_paths
                 or file_path.stem.lower() in invoice_skip_stems
                 or INVOICE_BASENAME_RE.search(file_path.stem)
+                or NON_EVIDENCE_PDF_RE.search(file_path.stem)
             ):
                 continue
             index.update(_reference_tokens_in_text(file_path.stem))
@@ -3048,12 +3054,12 @@ def _invoice_pdf_skip_set(evidence_root: Path) -> tuple[set[Path], set[str]]:
     return skip_paths, skip_stems
 
 
-def _nested_below_root(path: Path, evidence_root: Path) -> bool:
+def _at_or_below_root(path: Path, evidence_root: Path) -> bool:
     try:
         rel = path.relative_to(evidence_root)
     except ValueError:
         return False
-    return len(rel.parts) > 1
+    return bool(rel.parts)
 
 
 def _should_scan_ticket_body_pdf(
@@ -3062,13 +3068,15 @@ def _should_scan_ticket_body_pdf(
     invoice_skip_paths: set[Path],
     invoice_skip_stems: set[str],
 ) -> bool:
-    if not _nested_below_root(pdf_path, evidence_root):
+    if not _at_or_below_root(pdf_path, evidence_root):
         return False
     if pdf_path.resolve(strict=False) in invoice_skip_paths:
         return False
     if pdf_path.stem.lower() in invoice_skip_stems:
         return False
     if INVOICE_BASENAME_RE.search(pdf_path.stem):
+        return False
+    if NON_EVIDENCE_PDF_RE.search(pdf_path.stem):
         return False
     return True
 
@@ -3095,7 +3103,7 @@ def build_bundled_ticket_pdf_map(
     evidence_root: Path,
     pdf_text_cache: dict[Path, set[str]] | None = None,
 ) -> dict[str, str]:
-    """Return {embedded_reference_token: host_pdf_path} from nested non-invoice PDFs."""
+    """Return {embedded_reference_token: host_pdf_path} from evidence PDFs."""
     bundled: dict[str, str] = {}
     if not evidence_root or not evidence_root.exists():
         return bundled
@@ -4615,6 +4623,96 @@ def clear_stale_employee_not_in_master_output(
 
 # ─── main ─────────────────────────────────────────────────────────────────────
 
+_FLAT_BUNDLE_TEMP_DIRS: list[tempfile.TemporaryDirectory] = []
+atexit.register(lambda: [tmp.cleanup() for tmp in _FLAT_BUNDLE_TEMP_DIRS])
+_FLAT_NAME_STOPWORDS = {
+    "APPROVED", "APPROVAL", "BOOKING", "BUSINESS", "CONTRIBUTION", "FLIGHT",
+    "FOR", "HOTEL", "MR", "MS", "OPEX", "PERSONAL", "REQUESTED", "RE",
+    "RESERVATION", "TICKET", "TRAVEL",
+}
+
+
+def _flat_filename_name_tokens(path: Path) -> set[str]:
+    """Conservative passenger-name tokens used only to attach companion files."""
+    return {
+        token for token in re.findall(r"[A-Z]{3,}", path.stem.upper())
+        if token not in _FLAT_NAME_STOPWORDS and not token.startswith("JAWAL")
+    }
+
+
+def _collect_flat_evidence_bundles(root: Path) -> list[Path]:
+    """Materialize ticket-keyed logical folders for loose root-level evidence.
+
+    A 10-digit number embedded in an eligible PDF is the only primary bundle
+    key. PNR/26-NNN and two shared name tokens may attach root-level companion
+    files, but can never create or select a bundle by themselves.
+    """
+    if not root.is_dir():
+        return []
+    invoice_skip_paths, invoice_skip_stems = _invoice_pdf_skip_set(root)
+    try:
+        root_files = sorted(path for path in root.iterdir() if path.is_file())
+    except OSError:
+        return []
+
+    pdf_cache: dict[Path, set[str]] = {}
+    seeds: dict[str, list[Path]] = {}
+    seed_secondary: dict[str, set[str]] = {}
+    seed_names: dict[str, set[str]] = {}
+    for path in root_files:
+        if path.suffix.lower() != ".pdf" or not _should_scan_ticket_body_pdf(
+            path, root, invoice_skip_paths, invoice_skip_stems
+        ):
+            continue
+        refs = _reference_tokens_in_text(path.stem)
+        refs.update(_pdf_ticket_body_numbers(path, pdf_cache))
+        tickets = {ref for ref in refs if re.fullmatch(r"\d{10}", ref)}
+        for ticket in tickets:
+            seeds.setdefault(ticket, []).append(path)
+            seed_secondary.setdefault(ticket, set()).update(refs - tickets)
+            seed_names.setdefault(ticket, set()).update(_flat_filename_name_tokens(path))
+
+    if not seeds:
+        return []
+
+    tmp = tempfile.TemporaryDirectory(prefix="aljeel-flat-evidence-")
+    _FLAT_BUNDLE_TEMP_DIRS.append(tmp)
+    bundle_root = Path(tmp.name)
+    bundles: list[Path] = []
+    for ticket, ticket_pdfs in sorted(seeds.items()):
+        bundle = bundle_root / ticket
+        bundle.mkdir()
+        companions = list(ticket_pdfs)
+        for path in root_files:
+            if path in ticket_pdfs or path.suffix.lower() not in {".pdf", ".msg", ".eml"}:
+                continue
+            # Never pull a different passenger/ticket PDF into this bundle.
+            if path.suffix.lower() == ".pdf":
+                if not _should_scan_ticket_body_pdf(
+                    path, root, invoice_skip_paths, invoice_skip_stems
+                ):
+                    continue
+                path_refs = _reference_tokens_in_text(path.stem)
+                path_refs.update(_pdf_ticket_body_numbers(path, pdf_cache))
+                if any(re.fullmatch(r"\d{10}", ref) for ref in path_refs):
+                    continue
+            else:
+                path_refs = _reference_tokens_in_text(path.stem)
+            shared_ref = bool(seed_secondary[ticket] & path_refs)
+            shared_names = seed_names[ticket] & _flat_filename_name_tokens(path)
+            if shared_ref or len(shared_names) >= 2:
+                companions.append(path)
+
+        for source in dict.fromkeys(companions):
+            target = bundle / source.name
+            try:
+                target.symlink_to(source.resolve(strict=False))
+            except OSError as exc:
+                print(f"[scan] warning: flat bundle link failed for {source}: {exc}", flush=True)
+        bundles.append(bundle)
+    return bundles
+
+
 def _collect_evidence_folders(batch_id: str, batch_dir: Path) -> list[Path]:
     """Collect evidence folders across live batch roots and archive fallback.
 
@@ -4651,10 +4749,14 @@ def _collect_evidence_folders(batch_id: str, batch_dir: Path) -> list[Path]:
                 continue
             if has_evidence:
                 folders.append(child)
+        # Flat uploads have no physical ticket directory. Add ticket-keyed
+        # temporary logical folders after the legacy scan, leaving it unchanged.
+        folders.extend(_collect_flat_evidence_bundles(root))
 
     # Volume root (DigitalOcean volume — covers portal-uploaded batches J26-815+)
     volume_batch_dir = VOLUME_BASE / batch_id
     if volume_batch_dir.is_dir():
+        folders.extend(_collect_flat_evidence_bundles(volume_batch_dir))
         # Walk up to 3 levels deep to find the dir that directly contains date/ticket subfolders
         import re as _re
         ticket_pat = _re.compile(r"^\d{6,}$")
@@ -4736,6 +4838,7 @@ def main():
         gdrive_root,
         batch_dir / "gdrive-evidence2",
         ROOT / "archive" / f"raw-{batch_id}",
+        VOLUME_BASE / batch_id,
     ):
         direct_ticket_index.update(build_ticket_folder_index(_ticket_root))
         bundled_ticket_pdf_map.update(

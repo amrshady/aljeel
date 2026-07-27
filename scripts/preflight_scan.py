@@ -19,6 +19,10 @@ SHORT_REF_SCAN_RE = re.compile(r"\b(\d{2}-\d{3,})\b")
 PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECASE)
 TRAILING_REF_RE = re.compile(r"\(([^)]+)\)\s*$")
 INVOICE_BASENAME_RE = re.compile(r"INV(?:OICE)?", re.IGNORECASE)
+NON_EVIDENCE_PDF_RE = re.compile(
+    r"(?:^|[^A-Z0-9])(?:SOA|STATEMENT[ _-]*OF[ _-]*ACCOUNT|REFUND)(?:[^A-Z0-9]|$)",
+    re.IGNORECASE,
+)
 
 
 def normalize_reference_token(token: str) -> str:
@@ -186,7 +190,8 @@ def collect_ticket_folder_names(evidence_dir: Path) -> set[str]:
     Matches:
     - Folder names that contain a ref: "6905992249 family", "26-765", "ELDS5J"
     - File basenames that contain a ref: "6905929962.pdf", "YOUSEF_AL DIGHRIR_O6IV3Y.pdf"
-    - Nested, non-invoice PDF bodies that contain one of the supported refs
+    - Non-invoice/SOA/refund PDF bodies that contain one of the supported refs,
+      including loose PDFs directly below the evidence root
     """
     ticket_numbers: set[str] = set()
     pdf_text_cache: dict[Path, set[str]] = {}
@@ -203,10 +208,11 @@ def collect_ticket_folder_names(evidence_dir: Path) -> set[str]:
                 file_path.resolve(strict=False) in invoice_skip_paths
                 or file_path.stem.lower() in invoice_skip_stems
                 or INVOICE_BASENAME_RE.search(file_path.stem)
+                or NON_EVIDENCE_PDF_RE.search(file_path.stem)
             ):
                 continue
             ticket_numbers.update(reference_tokens_in_text(file_path.stem))
-        # Check body text in nested non-invoice PDFs only.
+        # Check body text in eligible evidence PDFs, including root-level files.
         for fname in files:
             if not fname.lower().endswith(".pdf"):
                 continue
@@ -275,12 +281,12 @@ def invoice_pdf_skip_set(evidence_root: Path) -> tuple[set[Path], set[str]]:
     return skip_paths, skip_stems
 
 
-def nested_below_root(path: Path, evidence_root: Path) -> bool:
+def at_or_below_root(path: Path, evidence_root: Path) -> bool:
     try:
         rel = path.relative_to(evidence_root)
     except ValueError:
         return False
-    return len(rel.parts) > 1
+    return bool(rel.parts)
 
 
 def should_scan_ticket_body_pdf(
@@ -289,13 +295,15 @@ def should_scan_ticket_body_pdf(
     invoice_skip_paths: set[Path],
     invoice_skip_stems: set[str],
 ) -> bool:
-    if not nested_below_root(pdf_path, evidence_root):
+    if not at_or_below_root(pdf_path, evidence_root):
         return False
     if pdf_path.resolve(strict=False) in invoice_skip_paths:
         return False
     if pdf_path.stem.lower() in invoice_skip_stems:
         return False
     if INVOICE_BASENAME_RE.search(pdf_path.stem):
+        return False
+    if NON_EVIDENCE_PDF_RE.search(pdf_path.stem):
         return False
     return True
 

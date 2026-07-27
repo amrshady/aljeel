@@ -7,24 +7,18 @@
     "CENTRAL",
     "--full"
   ],
-  "allocation_lines": 185,
+  "allocation_lines": 183,
   "row_status_counts": {
-    "GREEN": 3,
-    "YELLOW": 182,
-    "RED": 0
+    "GREEN": 0,
+    "YELLOW": 171,
+    "RED": 12
   },
-  "blank_cost_center_rows": 3,
+  "blank_cost_center_rows": 2,
   "blank_cost_center_invoices": [
-    "03045",
     "03110",
     "03309"
   ],
   "blank_cost_center_row_keys": [
-    {
-      "invoice_no": "03045",
-      "line_no": 2,
-      "row_status": "YELLOW"
-    },
     {
       "invoice_no": "03110",
       "line_no": 1,

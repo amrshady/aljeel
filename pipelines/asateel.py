@@ -131,6 +131,7 @@ def _row_public(row: dict[str, Any]) -> dict[str, Any]:
         "notes": row.get("notes") or "",
         "trace_pdf": row.get("_trace_pdf") or "",
         "exception_category": row.get("_exception_category") or "",
+        "agency_resolution": row.get("_agency_resolution") or "",
         "project_allocation": row.get("_project_allocation_audit"),
     }
 
@@ -195,7 +196,18 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
             })
         for row in rec["allocation_rows"]:
             project_audit = row.get("project_allocation") or {}
-            if project_audit and project_audit.get("status") != "applied":
+            if row.get("exception_category") == "AGENCY_JQ_NOT_IN_SO_DETAIL":
+                catches.append({
+                    "category": "AGENCY_JQ_NOT_IN_SO_DETAIL",
+                    "severity": "HIGH",
+                    "invoice_no": rec["invoice_no"],
+                    "employee_no": row.get("employee_no"),
+                    "jq": row.get("jq"),
+                    "value_at_risk_sar": 0.0,
+                    "detail": row.get("notes"),
+                    "evidence": {"allocation_rows": [row]},
+                })
+            elif project_audit and project_audit.get("status") != "applied":
                 catches.append({
                     "category": "PROJECT_ALLOCATION_LOOKUP_REVIEW",
                     "severity": "MEDIUM",
@@ -217,34 +229,40 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
                     "detail": row.get("notes"),
                     "evidence": {"allocation_rows": [row]},
                 })
-            elif row.get("so_detail_vs_supplier_discrepancy") == "Y":
-                catches.append({
-                    "category": "SO_DETAIL_SUPPLIER_DISCREPANCY",
-                    "severity": "MEDIUM",
-                    "invoice_no": rec["invoice_no"],
-                    "employee_no": row.get("employee_no"),
-                    "jq": row.get("jq"),
-                    "value_at_risk_sar": 0.0,
-                    "detail": (
-                        f"SO_Detail agency {row.get('so_detail_agency')} differs from "
-                        f"Supplier Sheet agency {row.get('supplier_sheet_agency')}; supplier sheet retained."
-                    ),
-                    "evidence": {"allocation_rows": [row]},
-                })
-            elif row.get("home_agency_discrepancy") == "Y":
-                catches.append({
-                    "category": "HOME_AGENCY_DISCREPANCY",
-                    "severity": "MEDIUM",
-                    "invoice_no": rec["invoice_no"],
-                    "employee_no": row.get("employee_no"),
-                    "jq": row.get("jq"),
-                    "value_at_risk_sar": 0.0,
-                    "detail": (
-                        f"Supplier agency {row.get('supplier_sheet_agency')} differs from "
-                        f"Manpower home agency {row.get('manpower_home_agency')}; supplier sheet used."
-                    ),
-                    "evidence": {"allocation_rows": [row]},
-                })
+            elif (
+                row.get("so_detail_vs_supplier_discrepancy") == "Y"
+                or row.get("home_agency_discrepancy") == "Y"
+            ):
+                # These are independent comparisons; a row may legitimately
+                # disagree with both Supplier Sheet and Manpower.
+                if row.get("so_detail_vs_supplier_discrepancy") == "Y":
+                    catches.append({
+                        "category": "SO_DETAIL_SUPPLIER_DISCREPANCY",
+                        "severity": "MEDIUM",
+                        "invoice_no": rec["invoice_no"],
+                        "employee_no": row.get("employee_no"),
+                        "jq": row.get("jq"),
+                        "value_at_risk_sar": 0.0,
+                        "detail": (
+                            f"SO_Detail agency {row.get('so_detail_agency')} differs from "
+                            f"Supplier Sheet agency {row.get('supplier_sheet_agency')}; SO_Detail used."
+                        ),
+                        "evidence": {"allocation_rows": [row]},
+                    })
+                if row.get("home_agency_discrepancy") == "Y":
+                    catches.append({
+                        "category": "HOME_AGENCY_DISCREPANCY",
+                        "severity": "MEDIUM",
+                        "invoice_no": rec["invoice_no"],
+                        "employee_no": row.get("employee_no"),
+                        "jq": row.get("jq"),
+                        "value_at_risk_sar": 0.0,
+                        "detail": (
+                            f"SO_Detail agency {row.get('so_detail_agency')} differs from "
+                            f"Manpower home agency {row.get('manpower_home_agency')}; SO_Detail used."
+                        ),
+                        "evidence": {"allocation_rows": [row]},
+                    })
             elif row.get("row_status") in {"RED", "YELLOW"}:
                 catches.append({
                     "category": "ALLOCATION_REVIEW",
@@ -373,8 +391,9 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     engine = _load_v6_engine()
     lookups = engine.load_lookups()
     supplier_index = engine.load_expenses_format(Path(args.expenses_format), lookups)
-    so_detail_index = engine.load_so_detail(Path(args.so_detail)) if args.so_detail else {}
-    employee_so_detail_index = engine.load_so_detail(
+    # One explicit canonical-JQ index supplies both authoritative Agency and
+    # SPERSON. Omitting --so-detail selects the repository's global export.
+    so_detail_index = engine.load_so_detail(
         Path(args.so_detail) if args.so_detail else DEFAULT_SO_DETAIL_XLSX
     )
     bmx_junior_head_map = engine.load_bmx_junior_head_map(Path(args.project_allocation_lookup))
@@ -422,7 +441,6 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         allocation_mode=args.allocation_mode,
         project_lookup=project_lookup,
         project_master_fallback=args.folder == "PROJECTS",
-        employee_so_detail_index=employee_so_detail_index,
         bmx_junior_head_map=bmx_junior_head_map,
     )
     # Apply the AP whole-riyal control on the rows that feed the Oracle workbook.

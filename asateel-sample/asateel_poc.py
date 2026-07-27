@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import pickle
 import platform
 import re
 import shutil
@@ -36,6 +37,8 @@ PDF_ROOT = SAMPLE_ROOT / "_pdfs"
 OUT_DIR = SAMPLE_ROOT / "_poc_out"
 RENDER_DIR = OUT_DIR / "_rendered"
 CACHE_DIR = OUT_DIR / "_cache"
+SO_DETAIL_CACHE_DIR = ROOT / "state" / "so_detail_cache"
+SO_DETAIL_CACHE_VERSION = 2
 MASTER_XLSX = ROOT / "qc/master-data/Aljeel_Lookups-v2.xlsx"
 JAWAL_TEMPLATE_XLSX = ROOT / "batches/jawal-J26-640/output/Spreadsheet-J26-640-FILLED-v30.xlsx"
 ENTRY_FILES = [
@@ -1257,13 +1260,37 @@ def finalize_distribution(row: dict[str, Any], is_warehouse_cc: bool = False) ->
         return
 
     segments = WAREHOUSE_DISTRIBUTION_COMBINATION.split("-")
+    authoritative_agency = _segment(row.get("Agency"), SEGMENT_WIDTHS["agency"], "00000")
     for field, value in zip(
         ("Company", "Location", "Account", "Cost Center", "DIV", "Solution", "Agency", "Project", "Intercompany", "Future 1"),
         segments,
     ):
         row[field] = value
-    row["Agency Name"] = "S&M"
-    row["Distribution Combination[..]"] = WAREHOUSE_DISTRIBUTION_COMBINATION
+    # Warehouse remains authoritative for every non-agency segment. Agency is
+    # always the canonical SO_Detail value and the combination is rebuilt from it.
+    row["Agency"] = authoritative_agency
+    segments[6] = authoritative_agency
+    row["Distribution Combination[..]"] = "-".join(segments)
+
+
+def assert_distribution_agency_invariant(rows: list[dict[str, Any]]) -> None:
+    """Fail the batch if combination segment 7 differs from standalone Agency."""
+    violations = []
+    for row in rows:
+        parts = _clean(row.get("Distribution Combination[..]")).split("-")
+        combo_agency = parts[6] if len(parts) == 10 else ""
+        standalone_agency = _segment(row.get("Agency"), SEGMENT_WIDTHS["agency"], "00000")
+        if combo_agency != standalone_agency:
+            violations.append(
+                f"invoice={_clean(row.get('*Invoice Number'))} "
+                f"line={row.get('line_no')} combo_segment_7={combo_agency!r} "
+                f"Agency={standalone_agency!r}"
+            )
+    if violations:
+        raise RuntimeError(
+            "Distribution Combination segment 7 != standalone Agency:\n"
+            + "\n".join(violations[:20])
+        )
 
 
 def _valid_allocation_signal(sig: dict[str, Any]) -> bool:
@@ -1377,10 +1404,33 @@ def _supplier_resolve_allocation(
 def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
     if not path or not path.exists():
         return {}
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    source_sha256 = digest.hexdigest()
+    cache_path = SO_DETAIL_CACHE_DIR / f"{source_sha256}.pkl"
+    try:
+        with cache_path.open("rb") as cache_file:
+            cached = pickle.load(cache_file)
+        if (
+            isinstance(cached, dict)
+            and cached.get("version") == SO_DETAIL_CACHE_VERSION
+            and cached.get("source_sha256") == source_sha256
+            and isinstance(cached.get("index"), dict)
+        ):
+            index = SoDetailIndex(cached["index"])
+            index.cache_status = "hit"
+            index.source_sha256 = source_sha256
+            return index
+    except (OSError, EOFError, pickle.PickleError, AttributeError, TypeError, ValueError):
+        # A missing, unreadable, or corrupt cache is only a performance miss.
+        pass
+
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    # LOCKED: SO_Detail validates canonical JQ existence and supplies SPERSON
-    # only for the output Employee No column. Agency and organization columns
-    # must not influence allocation or splitting.
+    # SO_Detail validates canonical JQ existence, supplies SPERSON, and is the
+    # authoritative source for Agency only. It must not influence organization
+    # fields or allocation splitting.
     # Keep the full export's Sheet1/row-5 layout as the first choice, while
     # also accepting slim exports whose ORDER_NUMBER header is in rows 1..6
     # on any sheet.
@@ -1397,6 +1447,8 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
     ws = None
     order_number_col = None
     sperson_col = None
+    agency_col = None
+    agency_desc_col = None
     data_start_row = None
     for candidate_ws, header_row in header_locations:
         for idx, cell in enumerate(candidate_ws[header_row], start=1):
@@ -1405,17 +1457,19 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
                 order_number_col = idx
                 data_start_row = header_row + 1
         if ws is not None:
-            sperson_col = next(
-                (idx for idx, cell in enumerate(candidate_ws[header_row], start=1)
-                 if _clean(cell.value).upper() == "SPERSON"),
-                None,
-            )
+            columns = {
+                _clean(cell.value).upper(): idx
+                for idx, cell in enumerate(candidate_ws[header_row], start=1)
+            }
+            sperson_col = columns.get("SPERSON")
+            agency_col = columns.get("CAT_AGENCY")
+            agency_desc_col = columns.get("CAT_AGENCY_DESC")
         if ws is not None:
             break
 
-    if ws is None or order_number_col is None or data_start_row is None:
+    if ws is None or order_number_col is None or data_start_row is None or agency_col is None:
         wb.close()
-        raise RuntimeError("SO_Detail missing required columns: ORDER_NUMBER")
+        raise RuntimeError("SO_Detail missing required columns: ORDER_NUMBER, CAT_AGENCY")
 
     by_jq_rows: dict[str, list[dict[str, Any]]] = {}
     for ridx, row in enumerate(ws.iter_rows(min_row=data_start_row, values_only=True), start=data_start_row):
@@ -1426,23 +1480,64 @@ def load_so_detail(path: Path) -> dict[str, dict[str, Any]]:
             continue
         raw_sperson = _clean(row[sperson_col - 1]) if sperson_col and sperson_col <= len(row) else ""
         sperson_employee_no = _code(raw_sperson.split("-", 1)[0]) if raw_sperson else ""
+        agency_code = _code(row[agency_col - 1], 5) if agency_col <= len(row) else ""
+        agency_desc = _clean(row[agency_desc_col - 1]) if agency_desc_col and agency_desc_col <= len(row) else ""
         by_jq_rows.setdefault(jq, []).append({
             "jq": jq,
             "raw_jq": raw_jq,
             "sperson": sperson_employee_no,
+            "agency_code": agency_code,
+            "agency_desc": agency_desc,
             "row": ridx,
         })
     wb.close()
 
     index: SoDetailIndex = SoDetailIndex()
     for jq, rows_for_jq in by_jq_rows.items():
+        agency_codes = {r["agency_code"] for r in rows_for_jq if r["agency_code"] not in {"", "00000"}}
+        if len(agency_codes) > 1:
+            agency_status = "conflicting"
+        elif not agency_codes:
+            agency_status = "blank_or_00000"
+        else:
+            agency_status = "valid"
+        authoritative_code = next(iter(agency_codes)) if agency_status == "valid" else ""
+        authoritative_desc = next(
+            (r["agency_desc"] for r in rows_for_jq if r["agency_code"] == authoritative_code and r["agency_desc"]),
+            "",
+        )
         index[jq] = {
             "jq": jq,
             "raw_jq": rows_for_jq[0]["raw_jq"],
             "sperson": rows_for_jq[0]["sperson"],
-            "rows": rows_for_jq,
+            "agency_code": authoritative_code,
+            "agency_desc": authoritative_desc,
+            "agency_status": agency_status,
+            "agency_codes": sorted(agency_codes),
             "duplicate_row_count": max(0, len(rows_for_jq) - 1),
         }
+    index.cache_status = "miss"
+    index.source_sha256 = source_sha256
+    try:
+        SO_DETAIL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        temp_cache_path = cache_path.with_suffix(f".{os.getpid()}.tmp")
+        with temp_cache_path.open("wb") as cache_file:
+            pickle.dump(
+                {
+                    "version": SO_DETAIL_CACHE_VERSION,
+                    "source_sha256": source_sha256,
+                    "index": dict(index),
+                },
+                cache_file,
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+        os.replace(temp_cache_path, cache_path)
+    except OSError:
+        # Cache writes must never prevent a correctly parsed workbook from loading.
+        try:
+            temp_cache_path.unlink(missing_ok=True)
+        except (OSError, UnboundLocalError):
+            pass
     return index
 
 
@@ -1604,11 +1699,26 @@ def supplier_jq_units_for_invoice(invoice_no: Any, supplier_index: dict[str, lis
     units = []
     for rec in supplier_index.get(_code(invoice_no, 5), []):
         jq = _canonical_jq(rec.get("jq"), allow_bare=False)
-        if not jq.startswith("JQ-"):
+        source_jq = _clean(rec.get("_source_jq_cell"))
+        # A supplier row with a genuinely blank JQ is still an allocation unit.
+        # Warehouse rows legitimately have no JQ, so dropping them here loses
+        # supplier amount/segments before the Warehouse pin can be applied.
+        # Keep rejecting nonblank malformed JQs to preserve existing validation.
+        if source_jq and not jq.startswith("JQ-"):
+            continue
+        if not source_jq and not (
+            rec.get("amount") is not None
+            and any(
+                _clean(rec.get(field))
+                for field in ("agency", "cost_center", "division", "solution")
+            )
+        ):
+            # Header fill-down also associates template/signature/total rows
+            # with an invoice. They are not supplier allocation lines.
             continue
         out = dict(rec)
         out["jq"] = jq
-        out["_match_method"] = "supplier_jq_unit"
+        out["_match_method"] = "supplier_jq_unit" if jq else "supplier_blank_jq_unit"
         out["_amount_match"] = True
         units.append(out)
     return units
@@ -1818,7 +1928,6 @@ def build_rows(
     allocation_mode: str = STANDARD_ALLOCATION_MODE,
     project_lookup: dict[str, Any] | None = None,
     project_master_fallback: bool = False,
-    employee_so_detail_index: dict[str, dict[str, Any]] | None = None,
     bmx_junior_head_map: dict[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if allocation_mode not in {STANDARD_ALLOCATION_MODE, PROJECT_ALLOCATION_MODE}:
@@ -1829,8 +1938,6 @@ def build_rows(
     supplier_index = supplier_index or {}
     if so_detail_index is None:
         so_detail_index = {}
-    if employee_so_detail_index is None:
-        employee_so_detail_index = so_detail_index
     bmx_junior_head_map = bmx_junior_head_map or {}
     so_detail_enabled = bool(so_detail_index) or bool(getattr(so_detail_index, "loaded", False))
     trace: dict[str, Any] = {
@@ -2143,12 +2250,20 @@ def build_rows(
             supplier_action = "none"
             so_detail_group = unit.get("so_detail_group")
             unit_jqs = []
+            blank_supplier_jq = bool(
+                supplier_match
+                and not _clean(supplier_match.get("_source_jq_cell"))
+            )
             if supplier_match and _canonical_jq(supplier_match.get("jq")):
                 unit_jqs.append(_canonical_jq(supplier_match.get("jq")))
-            unit_jqs.extend(_extract_pdf_jqs(ln, ext))
+            # A PDF line may be reused as the visual source for multiple supplier
+            # allocation units. Do not attach that PDF JQ to an explicitly
+            # blank-JQ supplier row or attempt an SO_Detail join for it.
+            if not blank_supplier_jq:
+                unit_jqs.extend(_extract_pdf_jqs(ln, ext))
             unit_jq = next((jq for jq in unit_jqs if jq), "")
-            employee_so_detail = employee_so_detail_index.get(unit_jq) if unit_jq else None
-            sperson_employee_no = _code((employee_so_detail or {}).get("sperson"))
+            matched_so_detail = so_detail_index.get(unit_jq) if unit_jq else None
+            sperson_employee_no = _code((matched_so_detail or {}).get("sperson"))
             output_employee_no = (
                 (bmx_junior_head_map.get(sperson_employee_no, sperson_employee_no) if is_project_invoice else sperson_employee_no)
                 if sperson_employee_no
@@ -2226,16 +2341,6 @@ def build_rows(
                 resolved = supplier_allocation
                 supplier_action = "supplier_override"
                 notes.append("Full allocation block used from Supplier Expenses Format")
-                if (
-                    manpower_emp
-                    and _code(manpower_emp.get("agency_code"), 5)
-                    and _code(manpower_emp.get("agency_code"), 5) != _code(supplier_match.get("agency_code"), 5)
-                    and not (project_audit and project_audit.get("status") == "applied")
-                ):
-                    supplier_home_agency_discrepancy = "Y"
-                    notes.append(
-                        f"Supplier agency {supplier_sheet_agency} differs from Manpower home agency {manpower_home_agency}; supplier sheet used"
-                    )
             elif supplier_match:
                 supplier_action = "supplier_unresolved"
                 resolved = supplier_allocation
@@ -2256,6 +2361,85 @@ def build_rows(
                 resolved = dict(supplier_allocation)
                 resolved["source"] = "supplier_expenses_format_missing"
                 resolved["status_reason"] = "supplier allocation line missing"
+            so_detail_status = (
+                "not_applicable_blank_jq"
+                if blank_supplier_jq
+                else _clean((matched_so_detail or {}).get("agency_status")) or "missing"
+            )
+            agency_resolution = "supplier_blank_jq" if blank_supplier_jq else "so_detail_clean"
+            if blank_supplier_jq:
+                # Blank is valid for Warehouse supplier rows (and remains a
+                # normal supplier allocation unit elsewhere). Supplier segments
+                # stay authoritative; there is no JQ to validate or resolve.
+                resolved["agency_resolve_method"] = agency_resolution
+            elif so_detail_status == "valid":
+                so_detail_code = _code(matched_so_detail.get("agency_code"), 5)
+                so_detail_name = (
+                    lookups.agency_name_by_code.get(so_detail_code)
+                    or _clean(matched_so_detail.get("agency_desc"))
+                )
+                so_detail_agency = _agency_display(so_detail_code, so_detail_name)
+                so_detail_salesperson = _code(matched_so_detail.get("sperson"))
+                if supplier_sheet_agency and so_detail_code != _code(
+                    supplier_match.get("agency_code") if supplier_match else "", 5
+                ):
+                    so_detail_supplier_discrepancy = "Y"
+                    notes.append(
+                        f"SO_Detail agency {so_detail_agency} differs from Supplier Sheet "
+                        f"agency {supplier_sheet_agency}; SO_Detail used"
+                    )
+                # Agency-only authority: leave CC, DIV, Solution, employee, and
+                # existing split/remap logic untouched.
+                resolved["agency_code"] = so_detail_code
+                resolved["agency_name"] = so_detail_name
+                resolved["source"] = f"{resolved.get('source') or 'unresolved'}+so_detail_agency"
+                resolved["agency_resolve_method"] = "so_detail_canonical_jq"
+                if (
+                    manpower_emp
+                    and _code(manpower_emp.get("agency_code"), 5)
+                    and _code(manpower_emp.get("agency_code"), 5) != so_detail_code
+                ):
+                    supplier_home_agency_discrepancy = "Y"
+                    notes.append(
+                        f"SO_Detail agency {so_detail_agency} differs from Manpower "
+                        f"home agency {manpower_home_agency}; SO_Detail used"
+                    )
+            else:
+                agency_resolution = (
+                    "supplier_fallback_conflict"
+                    if so_detail_status == "conflicting"
+                    else "supplier_fallback_blank"
+                    if so_detail_status == "blank_or_00000"
+                    else "supplier_fallback_jq_missing"
+                )
+                resolved["agency_resolve_method"] = agency_resolution
+                if so_detail_status == "missing":
+                    reason = (
+                        f"JQ {unit_jq or 'missing canonical JQ'} is not in SO_Detail; "
+                        "supplier agency used pending review"
+                    )
+                    notes.append(f"RED: {reason}")
+                    resolved["status_reason"] = reason
+                else:
+                    detail = (
+                        f" ({','.join(matched_so_detail['agency_codes'])})"
+                        if matched_so_detail and matched_so_detail.get("agency_codes")
+                        else ""
+                    )
+                    notes.append(
+                        f"SO_Detail agency {so_detail_status}{detail}; supplier agency used"
+                    )
+                chosen_agency_code = _code(resolved.get("agency_code"), 5)
+                if (
+                    manpower_emp
+                    and chosen_agency_code
+                    and _code(manpower_emp.get("agency_code"), 5) != chosen_agency_code
+                ):
+                    supplier_home_agency_discrepancy = "Y"
+                    notes.append(
+                        f"Supplier agency {supplier_sheet_agency} differs from Manpower "
+                        f"home agency {manpower_home_agency}; supplier agency used"
+                    )
             if so_detail_enabled and unit_jq and unit_jq not in so_detail_index:
                 notes.append("JQ not in SO_Detail export")
             jq_display = ""
@@ -2282,6 +2466,8 @@ def build_rows(
             else:
                 notes.append("No Supplier Expenses Format line matched for Solution")
             status = classify(ext, resolved, notes, scan_available=not master_fallback)
+            if so_detail_status == "missing":
+                status = "RED"
             if project_audit and project_audit.get("status") != "applied" and status == "GREEN":
                 status = "YELLOW"
             if supplier_action in {"supplier_override", "supplier_unresolved"}:
@@ -2309,8 +2495,8 @@ def build_rows(
             keep_allocation = is_green or supplier_action in {"filled", "manpower_empno", "supplier_agency", "supplier_override", "supplier_allocation_inherited"} or (
                 has_resolved_segments and _clean(resolved.get("allocation_status")) and _clean(resolved.get("allocation_status")) != "Can Be used"
             )
-            agency_code = resolved.get("agency_code") if keep_allocation else ""
-            agency_name = resolved.get("agency_name") if keep_allocation else ""
+            agency_code = resolved.get("agency_code")
+            agency_name = resolved.get("agency_name")
             division_code = resolved.get("division_code") if keep_allocation else ""
             division_name = resolved.get("division") if keep_allocation else ""
             cost_center = resolved.get("cost_center") if keep_allocation else ""
@@ -2394,7 +2580,12 @@ def build_rows(
                 "_extracted_brands": "" if master_fallback else extracted_brands,
                 "_extracted_salespeople": "" if master_fallback else extracted_salespeople,
                 "_extraction_notes": "" if master_fallback else "; ".join(_clean(n) for n in ext.get("extraction_notes") or [] if _clean(n)),
-                "_exception_category": "MISSING_PDF" if master_fallback else "",
+                "_exception_category": (
+                    "MISSING_PDF" if master_fallback
+                    else "AGENCY_JQ_NOT_IN_SO_DETAIL" if so_detail_status == "missing"
+                    else ""
+                ),
+                "_agency_resolution": agency_resolution,
                 "_account_note": account_note,
                 "_supplier_match": supplier_match,
                 "_additional_information": additional_info,
@@ -2432,6 +2623,7 @@ def build_rows(
         if not first_invoice_row:
             row["*Invoice Amount"] = ""
             row["*Invoice Date"] = ""
+    assert_distribution_agency_invariant(rows)
     return rows, trace
 
 
@@ -2471,6 +2663,7 @@ def style_workbook(path: Path) -> None:
 
 
 def write_excel(rows: list[dict[str, Any]], path: Path) -> None:
+    assert_distribution_agency_invariant(rows)
     ref_wb = openpyxl.load_workbook(JAWAL_TEMPLATE_XLSX)
     ref_ws = ref_wb["Sheet"]
     wb = openpyxl.Workbook()
@@ -3046,7 +3239,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--so-detail",
         default=str(DEFAULT_SO_DETAIL_XLSX),
-        help="SO_Detail export used for canonical JQ validation and output Employee No only",
+        help="SO_Detail export authoritative for Agency and used for output Employee No",
     )
     parser.add_argument(
         "--allocation-mode",
@@ -3103,7 +3296,6 @@ def main(argv: list[str] | None = None) -> int:
         allocation_mode=args.allocation_mode,
         project_lookup=project_lookup,
         project_master_fallback=args.folder == "PROJECTS",
-        employee_so_detail_index=so_detail_index,
         bmx_junior_head_map=bmx_junior_head_map,
     )
     # AP control: enforce whole-riyal line totals at the final output boundary.

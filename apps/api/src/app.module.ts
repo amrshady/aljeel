@@ -16,6 +16,7 @@ import { StorageModule } from './storage/storage.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ApModule } from './ap/ap.module';
 import { RootModule } from './root.module';
+import { PtMappingsModule } from './pt-mappings/pt-mappings.module';
 
 @Module({
   imports: [
@@ -40,12 +41,10 @@ import { RootModule } from './root.module';
     InvoicesModule,
     DocumentsModule,
     ApModule,
+    PtMappingsModule,
     HealthModule,
     RootModule,
   ],
-  providers: [
-    ExampleWorkerService,
-    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
-  ],
+  providers: [ExampleWorkerService, { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor }],
 })
 export class AppModule {}

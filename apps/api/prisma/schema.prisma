@@ -95,6 +95,19 @@ enum ApprovalAction {
   HOLD
 }
 
+enum PtResolutionMode {
+  AGENCY
+  SALESMAN
+}
+
+enum PtAuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  IMPORT
+  REGENERATE
+}
+
 model Supplier {
   id              String                  @id @default(cuid())
   legalName       String
@@ -374,4 +387,55 @@ model IdempotencyRecord {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+model PtAgencyMapping {
+  id             String           @id @default(cuid())
+  agencyName     String           @unique
+  managerName    String?
+  managerEmpNo   String?
+  resolutionMode PtResolutionMode
+  agencyCode     String           @unique
+  createdAt      DateTime         @default(now())
+  createdBy      String
+  updatedAt      DateTime         @updatedAt
+  updatedBy      String
+
+  salesmen PtSalesmanMapping[]
+
+  @@index([resolutionMode])
+}
+
+model PtSalesmanMapping {
+  id              String   @id @default(cuid())
+  agencyMappingId String
+  lineHeadName    String
+  lineHeadEmpNo   String
+  salesmanName    String
+  salesmanEmpNo   String   @unique
+  createdAt       DateTime @default(now())
+  createdBy       String
+  updatedAt       DateTime @updatedAt
+  updatedBy       String
+
+  agencyMapping PtAgencyMapping @relation(fields: [agencyMappingId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyMappingId, lineHeadEmpNo, salesmanEmpNo])
+  @@index([agencyMappingId, lineHeadEmpNo])
+}
+
+model PtMappingAudit {
+  id         String        @id @default(cuid())
+  entityType String
+  entityId   String
+  action     PtAuditAction
+  field      String
+  oldValue   Json?
+  newValue   Json?
+  actorId    String
+  actorEmail String
+  createdAt  DateTime      @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([createdAt])
 }

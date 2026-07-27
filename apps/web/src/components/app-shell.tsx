@@ -29,12 +29,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             {isApUser && (
-              <Link
-                href="/ap/review"
-                className="text-sm font-medium text-primary-foreground/90 underline-offset-4 hover:underline"
-              >
-                {tApNav('review')}
-              </Link>
+              <>
+                <Link
+                  href="/ap/review"
+                  className="text-sm font-medium text-primary-foreground/90 underline-offset-4 hover:underline"
+                >
+                  {tApNav('review')}
+                </Link>
+                {user.role === 'AP_CLERK' && (
+                  <Link
+                    href="/ap/pt-mappings"
+                    className="text-sm font-medium text-primary-foreground/90 underline-offset-4 hover:underline"
+                  >
+                    {tApNav('ptMappings')}
+                  </Link>
+                )}
+              </>
             )}
             <LocaleSwitcher className="border-primary-foreground/25 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" />
             <Button

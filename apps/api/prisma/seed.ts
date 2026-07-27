@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 const prisma = new PrismaClient();
 
@@ -131,6 +133,68 @@ async function main() {
       isActive: true,
     },
   });
+
+  const lookupPath = resolve(
+    process.cwd(),
+    '../../../aljeel/pipelines/lookups/asateel_projects_labadi_v1.json',
+  );
+  const lookup = JSON.parse(await readFile(lookupPath, 'utf8')) as {
+    agency_rules: Array<{
+      agency_code: string;
+      agency_name: string;
+      employee_strategy: 'agency_manager' | 'bmx_junior_to_head';
+      manager?: { employee_name: string; employee_no: string };
+      heads?: Array<{
+        employee_name: string;
+        employee_no: string;
+        juniors: Array<{ employee_name: string; employee_no: string }>;
+      }>;
+    }>;
+  };
+  for (const rule of lookup.agency_rules) {
+    const agency = await prisma.ptAgencyMapping.upsert({
+      where: { agencyCode: rule.agency_code },
+      create: {
+        agencyName: rule.agency_name,
+        agencyCode: rule.agency_code,
+        managerName: rule.manager?.employee_name,
+        managerEmpNo: rule.manager?.employee_no,
+        resolutionMode: rule.employee_strategy === 'agency_manager' ? 'AGENCY' : 'SALESMAN',
+        createdBy: 'seed',
+        updatedBy: 'seed',
+      },
+      update: {
+        agencyName: rule.agency_name,
+        managerName: rule.manager?.employee_name ?? null,
+        managerEmpNo: rule.manager?.employee_no ?? null,
+        resolutionMode: rule.employee_strategy === 'agency_manager' ? 'AGENCY' : 'SALESMAN',
+        updatedBy: 'seed',
+      },
+    });
+    for (const head of rule.heads ?? []) {
+      for (const junior of head.juniors) {
+        await prisma.ptSalesmanMapping.upsert({
+          where: { salesmanEmpNo: junior.employee_no },
+          create: {
+            agencyMappingId: agency.id,
+            lineHeadName: head.employee_name,
+            lineHeadEmpNo: head.employee_no,
+            salesmanName: junior.employee_name,
+            salesmanEmpNo: junior.employee_no,
+            createdBy: 'seed',
+            updatedBy: 'seed',
+          },
+          update: {
+            agencyMappingId: agency.id,
+            lineHeadName: head.employee_name,
+            lineHeadEmpNo: head.employee_no,
+            salesmanName: junior.employee_name,
+            updatedBy: 'seed',
+          },
+        });
+      }
+    }
+  }
 }
 
 main()

@@ -20,6 +20,12 @@ export interface AsateelInvoiceManifestValidation {
 }
 
 const INVOICE_NO_HEADER = /invoice\s*(?:no\.?|number)/i;
+const SUPPLIER_DESCRIPTION_INVOICE = /(?:^|\/)\s*(\d{4,5})\s*$/;
+const EXPENSES_DESCRIPTION_HEADERS = new Set([
+  'descriptioncomments',
+  'description',
+  'comments',
+]);
 
 export function isSpreadsheetFileName(fileName: string): boolean {
   return /\.(xlsx|xlsm|xls|xlsb)$/i.test(fileName.trim());
@@ -93,7 +99,7 @@ function normalizeInvoiceNoCell(value: unknown): string | null {
   return text;
 }
 
-export function extractInvoiceNumbersFromGrid(grid: unknown[][]): string[] {
+function extractInvoiceNoColumnNumbers(grid: unknown[][]): string[] {
   const location = findInvoiceNoColumn(grid);
   if (!location) return [];
 
@@ -112,6 +118,76 @@ export function extractInvoiceNumbersFromGrid(grid: unknown[][]): string[] {
   }
 
   return [...new Set(numbers)];
+}
+
+function normalizedHeader(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function normalizeExpensesInvoiceNo(value: unknown): string | null {
+  const invoiceNo = normalizeInvoiceNoCell(value);
+  if (!invoiceNo || !/^\d{4,5}$/.test(invoiceNo)) return null;
+  return invoiceNo.padStart(5, '0');
+}
+
+/**
+ * Mirrors asateel_poc.py load_expenses_format:
+ * - row-level description invoices use _supplier_description_invoice's regex;
+ * - the Invoice Number header value fills down until the next header value;
+ * - description values take precedence over the current header invoice.
+ *
+ * Supplier rows may populate more than one cell in the four-column merged
+ * DESCRIPTION / Comments span, so every matching cell is retained.
+ */
+function extractExpensesFormatInvoiceNumbers(grid: unknown[][]): string[] {
+  for (let headerRow = 0; headerRow < Math.min(grid.length, 10); headerRow += 1) {
+    const cells = grid[headerRow] ?? [];
+    const invoiceColumn = cells.findIndex(
+      (cell) => normalizedHeader(cell) === 'invoicenumber',
+    );
+    const descriptionColumn = cells.findIndex((cell) =>
+      EXPENSES_DESCRIPTION_HEADERS.has(normalizedHeader(cell)),
+    );
+    if (invoiceColumn < 0 || descriptionColumn < 0) continue;
+
+    const numbers: string[] = [];
+    let currentInvoice: string | null = null;
+    for (let row = headerRow + 1; row < grid.length; row += 1) {
+      const values = grid[row] ?? [];
+      const headerInvoice = normalizeExpensesInvoiceNo(values[invoiceColumn]);
+      if (headerInvoice) currentInvoice = headerInvoice;
+
+      const descriptionInvoices: string[] = [];
+      for (let column = descriptionColumn; column < descriptionColumn + 4; column += 1) {
+        const match = SUPPLIER_DESCRIPTION_INVOICE.exec(String(values[column] ?? '').trim());
+        if (match?.[1]) descriptionInvoices.push(match[1].padStart(5, '0'));
+      }
+      if (descriptionInvoices.length > 0) {
+        numbers.push(...descriptionInvoices);
+      } else if (currentInvoice) {
+        numbers.push(currentInvoice);
+      }
+    }
+    return [...new Set(numbers)];
+  }
+  return [];
+}
+
+export function extractInvoiceNumbersFromGrid(grid: unknown[][]): string[] {
+  const expensesNumbers = extractExpensesFormatInvoiceNumbers(grid);
+  const columnNumbers = extractInvoiceNoColumnNumbers(grid);
+  if (expensesNumbers.length === 0) return columnNumbers;
+
+  // Expenses Format uses the same Invoice Number header for fill-down. Keep the
+  // existing column path additive while returning its numeric values in the
+  // pipeline's canonical five-character form.
+  const normalizedColumnNumbers = columnNumbers.map(
+    (invoiceNo) => normalizeExpensesInvoiceNo(invoiceNo) ?? invoiceNo,
+  );
+  return [...new Set([...normalizedColumnNumbers, ...expensesNumbers])];
 }
 
 export function extractInvoiceNumbersFromWorkbookSheets(

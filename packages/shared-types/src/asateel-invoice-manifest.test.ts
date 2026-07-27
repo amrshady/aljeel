@@ -23,6 +23,52 @@ describe('asateel invoice manifest', () => {
     expect(extractInvoiceNumbersFromGrid(grid)).toEqual(['03041', '3042', '03067']);
   });
 
+  it('matches pipeline extraction for Expenses Format descriptions and fill-down', () => {
+    const expensesGrid = Array.from({ length: 8 }, () => [] as unknown[]);
+    expensesGrid.push([
+      '', '', '', '', '', '', '', '', '', '', '', '', '', 'Invoice Number',
+      '', '', '', '', '', '', '', '', '', '', '', 'DESCRIPTION / Comments',
+    ]);
+    expensesGrid.push([
+      '', '', '', '', '', '', '', '', '', '', '', '', '', '03785',
+      '', '', '', '', '', '', '', '', '', '', '', 'Transportation / 03786',
+      'Transportation / 04215',
+    ]);
+    expensesGrid.push([
+      '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+      '', '', '', '', '', '', '', '', '', '', '', 'ordinary allocation row',
+    ]);
+    expensesGrid.push([
+      '', '', '', '', '', '', '', '', '', '', '', '', '', '4216',
+      '', '', '', '', '', '', '', '', '', '', '', 'ordinary allocation row',
+    ]);
+
+    expect(extractInvoiceNumbersFromGrid(expensesGrid)).toEqual([
+      '03785',
+      '04216',
+      '03786',
+      '04215',
+    ]);
+  });
+
+  it('hard-blocks an Expenses Format invoice until its PDF is attached', () => {
+    const invoiceNos = extractInvoiceNumbersFromGrid([
+      ['Invoice Number', 'DESCRIPTION / Comments', '', '', ''],
+      ['', 'Transportation / 03786', 'Transportation / 04215', '', ''],
+    ]);
+
+    const missing = validateAsateelInvoiceManifest(invoiceNos, ['04215.pdf', 'master.xlsx']);
+    expect(missing.error?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
+    expect(missing.error?.details?.missingInvoiceNos).toEqual(['03786']);
+
+    const complete = validateAsateelInvoiceManifest(invoiceNos, [
+      '03786.pdf',
+      '04215.pdf',
+      'master.xlsx',
+    ]);
+    expect(complete.error).toBeNull();
+  });
+
   it('matches attachment names with optional suffixes and leading zeros', () => {
     expect(fileMatchesInvoiceNo('03041_0001.pdf', '03041')).toBe(true);
     expect(fileMatchesInvoiceNo('3042_0001.pdf', '3042')).toBe(true);

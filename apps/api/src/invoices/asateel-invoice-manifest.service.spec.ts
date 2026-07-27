@@ -33,6 +33,23 @@ function buildShippingReportXlsx(invoiceNos: string[]): Buffer {
   return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
 }
 
+function buildExpensesFormatXlsx(): Buffer {
+  const grid = Array.from({ length: 8 }, () => [] as unknown[]);
+  grid.push([
+    '', '', '', '', '', '', '', '', '', '', '', '', '', 'Invoice Number',
+    '', '', '', '', '', '', '', '', '', '', '', 'DESCRIPTION / Comments',
+  ]);
+  grid.push([
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', 'Transportation / 03786',
+    'Transportation / 04215',
+  ]);
+  const sheet = XLSX.utils.aoa_to_sheet(grid);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Expenses Format');
+  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+}
+
 describe('AsateelInvoiceManifestService', () => {
   it('passes when every invoice number has a matching attachment', async () => {
     const report = buildShippingReportXlsx(['03041', '03042']);
@@ -74,6 +91,28 @@ describe('AsateelInvoiceManifestService', () => {
     expect(result.error?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
     expect(result.error?.details?.missingInvoiceNos).toEqual(['03067']);
     expect(result.warning).toBeNull();
+  });
+
+  it('rejects an Expenses Format submission missing invoice 03786 PDF', async () => {
+    const report = buildExpensesFormatXlsx();
+    const kb = {
+      createReadStream: vi.fn().mockImplementation(async () => streamFromBuffer(report)),
+    };
+    const service = new AsateelInvoiceManifestService({} as never, kb as never);
+
+    const missing = await service.validateUploadedFolder([
+      { fileName: 'Central_17-2026.xlsx', storageKey: 'invoices/inv-1/master.xlsx' },
+      { fileName: '04215.pdf', storageKey: 'local:unused' },
+    ]);
+    expect(missing.error?.code).toBe('ASATEEL_INVOICE_FILES_MISSING');
+    expect(missing.error?.details?.missingInvoiceNos).toEqual(['03786']);
+
+    const complete = await service.validateUploadedFolder([
+      { fileName: 'Central_17-2026.xlsx', storageKey: 'invoices/inv-1/master.xlsx' },
+      { fileName: '03786.pdf', storageKey: 'local:unused' },
+      { fileName: '04215.pdf', storageKey: 'local:unused' },
+    ]);
+    expect(complete.error).toBeNull();
   });
 
   it('warns when extra attachments are not listed in the spreadsheet', async () => {

@@ -8,7 +8,7 @@ import {
 import type { Prisma } from '@prisma/client';
 import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -46,11 +46,9 @@ interface RunStatusResponse {
  * a "resolved" spreadsheet (Spreadsheet-<batch>-FILLED-v30.xlsx) instead of an
  * Oracle upload, which is ingested as the downloadable ORACLE_UPLOAD document.
  *
- * NOTE: portal documents are stored with flat, sanitized filenames (folder
- * hierarchy is not captured at upload time), so docs are staged flat into
- * `<batch>/src/` with a `<docId>-` prefix. The Jawal engine's `/jawal/run`
- * discovery must tolerate this prefix and derive ticket/folder grouping from the
- * flat set (build-plan step 2).
+ * NOTE: source document paths are preserved under `<batch>/src/` so the Jawal
+ * engine can use the supplier's ticket-folder hierarchy during reconciliation.
+ * A `<docId>-` prefix is applied only to the final file basename for deduplication.
  */
 @Injectable()
 export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
@@ -215,8 +213,31 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
     }
 
     for (const doc of documents) {
-      const fileName = `${doc.id}-${this.sanitizeFileName(doc.fileName)}`;
-      const target = join(srcDir, fileName);
+      const hasPathSeparator = /[\\/]/.test(doc.fileName);
+      const pathSegments = doc.fileName.split(/[\\/]/);
+      if (
+        /^[/\\]/.test(doc.fileName) ||
+        /^[A-Za-z]:[\\/]/.test(doc.fileName) ||
+        pathSegments.some((segment) => segment === '.' || segment === '..')
+      ) {
+        throw new Error(`Invalid Jawal document path for document ${doc.id}.`);
+      }
+
+      const sanitizedSegments = pathSegments.map((segment) =>
+        this.sanitizePathSegment(segment),
+      );
+      const fileName = `${doc.id}-${sanitizedSegments.pop() ?? 'file'}`;
+      // Preserve legacy flat staging while rebuilding supplier folders for nested paths.
+      const relativeTarget = hasPathSeparator
+        ? join(...sanitizedSegments, fileName)
+        : fileName;
+      const resolvedSrcDir = resolve(srcDir);
+      const target = resolve(resolvedSrcDir, relativeTarget);
+      if (target !== resolvedSrcDir && !target.startsWith(resolvedSrcDir + sep)) {
+        throw new Error(`Invalid Jawal document path for document ${doc.id}.`);
+      }
+      await mkdir(dirname(target), { recursive: true });
+
       if (doc.storageKey.startsWith('invoices/')) {
         await pipeline(await this.kb.createReadStream(doc.storageKey), createWriteStream(target));
       } else {
@@ -482,8 +503,7 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private sanitizeFileName(name: string): string {
-    const base = name.split(/[\\/]/).pop() ?? 'file';
-    return base.replace(/[^\w.\-]+/g, '_').slice(0, 200) || 'file';
+  private sanitizePathSegment(segment: string): string {
+    return segment.replace(/[^\w.\-]+/g, '_').slice(0, 200) || 'file';
   }
 }

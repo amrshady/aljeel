@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Pencil } from 'lucide-react';
 import { z } from 'zod';
 import { ApReviewActions } from '@/components/ap-review-actions';
 import { ReconciliationPanel } from '@/components/reconciliation-panel';
@@ -48,6 +49,7 @@ function InvoiceDetailContent() {
   const [submitting, setSubmitting] = useState(false);
   const [savingRegion, setSavingRegion] = useState(false);
   const [savingFolderName, setSavingFolderName] = useState(false);
+  const [editingFolderName, setEditingFolderName] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -99,17 +101,35 @@ function InvoiceDetailContent() {
   async function onSaveFolderName() {
     if (!invoice) return;
     const trimmed = folderName.trim();
-    if (!trimmed || trimmed === displayInvoiceName(invoice.invoiceNumber)) return;
+    if (!trimmed || trimmed === displayInvoiceName(invoice.invoiceNumber)) {
+      setEditingFolderName(false);
+      return;
+    }
     setSavingFolderName(true);
     setError(null);
     try {
       await renameApInvoiceFolder(invoice.id, trimmed);
       await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
+      setEditingFolderName(false);
     } catch (err) {
       setError(formatInvoiceError(err, tForm, t('folderNameSaveError')));
     } finally {
       setSavingFolderName(false);
     }
+  }
+
+  function startEditFolderName() {
+    if (!invoice) return;
+    setFolderName(displayInvoiceName(invoice.invoiceNumber));
+    setEditingFolderName(true);
+    setError(null);
+  }
+
+  function cancelEditFolderName() {
+    if (invoice) {
+      setFolderName(displayInvoiceName(invoice.invoiceNumber));
+    }
+    setEditingFolderName(false);
   }
 
   async function onRegionChange(value: AsateelRegion | '') {
@@ -200,33 +220,64 @@ function InvoiceDetailContent() {
             {isApUser ? t('backToReview') : t('back')}
           </Link>
           {canEditFolderName ? (
-            <div className="mt-2 flex flex-wrap items-end gap-2">
-              <div className="min-w-[12rem] flex-1">
-                <label className="text-sm font-medium" htmlFor="invoice-folder-name">
-                  {t('folderNameLabel')}
-                </label>
+            editingFolderName ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <input
                   id="invoice-folder-name"
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-2xl font-bold"
+                  autoFocus
+                  className="min-w-[12rem] flex-1 rounded-md border bg-background px-3 py-2 text-2xl font-bold"
                   value={folderName}
                   disabled={savingFolderName}
+                  aria-label={t('folderNameLabel')}
                   onChange={(event) => setFolderName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void onSaveFolderName();
+                    }
+                    if (event.key === 'Escape') {
+                      cancelEditFolderName();
+                    }
+                  }}
                 />
+                <Button
+                  disabled={
+                    savingFolderName ||
+                    !folderName.trim() ||
+                    folderName.trim() === displayInvoiceName(invoice.invoiceNumber)
+                  }
+                  onClick={() => {
+                    void onSaveFolderName();
+                  }}
+                >
+                  {savingFolderName ? t('savingFolderName') : t('saveFolderName')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={savingFolderName}
+                  onClick={cancelEditFolderName}
+                >
+                  {t('cancelFolderName')}
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                disabled={
-                  savingFolderName ||
-                  !folderName.trim() ||
-                  folderName.trim() === displayInvoiceName(invoice.invoiceNumber)
-                }
-                onClick={() => {
-                  void onSaveFolderName();
-                }}
-              >
-                {savingFolderName ? t('savingFolderName') : t('saveFolderName')}
-              </Button>
-            </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-2">
+                <h1 className="text-2xl font-bold">
+                  {displayInvoiceName(invoice.invoiceNumber)}
+                </h1>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 shrink-0 p-0"
+                  onClick={startEditFolderName}
+                  aria-label={t('editFolderName')}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            )
           ) : (
             <h1 className="mt-2 text-2xl font-bold">
               {displayInvoiceName(invoice.invoiceNumber)}

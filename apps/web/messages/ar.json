@@ -171,6 +171,8 @@
     "documentsRenameHint": "انقر على ملف لمعاينته. يمكنك إعادة تسمية مسارات الأدلة إذا لم يطابق اسم المجلد أو الملف جدول البيانات — فقط قبل التقديم.",
     "documentsApEditHint": "يمكنك رفع الملفات الناقصة، وإعادة تسمية المسارات، أو حذف الملفات في مجلد هذه الفاتورة.",
     "folderNameLabel": "اسم مجلد الفاتورة",
+    "editFolderName": "تعديل اسم المجلد",
+    "cancelFolderName": "إلغاء",
     "saveFolderName": "حفظ اسم المجلد",
     "savingFolderName": "جاري الحفظ…",
     "folderNameSaveError": "تعذر حفظ اسم المجلد",
@@ -250,7 +252,10 @@
     "viewerLoading": "جاري تحميل المعاينة…",
     "viewerError": "تعذر تحميل المعاينة",
     "viewerUnsupported": "المعاينة غير متاحة لهذا النوع من الملفات",
-    "viewerOpenTab": "فتح في تبويب جديد"
+    "viewerOpenTab": "فتح في تبويب جديد",
+    "searchFiles": "بحث في الملفات…",
+    "searchNoResults": "لا توجد ملفات مطابقة",
+    "searchMatchCount": "{count, plural, one {تطابق واحد} other {# تطابقات}}"
   },
   "timeline": {
     "empty": "لا يوجد نشاط مسجل بعد",

@@ -3,7 +3,8 @@
 import { Button } from '@aljeel/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { HighlightText, textMatchesQuery } from './highlight-text';
 import { ApiClientError } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
 import {
@@ -90,6 +91,9 @@ export function InvoiceDocuments({
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const listRef = useRef<HTMLUListElement>(null);
+  const showSearch = compact && viewable;
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['invoices', invoiceId, 'documents'],
@@ -168,6 +172,26 @@ export function InvoiceDocuments({
     },
   });
 
+  const trimmedSearch = searchQuery.trim();
+  const matchingDocumentIds = useMemo(() => {
+    if (!trimmedSearch) return new Set<string>();
+    return new Set(
+      documents.filter((doc) => textMatchesQuery(doc.fileName, trimmedSearch)).map((doc) => doc.id),
+    );
+  }, [documents, trimmedSearch]);
+
+  const firstMatchingDocumentId = useMemo(() => {
+    if (!trimmedSearch) return null;
+    return documents.find((doc) => textMatchesQuery(doc.fileName, trimmedSearch))?.id ?? null;
+  }, [documents, trimmedSearch]);
+
+  useEffect(() => {
+    if (!firstMatchingDocumentId || !listRef.current) return;
+    const row = listRef.current.querySelector(`[data-doc-id="${firstMatchingDocumentId}"]`);
+    row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    onSelectDocument?.(firstMatchingDocumentId);
+  }, [firstMatchingDocumentId, onSelectDocument]);
+
   const busy =
     uploadMutation.isPending || deleteMutation.isPending || renameMutation.isPending;
   const pendingUploads = pending.filter((f) => f.status === 'pending');
@@ -226,7 +250,27 @@ export function InvoiceDocuments({
         <div
           className={`overflow-hidden rounded-xl border bg-card shadow-sm ${compact ? '' : 'mt-4'}`}
         >
+          {showSearch && (
+            <div className="border-b px-3 py-2">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t('searchFiles')}
+                className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                aria-label={t('searchFiles')}
+              />
+              {trimmedSearch && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {matchingDocumentIds.size === 0
+                    ? t('searchNoResults')
+                    : t('searchMatchCount', { count: matchingDocumentIds.size })}
+                </p>
+              )}
+            </div>
+          )}
           <ul
+            ref={listRef}
             className={`divide-y ${compact ? 'max-h-[min(80vh,900px)] overflow-y-auto' : ''}`}
           >
             {isLoading && (
@@ -264,12 +308,22 @@ export function InvoiceDocuments({
             {!isLoading &&
               documents.map((doc) => {
                 const editing = editingId === doc.id;
+                const searchMatch =
+                  trimmedSearch.length > 0 && textMatchesQuery(doc.fileName, trimmedSearch);
+                const searchMismatch = trimmedSearch.length > 0 && !searchMatch;
                 return (
                   <li
                     key={doc.id}
+                    data-doc-id={doc.id}
                     className={`flex items-center justify-between gap-3 p-3 text-sm ${
                       viewable && !editing ? 'cursor-pointer hover:bg-muted/50' : ''
-                    } ${selectedDocumentId === doc.id ? 'bg-muted' : ''}`}
+                    } ${
+                      searchMatch
+                        ? 'bg-yellow-50 ring-1 ring-inset ring-yellow-300 dark:bg-yellow-950/30 dark:ring-yellow-600/50'
+                        : selectedDocumentId === doc.id
+                          ? 'bg-muted'
+                          : ''
+                    } ${searchMismatch ? 'opacity-40' : ''}`}
                     onClick={
                       viewable && onSelectDocument && !editing
                         ? () => onSelectDocument(doc.id)
@@ -318,8 +372,15 @@ export function InvoiceDocuments({
                           </form>
                         ) : (
                           <>
-                            <p className="truncate font-medium" title={doc.fileName}>
-                              {doc.fileName}
+                            <p
+                              className={`font-medium ${trimmedSearch ? 'break-all' : 'truncate'}`}
+                              title={doc.fileName}
+                            >
+                              {trimmedSearch ? (
+                                <HighlightText text={doc.fileName} query={trimmedSearch} />
+                              ) : (
+                                doc.fileName
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatBytes(doc.sizeBytes)} · {t(`scan.${doc.virusScanStatus}`)}

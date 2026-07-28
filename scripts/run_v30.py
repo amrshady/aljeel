@@ -320,9 +320,9 @@ def _row_event_key(row: dict, cascade_row: dict, folder: Path | None = None) -> 
         if key:
             return key
     for value in (
+        _row_invoice_ref_no(cascade_row),
         row.get("opex_serial"), row.get("_opex_serial"),
         cascade_row.get("OPEX Serial"), cascade_row.get("Description"),
-        _row_invoice_ref_no(cascade_row),
     ):
         key = _canonical_event_serial(value)
         if key:
@@ -1104,12 +1104,12 @@ def _ocr_pdf_first_page(pdf_path: Path) -> str:
             tmp_path = Path(tmp_dir) / "page.png"
             if shutil.which("pdftoppm"):
                 subprocess.run(
-                    ["pdftoppm", "-f", "1", "-singlefile", "-r", "600", "-gray",
+                    ["pdftoppm", "-f", "1", "-singlefile", "-r", "300",
                      str(pdf_path), str(tmp_path.with_suffix(""))],
                     check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     timeout=45,
                 )
-                rendered = tmp_path.with_suffix(".pgm")
+                rendered = tmp_path.with_suffix(".ppm")
                 if rendered.exists():
                     tmp_path = rendered
             if not tmp_path.exists():
@@ -1117,9 +1117,10 @@ def _ocr_pdf_first_page(pdf_path: Path) -> str:
                 with fitz.open(str(pdf_path)) as doc:
                     if not doc:
                         return ""
-                    doc[0].get_pixmap(matrix=fitz.Matrix(4, 4), alpha=False).save(str(tmp_path))
+                    scale = 300 / 72
+                    doc[0].get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False).save(str(tmp_path))
             proc = subprocess.run(
-                ["tesseract", str(tmp_path), "stdout", "--psm", "6"],
+                ["tesseract", str(tmp_path), "stdout"],
                 check=False,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
@@ -1903,6 +1904,33 @@ def _extract_sponsorship_allocations_from_opex_pdf(pdf_path, manpower=None):
             {"emp_no": emp_no, "name": "", "amount": ""} for emp_no in salesmen
         ]
     return [item["emp_no"] for item in allocations], allocations
+
+
+def _build_sponsoring_form_folder_index(
+    raw_root: Path, manpower: dict | None = None
+) -> dict[str, Path]:
+    """Index raw OPEX folders whose form contains a parsed allocation table."""
+    index = {}
+    for dirpath, subdirs, filenames in os.walk(raw_root):
+        folder = Path(dirpath)
+        if re.match(r"^\d{10}", folder.name):
+            subdirs.clear()
+            continue
+        for filename in filenames:
+            if not re.match(r"OPEX-.*\.pdf", filename, re.IGNORECASE):
+                continue
+            pdf_path = folder / filename
+            _salesmen, allocations = _extract_sponsorship_allocations_from_opex_pdf(
+                pdf_path, manpower
+            )
+            if allocations and any(
+                item.get("emp_no") and str(item.get("amount", "") or "").strip()
+                for item in allocations
+            ):
+                event_key = _opex_pdf_event_key(pdf_path)
+                if event_key:
+                    index.setdefault(event_key, folder)
+    return index
 
 
 _SHARED_OPEX_PDF_CACHE: dict[str, list[Path]] = {}
@@ -3247,6 +3275,8 @@ def stamp_verified_emp_locks(
 ) -> int:
     locked = 0
     for i, c in enumerate(cascade_rows):
+        if hybrid_rows[i].get("_sponsoring_form_folder"):
+            continue
         desc = str(c.get("Description", "") or "")
         if re.search(r"\b(CHD|INF)\b", desc, re.IGNORECASE):
             continue
@@ -4951,7 +4981,7 @@ def main():
     # ── stage 2: init hybrid_rows from cascade ────────────────────────────
     hybrid_rows: list[dict] = []
     for c in cascade_rows:
-        hybrid_rows.append({
+        h = {
             "_row_idx":      c["_row_idx"],
             "_agent_method": "cascade",
             "emp_no":        c.get("Employee No", "") or "",
@@ -4961,7 +4991,17 @@ def main():
             "solution":      c.get("Solution", "") or "",
             "agency":        c.get("Agency", "") or "",
             "location":      c.get("Location", "") or "",
-        })
+        }
+        hybrid_rows.append(h)
+
+    sponsoring_form_folders = _build_sponsoring_form_folder_index(raw_root, manpower)
+    for h, c in zip(hybrid_rows, cascade_rows):
+        sponsoring_folder = sponsoring_form_folders.get(_row_event_key(h, c))
+        if not sponsoring_folder:
+            continue
+        h["_sponsoring_form_folder"] = str(sponsoring_folder)
+        if "RESOLVED_VIA_GDS_FUZZY" in str(c.get("Agent Flags", "") or ""):
+            h["emp_no"] = ""
 
     # v30 NOTE: L0 validation was trialled but reverted — the Jawwal source system's
     # direct emp_no assignment (L0) must be trusted. Applying a both-token name
@@ -5327,8 +5367,7 @@ def main():
         # ── stage 3d: OPEX event-folder sponsorship overlay (v30) ──────────────
     # POST-PROCESSING — no LLM call. Deterministic overlay.
     # For tickets with account 60301003/60301004, no individual folder, whose
-    # passenger surname appears in a conference/event folder .msg that also
-    # contains an OPEX-*.pdf AND sponsorship language near the name.
+    # event key resolves to an OPEX-*.pdf with a parsed allocation table.
     # => account=60307021, emp_no=blank, all other segments unchanged.
     opex_event_overlay_count = 0
     try:
@@ -5339,38 +5378,15 @@ def main():
             "NOMINATION", "ATTENDEE", "\u0637\u0628\u064a\u0628", "\u0645\u062e\u062a\u0635",
         )
 
-        def _is_aljeel_employee(surname: str, passenger: str, manpower: dict) -> bool:
-            """
-            Return True only if the passenger is clearly an AlJeel employee.
-            Requires either:
-            1. surname is >= 6 chars AND is a whole-word match in the employee name
-            2. OR the full passenger name has 2+ tokens that all appear in one employee name
-
-            A short surname (< 6 chars) like AHMED, OMAR, or ALI is never sufficient alone.
-            """
-            surname = surname.strip().upper()
-            passenger_tokens = set(
-                t.strip().upper() for t in re.split(r"[/\s]+", passenger)
-                if len(t.strip()) >= 4 and t.strip().upper() not in ("MR", "MRS", "MS", "DR", "ENG", "CHD")
-            )
-            for emp in manpower.values():
-                emp_name = ((emp.get("name_en", "") or emp.get("name", "") or "")).strip().upper()
-                if not emp_name:
-                    continue
-                emp_tokens = set(emp_name.split())
-                if len(surname) >= 6 and surname in emp_tokens:
-                    return True
-                if len(passenger_tokens) >= 2 and passenger_tokens.issubset(emp_tokens):
-                    return True
-            return False
-
         for idx, h in enumerate(hybrid_rows):
-            if row_missing_evidence(h):
+            found_folder_str = h.get("_sponsoring_form_folder")
+            found_folder = Path(found_folder_str) if found_folder_str else None
+            if row_missing_evidence(h) and not found_folder:
                 continue
             if row_verified_emp_locked(h):
                 continue
             acct = str(h.get("account", h.get("Account", "")) or "").strip()
-            if acct not in ("60301003", "60301004"):
+            if acct not in ("60301003", "60301004") and not found_folder:
                 continue
             desc  = str(cascade_rows[idx].get("Description", "") or "")
             notes = str(cascade_rows[idx].get("Notes", "") or "")
@@ -5379,14 +5395,7 @@ def main():
             if not ticket_no:
                 continue
             passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
-            surname = passenger.split("/")[0].strip().upper() if "/" in passenger else passenger.strip().upper()
-            if len(surname) < 3:
-                continue
-            # Skip only if passenger is likely an AlJeel employee; sponsored parties are external.
-            if _is_aljeel_employee(surname, passenger, manpower):
-                continue
             import os as _os26
-            import pathlib
 
             # Pre-check: does this ticket already have its own per-ticket folder anywhere in raw_root?
             ticket_has_own_folder = any(
@@ -5396,36 +5405,18 @@ def main():
             )
             if ticket_has_own_folder:
                 continue
-            # Full walk: find any non-ticket dir containing OPEX-*.pdf
-            found_folder = None
-            for _dirpath26, _subdirs26, _filenames26 in _os26.walk(raw_root):
-                _dirpath26 = pathlib.Path(_dirpath26)
-                # Skip if this directory IS a ticket folder
-                if re.match(r"^\d{10}", _dirpath26.name):
-                    _subdirs26.clear()
-                    continue
-                opex_pdfs = [f for f in _filenames26 if re.match(r"OPEX-.*\.pdf", f, re.IGNORECASE)]
-                if not opex_pdfs:
-                    continue
-                # Search .msg files in this dir for surname + SPONSOR_SIGNALS
-                for fname in _filenames26:
-                    if not fname.lower().endswith(".msg"):
-                        continue
-                    msg_path = _dirpath26 / fname
+            if found_folder:
+                h["_missing_evidence_resolved"] = True
+                msg_sponsor_signal = False
+                for msg_p in found_folder.glob("*.msg"):
                     try:
-                        msg_obj = _emsg_v26.Message(str(msg_path))
-                        body = (msg_obj.body or "").upper()
-                        subj = (msg_obj.subject or "").upper()
-                        if surname not in body and surname not in subj:
-                            continue
-                        if any(sig in body or sig in subj for sig in SPONSOR_SIGNALS):
-                            found_folder = _dirpath26
+                        msg_obj = _emsg_v26.Message(str(msg_p))
+                        msg_text = f"{msg_obj.subject or ''}\n{msg_obj.body or ''}".upper()
+                        msg_sponsor_signal = any(sig in msg_text for sig in SPONSOR_SIGNALS)
+                        if msg_sponsor_signal:
                             break
                     except Exception:
                         continue
-                if found_folder:
-                    break
-            if found_folder:
                 # Look up requesting employee from OPEX folder name for agency/cc
                 opex_emp_no = None
                 opex_emp_rec = None
@@ -5460,7 +5451,10 @@ def main():
                         pass
                 h["_agent_method"]  = "v26_opex_event_overlay"
                 h["_route_reason"]  = "OPEX_EVENT_FOLDER_MATCH"
-                h["_v2_trace"]      = f"v26 overlay: {surname} found in {found_folder.name} (OPEX sponsorship confirmed)"
+                h["_v2_trace"]      = (
+                    f"v26 overlay: event form found in {found_folder.name} "
+                    f"(allocation table confirmed; msg_signal={msg_sponsor_signal})"
+                )
                 h["_evidence_folder"] = str(found_folder)
                 opex_event_overlay_count += 1
                 try:

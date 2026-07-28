@@ -1,5 +1,21 @@
 {
-  "_comment": "Golden regression gate: locked Jawal J26-788 v15.11.2 deterministic aggregate snapshot. Refresh only after an intentional, reviewed contract change.",
+  "_comment": "Locked J26-788 v15.11.2 golden snapshot. RE-BASELINED 2026-07-28 (Ahmed Samy authorized): prior baseline (2026-07-09) drifted because sponsorship promotion + SHARED_OPEX handling migrated from the process_batch cascade into the run_v30 overlay (commits df5cb88/024610e), plus added annual-approval catches (ANNUAL_HR/ANNUAL_SANAD). Regenerated from archive/raw-J26-788 with current code; cascade-only signature. Gate exercises process_batch.py (v15.11.2), NOT run_v30.py.",
+  "account_breakdown": {
+    "21070229": 4,
+    "60301003": 90,
+    "60301004": 2,
+    "60307021": 2,
+    "60308009": 2
+  },
+  "catches_by_category": {
+    "ANNUAL_HR_APPROVAL_MISSING": 4,
+    "ANNUAL_SANAD_APPROVAL_MISSING": 3,
+    "DUP_ROUTE_STRICT": 4,
+    "NO_APPROVAL": 18,
+    "NO_FOLDER": 21,
+    "OPEX_SERIAL_MISSING": 56
+  },
+  "clean_lines": 0,
   "command": [
     "python3",
     "scripts/process_batch.py",
@@ -10,64 +26,47 @@
     "--suffix",
     "v15.11.2"
   ],
-  "total_lines": 100,
-  "row_status_breakdown": {
-    "GREEN": 23,
-    "YELLOW": 31,
-    "RED": 46
-  },
-  "clean_lines": 0,
-  "hard_failures": 4,
-  "soft_flags": 96,
+  "cross_batch_catches": 0,
   "flag_breakdown": {
-    "MANPOWER_DIV_NOT_IN_MASTER": 58,
-    "FORM_TRIP_VALUE_DIFFERS": 53,
+    "ACCOUNT_OVERRIDE_APPLIED": 3,
+    "ALLOCATION_TARGET_MISSING": 30,
+    "EMPLOYEE_AS_SPONSORED": 1,
+    "FORM_AGREES_WITH_MANPOWER": 1,
+    "FORM_EMP_NO_MISMATCH": 3,
     "FORM_FUSION_CODES_LOGGED": 48,
     "FORM_NOT_FOUND_IN_EMAIL": 45,
-    "TRIP_PURPOSE_UNKNOWN": 44,
-    "ALLOCATION_TARGET_MISSING": 30,
-    "UNKNOWN_COST_CENTER": 4,
-    "ACCOUNT_OVERRIDE_APPLIED": 3,
-    "FORM_EMP_NO_MISMATCH": 3,
-    "MANAGER_NOT_REALLOCATED": 1,
-    "FORM_AGREES_WITH_MANPOWER": 1,
-    "EMPLOYEE_AS_SPONSORED": 1
+    "FORM_TRIP_VALUE_DIFFERS": 53,
+    "MANAGER_NOT_REALLOCATED": 4,
+    "MANPOWER_DIV_NOT_IN_MASTER": 58,
+    "TRIP_PURPOSE_UNKNOWN": 44
+  },
+  "halt_queue_count": 0,
+  "hard_failures": 0,
+  "labadi_qc_check": {
+    "amount_exceeds_invoice": 0,
+    "annual_approval_missing": 4,
+    "blank_emp_no": 1,
+    "opex_serial_missing": 56,
+    "rows_checked": 100
   },
   "match_method_breakdown": {
     "emp_no_direct": 91,
-    "v2_v3_L_overrides": 1,
-    "v2_L8": 3,
+    "v2_L1.5": 1,
     "v2_L4": 4,
-    "v2_L1.5": 1
-  },
-  "account_breakdown": {
-    "60301003": 82,
-    "60307021": 13,
-    "60301004": 2,
-    "60308009": 2,
-    "21070229": 1
-  },
-  "halt_queue_count": 4,
-  "within_batch_catches": 111,
-  "cross_batch_catches": 0,
-  "catches_by_category": {
-    "OPEX_SERIAL_MISSING": 67,
-    "NO_APPROVAL": 18,
-    "SHARED_OPEX_SPONSORSHIP": 12,
-    "NO_FOLDER": 9,
-    "DUP_ROUTE_STRICT": 4,
-    "ANNUAL_HR_APPROVAL_MISSING": 1
-  },
-  "labadi_qc_check": {
-    "rows_checked": 100,
-    "blank_emp_no": 0,
-    "opex_serial_missing": 67,
-    "annual_approval_missing": 1,
-    "amount_exceeds_invoice": 0
+    "v2_L8": 3,
+    "v2_v3_L_overrides": 1
   },
   "resolution_tally": {
-    "resolved": 23,
+    "blank_key_rows": 1,
     "exception": 77,
-    "blank_key_rows": 0
-  }
+    "resolved": 23
+  },
+  "row_status_breakdown": {
+    "GREEN": 23,
+    "RED": 43,
+    "YELLOW": 34
+  },
+  "soft_flags": 100,
+  "total_lines": 100,
+  "within_batch_catches": 106
 }

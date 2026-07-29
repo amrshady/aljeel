@@ -22,7 +22,8 @@ import { AsateelIntegrationService } from './asateel-integration.service';
 import { JawalIntegrationService } from './jawal-integration.service';
 
 const EXCEPTION_STATUSES = ['UNDER_REVIEW', 'ON_HOLD'] as const;
-const PROCESSED_STATUSES = ['APPROVED', 'SCHEDULED', 'PAID', 'REJECTED'] as const;
+const APPROVED_PROCESSED_STATUSES = ['APPROVED', 'SCHEDULED', 'PAID'] as const;
+const REJECTED_PROCESSED_STATUSES = ['REJECTED'] as const;
 
 @Injectable()
 export class ApService {
@@ -36,9 +37,13 @@ export class ApService {
   async listExceptions(query: Record<string, string | undefined>) {
     const params: ApExceptionListQuery = ApExceptionListQuerySchema.parse(query);
     const processedView = params.view === 'processed';
+    const processedStatuses =
+      params.outcome === 'rejected'
+        ? [...REJECTED_PROCESSED_STATUSES]
+        : [...APPROVED_PROCESSED_STATUSES];
 
     const where: Prisma.InvoiceWhereInput = {
-      status: { in: processedView ? [...PROCESSED_STATUSES] : [...EXCEPTION_STATUSES] },
+      status: { in: processedView ? processedStatuses : [...EXCEPTION_STATUSES] },
       ...(params.q
         ? {
             OR: [

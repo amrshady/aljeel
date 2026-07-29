@@ -20,6 +20,7 @@ export type ApExceptionList = z.infer<typeof ApExceptionListSchema>;
 
 export const ApExceptionListQuerySchema = InvoiceListQuerySchema.extend({
   view: z.enum(['queue', 'processed']).default('queue'),
+  outcome: z.enum(['approved', 'rejected']).optional(),
 });
 export type ApExceptionListQuery = z.infer<typeof ApExceptionListQuerySchema>;
 

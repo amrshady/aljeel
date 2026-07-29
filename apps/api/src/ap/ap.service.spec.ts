@@ -143,7 +143,7 @@ describe('ApService', () => {
     );
   });
 
-  it('lists processed exceptions by terminal statuses ordered by update date', async () => {
+  it('lists approved processed exceptions ordered by update date', async () => {
     const prisma = {
       invoice: {
         count: vi.fn().mockResolvedValue(1),
@@ -168,7 +168,7 @@ describe('ApService', () => {
 
     expect(prisma.invoice.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { status: { in: ['APPROVED', 'SCHEDULED', 'PAID', 'REJECTED'] } },
+        where: { status: { in: ['APPROVED', 'SCHEDULED', 'PAID'] } },
         orderBy: { updatedAt: 'desc' },
       }),
     );
@@ -176,6 +176,47 @@ describe('ApService', () => {
       expect.objectContaining({
         id: 'inv1',
         status: 'APPROVED',
+        supplierName: 'Supplier One',
+        documentCount: 0,
+        totalSizeBytes: 0,
+      }),
+    );
+  });
+
+  it('lists rejected processed exceptions when outcome is rejected', async () => {
+    const prisma = {
+      invoice: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([listRow('REJECTED')]),
+      },
+      document: {
+        groupBy: vi.fn().mockResolvedValue([]),
+      },
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const result = await service.listExceptions({
+      view: 'processed',
+      outcome: 'rejected',
+      page: '1',
+      pageSize: '10',
+    });
+
+    expect(prisma.invoice.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ['REJECTED'] } },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    );
+    expect(result.data[0]).toEqual(
+      expect.objectContaining({
+        id: 'inv1',
+        status: 'REJECTED',
         supplierName: 'Supplier One',
         documentCount: 0,
         totalSizeBytes: 0,

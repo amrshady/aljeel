@@ -13,16 +13,25 @@ import { RequireAuth } from '@/components/require-auth';
 import { RequireRole } from '@/components/require-role';
 import { listApExceptions } from '@/lib/ap-api';
 
+type ApReviewTab = 'queue' | 'approved' | 'rejected';
+
+const TABS: { id: ApReviewTab; labelKey: 'tabQueue' | 'tabApproved' | 'tabRejected' }[] = [
+  { id: 'queue', labelKey: 'tabQueue' },
+  { id: 'approved', labelKey: 'tabApproved' },
+  { id: 'rejected', labelKey: 'tabRejected' },
+];
+
 function ApReviewContent() {
   const t = useTranslations('apReview');
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<'queue' | 'processed'>('queue');
+  const [tab, setTab] = useState<ApReviewTab>('queue');
 
   const { data: queue, isLoading } = useQuery({
-    queryKey: ['ap', 'exceptions', view, page],
+    queryKey: ['ap', 'exceptions', tab, page],
     queryFn: () =>
       listApExceptions({
-        view,
+        view: tab === 'queue' ? 'queue' : 'processed',
+        ...(tab === 'rejected' ? { outcome: 'rejected' } : {}),
         page: String(page),
         pageSize: '10',
       }),
@@ -39,10 +48,17 @@ function ApReviewContent() {
       supplierName: item.supplierName,
     })) ?? [];
 
-  const selectView = (nextView: 'queue' | 'processed') => {
-    setView(nextView);
+  const selectTab = (nextTab: ApReviewTab) => {
+    setTab(nextTab);
     setPage(1);
   };
+
+  const emptyMessage =
+    tab === 'approved'
+      ? t('emptyProcessedApproved')
+      : tab === 'rejected'
+        ? t('emptyProcessedRejected')
+        : t('empty');
 
   return (
     <AppShell>
@@ -50,36 +66,28 @@ function ApReviewContent() {
       <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
       <div className="mt-6 flex border-b border-[#E5E7EB]">
-        <button
-          type="button"
-          onClick={() => selectView('queue')}
-          className={`px-1 pb-3 text-sm font-medium ${
-            view === 'queue'
-              ? 'border-b-2 border-[#2563EB] text-[#0B1F3A]'
-              : 'text-[#6B7280] hover:text-foreground'
-          }`}
-        >
-          {t('tabQueue')}
-        </button>
-        <button
-          type="button"
-          onClick={() => selectView('processed')}
-          className={`ms-6 px-1 pb-3 text-sm font-medium ${
-            view === 'processed'
-              ? 'border-b-2 border-[#2563EB] text-[#0B1F3A]'
-              : 'text-[#6B7280] hover:text-foreground'
-          }`}
-        >
-          {t('tabProcessed')}
-        </button>
+        {TABS.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => selectTab(item.id)}
+            className={`px-1 pb-3 text-sm font-medium ${
+              index > 0 ? 'ms-6' : ''
+            } ${
+              tab === item.id
+                ? 'border-b-2 border-[#2563EB] text-[#0B1F3A]'
+                : 'text-[#6B7280] hover:text-foreground'
+            }`}
+          >
+            {t(item.labelKey)}
+          </button>
+        ))}
       </div>
 
       {isLoading && <p className="mt-6 text-muted-foreground">{t('loading')}</p>}
 
       {!isLoading && queue?.data.length === 0 && (
-        <p className="mt-6 text-muted-foreground">
-          {view === 'processed' ? t('emptyProcessed') : t('empty')}
-        </p>
+        <p className="mt-6 text-muted-foreground">{emptyMessage}</p>
       )}
 
       {queue && queue.data.length > 0 && (
@@ -90,7 +98,7 @@ function ApReviewContent() {
             linkHref={(id) => `/invoices/${id}`}
             showSupplier
             showSize={false}
-            showStatus={view === 'processed'}
+            showStatus={tab !== 'queue'}
             statusNamespace="apReview"
           />
           <div className="border-t px-3 py-2">

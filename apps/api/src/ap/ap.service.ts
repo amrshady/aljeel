@@ -116,6 +116,7 @@ export class ApService {
     return {
       ...serializeInvoice(invoice),
       supplierName: invoice.supplier.legalName,
+      erpIntegration: invoice.supplier.erpIntegration,
       reconciliation: await this.reconServiceFor(invoice.supplier.erpIntegration).getStatus(id),
       timeline: events.map(serializeTimelineEvent),
     };

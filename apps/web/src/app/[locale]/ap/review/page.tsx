@@ -44,7 +44,6 @@ function ApReviewContent() {
       documentCount: item.documentCount,
       totalSizeBytes: item.totalSizeBytes,
       updatedAt: item.updatedAt,
-      status: item.status,
       supplierName: item.supplierName,
     })) ?? [];
 
@@ -98,8 +97,6 @@ function ApReviewContent() {
             linkHref={(id) => `/invoices/${id}`}
             showSupplier
             showSize={false}
-            showStatus={tab !== 'queue'}
-            statusNamespace="apReview"
           />
           <div className="border-t px-3 py-2">
             <InvoiceFolderPagination

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AsateelRegionSchema, InvoiceStatusSchema } from './index';
+import { AsateelRegionSchema, InvoiceStatusSchema, SupplierErpIntegrationSchema } from './index';
 
 const decimalString = z
   .string()
@@ -34,6 +34,7 @@ export const CreateInvoiceDraftSchema = z
   .object({
     invoiceNumber: z.string().trim().min(1).max(100).optional(),
     asateelRegion: AsateelRegionSchema.optional(),
+    erpIntegration: SupplierErpIntegrationSchema.optional(),
   })
   .strict();
 export type CreateInvoiceDraft = z.infer<typeof CreateInvoiceDraftSchema>;
@@ -107,6 +108,7 @@ export const InvoiceListQuerySchema = z.object({
     .optional()
     .transform((value) => value === 'true'),
   q: z.string().optional(),
+  erpIntegration: SupplierErpIntegrationSchema.optional(),
   sort: z
     .enum(['-createdAt', 'createdAt', '-updatedAt', 'updatedAt', '-invoiceDate', 'invoiceDate'])
     .default('-updatedAt'),

@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
@@ -24,6 +25,7 @@ import {
   type JawalEvidenceIssue,
   type UpdateAsateelRegion,
   type UpsertInvoiceDraft,
+  type SupplierErpIntegration,
 } from '@aljeel/shared-types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module';
@@ -36,6 +38,10 @@ import { JawalEvidenceCheckService } from './jawal-evidence-check.service';
 
 const JAWAL_INVALID_BATCH_ID_MESSAGE =
   'Batch ID must follow the sequence format J26-#### (for example J26-1080). A label like "01-07jul" can be the display title but the batch ID must match the sequence.';
+
+function isApClerk(user: AuthUser): boolean {
+  return user.role === 'AP_CLERK';
+}
 
 export function serializeInvoice(
   invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>,
@@ -102,7 +108,10 @@ export class InvoicesService {
 
   async createDraft(user: AuthUser, body: unknown) {
     const dto: CreateInvoiceDraft = CreateInvoiceDraftSchema.parse(body ?? {});
-    const supplierId = requireSupplierId(user);
+    const { supplierId, erpIntegration } = await this.resolveSupplierContext(
+      user,
+      dto.erpIntegration,
+    );
 
     if (dto.invoiceNumber) {
       const supplier = await this.prisma.supplier.findUnique({
@@ -189,7 +198,11 @@ export class InvoicesService {
       entity: 'Invoice',
       entityId: invoice.id,
       action: 'CREATE',
-      after: { status: 'DRAFT', invoiceNumber: invoice.invoiceNumber },
+      after: {
+        status: 'DRAFT',
+        invoiceNumber: invoice.invoiceNumber,
+        ...(isApClerk(user) && erpIntegration ? { erpIntegration } : {}),
+      },
     });
 
     return serializeInvoice(invoice);
@@ -197,8 +210,7 @@ export class InvoicesService {
 
   async updateAsateelRegion(user: AuthUser, id: string, body: unknown) {
     const dto: UpdateAsateelRegion = UpdateAsateelRegionSchema.parse(body);
-    const supplierId = requireSupplierId(user);
-    const existing = await this.findOwnedInvoice(supplierId, id);
+    const existing = await this.findInvoiceForUser(user, id);
 
     if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
       throw new UnprocessableEntityException({
@@ -285,8 +297,7 @@ export class InvoicesService {
   }
 
   async getById(user: AuthUser, id: string) {
-    const supplierId = requireSupplierId(user);
-    const invoice = await this.findOwnedInvoice(supplierId, id);
+    const invoice = await this.findInvoiceForUser(user, id);
     const events = await this.audit.listForEntity('Invoice', id);
     return {
       ...serializeInvoice(invoice),
@@ -296,7 +307,9 @@ export class InvoicesService {
 
   async list(user: AuthUser, query: Record<string, string | undefined>) {
     const params: InvoiceListQuery = InvoiceListQuerySchema.parse(query);
-    const supplierId = requireSupplierId(user);
+    const supplierId = isApClerk(user)
+      ? (await this.resolveSupplierContext(user, params.erpIntegration)).supplierId
+      : requireSupplierId(user);
 
     const where: Prisma.InvoiceWhereInput = {
       supplierId,
@@ -414,8 +427,8 @@ export class InvoicesService {
   }
 
   async submit(user: AuthUser, id: string) {
-    const supplierId = requireSupplierId(user);
-    const invoice = await this.findOwnedInvoice(supplierId, id);
+    const invoice = await this.findInvoiceForUser(user, id);
+    const supplierId = invoice.supplierId;
 
     try {
       assertInvoiceTransition(invoice.status, 'SUBMITTED');
@@ -691,6 +704,55 @@ export class InvoicesService {
         details: { fields: mathIssues },
       });
     }
+  }
+
+  private async resolveSupplierContext(
+    user: AuthUser,
+    erpIntegration?: SupplierErpIntegration,
+  ): Promise<{ supplierId: string; erpIntegration: SupplierErpIntegration | null }> {
+    if (isApClerk(user)) {
+      if (!erpIntegration) {
+        throw new BadRequestException({
+          code: 'ERP_INTEGRATION_REQUIRED',
+          message: 'Select whether this invoice is for Jawal or Asateel.',
+        });
+      }
+      const supplier = await this.prisma.supplier.findFirst({
+        where: { erpIntegration, status: 'ACTIVE' },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, erpIntegration: true },
+      });
+      if (!supplier) {
+        throw new NotFoundException({
+          code: 'SUPPLIER_NOT_CONFIGURED',
+          message: `No active supplier is configured for ${erpIntegration}.`,
+        });
+      }
+      return { supplierId: supplier.id, erpIntegration: supplier.erpIntegration };
+    }
+
+    const supplierId = requireSupplierId(user);
+    const supplier = await this.prisma.supplier.findUnique({
+      where: { id: supplierId },
+      select: { erpIntegration: true },
+    });
+    return { supplierId, erpIntegration: supplier?.erpIntegration ?? null };
+  }
+
+  private async findInvoiceForUser(user: AuthUser, id: string) {
+    if (isApClerk(user)) {
+      const invoice = await this.prisma.invoice.findFirst({
+        where: { id },
+        include: { lines: true },
+      });
+      if (!invoice) {
+        throw invoiceNotFound();
+      }
+      return invoice;
+    }
+
+    const supplierId = requireSupplierId(user);
+    return this.findOwnedInvoice(supplierId, id);
   }
 
   private async findOwnedInvoice(supplierId: string, id: string) {

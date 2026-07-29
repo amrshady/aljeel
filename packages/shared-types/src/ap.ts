@@ -26,6 +26,7 @@ export type ApExceptionListQuery = z.infer<typeof ApExceptionListQuerySchema>;
 
 export const ApInvoiceDetailSchema = InvoiceSchema.extend({
   supplierName: z.string(),
+  erpIntegration: SupplierErpIntegrationSchema.nullable(),
   reconciliation: z
     .object({
       vendor: SupplierErpIntegrationSchema.nullable(),

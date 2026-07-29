@@ -70,8 +70,14 @@ function InvoiceDetailContent() {
       }),
     enabled: !!user?.supplierId && !isApUser,
   });
-  const isJawalSupplier = supplier?.erpIntegration === 'JAWAL';
-  const isAsateelSupplier = supplier?.erpIntegration === 'ASATEEL';
+  const apErpIntegration =
+    isApUser && invoice && 'erpIntegration' in invoice ? invoice.erpIntegration : null;
+  const isJawalSupplier = apErpIntegration
+    ? apErpIntegration === 'JAWAL'
+    : supplier?.erpIntegration === 'JAWAL';
+  const isAsateelSupplier = apErpIntegration
+    ? apErpIntegration === 'ASATEEL'
+    : supplier?.erpIntegration === 'ASATEEL';
 
   const { data: documents } = useQuery({
     queryKey: ['invoices', params.id, 'documents'],
@@ -200,7 +206,9 @@ function InvoiceDetailContent() {
     );
   }
 
-  const canSubmit = !isApUser && (invoice.status === 'DRAFT' || invoice.status === 'REJECTED');
+  const canSubmit =
+    (invoice.status === 'DRAFT' || invoice.status === 'REJECTED') &&
+    (!isApUser || user?.role === 'AP_CLERK');
   const canUploadDocs =
     isApUser ||
     !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
@@ -214,10 +222,10 @@ function InvoiceDetailContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link
-            href={isApUser ? '/ap/review' : '/dashboard'}
+            href={isApUser ? (user?.role === 'AP_CLERK' ? '/dashboard' : '/ap/review') : '/dashboard'}
             className="text-sm text-primary underline"
           >
-            {isApUser ? t('backToReview') : t('back')}
+            {isApUser ? (user?.role === 'AP_CLERK' ? t('back') : t('backToReview')) : t('back')}
           </Link>
           {canEditFolderName ? (
             editingFolderName ? (

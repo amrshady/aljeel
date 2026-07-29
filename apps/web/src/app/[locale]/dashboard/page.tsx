@@ -31,7 +31,53 @@ function filterChipClass(selected: boolean) {
   );
 }
 
-function DashboardContent() {
+function ApClerkDashboard() {
+  const t = useTranslations('dashboard');
+
+  return (
+    <AppShell>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t('portalName')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSubtitle')}</p>
+        </div>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">{t('apClerkSubmitTitle')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSubmitBody')}</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Link
+              href="/invoices/new?integration=JAWAL"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
+            >
+              <h3 className="text-base font-semibold">{t('apClerkJawalTitle')}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t('apClerkJawalBody')}</p>
+              <span className="mt-4 inline-flex text-sm font-medium text-primary">
+                {t('submitInvoice')} →
+              </span>
+            </Link>
+
+            <Link
+              href="/invoices/new?integration=ASATEEL"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
+            >
+              <h3 className="text-base font-semibold">{t('apClerkAsateelTitle')}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t('apClerkAsateelBody')}</p>
+              <span className="mt-4 inline-flex text-sm font-medium text-primary">
+                {t('submitInvoice')} →
+              </span>
+            </Link>
+          </div>
+        </section>
+      </div>
+    </AppShell>
+  );
+}
+
+function SupplierDashboard() {
   const t = useTranslations('dashboard');
   const tInvoices = useTranslations('invoices');
   const { user } = useAuth();
@@ -151,6 +197,16 @@ function DashboardContent() {
       </div>
     </AppShell>
   );
+}
+
+function DashboardContent() {
+  const { user } = useAuth();
+
+  if (user?.role === 'AP_CLERK') {
+    return <ApClerkDashboard />;
+  }
+
+  return <SupplierDashboard />;
 }
 
 export default function DashboardPage() {

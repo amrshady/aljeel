@@ -15,14 +15,14 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Post()
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK')
   @ApiOperation({ summary: 'Create draft invoice' })
   createDraft(@CurrentUser() user: AuthUser, @Body() body: unknown) {
     return this.invoicesService.createDraft(user, body);
   }
 
   @Get()
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK')
   @ApiOperation({ summary: 'List invoices with filters and pagination' })
   list(@CurrentUser() user: AuthUser, @Query() query: Record<string, string | undefined>) {
     return this.invoicesService.list(user, query);
@@ -65,7 +65,7 @@ export class InvoicesController {
   }
 
   @Patch(':id/asateel-region')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK')
   @ApiOperation({ summary: 'Set Asateel region on a draft invoice' })
   updateAsateelRegion(
     @CurrentUser() user: AuthUser,
@@ -76,7 +76,7 @@ export class InvoicesController {
   }
 
   @Post(':id/submit')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK')
   @ApiOperation({ summary: 'Submit invoice for review' })
   submit(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.invoicesService.submit(user, id);

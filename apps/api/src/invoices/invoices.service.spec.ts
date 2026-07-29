@@ -202,7 +202,9 @@ describe('InvoicesService supplier scope', () => {
         },
         {},
       ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'ERP_INTEGRATION_REQUIRED' }),
+    });
   });
 });
 
@@ -377,5 +379,71 @@ describe('InvoicesService submit duplicate file guard', () => {
         }),
       }),
     );
+  });
+});
+
+describe('InvoicesService AP clerk intake', () => {
+  const apClerk = {
+    sub: 'clerk',
+    id: 'clerk',
+    email: 'clerk@aljeel.com',
+    fullName: 'AP Clerk',
+    role: 'AP_CLERK' as const,
+    supplierId: null,
+  };
+
+  it('creates a draft for the configured Jawal supplier when integration is selected', async () => {
+    const invoice = draftInvoice('J26-1080');
+    const prisma = {
+      supplier: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'supplier_jawal',
+          erpIntegration: 'JAWAL',
+        }),
+        findUnique: vi.fn().mockResolvedValue({ erpIntegration: 'JAWAL' }),
+      },
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ ...invoice, supplierId: 'supplier_jawal' }),
+      },
+    };
+    const service = new InvoicesService(
+      prisma as never,
+      { record: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { notifyInvoiceSubmitted: vi.fn() } as never,
+    );
+
+    const result = await service.createDraft(apClerk, {
+      invoiceNumber: 'J26-1080',
+      erpIntegration: 'JAWAL',
+    });
+
+    expect(prisma.supplier.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { erpIntegration: 'JAWAL', status: 'ACTIVE' },
+      }),
+    );
+    expect(prisma.invoice.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ supplierId: 'supplier_jawal' }),
+      }),
+    );
+    expect(result).toMatchObject({ invoiceNumber: 'J26-1080' });
+  });
+
+  it('requires an integration when an AP clerk creates a draft', async () => {
+    const service = new InvoicesService(
+      { supplier: { findFirst: vi.fn() }, invoice: { create: vi.fn() } } as never,
+      { record: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { notifyInvoiceSubmitted: vi.fn() } as never,
+    );
+
+    await expect(service.createDraft(apClerk, {})).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'ERP_INTEGRATION_REQUIRED' }),
+    });
   });
 });

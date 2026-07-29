@@ -7,12 +7,14 @@ import {
   isValidJawalBatchId,
   validateInvoiceSubmitDocuments,
   type AsateelRegion,
+  type SupplierErpIntegration,
 } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, FileWarning } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { FormEvent, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { AppShell } from '@/components/app-shell';
 import { displayInvoiceName } from '@/components/invoice-folder-table';
@@ -24,6 +26,8 @@ import {
   type KbQueuedFile,
 } from '@/components/kb-file-uploader';
 import { RequireAuth } from '@/components/require-auth';
+import { PageLoading } from '@/components/loading-spinner';
+import { Suspense } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { apiFetch } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
@@ -46,13 +50,22 @@ import { Link, useRouter } from '@/i18n/routing';
 const UPLOAD_CONCURRENCY = 6;
 const DONE_PAUSE_MS = 900;
 
+function parseIntegration(value: string | null): SupplierErpIntegration | null {
+  return value === 'JAWAL' || value === 'ASATEEL' ? value : null;
+}
+
 function InvoiceUploadContent() {
   const t = useTranslations('invoiceForm');
   const tDetail = useTranslations('invoiceDetail');
   const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const isApClerk = user?.role === 'AP_CLERK';
+  const selectedIntegration = isApClerk
+    ? parseIntegration(searchParams.get('integration'))
+    : null;
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
   const [folderName, setFolderName] = useState<string | null>(null);
@@ -71,9 +84,12 @@ function InvoiceUploadContent() {
       }),
     enabled: !!user?.supplierId,
   });
-  const isJawalSupplier = supplier?.erpIntegration === 'JAWAL';
-  const isAsateelSupplier = supplier?.erpIntegration === 'ASATEEL';
-  // Until supplier profile loads, let the API decide (Jawal skips; Asateel still blocks).
+  const isJawalSupplier = isApClerk
+    ? selectedIntegration === 'JAWAL'
+    : supplier?.erpIntegration === 'JAWAL';
+  const isAsateelSupplier = isApClerk
+    ? selectedIntegration === 'ASATEEL'
+    : supplier?.erpIntegration === 'ASATEEL';
   const skipXlsxRequirement =
     isJawalSupplier || Boolean(user?.supplierId && !supplierFetched);
   const filesHint = isAsateelSupplier
@@ -83,14 +99,16 @@ function InvoiceUploadContent() {
       : t('filesHint');
 
   const { data: draftInvoices } = useQuery({
-    queryKey: ['invoices', 'drafts', 'new-upload'],
+    queryKey: ['invoices', 'drafts', 'new-upload', selectedIntegration],
     queryFn: () =>
       listInvoices({
         status: 'DRAFT',
         archived: 'false',
         pageSize: '25',
         sort: '-createdAt',
+        ...(isApClerk && selectedIntegration ? { erpIntegration: selectedIntegration } : {}),
       }),
+    enabled: !isApClerk || !!selectedIntegration,
   });
 
   function fileLabel(item: KbQueuedFile): string {
@@ -239,6 +257,7 @@ function InvoiceUploadContent() {
         const invoice = await createInvoiceDraft(
           folderName ?? undefined,
           isAsateelSupplier ? asateelRegion || undefined : undefined,
+          isApClerk ? selectedIntegration ?? undefined : undefined,
         );
         invoiceId = invoice.id;
         setDraftInvoiceId(invoice.id);
@@ -296,6 +315,34 @@ function InvoiceUploadContent() {
       : t('uploadingFiles')
     : null;
 
+  if (isApClerk && !selectedIntegration) {
+    return (
+      <AppShell>
+        <div className="max-w-3xl">
+          <Link href="/dashboard" className="text-sm text-primary underline">
+            {tDetail('back')}
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold">{t('integrationRequiredTitle')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('integrationRequiredBody')}</p>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <Link
+              href="/invoices/new?integration=JAWAL"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+            >
+              <h2 className="font-semibold">{t('integrationJawal')}</h2>
+            </Link>
+            <Link
+              href="/invoices/new?integration=ASATEEL"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+            >
+              <h2 className="font-semibold">{t('integrationAsateel')}</h2>
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="max-w-3xl">
@@ -303,7 +350,13 @@ function InvoiceUploadContent() {
           {tDetail('back')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isApClerk
+            ? selectedIntegration === 'JAWAL'
+              ? t('integrationJawal')
+              : t('integrationAsateel')
+            : t('subtitle')}
+        </p>
 
         {draftInvoices && draftInvoices.data.length > 0 && (
           <section className="mt-6 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-sm">
@@ -440,7 +493,9 @@ function InvoiceUploadContent() {
 export default function NewInvoicePage() {
   return (
     <RequireAuth>
-      <InvoiceUploadContent />
+      <Suspense fallback={<PageLoading className="min-h-[40vh]" />}>
+        <InvoiceUploadContent />
+      </Suspense>
     </RequireAuth>
   );
 }

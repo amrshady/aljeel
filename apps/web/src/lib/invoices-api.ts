@@ -13,6 +13,7 @@ import {
   ArchiveInvoiceResponseSchema,
   type UpsertInvoiceDraft,
   type AsateelRegion,
+  type SupplierErpIntegration,
 } from '@aljeel/shared-types';
 import { z } from 'zod';
 import { apiFetch } from './api-client';
@@ -37,10 +38,16 @@ export function getInvoice(id: string) {
   return apiFetch(`/invoices/${id}`, { schema: InvoiceDetailSchema });
 }
 
-export function createInvoiceDraft(invoiceNumber?: string, asateelRegion?: AsateelRegion) {
-  const payload = CreateInvoiceDraftSchema.parse(
-    invoiceNumber || asateelRegion ? { invoiceNumber, asateelRegion } : {},
-  );
+export function createInvoiceDraft(
+  invoiceNumber?: string,
+  asateelRegion?: AsateelRegion,
+  erpIntegration?: SupplierErpIntegration,
+) {
+  const payload = CreateInvoiceDraftSchema.parse({
+    ...(invoiceNumber ? { invoiceNumber } : {}),
+    ...(asateelRegion ? { asateelRegion } : {}),
+    ...(erpIntegration ? { erpIntegration } : {}),
+  });
   return apiFetch('/invoices', {
     method: 'POST',
     body: JSON.stringify(payload),

@@ -366,7 +366,7 @@ describe('InvoicesService submit duplicate file guard', () => {
     supplierId: 'supplier_a',
     invoiceNumber: 'INV-CURRENT',
     status: 'DRAFT',
-    asateelRegion: null,
+    asateelRegion: 'EASTERN',
     lines: [],
   };
   const currentDocuments = [
@@ -407,7 +407,14 @@ describe('InvoicesService submit duplicate file guard', () => {
     documentCreatedAt?: Date;
   };
 
-  function createService(priorDocuments: PriorDocument[] = []) {
+  function createService(
+    priorDocuments: PriorDocument[] = [],
+    erpIntegration: 'ASATEEL' | 'JAWAL' = 'ASATEEL',
+  ) {
+    const invoice =
+      erpIntegration === 'JAWAL'
+        ? { ...currentInvoice, invoiceNumber: 'J26-1080' }
+        : currentInvoice;
     const documentFindMany = vi.fn().mockImplementation(({ where }) => {
       if (where.invoiceId === 'inv_current') return currentDocuments;
       return priorDocuments
@@ -435,12 +442,12 @@ describe('InvoicesService submit duplicate file guard', () => {
     });
     const prisma = {
       invoice: {
-        findFirst: vi.fn().mockResolvedValueOnce(currentInvoice).mockResolvedValueOnce(null),
+        findFirst: vi.fn().mockResolvedValueOnce(invoice).mockResolvedValueOnce(null),
         update: vi
           .fn()
-          .mockResolvedValueOnce({ ...currentInvoice, status: 'SUBMITTED' })
+          .mockResolvedValueOnce({ ...invoice, status: 'SUBMITTED' })
           .mockResolvedValueOnce({
-            ...currentInvoice,
+            ...invoice,
             status: 'UNDER_REVIEW',
           }),
       },
@@ -449,7 +456,7 @@ describe('InvoicesService submit duplicate file guard', () => {
       },
       supplier: {
         findUnique: vi.fn().mockResolvedValue({
-          erpIntegration: null,
+          erpIntegration,
           legalName: 'Supplier A',
         }),
       },
@@ -458,14 +465,16 @@ describe('InvoicesService submit duplicate file guard', () => {
     const service = new InvoicesService(
       prisma as never,
       audit as never,
-      { validateUploadedFolder: vi.fn() } as never,
-      { validateUploadedFolder: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn().mockResolvedValue({ error: null }) } as never,
+      {
+        validateUploadedFolder: vi.fn().mockResolvedValue({ error: null, warning: null }),
+      } as never,
       { notifyInvoiceSubmitted: vi.fn().mockResolvedValue(undefined) } as never,
     );
     return { service, documentFindMany };
   }
 
-  it('lists every matching current file and its earliest prior invoice', async () => {
+  it('blocks an Asateel supplier and lists every matching current file with its earliest prior invoice', async () => {
     const { service } = createService([
       {
         checksumSha256: 'hash-current',
@@ -520,6 +529,27 @@ describe('InvoicesService submit duplicate file guard', () => {
         },
       });
     }
+  });
+
+  it('skips duplicate file collisions for a Jawal supplier', async () => {
+    const { service, documentFindMany } = createService(
+      [
+        {
+          checksumSha256: 'hash-current',
+          supplierId: 'supplier_a',
+          status: 'SUBMITTED',
+        },
+      ],
+      'JAWAL',
+    );
+
+    await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
+      status: 'UNDER_REVIEW',
+    });
+    expect(documentFindMany).toHaveBeenCalledOnce();
+    expect(documentFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { invoiceId: 'inv_current' } }),
+    );
   });
 
   it.each(['DRAFT', 'REJECTED'])('does not block a match on a %s invoice', async (status) => {

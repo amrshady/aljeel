@@ -117,34 +117,34 @@ async function main() {
   });
 
   for (const seedInvoice of invoices) {
-    const invoice = await prisma.invoice.upsert({
+    const existingInvoice = await prisma.invoice.findFirst({
       where: {
-        supplierId_invoiceNumber: {
-          supplierId,
-          invoiceNumber: seedInvoice.invoiceNumber,
-        },
-      },
-      create: {
         supplierId,
         invoiceNumber: seedInvoice.invoiceNumber,
-        invoiceDate: seedInvoice.invoiceDate,
-        currency: seedInvoice.currency,
-        subtotal: seedInvoice.subtotal,
-        vat: seedInvoice.vat,
-        total: seedInvoice.total,
-        status: seedInvoice.status,
-        source: seedInvoice.source,
-      },
-      update: {
-        invoiceDate: seedInvoice.invoiceDate,
-        currency: seedInvoice.currency,
-        subtotal: seedInvoice.subtotal,
-        vat: seedInvoice.vat,
-        total: seedInvoice.total,
-        status: seedInvoice.status,
-        source: seedInvoice.source,
+        archivedAt: null,
       },
     });
+    const invoiceData = {
+      invoiceDate: seedInvoice.invoiceDate,
+      currency: seedInvoice.currency,
+      subtotal: seedInvoice.subtotal,
+      vat: seedInvoice.vat,
+      total: seedInvoice.total,
+      status: seedInvoice.status,
+      source: seedInvoice.source,
+    };
+    const invoice = existingInvoice
+      ? await prisma.invoice.update({
+          where: { id: existingInvoice.id },
+          data: invoiceData,
+        })
+      : await prisma.invoice.create({
+          data: {
+            ...invoiceData,
+            supplierId,
+            invoiceNumber: seedInvoice.invoiceNumber,
+          },
+        });
 
     await removeExistingDocuments(invoice.id);
 

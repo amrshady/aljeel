@@ -27,7 +27,7 @@ import {
   type UpsertInvoiceDraft,
   type SupplierErpIntegration,
 } from '@aljeel/shared-types';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
@@ -135,6 +135,7 @@ export class InvoicesService {
         where: {
           supplierId,
           invoiceNumber: dto.invoiceNumber,
+          archivedAt: null,
           status: { in: ['DRAFT', 'REJECTED'] },
         },
         include: { lines: true },
@@ -166,6 +167,7 @@ export class InvoicesService {
         where: {
           supplierId,
           invoiceNumber: dto.invoiceNumber,
+          archivedAt: null,
           status: { notIn: ['DRAFT', 'REJECTED'] },
         },
         select: { id: true },
@@ -179,19 +181,37 @@ export class InvoicesService {
       }
     }
 
-    const invoice = await this.prisma.invoice.create({
-      data: {
-        supplierId,
-        invoiceNumber:
-          dto.invoiceNumber ??
-          `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
-        invoiceDate: new Date(),
-        currency: 'SAR',
-        asateelRegion: dto.asateelRegion ?? null,
-        status: 'DRAFT',
-      },
-      include: { lines: true },
-    });
+    let invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>;
+    try {
+      invoice = await this.prisma.invoice.create({
+        data: {
+          supplierId,
+          invoiceNumber:
+            dto.invoiceNumber ??
+            `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
+          invoiceDate: new Date(),
+          currency: 'SAR',
+          asateelRegion: dto.asateelRegion ?? null,
+          status: 'DRAFT',
+        },
+        include: { lines: true },
+      });
+    } catch (error) {
+      // Keep the read-before-create behavior friendly while also mapping a
+      // concurrent active-folder creation that loses the unique-index race.
+      if (
+        dto.invoiceNumber &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException({
+          code: 'INVOICE_NUMBER_TAKEN',
+          message: `An invoice folder named "${dto.invoiceNumber}" was already submitted.`,
+          details: { invoiceNumber: dto.invoiceNumber },
+        });
+      }
+      throw error;
+    }
 
     await this.audit.record({
       actorId: user.sub,
@@ -580,6 +600,7 @@ export class InvoicesService {
           supplierId,
           invoiceNumber: invoice.invoiceNumber,
           id: { not: id },
+          archivedAt: null,
           status: { notIn: ['DRAFT', 'REJECTED'] },
         },
       });

@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 const supplierUser = {
   sub: 'u1',
@@ -89,6 +90,38 @@ describe('InvoicesService Jawal batch ID validation', () => {
     ).resolves.toMatchObject({ invoiceNumber: '01-07jul' });
   });
 
+  it('keeps rejecting a malformed Jawal batch ID at submission', async () => {
+    const invoice = draftInvoice('01-07jul');
+    const prisma = {
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(invoice),
+      },
+      document: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      supplier: {
+        findUnique: vi.fn().mockResolvedValue({
+          erpIntegration: 'JAWAL',
+          legalName: 'Jawal',
+        }),
+      },
+    };
+    const service = new InvoicesService(
+      prisma as never,
+      { record: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { notifyInvoiceSubmitted: vi.fn() } as never,
+    );
+
+    await expect(service.submit(supplierUser, invoice.id)).rejects.toMatchObject({
+      response: {
+        code: 'JAWAL_INVALID_BATCH_ID',
+        details: { invoiceNumber: '01-07jul' },
+      },
+    });
+  });
+
   it('exempts server-generated DRAFT placeholders when submitting Jawal invoices', async () => {
     const invoice = draftInvoice('DRAFT-ab12cd34');
     const reviewed = { ...invoice, status: 'UNDER_REVIEW' };
@@ -135,6 +168,118 @@ describe('InvoicesService Jawal batch ID validation', () => {
 
     await expect(service.submit(supplierUser, invoice.id)).resolves.toMatchObject({
       status: 'UNDER_REVIEW',
+    });
+  });
+});
+
+describe('InvoicesService invoice number reuse', () => {
+  function createService(prisma: object) {
+    return new InvoicesService(
+      prisma as never,
+      { record: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      { notifyInvoiceSubmitted: vi.fn() } as never,
+    );
+  }
+
+  it('creates a new Jawal draft when the matching invoice is archived', async () => {
+    const created = draftInvoice('J26-1080');
+    const prisma = {
+      supplier: {
+        findUnique: vi.fn().mockResolvedValue({ erpIntegration: 'JAWAL' }),
+      },
+      invoice: {
+        findFirst: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(null),
+        create: vi.fn().mockResolvedValue(created),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.createDraft(supplierUser, { invoiceNumber: 'J26-1080' }),
+    ).resolves.toMatchObject({
+      id: created.id,
+      invoiceNumber: 'J26-1080',
+      archivedAt: null,
+    });
+
+    expect(prisma.invoice.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          supplierId: 'supplier_a',
+          invoiceNumber: 'J26-1080',
+          archivedAt: null,
+        }),
+      }),
+    );
+    expect(prisma.invoice.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          supplierId: 'supplier_a',
+          invoiceNumber: 'J26-1080',
+          archivedAt: null,
+        }),
+      }),
+    );
+    expect(prisma.invoice.create).toHaveBeenCalledOnce();
+  });
+
+  it('maps an active submitted invoice collision to INVOICE_NUMBER_TAKEN', async () => {
+    const prisma = {
+      supplier: {
+        findUnique: vi.fn().mockResolvedValue({ erpIntegration: 'JAWAL' }),
+      },
+      invoice: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ id: 'inv_active' }),
+        create: vi.fn(),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.createDraft(supplierUser, { invoiceNumber: 'J26-1080' }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'INVOICE_NUMBER_TAKEN',
+        details: { invoiceNumber: 'J26-1080' },
+      },
+    });
+    expect(prisma.invoice.create).not.toHaveBeenCalled();
+  });
+
+  it('maps a concurrent active-create P2002 to INVOICE_NUMBER_TAKEN', async () => {
+    const uniqueError = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: '6.19.3',
+        meta: { target: ['supplierId', 'invoiceNumber'] },
+      },
+    );
+    const prisma = {
+      supplier: {
+        findUnique: vi.fn().mockResolvedValue({ erpIntegration: 'JAWAL' }),
+      },
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockRejectedValue(uniqueError),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.createDraft(supplierUser, { invoiceNumber: 'J26-1080' }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'INVOICE_NUMBER_TAKEN',
+        details: { invoiceNumber: 'J26-1080' },
+      },
     });
   });
 });

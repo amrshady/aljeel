@@ -259,7 +259,6 @@ model Invoice {
   messages    Message[]
   allocations PaymentAllocation[]
 
-  @@unique([supplierId, invoiceNumber])
   @@index([supplierId, status])
 }
 

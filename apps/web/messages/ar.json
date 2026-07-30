@@ -170,7 +170,8 @@
       "jawalApprovalMissing": "أدلة الاعتماد ناقصة — بنود الفعاليات/الرعاية تتطلب نموذج OPEX؛ وبنود السفر تتطلب رسالة .msg أو OPEX.",
       "jawalOrphanFolder": "مجلدات أدلة غير مدرجة في الجدول: {folders}",
       "invoiceNumberTaken": "تم تقديم مجلد فواتير باسم \"{name}\" مسبقاً. تابع المسودة الحالية أو أعد تسمية المجلد.",
-      "invoiceNumberTakenGeneric": "تم تقديم مجلد بهذا الاسم مسبقاً."
+      "invoiceNumberTakenGeneric": "تم تقديم مجلد بهذا الاسم مسبقاً.",
+      "duplicateFiles": "{count, plural, one {تم تقديم ملف واحد} two {تم تقديم ملفين} few {تم تقديم # ملفات} many {تم تقديم # ملفاً} other {تم تقديم # ملف}} مسبقاً ضمن فواتير أخرى. يرجى حذف {count, plural, one {الملف} two {الملفين} other {هذه الملفات}} والمحاولة مرة أخرى:\n{files}"
     }
   },
   "invoiceDetail": {

@@ -170,7 +170,8 @@
       "jawalApprovalMissing": "Approval evidence missing — event/sponsorship lines need an OPEX form; travel lines need a .msg thread or OPEX.",
       "jawalOrphanFolder": "Evidence folders not listed on the spreadsheet: {folders}",
       "invoiceNumberTaken": "An invoice folder named \"{name}\" was already submitted. Resume the existing draft or rename the folder.",
-      "invoiceNumberTakenGeneric": "This invoice folder name was already submitted."
+      "invoiceNumberTakenGeneric": "This invoice folder name was already submitted.",
+      "duplicateFiles": "{count, plural, one {# file was} other {# files were}} already submitted on other invoices. Please remove {count, plural, one {it} other {them}} and try again:\n{files}"
     }
   },
   "invoiceDetail": {

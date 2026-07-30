@@ -561,34 +561,70 @@ export class InvoicesService {
       ),
     ];
     if (documentChecksums.length > 0) {
-      const duplicateDocument = await this.prisma.document.findFirst({
+      const duplicateDocuments = await this.prisma.document.findMany({
         where: {
           checksumSha256: { in: documentChecksums },
           virusScanStatus: { not: 'FAILED' },
           invoiceId: { not: id },
           invoice: {
             supplierId,
+            archivedAt: null,
             status: { notIn: ['DRAFT', 'REJECTED'] },
           },
         },
         orderBy: [{ invoice: { createdAt: 'asc' } }, { createdAt: 'asc' }],
         select: {
-          fileName: true,
+          checksumSha256: true,
           invoice: {
             select: { id: true, invoiceNumber: true, createdAt: true },
           },
         },
       });
-      if (duplicateDocument) {
-        const priorSubmittedAt = duplicateDocument.invoice.createdAt.toISOString();
+      const currentFileNameByChecksum = new Map(
+        documents
+          .filter(
+            (document) => document.virusScanStatus !== 'FAILED' && document.checksumSha256?.trim(),
+          )
+          .map((document) => [document.checksumSha256!, document.fileName]),
+      );
+      const duplicateByChecksum = new Map<
+        string,
+        {
+          fileName: string;
+          priorInvoiceNumber: string;
+          priorInvoiceId: string;
+          priorSubmittedAt: string;
+        }
+      >();
+      for (const duplicateDocument of duplicateDocuments) {
+        const checksum = duplicateDocument.checksumSha256;
+        if (!checksum || duplicateByChecksum.has(checksum)) continue;
+        const fileName = currentFileNameByChecksum.get(checksum);
+        if (!fileName) continue;
+        duplicateByChecksum.set(checksum, {
+          fileName,
+          priorInvoiceNumber: duplicateDocument.invoice.invoiceNumber,
+          priorInvoiceId: duplicateDocument.invoice.id,
+          priorSubmittedAt: duplicateDocument.invoice.createdAt.toISOString(),
+        });
+      }
+      const duplicates = [...duplicateByChecksum.values()];
+      if (duplicates.length > 0) {
+        const firstDuplicate = duplicates[0]!;
         throw new ConflictException({
           code: 'DUPLICATE_FILE_SUBMISSION',
-          message: `This file was already submitted on invoice ${duplicateDocument.invoice.invoiceNumber} (${priorSubmittedAt}).`,
+          message: `${duplicates.length} file(s) in this upload were already submitted on other invoices. Remove them and try again.`,
           details: {
-            fileName: duplicateDocument.fileName,
-            priorInvoiceNumber: duplicateDocument.invoice.invoiceNumber,
-            priorInvoiceId: duplicateDocument.invoice.id,
-            priorSubmittedAt,
+            duplicateCount: duplicates.length,
+            duplicates: duplicates.map(({ fileName, priorInvoiceNumber, priorSubmittedAt }) => ({
+              fileName,
+              priorInvoiceNumber,
+              priorSubmittedAt,
+            })),
+            fileName: firstDuplicate.fileName,
+            priorInvoiceNumber: firstDuplicate.priorInvoiceNumber,
+            priorInvoiceId: firstDuplicate.priorInvoiceId,
+            priorSubmittedAt: firstDuplicate.priorSubmittedAt,
           },
         });
       }

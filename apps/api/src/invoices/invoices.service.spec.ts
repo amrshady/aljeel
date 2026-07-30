@@ -396,31 +396,42 @@ describe('InvoicesService submit duplicate file guard', () => {
     },
   ];
 
-  function createService(priorDocument?: {
+  type PriorDocument = {
     checksumSha256: string;
     supplierId: string;
     status: string;
     invoiceId?: string;
-  }) {
-    const priorCreatedAt = new Date('2026-07-01T12:00:00.000Z');
-    const documentFindFirst = vi.fn().mockImplementation(({ where }) => {
-      if (
-        priorDocument &&
-        where.checksumSha256.in.includes(priorDocument.checksumSha256) &&
-        priorDocument.invoiceId !== 'inv_current' &&
-        priorDocument.supplierId === where.invoice.supplierId &&
-        !where.invoice.status.notIn.includes(priorDocument.status)
-      ) {
-        return {
-          fileName: 'previous-invoice.pdf',
+    invoiceNumber?: string;
+    archivedAt?: Date | null;
+    invoiceCreatedAt?: Date;
+    documentCreatedAt?: Date;
+  };
+
+  function createService(priorDocuments: PriorDocument[] = []) {
+    const documentFindMany = vi.fn().mockImplementation(({ where }) => {
+      if (where.invoiceId === 'inv_current') return currentDocuments;
+      return priorDocuments
+        .filter(
+          (document) =>
+            where.checksumSha256.in.includes(document.checksumSha256) &&
+            document.invoiceId !== 'inv_current' &&
+            document.supplierId === where.invoice.supplierId &&
+            document.archivedAt == null &&
+            !where.invoice.status.notIn.includes(document.status),
+        )
+        .sort(
+          (left, right) =>
+            (left.invoiceCreatedAt?.getTime() ?? 0) - (right.invoiceCreatedAt?.getTime() ?? 0) ||
+            (left.documentCreatedAt?.getTime() ?? 0) - (right.documentCreatedAt?.getTime() ?? 0),
+        )
+        .map((document) => ({
+          checksumSha256: document.checksumSha256,
           invoice: {
-            id: priorDocument.invoiceId ?? 'inv_prior',
-            invoiceNumber: 'INV-PRIOR',
-            createdAt: priorCreatedAt,
+            id: document.invoiceId ?? 'inv_prior',
+            invoiceNumber: document.invoiceNumber ?? 'INV-PRIOR',
+            createdAt: document.invoiceCreatedAt ?? new Date('2026-07-01T12:00:00.000Z'),
           },
-        };
-      }
-      return null;
+        }));
     });
     const prisma = {
       invoice: {
@@ -434,8 +445,7 @@ describe('InvoicesService submit duplicate file guard', () => {
           }),
       },
       document: {
-        findMany: vi.fn().mockResolvedValue(currentDocuments),
-        findFirst: documentFindFirst,
+        findMany: documentFindMany,
       },
       supplier: {
         findUnique: vi.fn().mockResolvedValue({
@@ -452,15 +462,35 @@ describe('InvoicesService submit duplicate file guard', () => {
       { validateUploadedFolder: vi.fn() } as never,
       { notifyInvoiceSubmitted: vi.fn().mockResolvedValue(undefined) } as never,
     );
-    return { service, documentFindFirst };
+    return { service, documentFindMany };
   }
 
-  it('blocks a matching live document on another invoice for the same supplier', async () => {
-    const { service } = createService({
-      checksumSha256: 'hash-current',
-      supplierId: 'supplier_a',
-      status: 'SUBMITTED',
-    });
+  it('lists every matching current file and its earliest prior invoice', async () => {
+    const { service } = createService([
+      {
+        checksumSha256: 'hash-current',
+        supplierId: 'supplier_a',
+        status: 'SUBMITTED',
+        invoiceNumber: 'INV-LATER',
+        invoiceCreatedAt: new Date('2026-07-02T12:00:00.000Z'),
+      },
+      {
+        checksumSha256: 'hash-xlsx',
+        supplierId: 'supplier_a',
+        status: 'APPROVED',
+        invoiceId: 'inv_prior_xlsx',
+        invoiceNumber: 'INV-XLSX',
+        invoiceCreatedAt: new Date('2026-06-30T12:00:00.000Z'),
+      },
+      {
+        checksumSha256: 'hash-current',
+        supplierId: 'supplier_a',
+        status: 'SUBMITTED',
+        invoiceId: 'inv_earliest',
+        invoiceNumber: 'INV-EARLIEST',
+        invoiceCreatedAt: new Date('2026-07-01T12:00:00.000Z'),
+      },
+    ]);
 
     try {
       await service.submit(user, 'inv_current');
@@ -470,21 +500,36 @@ describe('InvoicesService submit duplicate file guard', () => {
       expect((error as ConflictException).getResponse()).toMatchObject({
         code: 'DUPLICATE_FILE_SUBMISSION',
         details: {
-          fileName: 'previous-invoice.pdf',
-          priorInvoiceNumber: 'INV-PRIOR',
-          priorInvoiceId: 'inv_prior',
-          priorSubmittedAt: '2026-07-01T12:00:00.000Z',
+          duplicateCount: 2,
+          duplicates: [
+            {
+              fileName: 'invoice.xlsx',
+              priorInvoiceNumber: 'INV-XLSX',
+              priorSubmittedAt: '2026-06-30T12:00:00.000Z',
+            },
+            {
+              fileName: 'invoice.pdf',
+              priorInvoiceNumber: 'INV-EARLIEST',
+              priorSubmittedAt: '2026-07-01T12:00:00.000Z',
+            },
+          ],
+          fileName: 'invoice.xlsx',
+          priorInvoiceNumber: 'INV-XLSX',
+          priorInvoiceId: 'inv_prior_xlsx',
+          priorSubmittedAt: '2026-06-30T12:00:00.000Z',
         },
       });
     }
   });
 
   it.each(['DRAFT', 'REJECTED'])('does not block a match on a %s invoice', async (status) => {
-    const { service } = createService({
-      checksumSha256: 'hash-current',
-      supplierId: 'supplier_a',
-      status,
-    });
+    const { service } = createService([
+      {
+        checksumSha256: 'hash-current',
+        supplierId: 'supplier_a',
+        status,
+      },
+    ]);
 
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
       status: 'UNDER_REVIEW',
@@ -492,32 +537,63 @@ describe('InvoicesService submit duplicate file guard', () => {
   });
 
   it('does not block a matching document owned by a different supplier', async () => {
-    const { service } = createService({
-      checksumSha256: 'hash-current',
-      supplierId: 'supplier_b',
-      status: 'SUBMITTED',
-    });
+    const { service } = createService([
+      {
+        checksumSha256: 'hash-current',
+        supplierId: 'supplier_b',
+        status: 'SUBMITTED',
+      },
+    ]);
 
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
       status: 'UNDER_REVIEW',
     });
   });
 
-  it('does not block when document hashes differ', async () => {
-    const { service, documentFindFirst } = createService({
-      checksumSha256: 'different-hash',
-      supplierId: 'supplier_a',
-      status: 'SUBMITTED',
-    });
+  it('does not block when the only matching prior invoice is archived', async () => {
+    const { service, documentFindMany } = createService([
+      {
+        checksumSha256: 'hash-current',
+        supplierId: 'supplier_a',
+        status: 'SUBMITTED',
+        archivedAt: new Date('2026-07-15T12:00:00.000Z'),
+      },
+    ]);
 
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
       status: 'UNDER_REVIEW',
     });
-    expect(documentFindFirst).toHaveBeenCalledWith(
+    expect(documentFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           invoice: {
             supplierId: 'supplier_a',
+            archivedAt: null,
+            status: { notIn: ['DRAFT', 'REJECTED'] },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('does not block when document hashes differ', async () => {
+    const { service, documentFindMany } = createService([
+      {
+        checksumSha256: 'different-hash',
+        supplierId: 'supplier_a',
+        status: 'SUBMITTED',
+      },
+    ]);
+
+    await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
+      status: 'UNDER_REVIEW',
+    });
+    expect(documentFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          invoice: {
+            supplierId: 'supplier_a',
+            archivedAt: null,
             status: { notIn: ['DRAFT', 'REJECTED'] },
           },
         }),

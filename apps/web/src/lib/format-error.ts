@@ -128,6 +128,29 @@ export function formatInvoiceError(
         return t('errors.xlsxRequired');
       case 'DOCUMENTS_REQUIRED':
         return t('errors.filesRequired');
+      case 'DUPLICATE_FILE_SUBMISSION': {
+        const duplicates = err.details?.duplicates;
+        if (!Array.isArray(duplicates) || duplicates.length === 0) {
+          return err.message;
+        }
+        const files = duplicates
+          .map((duplicate) => {
+            if (typeof duplicate !== 'object' || duplicate === null) return null;
+            const fileName = String((duplicate as Record<string, unknown>).fileName ?? '').trim();
+            const priorInvoiceNumber = String(
+              (duplicate as Record<string, unknown>).priorInvoiceNumber ?? '',
+            ).trim();
+            if (!fileName || !priorInvoiceNumber) return null;
+            return `${fileName} (already on ${priorInvoiceNumber})`;
+          })
+          .filter((item): item is string => item !== null);
+        return files.length > 0
+          ? t('errors.duplicateFiles', {
+              count: files.length,
+              files: files.join('\n'),
+            })
+          : err.message;
+      }
       default:
         break;
     }

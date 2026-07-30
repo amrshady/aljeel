@@ -107,6 +107,10 @@ export function formatInvoiceError(
     }
 
     switch (err.code) {
+      case 'TIMEOUT':
+        return t('errors.timeout');
+      case 'NETWORK_ERROR':
+        return t('errors.network');
       case 'ASATEEL_INVOICE_TABLE_REQUIRED':
         return t('errors.asateelTableRequired');
       case 'ASATEEL_INVOICE_TABLE_EMPTY':

@@ -17,13 +17,13 @@ function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 }
 
-const REQUEST_TIMEOUT_MS = 15_000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit & { schema: z.ZodType<T> },
+  options: RequestInit & { schema: z.ZodType<T>; timeoutMs?: number },
 ): Promise<T> {
-  const { schema, ...init } = options;
+  const { schema, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, ...init } = options;
   const headers = new Headers(init.headers);
   const isFormData =
     typeof FormData !== 'undefined' && init.body instanceof FormData;
@@ -32,7 +32,7 @@ export async function apiFetch<T>(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   let response: Response;
   try {
@@ -46,13 +46,13 @@ export async function apiFetch<T>(
     if (error instanceof Error && error.name === 'AbortError') {
       throw new ApiClientError(
         'TIMEOUT',
-        'API request timed out. Is the API running on port 3002?',
+        'The server took too long to respond. For large uploads this can take a minute — please wait and try again. If it keeps happening, contact AP support.',
         'unknown',
       );
     }
     throw new ApiClientError(
       'NETWORK_ERROR',
-      'Cannot reach the API. Run `pnpm dev` and ensure port 3002 is free.',
+      'Could not reach the server. Check your connection and try again.',
       'unknown',
     );
   } finally {

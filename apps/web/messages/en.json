@@ -152,6 +152,8 @@
     "uploadingFiles": "Uploading files…",
     "error": "Could not save invoice",
     "errors": {
+      "timeout": "The server took too long to respond. For large uploads this can take a minute — please wait and try again. If it keeps happening, contact AP support.",
+      "network": "Could not reach the server. Check your connection and try again.",
       "filesRequired": "Please attach at least one file before submitting for review",
       "xlsxRequired": "Please attach at least two Excel (.xlsx) files before submitting for review",
       "asateelFilesMissing": "Missing PDF files for invoice numbers: {numbers}",

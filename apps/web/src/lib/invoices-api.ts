@@ -76,6 +76,7 @@ export function updateInvoiceAsateelRegion(id: string, asateelRegion: AsateelReg
 export function submitInvoice(id: string) {
   return apiFetch(`/invoices/${id}/submit`, {
     method: 'POST',
+    timeoutMs: 120_000,
     schema: SubmitInvoiceResponseSchema,
   });
 }

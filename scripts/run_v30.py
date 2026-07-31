@@ -2760,6 +2760,7 @@ def _invoice_ref_sis_parts(ref_no: str) -> tuple[str, str, int] | None:
 def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
     """Index evidence folders by event ref and PC approval employee numbers."""
     event_folders: list[tuple[str, Path]] = []
+    canonical_event_folders: dict[str, Path] = {}
     emp_filename: dict[str, Path] = {}
     sis_siblings: dict[tuple[str, str], list[tuple[int, str, Path]]] = {}
 
@@ -2769,6 +2770,11 @@ def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
         folder_name = folder.name.strip()
         folder_key = _norm_invoice_ref_key(folder_name)
         event_folders.append((folder_key, folder))
+        # Some event directories contain a nested evidence leaf whose own name
+        # omits the serial (HF-2026-27/Makkah-Hotel..., SIS-14-2026/DBE_...).
+        event_key = _canonical_event_serial(str(folder).replace("_", "-"))
+        if event_key:
+            canonical_event_folders.setdefault(event_key, folder)
         for m in re.finditer(r"\b([A-Za-z]+)-(\d+)-(\d{4})\b", folder_name):
             prefix = (m.group(1).casefold(), m.group(2))
             sis_siblings.setdefault(prefix, []).append((int(m.group(3)), m.group(0), folder))
@@ -2786,6 +2792,7 @@ def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
 
     return {
         "event_folders": event_folders,
+        "canonical_event_folders": canonical_event_folders,
         "emp_filename": emp_filename,
         "sis_siblings": sis_siblings,
     }
@@ -2824,6 +2831,15 @@ def resolve_invoice_ref_folder(ref_no: str, ref_index: dict | None) -> tuple[Pat
                 if sib_year != year:
                     note = f"invoice Ref year mismatch ({ref_no} vs folder {sib_ref})"
                     return folder, "REF_FUZZY", note
+
+    # Event references are not consistently punctuated in the Jawal source
+    # (for example HF2026-28 versus folder HF-2026-28).  Accept the pipeline's
+    # existing canonical event key only when that key is actually indexed on
+    # disk; ordinary ticket references remain subject to the hard evidence gate.
+    event_key = _canonical_event_serial(ref_no.replace("_", "-"))
+    folder = (ref_index.get("canonical_event_folders") or {}).get(event_key)
+    if folder:
+        return folder, "REF_FOLDER", f"invoice Ref. No. {ref_no} matched evidence folder {folder.name}"
 
     return None, "", ""
 

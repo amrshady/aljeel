@@ -35,8 +35,6 @@ ROW_RED_FONT    = Font(color="9C0006")
 REVIEW_WORTHY_FLAGS = {
     # Gate-level flags
     "FORM_EMP_NO_MISMATCH",
-    "EMPLOYEE_NOT_IN_MASTER",
-    "NEW_EMPLOYEE_NOT_IN_MASTER",
     "ALLOCATION_TARGET_MISSING",
     "MULTI_ALLOCATION_PENDING_REVIEW",
     "MANAGER_NOT_REALLOCATED",
@@ -162,6 +160,24 @@ def classify_row(gate_result, resolved_line, qc_catches: list[dict] | None = Non
     # Review Note (both already produced by the NO_APPROVAL catch).
     if "NO_APPROVAL" in all_flag_codes:
         return "RED"
+
+    # - Employee could not be found in the Manpower sheet / master data
+    match_method = getattr(resolved_line, 'emp_match_method', '') or ''
+    account = str(getattr(resolved_line, 'account', '') or '').strip()
+    is_sponsorship_or_family = (
+        account in {"60307021", "21070229"}
+        or any(
+            flag == "SPONSORSHIP_DETECTED"
+            or flag.startswith("FAMILY_CLUSTER")
+            or flag == "MIXED_FAMILY_CLUSTER"
+            for flag in all_flag_codes
+        )
+        or bool(getattr(resolved_line, 'is_sponsorship', False))
+    )
+    if (({"EMPLOYEE_NOT_IN_MASTER", "NEW_EMPLOYEE_NOT_IN_MASTER"} & all_flag_codes
+            or match_method == "not_found")
+            and not is_sponsorship_or_family):
+        return "RED"
     
     # 2. YELLOW CONDITIONS:
     # - Review-worthy soft flags (excluding ALLOCATION_TARGET_MISSING)
@@ -169,9 +185,8 @@ def classify_row(gate_result, resolved_line, qc_catches: list[dict] | None = Non
         if flag in REVIEW_WORTHY_FLAGS and flag != "ALLOCATION_TARGET_MISSING":
             return "YELLOW"
     
-    # - Match method uses LLM (starts with "v2_"), email allocation subordinate, or not_found
-    match_method = getattr(resolved_line, 'emp_match_method', '') or ''
-    if match_method.startswith("v2_") or match_method.startswith("allocation_email_subordinate") or match_method == "not_found":
+    # - Match method uses LLM (starts with "v2_") or email allocation subordinate
+    if match_method.startswith("v2_") or match_method.startswith("allocation_email_subordinate"):
         return "YELLOW"
     
     # - Check resolution confidence

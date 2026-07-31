@@ -786,7 +786,7 @@ def _validate_with_email_form(resolved, description, ticket_no, amount, raw_dir,
     return result, flags
 
 
-def get_human_action_recommendation(flags, sol_flag, row_status):
+def get_human_action_recommendation(flags, sol_flag, row_status, emp_match_method="", account=""):
     """Generate a helpful, friendly sentence for the human reviewer describing what to do."""
     all_flags = set(flags or [])
     
@@ -807,6 +807,21 @@ def get_human_action_recommendation(flags, sol_flag, row_status):
         
     if "PERSONAL_CONTRIB_SELF_APPROVAL" in all_flags:
         return "Self-approval detected (requester is the approver in the email). Please verify manager sign-off for audit compliance."
+
+    is_sponsorship_or_family = (
+        str(account or '').strip() in {"60307021", "21070229"}
+        or any(
+            flag == "SPONSORSHIP_DETECTED"
+            or flag.startswith("FAMILY_CLUSTER")
+            or flag == "MIXED_FAMILY_CLUSTER"
+            for flag in all_flags
+        )
+        or emp_match_method == "family_cluster_unified"
+    )
+    if (({"EMPLOYEE_NOT_IN_MASTER", "NEW_EMPLOYEE_NOT_IN_MASTER"} & all_flags
+            or sol_flag == "not_found" or emp_match_method == "not_found")
+            and not is_sponsorship_or_family):
+        return "This employee was not found in the Manpower sheet / master data. The row is flagged RED — please add the employee to the Manpower lookups (Cost Center, Division, Agency) or confirm the correct identity with HR/Finance, then re-run."
         
     if "FORM_NOT_FOUND_IN_EMAIL" in all_flags:
         return "Approval email exists, but the standard Oracle/Workday form was not found inside it. Please check if the email text contains valid authorization."
@@ -2227,7 +2242,10 @@ def process_batch(
         self_approval_status = "SELF_APPROVED" if is_self_approved else "OK"
         
         # Human Action Note
-        human_review_note = get_human_action_recommendation(all_line_flag_codes, getattr(r, 'sol_flag', ''), row_status)
+        human_review_note = get_human_action_recommendation(
+            all_line_flag_codes, getattr(r, 'sol_flag', ''), row_status,
+            getattr(r, 'emp_match_method', ''), getattr(r, 'account', ''),
+        )
 
         block3_values = [
             row_status,                                     # Row Status

@@ -17,11 +17,11 @@
 # should NOT kill the whole sync. Each file is wrapped with || true.
 set -uo pipefail
 
-LOG=/var/log/kb-sync.log
+LOG=${LOG:-/var/log/kb-sync.log}
 exec >> "$LOG" 2>&1
 
 # Single-instance lock: if another kb-sync is already running, exit cleanly.
-LOCK=/var/run/kb-sync.lock
+LOCK=${LOCK:-/var/run/kb-sync.lock}
 exec 9>"$LOCK"
 if ! flock -n 9; then
   echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] another sync in progress, skipping this run"
@@ -30,6 +30,49 @@ fi
 
 ts() { date -u +'%Y-%m-%dT%H:%M:%SZ'; }
 log() { echo "[$(ts)] $*"; }
+
+# The watchdog consumes this machine-readable, append-only telemetry instead of
+# rclone's human-formatted output. RX bytes are deliberately conservative: they
+# include all traffic received on the default interface during both copy phases.
+WATCHDOG_STATE_DIR=${WATCHDOG_STATE_DIR:-/var/lib/kb-sync-watchdog}
+METRICS_FILE=${METRICS_FILE:-$WATCHDOG_STATE_DIR/metrics.tsv}
+RX_BYTES_CMD=${RX_BYTES_CMD:-}
+SUDO_CMD=${SUDO_CMD:-sudo}
+RCLONE_CMD=${RCLONE_CMD:-rclone}
+TELEMETRY_OWNER=${TELEMETRY_OWNER:-root:root}
+telemetry_recorded=0
+
+read_rx_bytes() {
+  if [ -n "$RX_BYTES_CMD" ]; then
+    "$RX_BYTES_CMD"
+    return
+  fi
+  local iface
+  iface=$(awk '$2 == "00000000" && $4 ~ /[37BF]$/ { print $1; exit }' /proc/net/route)
+  [ -n "$iface" ] && cat "/sys/class/net/$iface/statistics/rx_bytes"
+}
+
+prepare_telemetry() {
+  install -d -m 0750 "$WATCHDOG_STATE_DIR" || return 1
+  chown "$TELEMETRY_OWNER" "$WATCHDOG_STATE_DIR" || return 1
+  touch "$METRICS_FILE" || return 1
+  chown "$TELEMETRY_OWNER" "$METRICS_FILE" || return 1
+  chmod 0640 "$METRICS_FILE" || return 1
+}
+
+record_copy_observation() {
+  local status=$1 end_rx delta end_epoch
+  [ "$telemetry_recorded" -eq 0 ] || return 0
+  end_rx=$(read_rx_bytes) || { log "unable to read ending RX counter"; return 1; }
+  case $end_rx in ''|*[!0-9]*) log "invalid ending RX counter: $end_rx"; return 1 ;; esac
+  if [ "$end_rx" -ge "$COPY_START_RX" ]; then delta=$((end_rx - COPY_START_RX)); else delta=0; fi
+  end_epoch=$(date -u +%s)
+  exec 8>>"$METRICS_FILE" || return 1
+  flock -x 8 || return 1
+  printf '%s\t%s\t%s\n' "$end_epoch" "$delta" "$status" >&8 || return 1
+  telemetry_recorded=1
+  log "copy telemetry end_epoch=$end_epoch rx_bytes=$delta status=$status"
+}
 
 : "${TENANT:?TENANT required}"
 : "${BUCKET:?BUCKET required}"
@@ -46,28 +89,79 @@ log "=== sync start tenant=$TENANT bucket=$BUCKET ==="
 # We DON'T --delete because: any file deleted from Spaces should land in archive/, not vanish.
 # Worker handles archive flag via KV; on sync, we read the archive list from API and move locally.
 
-# Sync new + updated objects from Spaces → /mnt/<volume>/current/
-sudo -u clawdbot rclone copy "spaces:${BUCKET}/current/" "$CURRENT/" \
+# Fail closed before any download if the volume is near capacity. This prevents
+# a failed sync from repeatedly burning Spaces egress while it can never commit files.
+FREE_BYTES=$(df -PB1 "$VOLUME" | awk 'NR==2 {print $4}')
+MIN_FREE_BYTES=$((8 * 1024 * 1024 * 1024))
+if [ "${FREE_BYTES:-0}" -lt "$MIN_FREE_BYTES" ]; then
+  log "insufficient free space (${FREE_BYTES:-0} bytes; need >= ${MIN_FREE_BYTES}) — aborting before rclone"
+  exit 1
+fi
+
+if ! prepare_telemetry; then
+  log "unable to prepare watchdog telemetry — aborting before rclone"
+  exit 1
+fi
+COPY_START_RX=$(read_rx_bytes) || { log "unable to read starting RX counter — aborting before rclone"; exit 1; }
+case $COPY_START_RX in ''|*[!0-9]*) log "invalid starting RX counter — aborting before rclone"; exit 1 ;; esac
+
+# Sync new + updated objects from Spaces → /mnt/<volume>/current/.
+# One attempt only: systemd is already the retry layer.
+if ! "$SUDO_CMD" -u clawdbot "$RCLONE_CMD" copy "spaces:${BUCKET}/current/" "$CURRENT/" \
   --transfers 4 \
+  --retries 1 \
   --update \
   --stats-one-line \
-  --stats 30s 2>&1 | tail -3 || log "rclone copy failed (continuing)"
+  --stats 30s 2>&1 | tail -3; then
+  record_copy_observation failure || log "failed to record copy telemetry"
+  log "rclone copy failed — aborting this run"
+  exit 1
+fi
 
 # 1b. Aljeel-only: pull the isolated Asateel prefix into a subfolder of the
 # same KB dir so the AP agent indexes it alongside Jawal (tab-isolated in Spaces,
 # unified in the agent KB). Only runs for the aljeel-ap bucket.
 if [ "$BUCKET" = "accord-aljeel-ap-kb" ]; then
   mkdir -p "$CURRENT/asateel"
-  sudo -u clawdbot rclone copy "spaces:${BUCKET}/asateel/current/" "$CURRENT/asateel/" \
+  if ! "$SUDO_CMD" -u clawdbot "$RCLONE_CMD" copy "spaces:${BUCKET}/asateel/current/" "$CURRENT/asateel/" \
     --transfers 4 \
+    --retries 1 \
     --update \
     --stats-one-line \
-    --stats 30s 2>&1 | tail -3 || log "asateel rclone copy failed (continuing)"
+    --stats 30s 2>&1 | tail -3; then
+    record_copy_observation failure || log "failed to record copy telemetry"
+    log "asateel rclone copy failed — aborting this run"
+    exit 1
+  fi
 fi
 
-# 2. Sync removals: get list of objects in Spaces, find local files that aren't there → move to archive
+if ! record_copy_observation success; then
+  log "failed to record completed copy telemetry — aborting this run"
+  exit 1
+fi
+
+# 2. Sync removals: compare local files against BOTH remote namespaces.
+# Previously Asateel lived locally under current/asateel/ but the remote list only
+# included bucket/current/. Every Asateel file was therefore falsely archived and
+# downloaded again on the next 60-second run.
 LOCAL_FILES=$(cd "$CURRENT" && find . -type f -printf '%P\n' 2>/dev/null | sort)
-REMOTE_FILES=$(sudo -u clawdbot rclone lsf --files-only -R "spaces:${BUCKET}/current/" 2>/dev/null | sort)
+REMOTE_TMP=$(mktemp)
+trap 'rm -f "$REMOTE_TMP"' EXIT
+if ! sudo -u clawdbot rclone lsf --files-only -R "spaces:${BUCKET}/current/" > "$REMOTE_TMP"; then
+  log "remote current listing failed — refusing removal pass"
+  exit 1
+fi
+if [ "$BUCKET" = "accord-aljeel-ap-kb" ]; then
+  ASATEEL_TMP=$(mktemp)
+  if ! sudo -u clawdbot rclone lsf --files-only -R "spaces:${BUCKET}/asateel/current/" > "$ASATEEL_TMP"; then
+    rm -f "$ASATEEL_TMP"
+    log "remote Asateel listing failed — refusing removal pass"
+    exit 1
+  fi
+  sed 's#^#asateel/#' "$ASATEEL_TMP" >> "$REMOTE_TMP"
+  rm -f "$ASATEEL_TMP"
+fi
+REMOTE_FILES=$(sort -u "$REMOTE_TMP")
 
 removed=$(comm -23 <(echo "$LOCAL_FILES") <(echo "$REMOTE_FILES"))
 if [ -n "$removed" ]; then

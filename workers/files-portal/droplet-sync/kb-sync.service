@@ -1,9 +1,13 @@
 [Unit]
 Description=KB Sync — pull Spaces to local volume, detect changes, reindex
 After=network-online.target
+ConditionPathExists=!/var/lib/kb-sync-watchdog/TRIPPED
 
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/kb-sync.env
 ExecStart=/usr/local/bin/kb-sync.sh
 User=root
+TimeoutStartSec=600
+Nice=10
+IOWeight=25

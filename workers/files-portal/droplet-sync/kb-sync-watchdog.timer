@@ -1,0 +1,11 @@
+[Unit]
+Description=Check KB sync runtime guardrails
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=5min
+AccuracySec=30s
+Unit=kb-sync-watchdog.service
+
+[Install]
+WantedBy=timers.target

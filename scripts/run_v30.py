@@ -2168,13 +2168,23 @@ def process_row_v25(
     # surname matching.  If it finds a DIFFERENT folder with a PC email,
     # override classify's evidence so Call 2 sees the right documents.
     correct_folder = find_folder_v25(ticket, passenger, notes, all_folders, reverse_index or {})
-    ref_no = _row_invoice_ref_no(cascade_row)
-    ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(ref_no, invoice_ref_index)
     classify_folder_str = classify.get("_folder", "")
+    classify_evidence_files = list((classify.get("_evidence") or {}).get("files", []))
+    ref_no = _row_invoice_ref_no(cascade_row)
+    ref_folder, ref_status, ref_note = (None, "", "")
+    if not classify_evidence_files or route_reason == REFNO_FALLBACK_FLAG:
+        ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(ref_no, invoice_ref_index)
+        if ref_folder:
+            ref_evidence = fea.collect_evidence(ref_folder)
+            if not list((ref_evidence or {}).get("files", [])):
+                ref_folder, ref_status, ref_note = (None, "", "")
     folder_corrected = False
 
-    if ref_folder and ref_status != "REF_FUZZY" and not classify_folder_str:
-        ref_evidence = fea.collect_evidence(ref_folder)
+    if (
+        ref_folder
+        and ref_status != "REF_FUZZY"
+        and (not classify_evidence_files or route_reason == REFNO_FALLBACK_FLAG)
+    ):
         if ref_status == "REF_FUZZY" and ref_note:
             hint = {
                 "filename": "[v30-invoice-ref-soft-catch]",
@@ -2193,10 +2203,10 @@ def process_row_v25(
         classify["_invoice_ref_soft_catch"] = ref_note if ref_status == "REF_FUZZY" else ""
         folder_corrected = True
         route_reason = (
-            "INVOICE_REF_EMP_FILENAME"
+            REFNO_FALLBACK_FLAG
+            if ref_status == REFNO_FALLBACK_FLAG
+            else "INVOICE_REF_EMP_FILENAME"
             if ref_status == "REF_EMP_FILENAME"
-            else "INVOICE_REF_FUZZY"
-            if ref_status == "REF_FUZZY"
             else "INVOICE_REF_FOLDER"
         )
         print(
@@ -2685,6 +2695,7 @@ BUNDLED_TICKET_SHARED_PDF_FLAG = "BUNDLED_TICKET_SHARED_PDF"
 INVOICE_REF_FOLDER_MATCH_FLAG = "INVOICE_REF_FOLDER_MATCH"
 INVOICE_REF_EMP_FILENAME_FLAG = "INVOICE_REF_EMP_FILENAME_MATCH"
 INVOICE_REF_FUZZY_FLAG = "REF_FUZZY"
+REFNO_FALLBACK_FLAG = "REFNO_FALLBACK"
 TICKET_SCAN_RE = re.compile(r"\b(\d{10})\b")
 SHORT_REF_SCAN_RE = re.compile(r"\b(\d{2}-\d{3,})\b")
 PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECASE)
@@ -2839,7 +2850,7 @@ def resolve_invoice_ref_folder(ref_no: str, ref_index: dict | None) -> tuple[Pat
     event_key = _canonical_event_serial(ref_no.replace("_", "-"))
     folder = (ref_index.get("canonical_event_folders") or {}).get(event_key)
     if folder:
-        return folder, "REF_FOLDER", f"invoice Ref. No. {ref_no} matched evidence folder {folder.name}"
+        return folder, REFNO_FALLBACK_FLAG, f"invoice Ref. No. {ref_no} matched evidence folder {folder.name}"
 
     return None, "", ""
 
@@ -3245,7 +3256,10 @@ def stamp_missing_evidence_gate(
                 h["_evidence_folder"] = str(ref_folder)
                 h["_invoice_ref_folder_status"] = ref_status
                 h["_invoice_ref_soft_catch"] = ref_note if ref_status == "REF_FUZZY" else ""
-                if ref_status == "REF_EMP_FILENAME":
+                if ref_status == REFNO_FALLBACK_FLAG:
+                    h["_route_reason"] = REFNO_FALLBACK_FLAG
+                    _append_hybrid_flag(h, REFNO_FALLBACK_FLAG)
+                elif ref_status == "REF_EMP_FILENAME":
                     _append_hybrid_flag(h, INVOICE_REF_EMP_FILENAME_FLAG)
                 elif ref_status == "REF_FUZZY":
                     _append_hybrid_flag(h, INVOICE_REF_FUZZY_FLAG)
@@ -4980,7 +4994,9 @@ def main():
             )
             if ref_folder:
                 return True, (
-                    "INVOICE_REF_EMP_FILENAME"
+                    REFNO_FALLBACK_FLAG
+                    if ref_status == REFNO_FALLBACK_FLAG
+                    else "INVOICE_REF_EMP_FILENAME"
                     if ref_status == "REF_EMP_FILENAME"
                     else "INVOICE_REF_FUZZY"
                     if ref_status == "REF_FUZZY"
@@ -5049,6 +5065,15 @@ def main():
         direct_ticket_index=direct_ticket_index,
         invoice_ref_index=invoice_ref_index,
     )
+    fallback_rows = {
+        i for i, h in enumerate(hybrid_rows)
+        if h.get("_route_reason") == REFNO_FALLBACK_FLAG
+    }
+    if fallback_rows:
+        routed = [
+            (i, REFNO_FALLBACK_FLAG if i in fallback_rows else reason)
+            for i, reason in routed
+        ]
     if missing_evidence_rows:
         routed_before_gate = len(routed)
         routed = [(i, reason) for i, reason in routed if not row_missing_evidence(hybrid_rows[i])]
@@ -5148,7 +5173,10 @@ def main():
                     opex_serial = res.get("opex_serial", "")
                     if opex_serial:
                         hybrid_rows[idx]["_opex_serial"] = opex_serial
-                hybrid_rows[idx]["_route_reason"] = reason
+                resolved_reason = res.get("_route_reason", reason)
+                hybrid_rows[idx]["_route_reason"] = resolved_reason
+                if resolved_reason == REFNO_FALLBACK_FLAG:
+                    _append_hybrid_flag(hybrid_rows[idx], REFNO_FALLBACK_FLAG)
                 hybrid_rows[idx]["_classify"]      = res.get("_classify", "?")
                 # Remember the evidence folder so the pre-write serial
                 # catch-all can try folder-name extraction for rows that

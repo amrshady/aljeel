@@ -169,3 +169,26 @@ All three pipelines emit Oracle-ready files that mirror the input format Aljeel 
 | Jawal | $0 (pure Python, no model calls) | None |
 
 Full batch reprocess: typically <$1.
+
+---
+
+## Jawal — Ref. No. Fallback Evidence Lookup (confirmed by AP clerk via Ahmed Samy, 2026-08-02)
+
+**Rule (ADDITIVE ONLY — do NOT change existing lookup):**
+- Existing per-row evidence lookup logic stays 100% unchanged — same criteria, same order,
+  same primary keys (ticket/reservation/folder matching) as today.
+- **New fallback:** ONLY when the current logic finds NO files for a row, perform a second
+  lookup using the supplier's Ref. No. (e.g. `HF-2026-27`).
+- If files are found via the Ref. No. lookup, they are treated as the evidence for that row.
+- If the current logic already resolves the row, the Ref. No. fallback never runs. Zero
+  regression to already-resolving rows by design.
+
+**Origin case:** J26-1108 row 29 — "DR FAHMI ALKAF - FOUR POINTS BY SHERATON MAKKAH - 1 NTS.
+(26-1000)". "26-1000" is the supplier's booking reference, not a standalone ticket file. Its
+evidence lives under Ref. No. HF-2026-27 (Makkah/KFMC HCP sponsorship package: OPEX Form,
+Fahmi/Shamsa HCP Sponsorship Agreements, SFDA declarations, attendees, agenda).
+
+**Caveat:** fallback only works when the invoice row carries a Ref. No. If supplier leaves
+Ref. No. blank, no fallback is possible — worth asking supplier to always populate Ref. No.
+
+**Status:** confirmed rule, pending Codex implementation + golden-gate verify on J26-1108.

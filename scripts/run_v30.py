@@ -2120,6 +2120,7 @@ def process_row_v25(
     invoice_ref_index: dict | None = None,
     no_cache: bool = False,
     verified_emp_locked: bool = False,
+    forced_evidence_folder: str = "",
 ) -> dict:
     """
     v25 process_row with folder-correction (Fix A+B).
@@ -2162,6 +2163,11 @@ def process_row_v25(
     t1 = _t.time()
     classify = classify_row(row_idx, cascade_row, batch_id, raw_root, all_folders,
                             reverse_index=reverse_index, no_cache=no_cache)
+
+    if route_reason == EMP_FILENAME_FALLBACK_FLAG and forced_evidence_folder:
+        forced_folder = Path(forced_evidence_folder)
+        classify["_folder"] = str(forced_folder)
+        classify["_evidence"] = fea.collect_evidence(forced_folder)
 
     # ── FIX A+B: correct folder if classify found wrong one ──────────────
     # find_folder_v25 prioritises reverse_index (adjacent-ticket entries) over
@@ -2696,6 +2702,9 @@ INVOICE_REF_FOLDER_MATCH_FLAG = "INVOICE_REF_FOLDER_MATCH"
 INVOICE_REF_EMP_FILENAME_FLAG = "INVOICE_REF_EMP_FILENAME_MATCH"
 INVOICE_REF_FUZZY_FLAG = "REF_FUZZY"
 REFNO_FALLBACK_FLAG = "REFNO_FALLBACK"
+EMP_FILENAME_FALLBACK_FLAG = "EMP_FILENAME_FALLBACK"
+HASH_EVIDENCE_FOLDER_RE = re.compile(r"^(?=[A-F0-9]{8,}$)(?=.*[A-F])[A-F0-9]+$", re.IGNORECASE)
+EMP_FILENAME_RE = re.compile(r"(?<!\d)(\d{6,7})(?!\d)")
 TICKET_SCAN_RE = re.compile(r"\b(\d{10})\b")
 SHORT_REF_SCAN_RE = re.compile(r"\b(\d{2}-\d{3,})\b")
 PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECASE)
@@ -2807,6 +2816,46 @@ def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
         "emp_filename": emp_filename,
         "sis_siblings": sis_siblings,
     }
+
+
+def build_orphan_emp_filename_index(all_folders: list[Path]) -> dict[str, list[Path]]:
+    """Index hash-named evidence folders by exact employee number in filenames."""
+    index: dict[str, list[Path]] = {}
+    for folder in all_folders:
+        if not HASH_EVIDENCE_FOLDER_RE.fullmatch(folder.name.strip()):
+            continue
+        try:
+            filenames = [child.name for child in fea.iter_evidence_files(folder)]
+        except (OSError, PermissionError):
+            continue
+        for emp_no in sorted({m.group(1) for name in filenames for m in EMP_FILENAME_RE.finditer(name)}):
+            index.setdefault(emp_no, []).append(folder)
+    return index
+
+
+def _existing_evidence_folder_claims(
+    cascade_rows: list[dict],
+    all_folders: list[Path],
+    reverse_index: dict[str, Path],
+    invoice_ref_index: dict,
+) -> set[Path]:
+    """Return folders claimed by the unchanged normal and Ref. No. tiers."""
+    claimed: set[Path] = set()
+    for row in cascade_rows:
+        desc = str(row.get("Description", "") or "")
+        notes = str(row.get("Notes", "") or "")
+        ref_token = _row_reference_token(row)
+        if ref_token:
+            passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else desc.strip()
+            folder = find_folder_v25(ref_token, passenger, notes, all_folders, reverse_index)
+            if folder:
+                claimed.add(folder.resolve(strict=False))
+        ref_folder, _status, _note = resolve_invoice_ref_folder(
+            _row_invoice_ref_no(row), invoice_ref_index
+        )
+        if ref_folder:
+            claimed.add(ref_folder.resolve(strict=False))
+    return claimed
 
 
 def resolve_invoice_ref_folder(ref_no: str, ref_index: dict | None) -> tuple[Path | None, str, str]:
@@ -3236,10 +3285,14 @@ def stamp_missing_evidence_gate(
     bundled_ticket_pdf_map: dict[str, str] | None = None,
     direct_ticket_index: set[str] | None = None,
     invoice_ref_index: dict | None = None,
+    emp_filename_index: dict[str, list[Path]] | None = None,
+    claimed_folders: set[Path] | None = None,
 ) -> int:
     gated = 0
     bundled_ticket_pdf_map = bundled_ticket_pdf_map or {}
     direct_ticket_index = direct_ticket_index or set()
+    emp_filename_index = emp_filename_index or {}
+    claimed_folders = claimed_folders if claimed_folders is not None else set()
     for i, c in enumerate(cascade_rows):
         if not cascade_row_no_folder(c, ticket_folder_index, invoice_ref_index):
             ref_token = _row_reference_token(c)
@@ -3285,6 +3338,23 @@ def stamp_missing_evidence_gate(
                 )
             continue
         h = hybrid_rows[i]
+        emp_no = str(h.get("emp_no", "") or "").strip()
+        candidates = [
+            folder for folder in emp_filename_index.get(emp_no, [])
+            if folder.resolve(strict=False) not in claimed_folders
+        ] if emp_no else []
+        if len(candidates) == 1:
+            folder = candidates[0]
+            claimed_folders.add(folder.resolve(strict=False))
+            h["_missing_evidence_resolved"] = True
+            h["_evidence_folder"] = str(folder)
+            h["_route_reason"] = EMP_FILENAME_FALLBACK_FLAG
+            _append_hybrid_flag(h, EMP_FILENAME_FALLBACK_FLAG)
+            print(
+                f"[emp-filename] row {i}: emp_no {emp_no} -> {folder.name}",
+                flush=True,
+            )
+            continue
         h["_missing_evidence"] = True
         _append_hybrid_flag(h, MISSING_EVIDENCE_FLAG)
         for key in ("account", "cost_center", "div", "solution", "agency"):
@@ -4962,6 +5032,10 @@ def main():
     reverse_index = build_reverse_folder_index_v25(all_folders)
     pc_index      = build_personal_contribution_index(all_folders)
     invoice_ref_index = build_invoice_ref_folder_index(all_folders)
+    emp_filename_index = build_orphan_emp_filename_index(all_folders)
+    claimed_evidence_folders = _existing_evidence_folder_claims(
+        cascade_rows, all_folders, reverse_index, invoice_ref_index
+    )
     print(
         f"[scan] reverse={len(reverse_index)} mappings  pc={len(pc_index)} PC folders  "
         f"invoice-ref-folders={len(invoice_ref_index.get('event_folders', []))} "
@@ -5064,11 +5138,21 @@ def main():
         bundled_ticket_pdf_map=bundled_ticket_pdf_map,
         direct_ticket_index=direct_ticket_index,
         invoice_ref_index=invoice_ref_index,
+        emp_filename_index=emp_filename_index,
+        claimed_folders=claimed_evidence_folders,
     )
     fallback_rows = {
         i for i, h in enumerate(hybrid_rows)
         if h.get("_route_reason") == REFNO_FALLBACK_FLAG
     }
+    emp_filename_fallback_rows = {
+        i for i, h in enumerate(hybrid_rows)
+        if h.get("_route_reason") == EMP_FILENAME_FALLBACK_FLAG
+    }
+    routed_by_row = dict(routed)
+    for i in emp_filename_fallback_rows:
+        routed_by_row[i] = EMP_FILENAME_FALLBACK_FLAG
+    routed = sorted(routed_by_row.items())
     if fallback_rows:
         routed = [
             (i, REFNO_FALLBACK_FLAG if i in fallback_rows else reason)
@@ -5113,6 +5197,7 @@ def main():
                 invoice_ref_index=invoice_ref_index,
                 no_cache=no_cache,
                 verified_emp_locked=row_verified_emp_locked(hybrid_rows[idx]),
+                forced_evidence_folder=str(hybrid_rows[idx].get("_evidence_folder", "") or ""),
             )
         except Exception as e:
             return idx, reason, {
@@ -5177,6 +5262,8 @@ def main():
                 hybrid_rows[idx]["_route_reason"] = resolved_reason
                 if resolved_reason == REFNO_FALLBACK_FLAG:
                     _append_hybrid_flag(hybrid_rows[idx], REFNO_FALLBACK_FLAG)
+                elif resolved_reason == EMP_FILENAME_FALLBACK_FLAG:
+                    _append_hybrid_flag(hybrid_rows[idx], EMP_FILENAME_FALLBACK_FLAG)
                 hybrid_rows[idx]["_classify"]      = res.get("_classify", "?")
                 # Remember the evidence folder so the pre-write serial
                 # catch-all can try folder-name extraction for rows that

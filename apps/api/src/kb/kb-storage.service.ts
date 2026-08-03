@@ -126,6 +126,23 @@ export class KbStorageService {
     return response.Body as Readable;
   }
 
+  /** Reads an object into memory; `maxBytes` fetches only a leading range. */
+  async readObject(storageKey: string, maxBytes?: number): Promise<Buffer> {
+    this.assertEnabled();
+    const objectKey = toFullObjectKey(this.prefix, storageKey);
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: objectKey,
+      ...(maxBytes ? { Range: `bytes=0-${maxBytes - 1}` } : {}),
+    });
+    const response = await this.client!.send(command);
+    if (!response.Body) {
+      throw new Error('KB object has no body.');
+    }
+    const bytes = await response.Body.transformToByteArray();
+    return Buffer.from(bytes);
+  }
+
   async deleteObject(storageKey: string): Promise<void> {
     this.assertEnabled();
     const objectKey = toFullObjectKey(this.prefix, storageKey);

@@ -96,6 +96,7 @@ export * from './invoice-fsm';
 export * from './invoice-math';
 export * from './invoice-submit';
 export * from './document';
+export * from './email-preview';
 export * from './timeline';
 export * from './ap';
 

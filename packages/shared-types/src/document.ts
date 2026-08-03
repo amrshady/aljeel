@@ -101,6 +101,8 @@ const EXTENSION_MIME: Record<string, string> = {
   csv: 'text/csv',
   txt: 'text/plain',
   zip: 'application/zip',
+  msg: 'application/vnd.ms-outlook',
+  eml: 'message/rfc822',
 };
 
 /** Resolve a stored MIME type from filename + browser hint; unknown types use octet-stream. */

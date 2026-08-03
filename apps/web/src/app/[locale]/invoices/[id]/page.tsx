@@ -92,6 +92,9 @@ function InvoiceDetailContent() {
     }
   }, [documents, selectedDocumentId]);
 
+  const selectedDocument =
+    documents?.find((doc) => doc.id === selectedDocumentId) ?? null;
+
   useEffect(() => {
     if (invoice?.asateelRegion) {
       setAsateelRegion(invoice.asateelRegion);
@@ -373,7 +376,11 @@ function InvoiceDetailContent() {
             selectedDocumentId={selectedDocumentId}
             onSelectDocument={setSelectedDocumentId}
           />
-          <DocumentEvidenceViewer documentId={selectedDocumentId} />
+          <DocumentEvidenceViewer
+            documentId={selectedDocumentId}
+            fileName={selectedDocument?.fileName}
+            mimeType={selectedDocument?.mimeType}
+          />
         </div>
       </section>
 

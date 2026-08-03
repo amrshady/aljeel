@@ -267,6 +267,13 @@
     "viewerError": "تعذر تحميل المعاينة",
     "viewerUnsupported": "المعاينة غير متاحة لهذا النوع من الملفات",
     "viewerOpenTab": "فتح في تبويب جديد",
+    "emailNoSubject": "(بدون موضوع)",
+    "emailFrom": "من",
+    "emailTo": "إلى",
+    "emailCc": "نسخة",
+    "emailDate": "تاريخ الإرسال",
+    "emailEmptyBody": "لا يحتوي هذا البريد على نص",
+    "emailImagesBlocked": "{count, plural, one {لم يتم عرض صورة واحدة} other {لم يتم عرض # صور}}",
     "searchFiles": "بحث في الملفات…",
     "searchNoResults": "لا توجد ملفات مطابقة",
     "searchMatchCount": "{count, plural, one {تطابق واحد} other {# تطابقات}}"

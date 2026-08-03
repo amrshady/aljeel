@@ -3,8 +3,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
+import { mightBeEmailDocument } from '@aljeel/shared-types';
 import { ApiClientError } from '@/lib/api-client';
-import { getDocumentViewUrl } from '@/lib/invoices-api';
+import { getDocumentEmailPreview, getDocumentViewUrl } from '@/lib/invoices-api';
+import { EmailPreviewView } from '@/components/email-preview';
 
 function fileExtension(fileName: string): string {
   return fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -43,11 +45,28 @@ export function DocumentEvidenceViewer({
     staleTime: 5 * 60 * 1000,
   });
 
+  const resolvedName = fileName || data?.fileName || '';
+  const resolvedMime = mimeType || data?.mimeType || 'application/octet-stream';
+
+  // Emails are rendered from parsed JSON rather than raw bytes. The probe is
+  // deliberately loose because exported .msg files often lose their extension;
+  // the API sniffs the real bytes and rejects anything that is not an email.
+  const emailEnabled =
+    !!documentId && !!resolvedName && mightBeEmailDocument(resolvedName, resolvedMime);
+
+  const email = useQuery({
+    queryKey: ['documents', documentId, 'email'],
+    queryFn: () => getDocumentEmailPreview(documentId!),
+    enabled: emailEnabled,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const src = useMemo(() => {
     if (!data) return null;
     if (data.kind === 'remote') return data.url;
     return URL.createObjectURL(data.blob);
-  }, [data, documentId]);
+  }, [data]);
 
   useEffect(() => {
     if (data?.kind !== 'blob' || !src) return;
@@ -64,13 +83,23 @@ export function DocumentEvidenceViewer({
     );
   }
 
-  if (isLoading) {
+  if (isLoading || (emailEnabled && email.isLoading)) {
     return (
       <div
         className={`flex h-[min(80vh,900px)] items-center justify-center rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground ${className ?? ''}`}
       >
         {t('viewerLoading')}
       </div>
+    );
+  }
+
+  if (email.data) {
+    return (
+      <EmailPreviewView
+        documentId={documentId}
+        email={email.data}
+        className={className}
+      />
     );
   }
 
@@ -85,9 +114,6 @@ export function DocumentEvidenceViewer({
       </div>
     );
   }
-
-  const resolvedName = data.fileName || fileName || '';
-  const resolvedMime = data.mimeType || mimeType || 'application/octet-stream';
 
   if (isPdf(resolvedMime, resolvedName)) {
     return (
@@ -117,11 +143,19 @@ export function DocumentEvidenceViewer({
     );
   }
 
+  // An email that failed to parse is more useful to explain than to label
+  // "unsupported", which would suggest the portal cannot read emails at all.
+  const emailError = email.error;
+  const unsupportedMessage =
+    emailError instanceof ApiClientError && emailError.code !== 'NOT_AN_EMAIL'
+      ? emailError.message
+      : t('viewerUnsupported');
+
   return (
     <div
       className={`flex h-[min(80vh,900px)] flex-col items-center justify-center gap-3 rounded-lg border bg-muted/20 p-6 text-center text-sm ${className ?? ''}`}
     >
-      <p className="font-medium">{t('viewerUnsupported')}</p>
+      <p className="font-medium">{unsupportedMessage}</p>
       <p className="text-muted-foreground">{resolvedName}</p>
       <a
         href={src}

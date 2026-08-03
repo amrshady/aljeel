@@ -3,6 +3,7 @@ import {
   DocumentContentUrlSchema,
   DocumentListSchema,
   DocumentSchema,
+  EmailPreviewSchema,
   InvoiceDetailSchema,
   InvoiceFolderListItemSchema,
   InvoiceSchema,
@@ -16,7 +17,7 @@ import {
   type SupplierErpIntegration,
 } from '@aljeel/shared-types';
 import { z } from 'zod';
-import { apiFetch } from './api-client';
+import { apiFetch, downloadFile } from './api-client';
 
 const DeletedDocumentSchema = z.object({
   id: z.string(),
@@ -126,6 +127,25 @@ export async function getDocumentViewUrl(documentId: string) {
     mimeType: contentType || 'application/octet-stream',
     fileName: match?.[1] ?? 'document',
   };
+}
+
+/** Parses a stored .msg/.eml into a renderable email; 422s when it is not an email. */
+export function getDocumentEmailPreview(documentId: string) {
+  return apiFetch(`/documents/${documentId}/email`, {
+    schema: EmailPreviewSchema,
+    timeoutMs: 60_000,
+  });
+}
+
+export function downloadEmailAttachment(
+  documentId: string,
+  index: number,
+  fileName: string,
+) {
+  return downloadFile(
+    `/documents/${documentId}/email/attachments/${index}`,
+    fileName,
+  );
 }
 
 export function deleteInvoiceDocument(documentId: string) {

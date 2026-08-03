@@ -197,6 +197,7 @@ export function fileIcon(name: string): string {
   if (['xls', 'xlsx', 'csv'].includes(ext)) return '📗';
   if (['ppt', 'pptx'].includes(ext)) return '📙';
   if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'tif', 'tiff'].includes(ext)) return '🖼️';
+  if (['msg', 'eml'].includes(ext)) return '📧';
   if (['txt', 'md', 'xml'].includes(ext)) return '📄';
   if (['zip', 'tar', 'gz', '7z', 'rar'].includes(ext)) return '🗜️';
   return '📎';

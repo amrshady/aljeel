@@ -149,6 +149,36 @@ export class DocumentsController {
     stream.pipe(res);
   }
 
+  @Get('documents/:id/email')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @ApiOperation({
+    summary: 'Parse a stored .msg/.eml document into a renderable email preview',
+  })
+  emailPreview(@CurrentUser() user: AuthUser, @Param('id') documentId: string) {
+    return this.documentsService.getEmailPreview(user, documentId);
+  }
+
+  @Get('documents/:id/email/attachments/:index')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @ApiOperation({ summary: 'Download a file attached to a stored email' })
+  async emailAttachment(
+    @CurrentUser() user: AuthUser,
+    @Param('id') documentId: string,
+    @Param('index') index: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const attachment = await this.documentsService.getEmailAttachment(
+      user,
+      documentId,
+      Number(index),
+    );
+    res.set({ 'Content-Length': String(attachment.content.length) });
+    return new StreamableFile(attachment.content, {
+      type: attachment.mimeType,
+      disposition: `attachment; filename="${encodeURIComponent(attachment.fileName)}"`,
+    });
+  }
+
   @Patch('documents/:id')
   @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({

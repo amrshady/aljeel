@@ -267,6 +267,13 @@
     "viewerError": "Could not load preview",
     "viewerUnsupported": "Preview not available for this file type",
     "viewerOpenTab": "Open in new tab",
+    "emailNoSubject": "(No subject)",
+    "emailFrom": "From",
+    "emailTo": "To",
+    "emailCc": "Cc",
+    "emailDate": "Sent",
+    "emailEmptyBody": "This email has no message body",
+    "emailImagesBlocked": "{count, plural, one {# image was not shown} other {# images were not shown}}",
     "searchFiles": "Search files…",
     "searchNoResults": "No matching files",
     "searchMatchCount": "{count, plural, one {# match} other {# matches}}"

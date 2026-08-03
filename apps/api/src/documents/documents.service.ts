@@ -17,6 +17,7 @@ import {
   normalizeDocumentRelativePath,
   resolveDocumentMimeType,
   sanitizeEvidenceRelativePath,
+  sniffEmailFormat,
   type DocumentType,
 } from '@aljeel/shared-types';
 import { Prisma } from '@prisma/client';
@@ -25,6 +26,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../storage/storage.service';
 import { KbStorageService } from '../kb/kb-storage.service';
+import {
+  EmailParseError,
+  EmailPreviewService,
+  type EmailAttachmentContent,
+} from './email-preview.service';
 import type { AuthUser } from '../auth/auth.types';
 import { getSupplierScope } from '../auth/guards/tenant.guard';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
@@ -58,6 +64,12 @@ const UPLOAD_ALLOWED_STATUSES = new Set([
 
 /** Rename is pre-submit only (Jawal vendors need to fix evidence paths before Gate B). */
 const RENAME_ALLOWED_STATUSES = new Set(['DRAFT', 'REJECTED']);
+
+/** Email preview holds the whole message in memory, so cap it well below the upload limit. */
+const MAX_EMAIL_PREVIEW_BYTES = 40 * 1024 * 1024;
+
+/** Enough bytes for the OLE signature or the first RFC 822 headers. */
+const EMAIL_SNIFF_BYTES = 4096;
 
 function canApEditDocuments(user: AuthUser): boolean {
   return isApUser(user);
@@ -95,6 +107,7 @@ export class DocumentsService {
     private readonly audit: AuditService,
     private readonly storage: StorageService,
     private readonly kb: KbStorageService,
+    private readonly emailPreview: EmailPreviewService,
   ) {}
 
   usesKbUpload(): boolean {
@@ -318,6 +331,98 @@ export class DocumentsService {
     const localKey = document.storageKey.replace(/^local:/, '');
     const stream = this.storage.createReadStream(localKey);
     return { document, stream };
+  }
+
+  /**
+   * Renders a stored `.msg`/`.eml` as structured JSON. Outlook exports often
+   * lose their extension when the subject is long, so the format is decided by
+   * sniffing the leading bytes rather than trusting the file name.
+   */
+  async getEmailPreview(user: AuthUser, documentId: string) {
+    const { document, format } = await this.resolveEmailDocument(user, documentId);
+    const buffer = await this.readDocumentBuffer(document);
+    try {
+      return await this.emailPreview.parse(buffer, format);
+    } catch (error) {
+      if (error instanceof EmailParseError) {
+        throw new UnprocessableEntityException({
+          code: 'EMAIL_PARSE_FAILED',
+          message: 'This email could not be read.',
+        });
+      }
+      throw error;
+    }
+  }
+
+  async getEmailAttachment(user: AuthUser, documentId: string, index: number) {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new UnprocessableEntityException({
+        code: 'INVALID_ATTACHMENT_INDEX',
+        message: 'Attachment index must be a non-negative integer.',
+      });
+    }
+    const { document, format } = await this.resolveEmailDocument(user, documentId);
+    const buffer = await this.readDocumentBuffer(document);
+
+    let attachment: EmailAttachmentContent | null;
+    try {
+      attachment = await this.emailPreview.readAttachment(buffer, format, index);
+    } catch (error) {
+      if (error instanceof EmailParseError) {
+        throw new UnprocessableEntityException({
+          code: 'EMAIL_PARSE_FAILED',
+          message: 'This email could not be read.',
+        });
+      }
+      throw error;
+    }
+    if (!attachment) {
+      throw new NotFoundException({
+        code: 'EMAIL_ATTACHMENT_NOT_FOUND',
+        message: 'Attachment not found in this email.',
+      });
+    }
+    return attachment;
+  }
+
+  private async resolveEmailDocument(user: AuthUser, documentId: string) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      include: { invoice: true },
+    });
+    if (!document) {
+      throw this.documentNotFound();
+    }
+    await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
+    this.assertDocumentVisible(user, document);
+
+    if (document.sizeBytes > MAX_EMAIL_PREVIEW_BYTES) {
+      throw new UnprocessableEntityException({
+        code: 'EMAIL_TOO_LARGE',
+        message: 'This email is too large to preview. Download it instead.',
+        details: { maxBytes: MAX_EMAIL_PREVIEW_BYTES },
+      });
+    }
+
+    const head = await this.readDocumentBuffer(document, EMAIL_SNIFF_BYTES);
+    const format = sniffEmailFormat(head);
+    if (!format) {
+      throw new UnprocessableEntityException({
+        code: 'NOT_AN_EMAIL',
+        message: 'This file is not an email message.',
+      });
+    }
+    return { document, format };
+  }
+
+  private async readDocumentBuffer(
+    document: DocumentRow,
+    maxBytes?: number,
+  ): Promise<Buffer> {
+    if (this.isKbStorageKey(document.storageKey)) {
+      return this.kb.readObject(document.storageKey, maxBytes);
+    }
+    return this.storage.read(document.storageKey.replace(/^local:/, ''), maxBytes);
   }
 
   async getForView(user: AuthUser, documentId: string) {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createReadStream, type ReadStream } from 'node:fs';
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 /**
@@ -30,6 +30,22 @@ export class StorageService {
 
   createReadStream(key: string): ReadStream {
     return createReadStream(this.absolutePath(key));
+  }
+
+  /** Reads a file into memory; `maxBytes` reads only a leading chunk. */
+  async read(key: string, maxBytes?: number): Promise<Buffer> {
+    const path = this.absolutePath(key);
+    if (!maxBytes) {
+      return readFile(path);
+    }
+    const handle = await open(path, 'r');
+    try {
+      const buffer = Buffer.alloc(maxBytes);
+      const { bytesRead } = await handle.read(buffer, 0, maxBytes, 0);
+      return buffer.subarray(0, bytesRead);
+    } finally {
+      await handle.close();
+    }
   }
 
   async exists(key: string): Promise<boolean> {

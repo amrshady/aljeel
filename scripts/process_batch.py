@@ -1775,7 +1775,8 @@ def process_batch(
                 pass
             break
 
-    out_filename = f"Spreadsheet-{inv_no}-FILLED-{output_suffix}.xlsx" if inv_no else f"Spreadsheet-FILLED-{output_suffix}.xlsx"
+    portal_batch_id = re.sub(r"^jawal-", "", batch_dir.name, flags=re.IGNORECASE).strip()
+    out_filename = f"Spreadsheet-{portal_batch_id}-FILLED-{output_suffix}.xlsx" if portal_batch_id else f"Spreadsheet-FILLED-{output_suffix}.xlsx"
     out_path = output_dir / out_filename
 
     # --- Enrich email cache ---

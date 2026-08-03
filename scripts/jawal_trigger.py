@@ -185,7 +185,12 @@ def _stage_jawal_portal_docs(batch_id: str, folder_name: str) -> tuple[Path, Pat
     invoice_path = None
     invoice_entry = None
     if excel_candidates:
-        invoice_entry = next((i for i in excel_candidates if "inv" in i[2].lower()), excel_candidates[0])
+        invoice_candidates = [i for i in excel_candidates if "inv" in i[2].lower()]
+        genuine_invoice_candidates = [
+            i for i in invoice_candidates
+            if "refund" not in i[2].lower() and "credit" not in i[2].lower()
+        ]
+        invoice_entry = next(iter(genuine_invoice_candidates or invoice_candidates), excel_candidates[0])
         dst_invoice = batch_dir / "invoice-source.xlsx"
         _atomic_copy(invoice_entry[0], dst_invoice)
         invoice_path = str(dst_invoice)

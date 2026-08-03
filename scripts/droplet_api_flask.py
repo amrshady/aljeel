@@ -573,6 +573,12 @@ def _resolve_jawal_batch_paths(batch_id):
             except OSError:
                 xlsx_candidates = []
             if xlsx_candidates:
+                genuine_candidates = [
+                    p for p in xlsx_candidates
+                    if "refund" not in p.name.lower() and "credit" not in p.name.lower()
+                ]
+                if genuine_candidates:
+                    xlsx_candidates = genuine_candidates
                 src_invoice = sorted(xlsx_candidates, key=lambda p: p.name)[0]
                 try:
                     shutil.copy2(src_invoice, dst_invoice)

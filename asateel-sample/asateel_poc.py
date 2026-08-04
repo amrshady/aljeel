@@ -1332,7 +1332,7 @@ def _canonical_jq(raw: Any, *, allow_bare: bool = True) -> str:
     m = re.search(r"\bJQ\s*-\s*(\d+)(?=\b|_)", text)
     if m:
         return f"JQ-{m.group(1).zfill(8)}"
-    if allow_bare and re.fullmatch(r"\d+", text):
+    if allow_bare and re.fullmatch(r"\d{1,8}", text):
         return f"JQ-{text.zfill(8)}"
     return ""
 
@@ -1352,7 +1352,7 @@ def _split_jqs(raw: Any, *, allow_bare: bool = True) -> list[str]:
         if jq not in seen:
             seen.add(jq)
             out.append(jq)
-    if allow_bare and not out and re.fullmatch(r"\d+", text):
+    if allow_bare and not out and re.fullmatch(r"\d{1,8}", text):
         out.append(f"JQ-{text.zfill(8)}")
     return out
 
@@ -1644,7 +1644,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         if not row_inv:
             continue
         jq = _clean(cell(vals, "jq"))
-        parsed_jqs = _split_jqs(jq, allow_bare=False)
+        parsed_jqs = _split_jqs(jq)
         employee_name = _clean(cell(vals, "employee_name"))
         agency = _clean(cell(vals, "agency"))
         division = _clean(cell(vals, "division"))
@@ -1664,6 +1664,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         rec_base = {
             "row": ridx,
             "invoice_no": row_inv,
+            "_invoice_is_rowlocal": bool(header_inv or description_inv),
             "description": description,
             "jq": jq,
             "_source_jq_cell": jq,
@@ -1682,7 +1683,7 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
         rec_base["solution_code"] = solution_code
         rec_base["solution_name"] = solution_name
         rec_base["solution_note"] = solution_note
-        jqs = parsed_jqs or ([_canonical_jq(jq, allow_bare=False)] if _canonical_jq(jq, allow_bare=False) else [jq])
+        jqs = parsed_jqs or ([_canonical_jq(jq)] if _canonical_jq(jq) else [jq])
         for jq_index, jq_token in enumerate(jqs, start=1):
             rec = dict(rec_base)
             rec["jq"] = jq_token
@@ -1698,21 +1699,15 @@ def load_expenses_format(path: Path, lookups: Lookups) -> dict[str, list[dict[st
 def supplier_jq_units_for_invoice(invoice_no: Any, supplier_index: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     units = []
     for rec in supplier_index.get(_code(invoice_no, 5), []):
-        jq = _canonical_jq(rec.get("jq"), allow_bare=False)
+        jq = _canonical_jq(rec.get("jq"))
         source_jq = _clean(rec.get("_source_jq_cell"))
         # A supplier row with a genuinely blank JQ is still an allocation unit.
         # Warehouse rows legitimately have no JQ, so dropping them here loses
         # supplier amount/segments before the Warehouse pin can be applied.
         # Keep rejecting nonblank malformed JQs to preserve existing validation.
-        if source_jq and not jq.startswith("JQ-"):
+        if source_jq and not jq:
             continue
-        if not source_jq and not (
-            rec.get("amount") is not None
-            and any(
-                _clean(rec.get(field))
-                for field in ("agency", "cost_center", "division", "solution")
-            )
-        ):
+        if rec.get("amount") is None or not (jq or rec.get("_invoice_is_rowlocal")):
             # Header fill-down also associates template/signature/total rows
             # with an invoice. They are not supplier allocation lines.
             continue

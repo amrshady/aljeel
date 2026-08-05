@@ -1,9 +1,10 @@
 [Unit]
-Description=Run KB sync every 60 seconds
+Description=Run KB sync five minutes after the previous run completes
 
 [Timer]
-OnBootSec=60s
-OnUnitActiveSec=60s
+OnBootSec=5min
+OnUnitInactiveSec=5min
+AccuracySec=10s
 Unit=kb-sync.service
 
 [Install]

@@ -399,9 +399,12 @@ def call_gemini(prompt: str, model: str, retries: int = 3) -> dict:
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.05,
+            "temperature": 0,
+            "seed": 42,
+            "candidateCount": 1,
             "maxOutputTokens": 8192,
             "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
     last_err = None

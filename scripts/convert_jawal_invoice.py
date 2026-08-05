@@ -54,7 +54,31 @@ HEADERS = [
     "Tax Classification Code[..]",
     "Employee No",
     "Invoice Ref No",
+    "Agent Flags",
 ]
+
+KSA_AIRPORT_TOKENS = {
+    "RUH", "JED", "DMM", "MED", "AHB", "ABT", "HOF", "RAE", "BHH",
+    "DWD", "ELQ", "GIZ", "URY", "AQI", "HAS", "AJF", "QJB", "EAM",
+    "NUM", "RAH", "SHW", "SLF", "TUU", "TIF", "TUI", "WAE", "EJH",
+    "YNB", "ULH", "ZUL", "KMX", "DHA", "HBT", "MJH", "AKH", "KMC",
+}
+KSA_RAIL_TOKENS = {"RYD", "MAK", "MED", "JED", "DMM", "HOF"}
+KNOWN_INTERNATIONAL_ROUTE_TOKENS = {
+    "BRU", "CAI", "CDG", "CMN", "DOH", "DXB", "FCO", "IST", "LHR", "LYS",
+    "MUC", "ZRH",
+}
+ROUTE_NOISE_TOKENS = {"TRAIN", "TO", "FROM", "VIA", "AND", "THE"}
+KSA_DESTINATION_TERMS = {
+    "SAUDI", "RIYADH", "JEDDAH", "DAMMAM", "MADINAH", "MEDINA", "MAKKAH",
+    "MECCA", "HOFUF", "KHOBAR", "ABHA", "TABUK", "TAIF", "YANBU",
+}
+INTERNATIONAL_DESTINATION_TERMS = {
+    "BARCELONA", "SPAIN", "MUNICH", "GERMANY", "DUBAI", "UAE", "DOHA",
+    "QATAR", "LONDON", "UK", "PARIS", "FRANCE", "BRUSSELS", "BELGIUM",
+    "ZURICH", "SWITZERLAND", "CAIRO", "EGYPT", "ISTANBUL", "TURKEY",
+    "CASABLANCA", "MOROCCO", "LYON",
+}
 
 GREEN_FILL = PatternFill("solid", fgColor="C6EFCE")
 HEADER_FILL = PatternFill("solid", fgColor="0070C0")
@@ -269,6 +293,42 @@ def classify_line(line, employees):
     }
 
 
+def derive_tax_classification(line):
+    """Derive Oracle tax code from amount and route geography, never vendor VAT."""
+    flags = []
+    amount = round(_safe_float(line.get("taxable_amt")), 2)
+    route = str(line.get("route") or "").strip()
+
+    if amount == 0:
+        code = "KSA VAT ZERO"
+    else:
+        is_train = bool(re.search(r"\bTRAIN\b", route, re.IGNORECASE))
+        is_flight = bool(re.fullmatch(r"\d{10}", str(line.get("ticket_no") or "").strip()))
+        raw_tokens = re.findall(r"(?<![A-Z])[A-Z]{3}(?![A-Z])", route.upper())
+        tokens = (
+            [token for token in raw_tokens if token not in ROUTE_NOISE_TOKENS]
+            if is_train or is_flight else []
+        )
+        ksa_tokens = KSA_AIRPORT_TOKENS | (KSA_RAIL_TOKENS if is_train else set())
+        if tokens:
+            code = "KSA VAT STANDARD" if all(t in ksa_tokens for t in tokens) else "KSA VAT ZERO"
+            if any(t not in ksa_tokens and t not in KNOWN_INTERNATIONAL_ROUTE_TOKENS for t in tokens):
+                flags.append("TAX_CODE_UNKNOWN_TOKEN")
+        else:
+            text_tokens = set(re.findall(r"[A-Z]+", route.upper()))
+            if text_tokens & INTERNATIONAL_DESTINATION_TERMS:
+                code = "KSA VAT ZERO"
+            elif text_tokens & KSA_DESTINATION_TERMS:
+                code = "KSA VAT STANDARD"
+            else:
+                code = "KSA VAT ZERO"
+            flags.append("TAX_CODE_NEEDS_REVIEW")
+
+    if (_safe_float(line.get("vat_pct")) == 15) != (code == "KSA VAT STANDARD"):
+        flags.append("VENDOR_VAT_MISMATCH")
+    return code, flags
+
+
 def _create_workbook():
     wb = Workbook()
     ws = wb.active
@@ -332,7 +392,7 @@ def write_spreadsheet(metadata, lines, employees, batch_dir):
         cls = classify_line(line, employees)
         cost_center = cls.get("cost_center")
         dist_combo = f"{cls['gl_account']}.{int(cost_center)}" if cost_center else cls["gl_account"]
-        tax_code = "KSA VAT STANDARD" if line.get("vat_pct") == 15 else "KSA VAT ZERO"
+        tax_code, tax_flags = derive_tax_classification(line)
         desc = f"{line['passenger_name']} - {line['route']} ({line['ticket_no']})"
 
         # RULE 6 Column M: line item EXCLUDING VAT.
@@ -361,6 +421,7 @@ def write_spreadsheet(metadata, lines, employees, batch_dir):
             tax_code,
             cls.get("emp_no") or "",
             line.get("ref_no") or "",
+            " ".join(tax_flags),
         ]
 
         for c, value in enumerate(values, start=1):

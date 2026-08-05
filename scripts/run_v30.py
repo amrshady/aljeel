@@ -415,6 +415,48 @@ def find_folder_v25(
             if ticket_no in text:
                 return f
 
+    # Jawal-only additive fallback: match an unambiguous passenger name in
+    # evidence filenames after every exact/ref/content lookup has failed.
+    title_tokens = {"MR", "MRS", "MS", "MISS", "DR", "ENG", "CHD", "INF"}
+    passenger_tokens = {
+        token for token in re.findall(r"[A-Z]+", (passenger or "").upper())
+        if len(token) >= 3 and token not in title_tokens
+    }
+    if len(passenger_tokens) >= 2:
+        matching_folders: list[tuple[Path, list[str]]] = []
+        for folder in all_folders:
+            if not folder.is_dir():
+                continue
+            try:
+                filenames = [child.name for child in fea.iter_evidence_files(folder)]
+            except (OSError, PermissionError):
+                continue
+            if any(
+                len(passenger_tokens & set(re.findall(r"[A-Z]+", name.upper()))) >= 2
+                for name in filenames
+            ):
+                matching_folders.append((folder, filenames))
+
+        folders_by_basename: dict[str, list[Path]] = {}
+        for folder, _filenames in matching_folders:
+            folders_by_basename.setdefault(folder.name, []).append(folder)
+
+        if len(folders_by_basename) == 1:
+            return sorted(
+                next(iter(folders_by_basename.values())), key=lambda p: str(p)
+            )[0]
+        if len(folders_by_basename) > 1:
+            pc_emp_nos = {
+                match.group(1)
+                for _folder, filenames in matching_folders
+                for name in filenames
+                for norm in [re.sub(r"[^a-z0-9]+", " ", name.casefold())]
+                if _PC_SIGNAL in norm
+                for match in re.finditer(r"(?<!\d)(1\d{6})(?!\d)", norm)
+            }
+            if len(pc_emp_nos) == 1:
+                return sorted((folder for folder, _names in matching_folders), key=lambda p: str(p))[0]
+
     return None
 
 
@@ -770,11 +812,23 @@ OPEX FORM TEXT:
 
 def _find_opex_pdfs(folder_path):
     """Find OPEX PDFs recursively, matching full-evidence folder traversal."""
+    def is_opex_pdf(pdf_path):
+        if re.search(r"opex", pdf_path.name, re.IGNORECASE):
+            return True
+        try:
+            import fitz
+            with fitz.open(str(pdf_path)) as doc:
+                text = "\n".join(doc[i].get_text() for i in range(min(2, len(doc))))
+        except Exception:
+            return False
+        text = text.lower()
+        return "sponsoring payment form" in text and "event allocation details" in text
+
     try:
         return sorted(
             f for f in folder_path.rglob("*")
             if f.is_file() and f.suffix.lower() == ".pdf"
-            and re.search(r"opex", f.name, re.IGNORECASE)
+            and is_opex_pdf(f)
         )
     except OSError:
         return []
@@ -2703,6 +2757,9 @@ INVOICE_REF_EMP_FILENAME_FLAG = "INVOICE_REF_EMP_FILENAME_MATCH"
 INVOICE_REF_FUZZY_FLAG = "REF_FUZZY"
 REFNO_FALLBACK_FLAG = "REFNO_FALLBACK"
 EMP_FILENAME_FALLBACK_FLAG = "EMP_FILENAME_FALLBACK"
+SPONSORSHIP_ACCOUNT = "60307021"
+ANNUAL_TICKET_ACCOUNT = "21070229"
+SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED = "SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED"
 HASH_EVIDENCE_FOLDER_RE = re.compile(r"^(?=[A-F0-9]{8,}$)(?=.*[A-F])[A-F0-9]+$", re.IGNORECASE)
 EMP_FILENAME_RE = re.compile(r"(?<!\d)(\d{6,7})(?!\d)")
 TICKET_SCAN_RE = re.compile(r"\b(\d{10})\b")
@@ -2768,6 +2825,27 @@ def _row_invoice_ref_no(cascade_row: dict) -> str:
 
 def _invoice_ref_is_event(ref_no: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-z]+-\d{1,4}-\d{2,4}", str(ref_no or "").strip()))
+
+
+def _row_has_sponsorship_evidence(hybrid_row: dict, cascade_row: dict) -> bool:
+    account_values = {
+        str(hybrid_row.get("account", "") or "").strip(),
+        str(cascade_row.get("Account", "") or "").strip(),
+    }
+    if SPONSORSHIP_ACCOUNT in account_values:
+        return True
+    evidence = " ".join(str(v or "") for v in (
+        hybrid_row.get("_flags"), hybrid_row.get("_agent_flag_details"),
+        hybrid_row.get("_route_reason"), hybrid_row.get("_classify"),
+        hybrid_row.get("_opex_serial"), cascade_row.get("Agent Flags"),
+        cascade_row.get("OPEX Serial"),
+    )).upper()
+    if "SPONSORSHIP_" in evidence or "SHARED_OPEX_SPONSORSHIP" in evidence:
+        return True
+    ref_no = _row_invoice_ref_no(cascade_row)
+    return _invoice_ref_is_event(ref_no) and any(marker in evidence for marker in (
+        "INVOICE_REF_FOLDER_MATCH", "INVOICE_REF_FOLDER", "OPEX",
+    ))
 
 
 def _invoice_ref_sis_parts(ref_no: str) -> tuple[str, str, int] | None:
@@ -3287,12 +3365,17 @@ def stamp_missing_evidence_gate(
     invoice_ref_index: dict | None = None,
     emp_filename_index: dict[str, list[Path]] | None = None,
     claimed_folders: set[Path] | None = None,
+    all_folders: list[Path] | None = None,
+    reverse_index: dict[str, Path] | None = None,
+    enable_passenger_name_fallback: bool = False,
 ) -> int:
     gated = 0
     bundled_ticket_pdf_map = bundled_ticket_pdf_map or {}
     direct_ticket_index = direct_ticket_index or set()
     emp_filename_index = emp_filename_index or {}
     claimed_folders = claimed_folders if claimed_folders is not None else set()
+    all_folders = all_folders or []
+    reverse_index = reverse_index or {}
     for i, c in enumerate(cascade_rows):
         if not cascade_row_no_folder(c, ticket_folder_index, invoice_ref_index):
             ref_token = _row_reference_token(c)
@@ -3338,6 +3421,27 @@ def stamp_missing_evidence_gate(
                 )
             continue
         h = hybrid_rows[i]
+        if enable_passenger_name_fallback:
+            desc = str(c.get("Description", "") or "")
+            passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else desc.strip()
+            folder = find_folder_v25(
+                _row_ticket_no(c),
+                passenger,
+                str(c.get("Notes", "") or ""),
+                all_folders,
+                reverse_index,
+            )
+            if folder:
+                claimed_folders.add(folder.resolve(strict=False))
+                h["_missing_evidence_resolved"] = True
+                h["_evidence_folder"] = str(folder)
+                h["_route_reason"] = EMP_FILENAME_FALLBACK_FLAG
+                _append_hybrid_flag(h, EMP_FILENAME_FALLBACK_FLAG)
+                print(
+                    f"[passenger-name] row {i}: {passenger} -> {folder.name}",
+                    flush=True,
+                )
+                continue
         emp_no = str(h.get("emp_no", "") or "").strip()
         candidates = [
             folder for folder in emp_filename_index.get(emp_no, [])
@@ -4273,6 +4377,52 @@ def apply_booking_groups_inline_v25(out_xlsx: Path) -> tuple[int, int]:
     return propagated, conflicts
 
 
+def enforce_final_sponsorship_account_guard(
+    out_xlsx: Path,
+    hybrid_rows: list[dict],
+    cascade_rows: list[dict],
+    hdr_row: int,
+) -> int:
+    """Block late annual-account promotion of rows with sponsorship evidence."""
+    wb = openpyxl.load_workbook(out_xlsx)
+    ws = wb.active
+    cols = {
+        str(ws.cell(hdr_row, c).value or "").strip(): c
+        for c in range(1, ws.max_column + 1)
+    }
+    required = {"Account", "Distribution Combination[..]", "Agent Flags"}
+    if not required.issubset(cols):
+        print("[v30-sponsorship-guard] required columns missing; skipping", flush=True)
+        return 0
+
+    blocked = 0
+    for i, (hybrid_row, cascade_row) in enumerate(zip(hybrid_rows, cascade_rows)):
+        row_idx = int(hybrid_row.get("_row_idx") or (hdr_row + 1 + i))
+        account_cell = ws.cell(row_idx, cols["Account"])
+        if str(account_cell.value or "").strip() != ANNUAL_TICKET_ACCOUNT:
+            continue
+        if not _row_has_sponsorship_evidence(hybrid_row, cascade_row):
+            continue
+        account_cell.value = SPONSORSHIP_ACCOUNT
+        combo_cell = ws.cell(row_idx, cols["Distribution Combination[..]"])
+        parts = str(combo_cell.value or "").split("-")
+        if len(parts) >= 3:
+            parts[2] = SPONSORSHIP_ACCOUNT
+            combo_cell.value = "-".join(parts)
+        _append_cell_token(
+            ws.cell(row_idx, cols["Agent Flags"]),
+            SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED,
+        )
+        hybrid_row["account"] = SPONSORSHIP_ACCOUNT
+        _append_hybrid_flag(hybrid_row, SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED)
+        blocked += 1
+
+    if blocked:
+        wb.save(out_xlsx)
+    print(f"[v30-sponsorship-guard] {blocked} annual override(s) blocked", flush=True)
+    return blocked
+
+
 def sync_final_gl_descriptions(out_xlsx: Path, cascade_xlsx: Path, header_row: int) -> int:
     """Refresh GL Description AND all Block-2 name columns from the final combo.
 
@@ -5140,6 +5290,9 @@ def main():
         invoice_ref_index=invoice_ref_index,
         emp_filename_index=emp_filename_index,
         claimed_folders=claimed_evidence_folders,
+        all_folders=all_folders,
+        reverse_index=reverse_index,
+        enable_passenger_name_fallback=batch_dir.name.casefold().startswith("jawal-"),
     )
     fallback_rows = {
         i for i, h in enumerate(hybrid_rows)
@@ -6137,17 +6290,19 @@ def main():
     # ── stage 5: booking-group detection ──────────────────────────────────
     bg_propagated, bg_conflicts = apply_booking_groups_inline_v25(out_xlsx)
 
+    sponsorship_blocks = enforce_final_sponsorship_account_guard(
+        out_xlsx, hybrid_rows, cascade_rows, hdr_row
+    )
+
     # ── stage 5.4: final numeric segment display normalization ─────────────
     final_segments_normalized = normalize_final_segment_cells(out_xlsx, hdr_row)
 
     # ── stage 5.5: sync final derived descriptions after all combo mutations ──
     gl_synced = sync_final_gl_descriptions(out_xlsx, cascade_xlsx, hdr_row)
 
-    # ── stage 5.6: prefix OPEX serial onto sponsorship Descriptions (Labadi) ──
-    # Labadi prepends the OPEX serial to the line description on every
-    # sponsorship row ("{SERIAL}-{description}") so the serial lands in the
-    # Oracle journal line. Only rows with a real serial (not MISSING/N/A) AND
-    # sponsorship character (account=60307021, or blank/multi emp_no) qualify.
+    # ── stage 5.6: prefix invoice reference onto sponsorship Descriptions ──
+    # Prefer Invoice Ref No, falling back to OPEX Serial, so the reference lands
+    # in the Oracle journal line. Only final account=60307021 rows qualify.
     # Runs after stage 5 because booking-group detection parses Description —
     # the prefix must be the LAST Description mutation in the pipeline.
     try:
@@ -6156,9 +6311,9 @@ def main():
         _cols_dp = {}
         for _ci in range(1, _ws_dp.max_column + 1):
             _v = str(_ws_dp.cell(hdr_row, _ci).value or "").strip()
-            if _v in ("Description", "OPEX Serial", "Account", "Employee No"):
+            if _v in ("Description", "Invoice Ref No", "OPEX Serial", "Account"):
                 _cols_dp[_v] = _ci
-        if len(_cols_dp) < 4:
+        if not {"Description", "OPEX Serial", "Account"}.issubset(_cols_dp):
             print(f"[v30-desc-serial] columns missing (found {sorted(_cols_dp)}) — "
                   f"skipping Description prefix", flush=True)
         else:
@@ -6167,22 +6322,25 @@ def main():
                 if row_missing_evidence(_h):
                     continue
                 _r = _h["_row_idx"]
-                _serial = str(_ws_dp.cell(_r, _cols_dp["OPEX Serial"]).value or "").strip()
-                if not _serial or _serial.upper() in ("MISSING", "N/A", "NONE"):
-                    continue
                 _acct = str(_ws_dp.cell(_r, _cols_dp["Account"]).value or "").strip()
-                _emp  = str(_ws_dp.cell(_r, _cols_dp["Employee No"]).value or "").strip()
-                if not (_acct == "60307021" or _emp == "" or "," in _emp):
-                    continue  # not a sponsorship row — Description stays untouched
+                if _acct != SPONSORSHIP_ACCOUNT:
+                    continue
+                _ref = ""
+                if "Invoice Ref No" in _cols_dp:
+                    _ref = str(_ws_dp.cell(_r, _cols_dp["Invoice Ref No"]).value or "").strip()
+                if not _ref or _ref.upper() in ("MISSING", "N/A", "NONE"):
+                    _ref = str(_ws_dp.cell(_r, _cols_dp["OPEX Serial"]).value or "").strip()
+                if not _ref or _ref.upper() in ("MISSING", "N/A", "NONE"):
+                    continue
                 _desc_cell = _ws_dp.cell(_r, _cols_dp["Description"])
                 _desc = str(_desc_cell.value or "")
-                if not _desc or _desc.startswith(_serial):
+                if not _desc or re.match(rf"^\s*{re.escape(_ref)}-", _desc, flags=re.IGNORECASE):
                     continue  # empty or already prefixed
-                _desc_cell.value = f"{_serial}-{_desc}"
+                _desc_cell.value = f"{_ref}-{_desc}"
                 _prefixed += 1
             _wb_dp.save(str(out_xlsx))
             print(f"[v30-desc-serial] {_prefixed} sponsorship Description(s) prefixed "
-                  f"with OPEX serial", flush=True)
+                  f"with invoice reference", flush=True)
     except Exception as _dp_err:
         print(f"[v30-desc-serial] error prefixing Descriptions: {_dp_err}", flush=True)
 

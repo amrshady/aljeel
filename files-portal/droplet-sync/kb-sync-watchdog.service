@@ -1,0 +1,11 @@
+[Unit]
+Description=Guardrail watchdog for KB sync
+After=kb-sync.service
+
+[Service]
+Type=oneshot
+Environment=DF_TARGET=/mnt/aljeel-ap_kb
+ExecStart=/usr/local/bin/kb-sync-watchdog.sh
+User=root
+StateDirectory=kb-sync-watchdog
+StateDirectoryMode=0750

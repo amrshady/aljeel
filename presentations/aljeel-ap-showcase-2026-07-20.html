@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlJeel AP Automation — Asateel &amp; Jawal Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1E40AF; --blue:#2563EB; --gold:#B8860B; --sage:#F0F4F3;
+  --ink:#111827; --ink2:#6B7280; --line:#E5E7EB;
+  --ok:#16A34A; --warn:#D97706; --alert:#EA580C; --err:#DC2626;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  color:var(--ink); background:#0b1020; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;display:none;
+  flex-direction:column;justify-content:center;
+  padding:64px 88px; background:var(--sage);
+  overflow:auto;
+}
+.slide.active{display:flex;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Title slide */
+.slide.cover{background:var(--navy);color:#fff;justify-content:center}
+.cover .kicker{color:#93b4ff;font-weight:600;font-size:14px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+.cover h1{font-size:52px;font-weight:700;line-height:1.12;max-width:16ch;margin-bottom:22px}
+.cover p{font-size:19px;color:#dbe4ff;max-width:60ch;font-weight:400}
+.cover .meta{margin-top:44px;display:flex;gap:12px;flex-wrap:wrap}
+.cover .chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:7px 16px;font-size:13px;font-weight:500}
+.brandbar{position:absolute;top:40px;left:88px;display:flex;align-items:center;gap:12px}
+.brandbar .logo{width:30px;height:30px;border-radius:7px;background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+.brandbar span{font-weight:600;font-size:15px;letter-spacing:.02em}
+
+/* Content slides */
+.eyebrow{color:var(--blue);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:26px;height:2px;background:var(--gold);display:inline-block}
+h2{font-size:34px;font-weight:700;color:var(--navy);line-height:1.2;margin-bottom:8px}
+.sub{color:var(--ink2);font-size:16px;margin-bottom:30px;max-width:74ch}
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:22px 22px}
+.card h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:9px}
+.card p{font-size:14px;color:var(--ink2)}
+.card .ico{width:30px;height:30px;border-radius:7px;background:var(--sage);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:22px}
+.stat .num{font-size:40px;font-weight:700;color:var(--navy);line-height:1}
+.stat .lbl{font-size:13px;color:var(--ink2);margin-top:8px;font-weight:500}
+.stat.accent .num{color:var(--blue)}
+
+/* Pipeline flow */
+.flow{display:flex;align-items:stretch;gap:0;margin-top:8px}
+.step{flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 16px;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.step .n{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.1em}
+.step h4{font-size:15px;font-weight:600;color:var(--ink);margin:5px 0 6px}
+.step p{font-size:12.5px;color:var(--ink2);line-height:1.5}
+.arrow{display:flex;align-items:center;justify-content:center;width:34px;color:var(--blue);font-size:22px;flex:none}
+
+/* Table */
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+th{background:var(--navy);color:#fff;text-align:left;padding:12px 16px;font-size:13px;font-weight:600}
+td{padding:12px 16px;font-size:14px;border-top:1px solid var(--line)}
+tr:nth-child(even) td{background:#fafbfc}
+.badge{display:inline-block;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600}
+.b-ok{background:rgba(22,163,74,.14);color:var(--ok)}
+.b-warn{background:rgba(217,119,6,.15);color:var(--warn)}
+.b-info{background:rgba(37,99,235,.13);color:var(--blue)}
+
+ul.check{list-style:none;display:flex;flex-direction:column;gap:12px;margin-top:4px}
+ul.check li{display:flex;gap:12px;font-size:15px;color:var(--ink)}
+ul.check li::before{content:"✓";color:var(--ok);font-weight:700;flex:none;margin-top:1px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+
+.footer{position:absolute;bottom:26px;left:88px;right:88px;display:flex;justify-content:space-between;align-items:center;color:var(--ink2);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+.footer .r{display:flex;gap:8px;align-items:center}
+.cover .footer{border-color:rgba(255,255,255,.18);color:#b9c6ee;left:88px;right:88px}
+
+/* Nav */
+.nav{position:fixed;bottom:22px;right:26px;display:flex;gap:8px;z-index:50}
+.nav button{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.nav button:hover{background:var(--navy)}
+.pageno{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);color:var(--ink2);font-size:12px;z-index:50;font-weight:500}
+.cover ~ .pageno{color:#333}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.pill{background:var(--sage);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:12.5px;color:var(--ink);font-weight:500}
+.lead-num{font-weight:700;color:var(--blue)}
+@page{size:1280px 720px;margin:0}
+@media print{
+  .nav,.pageno{display:none}
+  html,body{height:auto;overflow:visible}
+  .deck{position:static;width:auto;height:auto;overflow:visible}
+  .slide{display:flex!important;position:relative;width:1280px;height:720px;page-break-after:always;break-after:page;inset:auto;overflow:hidden}
+  .slide:last-child{page-break-after:auto}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="brandbar"><div class="logo">A</div><span>Accord&nbsp;Partners</span></div>
+  <div class="kicker">AlJeel Medical · AP Automation Program</div>
+  <h1>Automating Accounts Payable across Asateel &amp; Jawal</h1>
+  <p>A single vendor platform where suppliers submit, the engine reconciles and allocates, and AP approves — with Oracle-ready output and a full audit trail.</p>
+  <div class="meta">
+    <span class="chip">Vendor Self-Service Portal · Live</span>
+    <span class="chip">Asateel Allocation Engine</span>
+    <span class="chip">Jawal Travel Reconciliation</span>
+  </div>
+  <div class="footer"><span>Program Review — July 2026</span><span class="r">Confidential · AlJeel Finance</span></div>
+</section>
+
+<!-- 2 THE PROBLEM / WHAT WE BUILT -->
+<section class="slide">
+  <div class="eyebrow">The Picture</div>
+  <h2>From manual coding to an automated AP pipeline</h2>
+  <p class="sub">Two high-volume vendor streams that used to be reconciled and GL-coded by hand are now processed end-to-end through one platform — supplier upload to Oracle upload file.</p>
+  <div class="grid g3">
+    <div class="card"><h3><span class="ico">📥</span>Suppliers submit</h3><p>Vendors upload invoices and full evidence packs through a secure self-service portal — no more email attachments.</p></div>
+    <div class="card"><h3><span class="ico">⚙️</span>Engine reconciles</h3><p>Automated allocation &amp; reconciliation engines resolve every line to cost center, agency, division and GL account.</p></div>
+    <div class="card"><h3><span class="ico">✅</span>AP approves</h3><p>Finance reviews exceptions in a queue, approves, and downloads an Oracle-ready upload file with a full audit trail.</p></div>
+  </div>
+  <div class="grid g4" style="margin-top:18px">
+    <div class="stat accent"><div class="num">2</div><div class="lbl">Vendor streams live (Asateel + Jawal)</div></div>
+    <div class="stat"><div class="num">100%</div><div class="lbl">Passwordless secured access (Cloudflare)</div></div>
+    <div class="stat"><div class="num">Oracle</div><div class="lbl">GL-coded output, ready to upload</div></div>
+    <div class="stat"><div class="num">Full</div><div class="lbl">Audit trail on every action</div></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">2 · The Picture</span></div>
+</section>
+
+<!-- 3 PLATFORM ARCHITECTURE -->
+<section class="slide">
+  <div class="eyebrow">The Platform</div>
+  <h2>One vendor platform, secured end to end</h2>
+  <p class="sub">ap-aljeel.accordpartners.ai — a NestJS + Next.js application behind Cloudflare Access, with role-based identity for both suppliers and AP staff.</p>
+  <div class="flow">
+    <div class="step"><div class="n">01</div><h4>Cloudflare Access</h4><p>Passwordless email + one-time code. Cloudflare verifies identity before the portal ever loads.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">02</div><h4>Role resolution</h4><p>Verified email maps to a Supplier user or an AP staff role — anything else is denied.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">03</div><h4>Submit &amp; validate</h4><p>Suppliers upload invoice + evidence; the platform validates the pack before it enters review.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">04</div><h4>Reconcile &amp; approve</h4><p>Approval triggers the engine; AP downloads the Oracle upload file when done.</p></div>
+  </div>
+  <div class="grid g3" style="margin-top:24px">
+    <div class="card"><h3><span class="ico">🔐</span>Zero passwords</h3><p>No credentials to manage or leak — identity is owned by Cloudflare Access with OTP.</p></div>
+    <div class="card"><h3><span class="ico">👥</span>Role-aware</h3><p>Suppliers see only their own invoices; AP sees the review queue across all vendors.</p></div>
+    <div class="card"><h3><span class="ico">🧾</span>Self-service</h3><p>Suppliers track status live: Draft → Under review → Approved / On hold / Rejected.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">3 · Platform</span></div>
+</section>
+
+<!-- 4 ASATEEL OVERVIEW -->
+<section class="slide">
+  <div class="eyebrow">Asateel · Fleet &amp; Transportation</div>
+  <h2>The Asateel allocation engine</h2>
+  <p class="sub">Asateel is an <strong>allocation</strong> problem: every transportation ride (JQ) must be resolved to the correct agency, cost center, division and GL account — across five regions — and split when a ride serves multiple agencies.</p>
+  <div class="two-col">
+    <div>
+      <ul class="check">
+        <li>Reads the full multi-page invoice PDF plus the daily shipping report — ride → dispatch → customer → division.</li>
+        <li>Oracle SO_Detail export is the <strong>authoritative</strong> source for agency assignment (system of record).</li>
+        <li>Canonical JQ normalization so every reference matches cleanly against Oracle.</li>
+        <li>Multi-agency rides are split evenly with finance-approved cost-center inheritance.</li>
+        <li>Runs automatically on AP approval — no manual trigger, picks up engine fixes on the next run.</li>
+      </ul>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;align-content:start">
+      <div class="stat accent"><div class="num">5</div><div class="lbl">Regions: Central, Eastern, Western, P&amp;T, Main</div></div>
+      <div class="stat"><div class="num">827</div><div class="lbl">Multi-agency rides split automatically</div></div>
+      <div class="stat"><div class="num">Live</div><div class="lbl">Deployed &amp; portal-triggered</div></div>
+      <div class="stat"><div class="num">Auto</div><div class="lbl">Re-run available from the AP panel</div></div>
+    </div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">4 · Asateel</span></div>
+</section>
+
+<!-- 5 ASATEEL QUALITY / GOLDEN GATE -->
+<section class="slide">
+  <div class="eyebrow">Asateel · Quality Gate</div>
+  <h2>Locked, regression-proof accuracy</h2>
+  <p class="sub">Every engine change must pass a "golden" quality gate before it can ship — a frozen expected result that guarantees no silent regressions. Current baseline is deployed and green.</p>
+  <div class="grid g4">
+    <div class="stat accent"><div class="num">188</div><div class="lbl">Lines in the golden baseline</div></div>
+    <div class="stat"><div class="num">92 / 92</div><div class="lbl">Reconciled — fully balanced</div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">RED (unresolved) lines</div></div>
+    <div class="stat"><div class="num">GOLD&nbsp;OK</div><div class="lbl">Gate status on current build</div></div>
+  </div>
+  <div style="margin-top:22px" class="grid g3">
+    <div class="card"><h3><span class="badge b-ok">GREEN</span></h3><p>Fully auto-resolved lines — agency, cost center and GL all confirmed against Oracle.</p></div>
+    <div class="card"><h3><span class="badge b-warn">YELLOW</span></h3><p>Resolved with a review flag — e.g. authoritative Oracle agency overrode the supplier sheet, or a multi-agency split.</p></div>
+    <div class="card"><h3><span class="badge b-info">Traceable</span></h3><p>Any remaining gap points to a specific source fix — never a silent guess.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">5 · Asateel Quality</span></div>
+</section>
+
+<!-- 6 JAWAL OVERVIEW -->
+<section class="slide">
+  <div class="eyebrow">Jawal · Travel</div>
+  <h2>The Jawal travel reconciliation engine</h2>
+  <p class="sub">Jawal reconciles travel tickets and sponsorship/event spend against employee master data and an evidence pack — deciding the right employee, cost center, agency and GL account for every line.</p>
+  <div class="flow">
+    <div class="step"><div class="n">01</div><h4>Classify</h4><p>Each line is classified — employee travel, sponsorship, or unclear — from description, folder and approval email.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">02</div><h4>Resolve</h4><p>A deterministic cascade resolves the routine cases; AI resolves the hard evidence-driven ones.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">03</div><h4>Validate evidence</h4><p>Every ticket must have a matching evidence folder + approval doc before it can be trusted.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">04</div><h4>Output</h4><p>A resolved, GL-coded spreadsheet, delivered back through the portal for AP.</p></div>
+  </div>
+  <div class="pill-row" style="margin-top:24px">
+    <span class="pill">Employee-first two-call architecture</span>
+    <span class="pill">Deterministic cascade + AI exception handling</span>
+    <span class="pill">Sponsorship vs. travel logic</span>
+    <span class="pill">Personal-contribution detection</span>
+    <span class="pill">~$0.05–0.28 per batch</span>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">6 · Jawal</span></div>
+</section>
+
+<!-- 7 JAWAL BENCHMARKS -->
+<section class="slide">
+  <div class="eyebrow">Jawal · Accuracy (blind-scored)</div>
+  <h2>Benchmarked against finance ground truth</h2>
+  <p class="sub">Engine output scored blind against the finance team's own coded truth files — measuring the share of lines correct on all five fields (account, cost center, division, agency, employee).</p>
+  <table>
+    <thead><tr><th>Batch</th><th>Period</th><th>Lines</th><th>All-5 correct</th><th>Account</th><th>Cost Center</th></tr></thead>
+    <tbody>
+      <tr><td>J26-550</td><td>Apr 1–7</td><td>72</td><td><span class="badge b-warn">84.7%</span></td><td>94%</td><td>93%</td></tr>
+      <tr><td>J26-589</td><td>Apr 8–15</td><td>129</td><td><span class="badge b-warn">76.0%</span></td><td>91%</td><td>95%</td></tr>
+      <tr><td>J26-593</td><td>Apr 16–23</td><td>160</td><td><span class="badge b-warn">81.2%</span></td><td>96%</td><td>86%</td></tr>
+      <tr><td>J26-640</td><td>Apr 24–30</td><td>117</td><td><span class="badge b-ok">100%</span></td><td>100%</td><td>100%</td></tr>
+    </tbody>
+  </table>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="stat accent"><div class="num">85%</div><div class="lbl">Blended all-5 accuracy across 478 lines</div></div>
+    <div class="stat"><div class="num">100%</div><div class="lbl">On the golden batch (J26-640)</div></div>
+    <div class="stat"><div class="num">&lt; $0.30</div><div class="lbl">Typical AI cost per batch</div></div>
+  </div>
+  <p class="sub" style="margin-top:16px;font-size:13px">Remaining gaps trace to known, fixable source issues — stale Oracle manpower exports and a handful of employees not yet in master — not engine error.</p>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">7 · Jawal Accuracy</span></div>
+</section>
+
+<!-- 8 EVIDENCE VALIDATION / TRUST -->
+<section class="slide">
+  <div class="eyebrow">Trust &amp; Controls</div>
+  <h2>Nothing enters review unvalidated</h2>
+  <p class="sub">Before a Jawal submission reaches AP, the platform validates the entire evidence pack — files, structure and approvals — and tells the supplier exactly what to fix in plain language.</p>
+  <div class="two-col">
+    <div>
+      <h3 style="color:var(--navy);font-size:17px;margin-bottom:12px">Gate A — File integrity</h3>
+      <ul class="check">
+        <li>No empty or corrupt files</li>
+        <li>File content must match its extension (no disguised files)</li>
+        <li>PDFs must open; workbooks must be valid Excel</li>
+      </ul>
+      <h3 style="color:var(--navy);font-size:17px;margin:22px 0 12px">Gate B — Structure &amp; approvals</h3>
+      <ul class="check">
+        <li>Every ticket has a matching evidence folder</li>
+        <li>Every line carries the required approval (OPEX / email thread)</li>
+        <li>No orphan folders, no duplicate or malformed references</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card" style="border-left:4px solid var(--blue)">
+        <h3><span class="ico">🗣️</span>Supplier-friendly by design</h3>
+        <p style="margin-bottom:14px">Validation messages are written for the vendor, not the developer. When a large upload takes time, the supplier now waits and sees the <em>real</em> result — the exact folder or reference to fix — instead of a confusing technical error.</p>
+        <p><strong style="color:var(--ink)">Shipped today:</strong> larger submit window for big evidence packs + clear bilingual (EN/AR) error messages. Validation strength unchanged.</p>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3><span class="ico">📚</span>Full audit trail</h3>
+        <p>Every submit, approval, hold and rejection is recorded with who, when and what changed.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">8 · Controls</span></div>
+</section>
+
+<!-- 9 IMPACT -->
+<section class="slide">
+  <div class="eyebrow">Impact</div>
+  <h2>What this changes for AlJeel finance</h2>
+  <p class="sub">The program replaces manual, error-prone GL coding with a fast, auditable, self-service pipeline — freeing the AP team to review exceptions instead of typing codes.</p>
+  <div class="grid g2">
+    <div class="card"><h3><span class="ico">⏱️</span>Speed</h3><p>Reconciliation and GL coding that took hours per batch now runs automatically in minutes, triggered by a single approval.</p></div>
+    <div class="card"><h3><span class="ico">🎯</span>Accuracy</h3><p>Blind-scored against finance truth, with a locked quality gate that blocks any regression before it can ship.</p></div>
+    <div class="card"><h3><span class="ico">🔎</span>Transparency</h3><p>Suppliers self-serve and track status; AP sees a clean review queue; every action is on the audit trail.</p></div>
+    <div class="card"><h3><span class="ico">📈</span>Scalable</h3><p>The same platform pattern already spans two vendors and five regions — new vendors plug into the same rails.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">9 · Impact</span></div>
+</section>
+
+<!-- 10 ROADMAP / CLOSE -->
+<section class="slide cover" style="background:var(--navy)">
+  <div class="brandbar"><div class="logo">A</div><span>Accord&nbsp;Partners</span></div>
+  <div class="kicker">What's next</div>
+  <h1 style="font-size:40px">Deepening accuracy &amp; widening coverage</h1>
+  <div class="grid g3" style="margin-top:14px;width:100%">
+    <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)"><h3 style="color:#fff"><span class="ico" style="background:rgba(255,255,255,.12);color:#fff">1</span>Close source gaps</h3><p style="color:#cdd8f7">Refresh Oracle manpower &amp; master data to push Jawal all-5 accuracy toward the J26-640 100% mark on every batch.</p></div>
+    <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)"><h3 style="color:#fff"><span class="ico" style="background:rgba(255,255,255,.12);color:#fff">2</span>Onboard suppliers</h3><p style="color:#cdd8f7">Move remaining vendors onto self-service submission, retiring email-based intake.</p></div>
+    <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)"><h3 style="color:#fff"><span class="ico" style="background:rgba(255,255,255,.12);color:#fff">3</span>Add vendor streams</h3><p style="color:#cdd8f7">Reuse the Asateel/Jawal rails for the next AP vendors on the same platform.</p></div>
+  </div>
+  <p style="margin-top:34px;font-size:18px;color:#dbe4ff">Thank you — questions welcome.</p>
+  <div class="footer"><span>AlJeel Medical × Accord Partners</span><span class="r">Confidential · July 2026</span></div>
+</section>
+
+</div>
+
+<div class="pageno"><span id="cur">1</span> / <span id="tot">10</span></div>
+<div class="nav">
+  <button onclick="go(-1)">‹ Prev</button>
+  <button onclick="go(1)">Next ›</button>
+</div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+let i=0;document.getElementById('tot').textContent=slides.length;
+function show(n){slides[i].classList.remove('active');i=(n+slides.length)%slides.length;slides[i].classList.add('active');document.getElementById('cur').textContent=i+1}
+function go(d){show(i+d)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1);
+  if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1);
+});
+</script>
+</body>
+</html>

@@ -593,6 +593,7 @@ def resolve_line(
 
     # If employee not found
     if emp is None:
+        sol_flag = "Need to allocate"
         flags.append("EMPLOYEE_NOT_IN_MASTER")
         # Classify account first (may detect sponsorship from description)
         account, account_rule = classify_account(description, None, md)

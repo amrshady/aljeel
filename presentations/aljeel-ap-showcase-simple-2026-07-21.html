@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlJeel AP Automation — Simple Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1E40AF; --blue:#2563EB; --gold:#B8860B; --sage:#F0F4F3;
+  --ink:#111827; --ink2:#6B7280; --line:#E5E7EB;
+  --ok:#16A34A; --warn:#D97706; --alert:#EA580C; --err:#DC2626;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  color:var(--ink); background:#0b1020; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;display:none;
+  flex-direction:column;justify-content:center;
+  padding:64px 88px; background:var(--sage);
+  overflow:auto;
+}
+.slide.active{display:flex;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.slide.cover{background:var(--navy);color:#fff;justify-content:center}
+.cover .kicker{color:#93b4ff;font-weight:600;font-size:14px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+.cover h1{font-size:52px;font-weight:700;line-height:1.12;max-width:17ch;margin-bottom:22px}
+.cover p{font-size:20px;color:#dbe4ff;max-width:56ch;font-weight:400}
+.cover .meta{margin-top:44px;display:flex;gap:12px;flex-wrap:wrap}
+.cover .chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:8px 18px;font-size:14px;font-weight:500}
+.brandbar{position:absolute;top:40px;left:88px;display:flex;align-items:center;gap:12px}
+.brandbar .logo{width:30px;height:30px;border-radius:7px;background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+.brandbar span{font-weight:600;font-size:15px;letter-spacing:.02em}
+
+.eyebrow{color:var(--blue);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:26px;height:2px;background:var(--gold);display:inline-block}
+h2{font-size:36px;font-weight:700;color:var(--navy);line-height:1.2;margin-bottom:10px}
+.sub{color:var(--ink2);font-size:18px;margin-bottom:34px;max-width:72ch}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:26px}
+.card h3{font-size:19px;font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.card p{font-size:16px;color:var(--ink2)}
+.card .ico{width:38px;height:38px;border-radius:9px;background:var(--sage);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:24px}
+.stat .num{font-size:46px;font-weight:700;color:var(--navy);line-height:1}
+.stat .lbl{font-size:15px;color:var(--ink2);margin-top:10px;font-weight:500}
+.stat.accent .num{color:var(--blue)}
+
+.flow{display:flex;align-items:stretch;gap:0;margin-top:8px}
+.step{flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;padding:22px 20px;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.step .big{font-size:30px;margin-bottom:8px}
+.step h4{font-size:18px;font-weight:600;color:var(--ink);margin:0 0 8px}
+.step p{font-size:15px;color:var(--ink2);line-height:1.5}
+.arrow{display:flex;align-items:center;justify-content:center;width:40px;color:var(--blue);font-size:26px;flex:none}
+
+ul.check{list-style:none;display:flex;flex-direction:column;gap:16px;margin-top:4px}
+ul.check li{display:flex;gap:14px;font-size:18px;color:var(--ink)}
+ul.check li::before{content:"✓";color:var(--ok);font-weight:700;flex:none;margin-top:1px;font-size:20px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+
+.footer{position:absolute;bottom:26px;left:88px;right:88px;display:flex;justify-content:space-between;align-items:center;color:var(--ink2);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+.footer .r{display:flex;gap:8px;align-items:center}
+.cover .footer{border-color:rgba(255,255,255,.18);color:#b9c6ee}
+
+.nav{position:fixed;bottom:22px;right:26px;display:flex;gap:8px;z-index:50}
+.nav button{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.nav button:hover{background:var(--navy)}
+.pageno{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);color:var(--ink2);font-size:12px;z-index:50;font-weight:500}
+.big-quote{font-size:24px;color:var(--ink);max-width:70ch;line-height:1.5}
+.big-quote strong{color:var(--navy)}
+@page{size:1280px 720px;margin:0}
+@media print{
+  .nav,.pageno{display:none}
+  html,body{height:auto;overflow:visible}
+  .deck{position:static;width:auto;height:auto;overflow:visible}
+  .slide{display:flex!important;position:relative;width:1280px;height:720px;page-break-after:always;break-after:page;inset:auto;overflow:hidden}
+  .slide:last-child{page-break-after:auto}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- 1 COVER -->
+<section class="slide cover active">
+  <div class="brandbar"><div class="logo">A</div><span>Accord&nbsp;Partners</span></div>
+  <div class="kicker">AlJeel Medical · Accounts Payable</div>
+  <h1>Making supplier invoices fast, accurate and hands-off</h1>
+  <p>We built a system that takes supplier invoices from arrival to ready-for-payment — automatically — so the finance team can review instead of retype.</p>
+  <div class="meta">
+    <span class="chip">Two suppliers live: Asateel &amp; Jawal</span>
+    <span class="chip">Fewer manual hours</span>
+    <span class="chip">Fewer errors</span>
+  </div>
+  <div class="footer"><span>Program Review — July 2026</span><span class="r">Confidential · AlJeel Finance</span></div>
+</section>
+
+<!-- 2 THE PROBLEM -->
+<section class="slide">
+  <div class="eyebrow">The old way</div>
+  <h2>Why this was hard before</h2>
+  <p class="sub">Every month, suppliers sent invoices with lots of backup paperwork. The finance team had to open each one, figure out which department and budget line it belonged to, and type it into the accounting system by hand.</p>
+  <div class="grid g3">
+    <div class="card"><h3><span class="ico">📧</span>Scattered</h3><p>Invoices and evidence arrived by email — easy to lose, hard to track.</p></div>
+    <div class="card"><h3><span class="ico">⌨️</span>Manual</h3><p>Each line was coded by hand to the right department and budget — slow and tiring.</p></div>
+    <div class="card"><h3><span class="ico">⚠️</span>Error-prone</h3><p>Typing hundreds of lines means mistakes, and mistakes cost money.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">2 · The old way</span></div>
+</section>
+
+<!-- 3 THE NEW WAY (3 STEPS) -->
+<section class="slide">
+  <div class="eyebrow">The new way</div>
+  <h2>Now it's three simple steps</h2>
+  <p class="sub">One online portal handles everything from the supplier's upload to a finished file the accounting team can use.</p>
+  <div class="flow">
+    <div class="step"><div class="big">📤</div><h4>1. Supplier uploads</h4><p>The supplier logs into a secure website and uploads the invoice with its paperwork. No more email.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="big">🤖</div><h4>2. System sorts it</h4><p>The system reads every line and figures out the right department, budget and account — on its own.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="big">✅</div><h4>3. Finance approves</h4><p>The team checks only the items that need attention, approves, and gets a ready-to-use file.</p></div>
+  </div>
+  <div class="grid g4" style="margin-top:24px">
+    <div class="stat accent"><div class="num">2</div><div class="lbl">Suppliers live today</div></div>
+    <div class="stat"><div class="num">Minutes</div><div class="lbl">Instead of hours per batch</div></div>
+    <div class="stat"><div class="num">1</div><div class="lbl">Portal for everything</div></div>
+    <div class="stat"><div class="num">Every step</div><div class="lbl">Recorded automatically</div></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">3 · The new way</span></div>
+</section>
+
+<!-- 4 THE PORTAL -->
+<section class="slide">
+  <div class="eyebrow">The portal</div>
+  <h2>One secure website for everyone</h2>
+  <p class="sub">Suppliers and the finance team use the same online portal — each sees only what they should.</p>
+  <div class="grid g3">
+    <div class="card"><h3><span class="ico">🔐</span>Safe sign-in</h3><p>No passwords to remember or lose. You sign in with your email and a one-time code sent to you.</p></div>
+    <div class="card"><h3><span class="ico">👤</span>Right view for each person</h3><p>Suppliers see only their own invoices. The finance team sees the full review list.</p></div>
+    <div class="card"><h3><span class="ico">📊</span>Live status</h3><p>Suppliers can see where their invoice stands: submitted, under review, approved, or needs a fix.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">4 · The portal</span></div>
+</section>
+
+<!-- 5 ASATEEL -->
+<section class="slide">
+  <div class="eyebrow">Supplier 1 · Asateel (transportation)</div>
+  <h2>Sorting thousands of rides correctly</h2>
+  <p class="sub">Asateel bills for transportation. The challenge: each ride has to be charged to the right team and budget — and some rides serve more than one team, so the cost has to be split fairly.</p>
+  <div class="two-col">
+    <div>
+      <ul class="check">
+        <li>The system reads the full invoice and daily trip report automatically.</li>
+        <li>It checks each ride against AlJeel's official records to find the right team.</li>
+        <li>When a ride serves several teams, it splits the cost fairly between them.</li>
+        <li>It runs by itself the moment finance approves — no manual start.</li>
+      </ul>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;align-content:start">
+      <div class="stat accent"><div class="num">5</div><div class="lbl">Regions covered</div></div>
+      <div class="stat"><div class="num">827</div><div class="lbl">Shared rides split automatically</div></div>
+      <div class="stat"><div class="num">Live</div><div class="lbl">In use today</div></div>
+      <div class="stat"><div class="num">0</div><div class="lbl">Unresolved lines left over</div></div>
+    </div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">5 · Asateel</span></div>
+</section>
+
+<!-- 6 JAWAL -->
+<section class="slide">
+  <div class="eyebrow">Supplier 2 · Jawal (travel)</div>
+  <h2>Matching travel spend to the right person</h2>
+  <p class="sub">Jawal bills for travel tickets and sponsored events. For every line the system decides who travelled, which team pays, and which budget it belongs to — using the supporting paperwork.</p>
+  <div class="flow">
+    <div class="step"><div class="big">🏷️</div><h4>1. Sort the line</h4><p>Is it an employee trip, or a sponsored event? The system decides.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="big">🔎</div><h4>2. Match it</h4><p>It matches the line to the right employee, team and budget.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="big">📎</div><h4>3. Check the proof</h4><p>Every ticket must have its backup document and approval before it's trusted.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="big">📄</div><h4>4. Deliver</h4><p>A finished, fully coded file goes back to finance.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">6 · Jawal</span></div>
+</section>
+
+<!-- 7 HOW ACCURATE -->
+<section class="slide">
+  <div class="eyebrow">How well does it work?</div>
+  <h2>Checked against the finance team's own answers</h2>
+  <p class="sub">We tested the system on real past invoices and compared its work to the coding the finance team had done by hand. Here's how often it got everything right.</p>
+  <div class="grid g3">
+    <div class="stat accent"><div class="num">85%</div><div class="lbl">of Jawal lines fully correct on their own, across hundreds tested</div></div>
+    <div class="stat"><div class="num">100%</div><div class="lbl">correct on the most recent full test batch</div></div>
+    <div class="stat"><div class="num">Every</div><div class="lbl">remaining gap traces to a known record to update — not a system mistake</div></div>
+  </div>
+  <div class="card" style="margin-top:24px;border-left:4px solid var(--blue)">
+    <h3><span class="ico">🛡️</span>Nothing slips through</h3>
+    <p>Before the team ships any change, the system re-checks a locked set of known-correct results. If anything would break, it's blocked. And nothing reaches finance without its paperwork checked first.</p>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">7 · Accuracy</span></div>
+</section>
+
+<!-- 8 WHAT IT MEANS -->
+<section class="slide">
+  <div class="eyebrow">Why it matters</div>
+  <h2>What changes for AlJeel</h2>
+  <p class="sub">The finance team spends less time typing and more time reviewing — with fewer errors and a clear record of everything.</p>
+  <div class="grid g2">
+    <div class="card"><h3><span class="ico">⏱️</span>Faster</h3><p>Work that took hours per batch now finishes in minutes, started by a single approval.</p></div>
+    <div class="card"><h3><span class="ico">🎯</span>More accurate</h3><p>The system does the repetitive coding; people focus only on the exceptions.</p></div>
+    <div class="card"><h3><span class="ico">🔎</span>Clear &amp; traceable</h3><p>Every upload, approval and change is recorded — easy to audit, nothing hidden.</p></div>
+    <div class="card"><h3><span class="ico">📈</span>Ready to grow</h3><p>The same setup already covers two suppliers — new ones can plug into it.</p></div>
+  </div>
+  <div class="footer"><span>AlJeel AP Automation</span><span class="r">8 · Why it matters</span></div>
+</section>
+
+<!-- 9 CLOSE -->
+<section class="slide cover" style="background:var(--navy)">
+  <div class="brandbar"><div class="logo">A</div><span>Accord&nbsp;Partners</span></div>
+  <div class="kicker">What's next</div>
+  <h1 style="font-size:42px">More accuracy, more suppliers</h1>
+  <div class="grid g3" style="margin-top:14px;width:100%">
+    <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)"><h3 style="color:#fff"><span class="ico" style="background:rgba(255,255,255,.12);color:#fff">1</span>Keep records fresh</h3><p style="color:#cdd8f7">Update the underlying employee and department lists so accuracy climbs even higher.</p></div>
+    <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)"><h3 style="color:#fff"><span class="ico" style="background:rgba(255,255,255,.12);color:#fff">2</span>Bring in more suppliers</h3><p style="color:#cdd8f7">Move the rest of the suppliers onto the portal and retire email intake.</p></div>
+    <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)"><h3 style="color:#fff"><span class="ico" style="background:rgba(255,255,255,.12);color:#fff">3</span>Reuse what we built</h3><p style="color:#cdd8f7">Add new suppliers on the same system — no starting from scratch.</p></div>
+  </div>
+  <p style="margin-top:36px;font-size:20px;color:#dbe4ff">Thank you — happy to take questions.</p>
+  <div class="footer"><span>AlJeel Medical × Accord Partners</span><span class="r">Confidential · July 2026</span></div>
+</section>
+
+</div>
+
+<div class="pageno"><span id="cur">1</span> / <span id="tot">9</span></div>
+<div class="nav">
+  <button onclick="go(-1)">‹ Prev</button>
+  <button onclick="go(1)">Next ›</button>
+</div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+let i=0;document.getElementById('tot').textContent=slides.length;
+function show(n){slides[i].classList.remove('active');i=(n+slides.length)%slides.length;slides[i].classList.add('active');document.getElementById('cur').textContent=i+1}
+function go(d){show(i+d)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1);
+  if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1);
+});
+</script>
+</body>
+</html>

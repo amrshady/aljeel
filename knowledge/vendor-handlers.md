@@ -192,3 +192,23 @@ Fahmi/Shamsa HCP Sponsorship Agreements, SFDA declarations, attendees, agenda).
 Ref. No. blank, no fallback is possible — worth asking supplier to always populate Ref. No.
 
 **Status:** confirmed rule, pending Codex implementation + golden-gate verify on J26-1108.
+
+---
+
+## Jawal — Emp-Number-in-Filename Evidence Fallback (3rd-tier, added 2026-08-02)
+
+**Rule (ADDITIVE ONLY, Jawal-only):** third-tier fallback. Fires ONLY when a row still has
+NO evidence folder after (1) the existing per-row lookup AND (2) the Ref. No. fallback.
+Matches an unclaimed hash-named evidence folder to the row when an **employee number parsed
+from the folder's filename(s) EXACTLY equals the row's resolved emp_no**. No fuzzy/name
+matching. One folder -> one row (no double-claim). On hit: attach folder, flag
+`EMP_FILENAME_FALLBACK`, Evidence Folder Status MISSING->OK; row maps but stays auditable.
+
+**Origin case:** J26-1108 row 21 "MR WALEED BATAWEEL - TRAIN TO JED (26-996)", emp 1001008.
+Evidence in hash folder D2FBF61C4 (SAR train ticket PDF + Personal-Contribution approval
+.msg whose filename contains 1001008). Ticket 26-996 appears nowhere in folder/PDF, no Ref.
+No. on row — so only the emp-in-filename key catches it.
+
+**Result on J26-1108:** empty Distribution Combination rows 24 -> 10 (combined with Ref. No.
+fallback). EMP_FILENAME hits: rows 21/42/79/86 (train tickets in hash folders), 4 distinct
+folders. Committed master ac16b4d. Golden gate GOLDEN OK.

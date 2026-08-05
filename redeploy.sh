@@ -104,6 +104,7 @@ echo "web env -> $(cat "$ENVFILE")"
 if echo "$CHANGED" | grep -qE '^apps/api/|^packages/'; then
   log "API/shared changed — reinstalling + rebuilding API"
   "$PNPM" --dir "$REPO" install
+  "$PNPM" --dir "$REPO" --filter @aljeel/shared-types build
   "$PNPM" --dir "$REPO" --filter @aljeel/api build
   log "Restarting API (:$API_PORT)"
   pkill -f 'dist/src/main.js' 2>/dev/null || true

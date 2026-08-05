@@ -1,0 +1,6257 @@
+{
+  "schema_version": "jawal-accuracy-v2",
+  "report_date_utc": "2026-08-04",
+  "generated_at_utc": "2026-08-04T00:20:16.236066+00:00",
+  "provenance_statement": "State evidence only; no download event inferred. AuditEvent does not log DOWNLOAD, so absolute latest downloaded cannot be proven.",
+  "batches": [
+    {
+      "batch": "J26-1080",
+      "inputs": {
+        "truth": {
+          "path": "/home/clawdbot/.openclaw/media/inbound/J26-1080_Ready_to_upload---b121c957-a3cc-4c8e-9b5b-f62a30ca7036.xlsx",
+          "size_bytes": 160976,
+          "sha256": "3cd74dba5c316c03238e1b31961cad58214771652fd5274707d19a6aa7073908",
+          "filesystem_mtime_utc": "2026-08-03T21:55:30.873644+00:00",
+          "workbook_core_timestamps": {
+            "created": "2026-07-12T08:05:48Z",
+            "modified": "2026-08-02T13:27:27Z"
+          }
+        },
+        "produced": {
+          "path": "/home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-1080/output/Spreadsheet-J26-1080-FILLED-v30-SPLIT.xlsx",
+          "size_bytes": 43892,
+          "sha256": "3693ca0eddfdbc7a367eef070811c599e467ddd514853594517f1b3cf3853328",
+          "filesystem_mtime_utc": "2026-07-28T12:32:18.916924+00:00",
+          "workbook_core_timestamps": {
+            "created": "2026-07-27T11:32:49Z",
+            "modified": "2026-07-28T12:32:18Z"
+          }
+        }
+      },
+      "truth_ingest": {
+        "sheet": "Sheet1",
+        "header_row": 1,
+        "combination_source": "GL",
+        "data_rows": 84,
+        "combination_covered_rows": 83
+      },
+      "produced_ingest": {
+        "sheet": "Sheet1",
+        "header_row": 3,
+        "combination_source": "Distribution Combination[..]",
+        "data_rows": 86,
+        "combination_covered_rows": 83
+      },
+      "coverage": {
+        "truth": {
+          "numerator": 83,
+          "denominator": 84,
+          "percent": 98.8095
+        },
+        "produced": {
+          "numerator": 83,
+          "denominator": 86,
+          "percent": 96.5116
+        }
+      },
+      "alignment": {
+        "matched_rows": 75,
+        "eligible_covered_matched_rows": 75,
+        "unmatched_truth_rows": 9,
+        "unmatched_produced_rows": 11,
+        "ambiguous_groups": 1,
+        "ambiguous_truth_rows": 2,
+        "ambiguous_produced_rows": 2,
+        "method_counts": {
+          "ticket_core_amount_multiset": 9,
+          "ticket_core_unique": 66
+        }
+      },
+      "covered_matched_metrics": {
+        "all_5_exact": {
+          "numerator": 59,
+          "denominator": 75,
+          "percent": 78.6667
+        },
+        "segments": {
+          "account": {
+            "numerator": 67,
+            "denominator": 75,
+            "percent": 89.3333
+          },
+          "cost_center": {
+            "numerator": 68,
+            "denominator": 75,
+            "percent": 90.6667
+          },
+          "div": {
+            "numerator": 68,
+            "denominator": 75,
+            "percent": 90.6667
+          },
+          "solution": {
+            "numerator": 69,
+            "denominator": 75,
+            "percent": 92.0
+          },
+          "agency": {
+            "numerator": 68,
+            "denominator": 75,
+            "percent": 90.6667
+          }
+        }
+      },
+      "end_to_end": {
+        "scoring_universe": "all truth rows; unmatched, ambiguous, uncovered, or extra truth rows are padded misses",
+        "all_5_exact": {
+          "numerator": 59,
+          "denominator": 84,
+          "percent": 70.2381
+        },
+        "segments": {
+          "account": {
+            "numerator": 67,
+            "denominator": 84,
+            "percent": 79.7619
+          },
+          "cost_center": {
+            "numerator": 68,
+            "denominator": 84,
+            "percent": 80.9524
+          },
+          "div": {
+            "numerator": 68,
+            "denominator": 84,
+            "percent": 80.9524
+          },
+          "solution": {
+            "numerator": 69,
+            "denominator": 84,
+            "percent": 82.1429
+          },
+          "agency": {
+            "numerator": 68,
+            "denominator": 84,
+            "percent": 80.9524
+          }
+        }
+      },
+      "unmatched_truth": [
+        {
+          "row_id": "truth:Sheet1:12",
+          "excel_row": 12,
+          "ticket_core": "4860349397",
+          "amount": "676.68",
+          "description": "724 4860349397",
+          "employee": "1001422",
+          "covered": true,
+          "combination": "03-40100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:13",
+          "excel_row": 13,
+          "ticket_core": "4860349397",
+          "amount": "676.66",
+          "description": "724 4860349397",
+          "employee": "1002169",
+          "covered": true,
+          "combination": "03-40100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:15",
+          "excel_row": 15,
+          "ticket_core": null,
+          "amount": "195.65",
+          "description": "26-972",
+          "employee": "1000443",
+          "covered": true,
+          "combination": "03-40100-60301003-250010-120-00000-10206-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:30",
+          "excel_row": 30,
+          "ticket_core": null,
+          "amount": "369.56",
+          "description": "26-988",
+          "employee": "1002306",
+          "covered": true,
+          "combination": "03-10100-60301003-250010-120-00000-10206-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:53",
+          "excel_row": 53,
+          "ticket_core": null,
+          "amount": "6300.00",
+          "description": "26-989",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:54",
+          "excel_row": 54,
+          "ticket_core": null,
+          "amount": "6300.00",
+          "description": "26-990",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:55",
+          "excel_row": 55,
+          "ticket_core": null,
+          "amount": "6300.00",
+          "description": "26-991",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:84",
+          "excel_row": 84,
+          "ticket_core": null,
+          "amount": "208.70",
+          "description": "26-995",
+          "employee": "1001008",
+          "covered": true,
+          "combination": "03-40100-60301003-250010-120-00000-10206-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:93",
+          "excel_row": 93,
+          "ticket_core": null,
+          "amount": "",
+          "description": "",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        }
+      ],
+      "unmatched_produced": [
+        {
+          "row_id": "produced:Sheet1:15",
+          "excel_row": 15,
+          "ticket_core": "4860349397",
+          "amount": "676.67",
+          "description": "SIS-14-2026-ALSHAHRANI/ABDULWAHAB MR - STR ZRH (4860349397)",
+          "employee": "1002169",
+          "covered": true,
+          "combination": "03-40100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:16",
+          "excel_row": 16,
+          "ticket_core": "4860349397",
+          "amount": "676.67",
+          "description": "SIS-14-2026-ALSHAHRANI/ABDULWAHAB MR - STR ZRH (4860349397)",
+          "employee": "1001530",
+          "covered": true,
+          "combination": "03-40100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:17",
+          "excel_row": 17,
+          "ticket_core": null,
+          "amount": "195.65",
+          "description": "ABDELRAHMAN ALMADHOUN - TRAIN MED JED (26-972)",
+          "employee": "1000443",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:32",
+          "excel_row": 32,
+          "ticket_core": null,
+          "amount": "369.56",
+          "description": "MR ABDUL AZIZ ALBAZ - TRAIN RYD QASIM RYD (26-988)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:35",
+          "excel_row": 35,
+          "ticket_core": "4860401334",
+          "amount": "0.00",
+          "description": "EP-2026-18-AL MAHAID/MOHSEN MR - JED EAM (4860401334)",
+          "employee": "1002484",
+          "covered": true,
+          "combination": "03-40100-60307021-160014-170-10064-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:36",
+          "excel_row": 36,
+          "ticket_core": "4860401335",
+          "amount": "0.00",
+          "description": "EP-2026-18-ALSOLAIA/NASSER MR - JED EAM (4860401335)",
+          "employee": "1002484",
+          "covered": true,
+          "combination": "03-40100-60307021-160014-170-10064-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:37",
+          "excel_row": 37,
+          "ticket_core": "4860401336",
+          "amount": "0.00",
+          "description": "EP-2026-18-NOMAN/ABDULHAKIM MR - JED EAM (4860401336)",
+          "employee": "1002484",
+          "covered": true,
+          "combination": "03-40100-60307021-160014-170-10064-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:58",
+          "excel_row": 58,
+          "ticket_core": null,
+          "amount": "6300.00",
+          "description": "CRM-2026-38-ABDULRAHMAN ALABDUGADER - ESC Congress 2026 - Onsite Attendance in (26-989)",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:59",
+          "excel_row": 59,
+          "ticket_core": null,
+          "amount": "6300.00",
+          "description": "CRM-2026-38-KHALED AL GHASHMARI - ESC Congress 2026 - Onsite Attendance in (26-990)",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:60",
+          "excel_row": 60,
+          "ticket_core": null,
+          "amount": "6300.00",
+          "description": "CRM-2026-38-HAITHAM ALANAZI - ESC Congress 2026 - Onsite Attendance in (26-991)",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:89",
+          "excel_row": 89,
+          "ticket_core": null,
+          "amount": "208.70",
+          "description": "MR WALEED BATAWEEL - TRAIN JED TO MED (26-995)",
+          "employee": "1001008",
+          "covered": false,
+          "combination": ""
+        }
+      ],
+      "ambiguous": [
+        {
+          "ticket_core": "4860349397",
+          "truth_rows": [
+            "truth:Sheet1:12",
+            "truth:Sheet1:13"
+          ],
+          "produced_rows": [
+            "produced:Sheet1:15",
+            "produced:Sheet1:16"
+          ],
+          "reason": "ticket core repeats but amount/multiplicity does not resolve conservatively"
+        }
+      ],
+      "comparisons": [
+        {
+          "truth_row": "truth:Sheet1:35",
+          "produced_row": "produced:Sheet1:40",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:36",
+          "produced_row": "produced:Sheet1:41",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:37",
+          "produced_row": "produced:Sheet1:42",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:82",
+          "produced_row": "produced:Sheet1:87",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "0",
+            "div": "0",
+            "solution": "0",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:83",
+          "produced_row": "produced:Sheet1:88",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "0",
+            "div": "0",
+            "solution": "0",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:10",
+          "produced_row": "produced:Sheet1:12",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:11",
+          "produced_row": "produced:Sheet1:13",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:16",
+          "produced_row": "produced:Sheet1:18",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:17",
+          "produced_row": "produced:Sheet1:19",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10082"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10082"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:18",
+          "produced_row": "produced:Sheet1:20",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:19",
+          "produced_row": "produced:Sheet1:21",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:20",
+          "produced_row": "produced:Sheet1:22",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:21",
+          "produced_row": "produced:Sheet1:23",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:22",
+          "produced_row": "produced:Sheet1:24",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:23",
+          "produced_row": "produced:Sheet1:25",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:24",
+          "produced_row": "produced:Sheet1:26",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:25",
+          "produced_row": "produced:Sheet1:27",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:26",
+          "produced_row": "produced:Sheet1:28",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:27",
+          "produced_row": "produced:Sheet1:29",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10125"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10125"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:28",
+          "produced_row": "produced:Sheet1:30",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:29",
+          "produced_row": "produced:Sheet1:31",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10083"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10083"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:31",
+          "produced_row": "produced:Sheet1:33",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "0",
+            "div": "0",
+            "solution": "0",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:32",
+          "produced_row": "produced:Sheet1:34",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "0",
+            "div": "0",
+            "solution": "0",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:33",
+          "produced_row": "produced:Sheet1:38",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:34",
+          "produced_row": "produced:Sheet1:39",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:38",
+          "produced_row": "produced:Sheet1:43",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:39",
+          "produced_row": "produced:Sheet1:44",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:40",
+          "produced_row": "produced:Sheet1:45",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:41",
+          "produced_row": "produced:Sheet1:46",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10074"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:42",
+          "produced_row": "produced:Sheet1:47",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:43",
+          "produced_row": "produced:Sheet1:48",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:44",
+          "produced_row": "produced:Sheet1:49",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:45",
+          "produced_row": "produced:Sheet1:50",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10041"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:46",
+          "produced_row": "produced:Sheet1:51",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10041"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:47",
+          "produced_row": "produced:Sheet1:52",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:48",
+          "produced_row": "produced:Sheet1:53",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:49",
+          "produced_row": "produced:Sheet1:54",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:50",
+          "produced_row": "produced:Sheet1:55",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:51",
+          "produced_row": "produced:Sheet1:56",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:52",
+          "produced_row": "produced:Sheet1:57",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:56",
+          "produced_row": "produced:Sheet1:61",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10111"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10111"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:57",
+          "produced_row": "produced:Sheet1:62",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:58",
+          "produced_row": "produced:Sheet1:63",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:59",
+          "produced_row": "produced:Sheet1:64",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10202"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:60",
+          "produced_row": "produced:Sheet1:65",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:61",
+          "produced_row": "produced:Sheet1:66",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:62",
+          "produced_row": "produced:Sheet1:67",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:63",
+          "produced_row": "produced:Sheet1:68",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:64",
+          "produced_row": "produced:Sheet1:69",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:65",
+          "produced_row": "produced:Sheet1:70",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:66",
+          "produced_row": "produced:Sheet1:71",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10125"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10125"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:67",
+          "produced_row": "produced:Sheet1:72",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:68",
+          "produced_row": "produced:Sheet1:73",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:69",
+          "produced_row": "produced:Sheet1:74",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:70",
+          "produced_row": "produced:Sheet1:75",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:71",
+          "produced_row": "produced:Sheet1:76",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10071"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10071"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:72",
+          "produced_row": "produced:Sheet1:77",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:73",
+          "produced_row": "produced:Sheet1:78",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60308007",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10009"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:74",
+          "produced_row": "produced:Sheet1:79",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:75",
+          "produced_row": "produced:Sheet1:80",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:76",
+          "produced_row": "produced:Sheet1:81",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:77",
+          "produced_row": "produced:Sheet1:82",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "10009",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:78",
+          "produced_row": "produced:Sheet1:83",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "10009",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:79",
+          "produced_row": "produced:Sheet1:84",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:80",
+          "produced_row": "produced:Sheet1:85",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:81",
+          "produced_row": "produced:Sheet1:86",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:3",
+          "produced_row": "produced:Sheet1:5",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:4",
+          "produced_row": "produced:Sheet1:6",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:2",
+          "produced_row": "produced:Sheet1:4",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:6",
+          "produced_row": "produced:Sheet1:8",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:7",
+          "produced_row": "produced:Sheet1:9",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:5",
+          "produced_row": "produced:Sheet1:7",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:8",
+          "produced_row": "produced:Sheet1:11",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:9",
+          "produced_row": "produced:Sheet1:10",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:14",
+          "produced_row": "produced:Sheet1:14",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10041"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10041"
+          }
+        }
+      ]
+    },
+    {
+      "batch": "J26-1108",
+      "inputs": {
+        "truth": {
+          "path": "/home/clawdbot/.openclaw/media/inbound/Copy_of_Spreadsheet-J26-1108-FILLED-v30-SPLIT---48c951a2-1983-4d1c-9155-eefd1a14dba9.xlsx",
+          "size_bytes": 116185,
+          "sha256": "97d01ad7e683cb325bd9dc481008651b6c16e5d78da2b9a65bd97504a3979048",
+          "filesystem_mtime_utc": "2026-08-03T23:24:55.774287+00:00",
+          "workbook_core_timestamps": {
+            "created": "2026-07-31T12:25:44Z",
+            "modified": "2026-08-02T15:34:48Z"
+          }
+        },
+        "produced": {
+          "path": "/home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-1108/output/Spreadsheet-J26-1108-FILLED-v30-SPLIT.xlsx",
+          "size_bytes": 50411,
+          "sha256": "4a04b5baa2a694b2964b65c8c358b4940df4aaa046e6566aaec001c4bae5859b",
+          "filesystem_mtime_utc": "2026-07-31T12:43:05.008278+00:00",
+          "workbook_core_timestamps": {
+            "created": "2026-07-31T12:25:44Z",
+            "modified": "2026-07-31T12:43:04Z"
+          }
+        }
+      },
+      "truth_ingest": {
+        "sheet": "Sheet1",
+        "header_row": 3,
+        "combination_source": "Distribution Combination[..]",
+        "data_rows": 102,
+        "combination_covered_rows": 102
+      },
+      "produced_ingest": {
+        "sheet": "Sheet1",
+        "header_row": 3,
+        "combination_source": "Distribution Combination[..]",
+        "data_rows": 98,
+        "combination_covered_rows": 74
+      },
+      "coverage": {
+        "truth": {
+          "numerator": 102,
+          "denominator": 102,
+          "percent": 100.0
+        },
+        "produced": {
+          "numerator": 74,
+          "denominator": 98,
+          "percent": 75.5102
+        }
+      },
+      "alignment": {
+        "matched_rows": 84,
+        "eligible_covered_matched_rows": 70,
+        "unmatched_truth_rows": 18,
+        "unmatched_produced_rows": 14,
+        "ambiguous_groups": 2,
+        "ambiguous_truth_rows": 4,
+        "ambiguous_produced_rows": 2,
+        "method_counts": {
+          "description_amount_multiset": 15,
+          "ticket_core_amount_multiset": 8,
+          "ticket_core_unique": 61
+        }
+      },
+      "covered_matched_metrics": {
+        "all_5_exact": {
+          "numerator": 54,
+          "denominator": 70,
+          "percent": 77.1429
+        },
+        "segments": {
+          "account": {
+            "numerator": 64,
+            "denominator": 70,
+            "percent": 91.4286
+          },
+          "cost_center": {
+            "numerator": 64,
+            "denominator": 70,
+            "percent": 91.4286
+          },
+          "div": {
+            "numerator": 64,
+            "denominator": 70,
+            "percent": 91.4286
+          },
+          "solution": {
+            "numerator": 68,
+            "denominator": 70,
+            "percent": 97.1429
+          },
+          "agency": {
+            "numerator": 57,
+            "denominator": 70,
+            "percent": 81.4286
+          }
+        }
+      },
+      "end_to_end": {
+        "scoring_universe": "all truth rows; unmatched, ambiguous, uncovered, or extra truth rows are padded misses",
+        "all_5_exact": {
+          "numerator": 54,
+          "denominator": 102,
+          "percent": 52.9412
+        },
+        "segments": {
+          "account": {
+            "numerator": 64,
+            "denominator": 102,
+            "percent": 62.7451
+          },
+          "cost_center": {
+            "numerator": 64,
+            "denominator": 102,
+            "percent": 62.7451
+          },
+          "div": {
+            "numerator": 64,
+            "denominator": 102,
+            "percent": 62.7451
+          },
+          "solution": {
+            "numerator": 68,
+            "denominator": 102,
+            "percent": 66.6667
+          },
+          "agency": {
+            "numerator": 57,
+            "denominator": 102,
+            "percent": 55.8824
+          }
+        }
+      },
+      "unmatched_truth": [
+        {
+          "row_id": "truth:Sheet1:15",
+          "excel_row": 15,
+          "ticket_core": null,
+          "amount": "691.30",
+          "description": "HASHAD/T+K41+K15:AF16+K15:AF17",
+          "employee": "1001256",
+          "covered": true,
+          "combination": "03-40100-60301003-160012-194-00000-10111-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:34",
+          "excel_row": 34,
+          "ticket_core": null,
+          "amount": "200.00",
+          "description": "DR FAHMI ALKAF - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-1000)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:37",
+          "excel_row": 37,
+          "ticket_core": null,
+          "amount": "260.86",
+          "description": "HF-2026-27 SHAMSAH ALANAZI - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-1002)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:38",
+          "excel_row": 38,
+          "ticket_core": null,
+          "amount": "260.86",
+          "description": "HF-2026-27DR ALKAF FAHMI - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-1003)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:41",
+          "excel_row": 41,
+          "ticket_core": null,
+          "amount": "391.31",
+          "description": "HF-2026-28 MOSAAD ALHUSSEIN - Five seasons Hotel & Spa - 1 NTS. (26-1007)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:42",
+          "excel_row": 42,
+          "ticket_core": null,
+          "amount": "583.34",
+          "description": "SIS-14-2026 ALSHAHRANI ABDULWAHAB MR - Renaissance Zurich Tower Hotel - 1 NTS. (26-998)",
+          "employee": "1001422",
+          "covered": true,
+          "combination": "03-20100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:43",
+          "excel_row": 43,
+          "ticket_core": null,
+          "amount": "583.33",
+          "description": "SIS-14-2026 ALSHAHRANI ABDULWAHAB MR - Renaissance Zurich Tower Hotel - 1 NTS. (26-998)",
+          "employee": "1002169",
+          "covered": true,
+          "combination": "03-20100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:44",
+          "excel_row": 44,
+          "ticket_core": null,
+          "amount": "583.33",
+          "description": "SIS-14-2026 ALSHAHRANI ABDULWAHAB MR - Renaissance Zurich Tower Hotel - 1 NTS. (26-998)",
+          "employee": "1001530",
+          "covered": true,
+          "combination": "03-20100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:45",
+          "excel_row": 45,
+          "ticket_core": null,
+          "amount": "200.00",
+          "description": "SHAMSAH ALANAZI - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-999)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:70",
+          "excel_row": 70,
+          "ticket_core": "4860633346",
+          "amount": "332.61",
+          "description": "RASHWAN/SHADI MR - RUH JED RUH (4860633346)",
+          "employee": "1002169",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:72",
+          "excel_row": 72,
+          "ticket_core": "4860633346",
+          "amount": "332.61",
+          "description": "RASHWAN/SHADI MR - RUH JED RUH (4860633346)",
+          "employee": "1001422",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:74",
+          "excel_row": 74,
+          "ticket_core": null,
+          "amount": "1391.30",
+          "description": "HF-2026-27 FAHMI ALKAF - RETURN AIRPORT TRANSPROTATION GMC (26-1011)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:75",
+          "excel_row": 75,
+          "ticket_core": null,
+          "amount": "434.78",
+          "description": "HF-2026-27 SHAMSA ALANAZI - ONE WAY AIRPORT PICK UP SEDAN (26-1012)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:76",
+          "excel_row": 76,
+          "ticket_core": null,
+          "amount": "1391.31",
+          "description": "HF-2026-27 FAHMI ALKAF - RETURN AIRPORT TRANSPROTATION GMC-2ND TI (26-1013)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:77",
+          "excel_row": 77,
+          "ticket_core": null,
+          "amount": "434.78",
+          "description": "HF-2026-27 SHAMSA ALANAZI - ONE WAY AIRPORT PICK UP SEDAN-SECOND TIM (26-1014)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:94",
+          "excel_row": 94,
+          "ticket_core": "4860665526",
+          "amount": "515.22",
+          "description": "ABDALLA/AHMED MR - JED RUH JED (4860665526)",
+          "employee": "1002032",
+          "covered": true,
+          "combination": "03-40100-60301003-160013-192-00000-10202-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:95",
+          "excel_row": 95,
+          "ticket_core": "4860665526",
+          "amount": "515.21",
+          "description": "ABDALLA/AHMED MR - JED RUH JED (4860665526)",
+          "employee": "1001184",
+          "covered": true,
+          "combination": "03-40100-60301003-160013-192-00000-10202-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:104",
+          "excel_row": 104,
+          "ticket_core": null,
+          "amount": "652.17",
+          "description": "HF-2026-28 ALHUSSEIN/MOSAAD MR - CAR PICK UP & DROP (26-1025)",
+          "employee": "1002483",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10050-10072-00000-00-000000"
+        }
+      ],
+      "unmatched_produced": [
+        {
+          "row_id": "produced:Sheet1:15",
+          "excel_row": 15,
+          "ticket_core": "4860528664",
+          "amount": "691.30",
+          "description": "HASHAD/TAREK MR - JED RUH JED (4860528664)",
+          "employee": "1000181",
+          "covered": true,
+          "combination": "03-40100-60301003-160012-194-00000-10111-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:34",
+          "excel_row": 34,
+          "ticket_core": null,
+          "amount": "230.00",
+          "description": "DR FAHMI ALKAF - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-1000)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:37",
+          "excel_row": 37,
+          "ticket_core": null,
+          "amount": "300.00",
+          "description": "SHAMSAH ALANAZI - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-1002)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:38",
+          "excel_row": 38,
+          "ticket_core": null,
+          "amount": "300.00",
+          "description": "DR ALKAF FAHMI - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-1003)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:41",
+          "excel_row": 41,
+          "ticket_core": null,
+          "amount": "450.00",
+          "description": "MOSAAD ALHUSSEIN - Five seasons Hotel & Spa - 1 NTS. (26-1007)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:42",
+          "excel_row": 42,
+          "ticket_core": null,
+          "amount": "1750.00",
+          "description": "ALSHAHRANI ABDULWAHAB MR - Renaissance Zurich Tower Hotel - 1 NTS. (26-998)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:43",
+          "excel_row": 43,
+          "ticket_core": null,
+          "amount": "230.00",
+          "description": "SHAMSAH ALANAZI - FOUR POINTS BY SHERATON MAKKAH - 1 NTS. (26-999)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:68",
+          "excel_row": 68,
+          "ticket_core": "4860633346",
+          "amount": "665.22",
+          "description": "RASHWAN/SHADI MR - RUH JED RUH (4860633346)",
+          "employee": "1000523",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:71",
+          "excel_row": 71,
+          "ticket_core": null,
+          "amount": "1391.30",
+          "description": "FAHMI ALKAF - RETURN AIRPORT TRANSPROTATION GMC (26-1011)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:72",
+          "excel_row": 72,
+          "ticket_core": null,
+          "amount": "434.78",
+          "description": "SHAMSA ALANAZI - ONE WAY AIRPORT PICK UP SEDAN (26-1012)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:73",
+          "excel_row": 73,
+          "ticket_core": null,
+          "amount": "1391.31",
+          "description": "FAHMI ALKAF - RETURN AIRPORT TRANSPROTATION GMC-2ND TI (26-1013)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:74",
+          "excel_row": 74,
+          "ticket_core": null,
+          "amount": "434.78",
+          "description": "SHAMSA ALANAZI - ONE WAY AIRPORT PICK UP SEDAN-SECOND TIM (26-1014)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        },
+        {
+          "row_id": "produced:Sheet1:91",
+          "excel_row": 91,
+          "ticket_core": "4860665526",
+          "amount": "1030.43",
+          "description": "ABDALLA/AHMED MR - JED RUH JED (4860665526)",
+          "employee": "1000390",
+          "covered": true,
+          "combination": "03-40100-60301003-160013-192-00000-10202-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:100",
+          "excel_row": 100,
+          "ticket_core": null,
+          "amount": "750.00",
+          "description": "CE-202-26-ALHUSSEIN/MOSAAD MR - CAR PICK UP & DROP (26-1025)",
+          "employee": "",
+          "covered": true,
+          "combination": "03-10100-60301003-160014-170-10050-10072-00000-00-000000"
+        }
+      ],
+      "ambiguous": [
+        {
+          "ticket_core": "4860633346",
+          "truth_rows": [
+            "truth:Sheet1:70",
+            "truth:Sheet1:72"
+          ],
+          "produced_rows": [
+            "produced:Sheet1:68"
+          ],
+          "reason": "ticket core repeats but amount/multiplicity does not resolve conservatively"
+        },
+        {
+          "ticket_core": "4860665526",
+          "truth_rows": [
+            "truth:Sheet1:94",
+            "truth:Sheet1:95"
+          ],
+          "produced_rows": [
+            "produced:Sheet1:91"
+          ],
+          "reason": "ticket core repeats but amount/multiplicity does not resolve conservatively"
+        }
+      ],
+      "comparisons": [
+        {
+          "truth_row": "truth:Sheet1:4",
+          "produced_row": "produced:Sheet1:4",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:5",
+          "produced_row": "produced:Sheet1:5",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:6",
+          "produced_row": "produced:Sheet1:6",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:7",
+          "produced_row": "produced:Sheet1:7",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:8",
+          "produced_row": "produced:Sheet1:8",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:9",
+          "produced_row": "produced:Sheet1:9",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "21070229",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:10",
+          "produced_row": "produced:Sheet1:10",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:11",
+          "produced_row": "produced:Sheet1:11",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:12",
+          "produced_row": "produced:Sheet1:12",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:13",
+          "produced_row": "produced:Sheet1:13",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:14",
+          "produced_row": "produced:Sheet1:14",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:16",
+          "produced_row": "produced:Sheet1:16",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:17",
+          "produced_row": "produced:Sheet1:17",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10239"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:18",
+          "produced_row": "produced:Sheet1:18",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:19",
+          "produced_row": "produced:Sheet1:19",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:20",
+          "produced_row": "produced:Sheet1:20",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:22",
+          "produced_row": "produced:Sheet1:22",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:23",
+          "produced_row": "produced:Sheet1:23",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "21070229",
+            "cost_center": "120010",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "21070229",
+            "cost_center": "120010",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:24",
+          "produced_row": "produced:Sheet1:24",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:27",
+          "produced_row": "produced:Sheet1:27",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:28",
+          "produced_row": "produced:Sheet1:28",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10038"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:29",
+          "produced_row": "produced:Sheet1:29",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10111"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10111"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:30",
+          "produced_row": "produced:Sheet1:30",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "21070229",
+            "cost_center": "130010",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "130010",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:31",
+          "produced_row": "produced:Sheet1:31",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:32",
+          "produced_row": "produced:Sheet1:32",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10083"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10083"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:33",
+          "produced_row": "produced:Sheet1:33",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:56",
+          "produced_row": "produced:Sheet1:54",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:57",
+          "produced_row": "produced:Sheet1:55",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10055"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:62",
+          "produced_row": "produced:Sheet1:60",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:63",
+          "produced_row": "produced:Sheet1:61",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:64",
+          "produced_row": "produced:Sheet1:62",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10041"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:67",
+          "produced_row": "produced:Sheet1:65",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:68",
+          "produced_row": "produced:Sheet1:66",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:69",
+          "produced_row": "produced:Sheet1:67",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10101"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10101"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:71",
+          "produced_row": "produced:Sheet1:69",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:73",
+          "produced_row": "produced:Sheet1:70",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10113"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10113"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:80",
+          "produced_row": "produced:Sheet1:77",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:82",
+          "produced_row": "produced:Sheet1:79",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:83",
+          "produced_row": "produced:Sheet1:80",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "130020",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:84",
+          "produced_row": "produced:Sheet1:81",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10009"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10005"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:85",
+          "produced_row": "produced:Sheet1:82",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10009"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10005"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:86",
+          "produced_row": "produced:Sheet1:83",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:87",
+          "produced_row": "produced:Sheet1:84",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:88",
+          "produced_row": "produced:Sheet1:85",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:91",
+          "produced_row": "produced:Sheet1:88",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:92",
+          "produced_row": "produced:Sheet1:89",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10132"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:93",
+          "produced_row": "produced:Sheet1:90",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:96",
+          "produced_row": "produced:Sheet1:92",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:97",
+          "produced_row": "produced:Sheet1:93",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10052"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:99",
+          "produced_row": "produced:Sheet1:95",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:100",
+          "produced_row": "produced:Sheet1:96",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:101",
+          "produced_row": "produced:Sheet1:97",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:102",
+          "produced_row": "produced:Sheet1:98",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:103",
+          "produced_row": "produced:Sheet1:99",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10043"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:26",
+          "produced_row": "produced:Sheet1:26",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:25",
+          "produced_row": "produced:Sheet1:25",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:50",
+          "produced_row": "produced:Sheet1:48",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:51",
+          "produced_row": "produced:Sheet1:49",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:52",
+          "produced_row": "produced:Sheet1:50",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:53",
+          "produced_row": "produced:Sheet1:51",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:54",
+          "produced_row": "produced:Sheet1:52",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:55",
+          "produced_row": "produced:Sheet1:53",
+          "method": "ticket_core_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:40",
+          "produced_row": "produced:Sheet1:40",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:39",
+          "produced_row": "produced:Sheet1:39",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:46",
+          "produced_row": "produced:Sheet1:44",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:47",
+          "produced_row": "produced:Sheet1:45",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:66",
+          "produced_row": "produced:Sheet1:64",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:65",
+          "produced_row": "produced:Sheet1:63",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:36",
+          "produced_row": "produced:Sheet1:36",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:35",
+          "produced_row": "produced:Sheet1:35",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10100"
+          }
+        }
+      ]
+    },
+    {
+      "batch": "J26-1116",
+      "inputs": {
+        "truth": {
+          "path": "/home/clawdbot/.openclaw/media/inbound/Copy_of_Spreadsheet-J26-1116-FILLED-v30_1---07303b4b-2313-4544-beaf-35d96fcd72ca.xlsx",
+          "size_bytes": 91758,
+          "sha256": "242744492c1a1b396ff4db5c76cf4d7f506f943e8b4ad83d4f1f46f2efaf271d",
+          "filesystem_mtime_utc": "2026-08-03T21:53:34.572345+00:00",
+          "workbook_core_timestamps": {
+            "created": "2026-07-28T07:14:38Z",
+            "modified": "2026-08-02T14:55:55Z"
+          }
+        },
+        "produced": {
+          "path": "/home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-J26-1116/output/Spreadsheet-J26-1116-FILLED-v30-SPLIT.xlsx",
+          "size_bytes": 38654,
+          "sha256": "f673629e71d75a93053407290f07c3a2cb51c99820b91dac710dfa03cf86adfb",
+          "filesystem_mtime_utc": "2026-07-29T10:06:42.510678+00:00",
+          "workbook_core_timestamps": {
+            "created": "2026-07-28T07:14:38Z",
+            "modified": "2026-07-29T10:06:42Z"
+          }
+        }
+      },
+      "truth_ingest": {
+        "sheet": "Sheet1",
+        "header_row": 1,
+        "combination_source": "Distribution Combination[..]",
+        "data_rows": 71,
+        "combination_covered_rows": 71
+      },
+      "produced_ingest": {
+        "sheet": "Sheet1",
+        "header_row": 3,
+        "combination_source": "Distribution Combination[..]",
+        "data_rows": 68,
+        "combination_covered_rows": 56
+      },
+      "coverage": {
+        "truth": {
+          "numerator": 71,
+          "denominator": 71,
+          "percent": 100.0
+        },
+        "produced": {
+          "numerator": 56,
+          "denominator": 68,
+          "percent": 82.3529
+        }
+      },
+      "alignment": {
+        "matched_rows": 64,
+        "eligible_covered_matched_rows": 53,
+        "unmatched_truth_rows": 7,
+        "unmatched_produced_rows": 4,
+        "ambiguous_groups": 1,
+        "ambiguous_truth_rows": 4,
+        "ambiguous_produced_rows": 1,
+        "method_counts": {
+          "description_amount_multiset": 10,
+          "ticket_core_unique": 54
+        }
+      },
+      "covered_matched_metrics": {
+        "all_5_exact": {
+          "numerator": 46,
+          "denominator": 53,
+          "percent": 86.7925
+        },
+        "segments": {
+          "account": {
+            "numerator": 50,
+            "denominator": 53,
+            "percent": 94.3396
+          },
+          "cost_center": {
+            "numerator": 47,
+            "denominator": 53,
+            "percent": 88.6792
+          },
+          "div": {
+            "numerator": 47,
+            "denominator": 53,
+            "percent": 88.6792
+          },
+          "solution": {
+            "numerator": 52,
+            "denominator": 53,
+            "percent": 98.1132
+          },
+          "agency": {
+            "numerator": 47,
+            "denominator": 53,
+            "percent": 88.6792
+          }
+        }
+      },
+      "end_to_end": {
+        "scoring_universe": "all truth rows; unmatched, ambiguous, uncovered, or extra truth rows are padded misses",
+        "all_5_exact": {
+          "numerator": 46,
+          "denominator": 71,
+          "percent": 64.7887
+        },
+        "segments": {
+          "account": {
+            "numerator": 50,
+            "denominator": 71,
+            "percent": 70.4225
+          },
+          "cost_center": {
+            "numerator": 47,
+            "denominator": 71,
+            "percent": 66.1972
+          },
+          "div": {
+            "numerator": 47,
+            "denominator": 71,
+            "percent": 66.1972
+          },
+          "solution": {
+            "numerator": 52,
+            "denominator": 71,
+            "percent": 73.2394
+          },
+          "agency": {
+            "numerator": 47,
+            "denominator": 71,
+            "percent": 66.1972
+          }
+        }
+      },
+      "unmatched_truth": [
+        {
+          "row_id": "truth:Sheet1:11",
+          "excel_row": 11,
+          "ticket_core": null,
+          "amount": "5600.00",
+          "description": "CRM-2026-28-SALEH ALBASIRI - Heart Failure Barcelona, Spain registrat (26-1031)",
+          "employee": "1001762",
+          "covered": true,
+          "combination": "03-10100-60307021-160014-170-10017-10072-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:12",
+          "excel_row": 12,
+          "ticket_core": null,
+          "amount": "1700.00",
+          "description": "SIS-08-2026-MR. ADNAN AL MAHROUQ - DDW 2026 REGISTRATION - 5 NTS. (26-1040)",
+          "employee": "1002169",
+          "covered": true,
+          "combination": "03-40100-60307021-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:61",
+          "excel_row": 61,
+          "ticket_core": "4860901713",
+          "amount": "915.22",
+          "description": "HUSSEIN/AHMAD JUMAH KHALEEL MR - RUH DMM RUH (4860901713)",
+          "employee": "",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10081-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:62",
+          "excel_row": 62,
+          "ticket_core": "4860901713",
+          "amount": "915.21",
+          "description": "HUSSEIN/AHMAD JUMAH KHALEEL MR - RUH DMM RUH (4860901713)",
+          "employee": "",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10041-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:63",
+          "excel_row": 63,
+          "ticket_core": "4860901713",
+          "amount": "915.21",
+          "description": "HUSSEIN/AHMAD JUMAH KHALEEL MR - RUH DMM RUH (4860901713)",
+          "employee": "",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10038-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:64",
+          "excel_row": 64,
+          "ticket_core": "4860901713",
+          "amount": "915.21",
+          "description": "HUSSEIN/AHMAD JUMAH KHALEEL MR - RUH DMM RUH (4860901713)",
+          "employee": "",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10055-00000-00-000000"
+        },
+        {
+          "row_id": "truth:Sheet1:72",
+          "excel_row": 72,
+          "ticket_core": null,
+          "amount": "7826.09",
+          "description": "Lab18-2026 MEETING ROOM FOR 20 WITH LUNCH - Crowne Plaza Riyadh RDC Hotel & Conventi (26-1047)",
+          "employee": "1002091",
+          "covered": true,
+          "combination": "03-10100-60307021-160012-194-00000-10153-00000-00-000000"
+        }
+      ],
+      "unmatched_produced": [
+        {
+          "row_id": "produced:Sheet1:13",
+          "excel_row": 13,
+          "ticket_core": null,
+          "amount": "5600.00",
+          "description": "CRM-2026-43-SALEH ALBASIRI - Heart Failure Barcelona, Spain registrat (26-1031)",
+          "employee": "1000640",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-10050-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:14",
+          "excel_row": 14,
+          "ticket_core": null,
+          "amount": "1700.00",
+          "description": "CRM-2026-43-MR. ADNAN AL MAHROUQ - DDW 2026 REGISTRATION - 5 NTS. (26-1040)",
+          "employee": "1000640",
+          "covered": true,
+          "combination": "03-20100-60307021-160014-170-00000-10072-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:63",
+          "excel_row": 63,
+          "ticket_core": "4860901713",
+          "amount": "3660.87",
+          "description": "HUSSEIN/AHMAD JUMAH KHALEEL MR - RUH DMM RUH (4860901713)",
+          "employee": "1000430",
+          "covered": true,
+          "combination": "03-10100-60301003-160011-196-00000-10200-00000-00-000000"
+        },
+        {
+          "row_id": "produced:Sheet1:71",
+          "excel_row": 71,
+          "ticket_core": null,
+          "amount": "7826.09",
+          "description": "MEETING ROOM FOR 20 WITH LUNCH - Crowne Plaza Riyadh RDC Hotel & Conventi (26-1047)",
+          "employee": "",
+          "covered": false,
+          "combination": ""
+        }
+      ],
+      "ambiguous": [
+        {
+          "ticket_core": "4860901713",
+          "truth_rows": [
+            "truth:Sheet1:61",
+            "truth:Sheet1:62",
+            "truth:Sheet1:63",
+            "truth:Sheet1:64"
+          ],
+          "produced_rows": [
+            "produced:Sheet1:63"
+          ],
+          "reason": "ticket core repeats but amount/multiplicity does not resolve conservatively"
+        }
+      ],
+      "comparisons": [
+        {
+          "truth_row": "truth:Sheet1:2",
+          "produced_row": "produced:Sheet1:4",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:3",
+          "produced_row": "produced:Sheet1:5",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:4",
+          "produced_row": "produced:Sheet1:6",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:5",
+          "produced_row": "produced:Sheet1:7",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:6",
+          "produced_row": "produced:Sheet1:8",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:7",
+          "produced_row": "produced:Sheet1:9",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:8",
+          "produced_row": "produced:Sheet1:10",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:9",
+          "produced_row": "produced:Sheet1:11",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:16",
+          "produced_row": "produced:Sheet1:18",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:17",
+          "produced_row": "produced:Sheet1:19",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:18",
+          "produced_row": "produced:Sheet1:20",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:19",
+          "produced_row": "produced:Sheet1:21",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10081"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:20",
+          "produced_row": "produced:Sheet1:22",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:21",
+          "produced_row": "produced:Sheet1:23",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:22",
+          "produced_row": "produced:Sheet1:24",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:23",
+          "produced_row": "produced:Sheet1:25",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10005"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160013",
+            "div": "192",
+            "solution": "0",
+            "agency": "10005"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:24",
+          "produced_row": "produced:Sheet1:26",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:25",
+          "produced_row": "produced:Sheet1:27",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:26",
+          "produced_row": "produced:Sheet1:28",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:27",
+          "produced_row": "produced:Sheet1:29",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:28",
+          "produced_row": "produced:Sheet1:30",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": false,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "170020",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:29",
+          "produced_row": "produced:Sheet1:31",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "200010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:30",
+          "produced_row": "produced:Sheet1:32",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:35",
+          "produced_row": "produced:Sheet1:37",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10156"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:36",
+          "produced_row": "produced:Sheet1:38",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10126"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:37",
+          "produced_row": "produced:Sheet1:39",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10064",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:38",
+          "produced_row": "produced:Sheet1:40",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:39",
+          "produced_row": "produced:Sheet1:41",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:40",
+          "produced_row": "produced:Sheet1:42",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60308009",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:41",
+          "produced_row": "produced:Sheet1:43",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10111"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10111"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:42",
+          "produced_row": "produced:Sheet1:44",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:43",
+          "produced_row": "produced:Sheet1:45",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:44",
+          "produced_row": "produced:Sheet1:46",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:45",
+          "produced_row": "produced:Sheet1:47",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:46",
+          "produced_row": "produced:Sheet1:48",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:47",
+          "produced_row": "produced:Sheet1:49",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:48",
+          "produced_row": "produced:Sheet1:50",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:49",
+          "produced_row": "produced:Sheet1:51",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "200010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:51",
+          "produced_row": "produced:Sheet1:53",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60308009",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:52",
+          "produced_row": "produced:Sheet1:54",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:53",
+          "produced_row": "produced:Sheet1:55",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:54",
+          "produced_row": "produced:Sheet1:56",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "140020",
+            "div": "190",
+            "solution": "0",
+            "agency": "10200"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:55",
+          "produced_row": "produced:Sheet1:57",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10083"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160011",
+            "div": "196",
+            "solution": "0",
+            "agency": "10083"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:57",
+          "produced_row": "produced:Sheet1:59",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": false,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "170080",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:58",
+          "produced_row": "produced:Sheet1:60",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": false,
+            "div": false,
+            "solution": true,
+            "agency": false
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "999999",
+            "div": "0",
+            "solution": "0",
+            "agency": "0"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:59",
+          "produced_row": "produced:Sheet1:61",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "160012",
+            "div": "194",
+            "solution": "0",
+            "agency": "10153"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:60",
+          "produced_row": "produced:Sheet1:62",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10050",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:66",
+          "produced_row": "produced:Sheet1:65",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          },
+          "produced_segments": {
+            "account": "60301003",
+            "cost_center": "250010",
+            "div": "120",
+            "solution": "0",
+            "agency": "10206"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:67",
+          "produced_row": "produced:Sheet1:66",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "170020",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "170020",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:68",
+          "produced_row": "produced:Sheet1:67",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "170050",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "170050",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:69",
+          "produced_row": "produced:Sheet1:68",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:70",
+          "produced_row": "produced:Sheet1:69",
+          "method": "ticket_core_unique",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60301004",
+            "cost_center": "170020",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          },
+          "produced_segments": {
+            "account": "60301004",
+            "cost_center": "170020",
+            "div": "888",
+            "solution": "0",
+            "agency": "88888"
+          }
+        },
+        {
+          "truth_row": "truth:Sheet1:71",
+          "produced_row": "produced:Sheet1:70",
+          "method": "description_amount_multiset",
+          "segment_equal": {
+            "account": true,
+            "cost_center": true,
+            "div": true,
+            "solution": true,
+            "agency": true
+          },
+          "truth_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          },
+          "produced_segments": {
+            "account": "60307021",
+            "cost_center": "160014",
+            "div": "170",
+            "solution": "10017",
+            "agency": "10072"
+          }
+        }
+      ]
+    }
+  ]
+}

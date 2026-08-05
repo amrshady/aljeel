@@ -386,6 +386,19 @@ def _folder_ref_key(path_text: str) -> str:
     return m.group(1).upper() if m else ""
 
 
+def _is_opex_pdf(pdf_path: Path) -> bool:
+    if pdf_path.name.upper().startswith("OPEX-"):
+        return True
+    try:
+        import fitz  # PyMuPDF
+        with fitz.open(str(pdf_path)) as doc:
+            text = "\n".join(doc[i].get_text() for i in range(min(2, len(doc))))
+    except Exception:
+        return False
+    text = text.lower()
+    return "sponsoring payment form" in text and "event allocation details" in text
+
+
 def _find_sponsoring_employee_from_shared_opex(folder_path, md, manpower_emails):
     """Resolve the staff sponsor from the shared OPEX evidence folder."""
     folder = Path(folder_path or "")
@@ -468,7 +481,7 @@ def _find_sponsoring_employee_from_shared_opex(folder_path, md, manpower_emails)
 
     # Standalone OPEX PDFs sitting loose in the shared folder (not .msg attachments)
     try:
-        opex_pdfs = sorted(p for p in folder.glob("*.pdf") if p.name.upper().startswith("OPEX-"))
+        opex_pdfs = sorted(p for p in folder.glob("*.pdf") if _is_opex_pdf(p))
     except Exception:
         opex_pdfs = []
 

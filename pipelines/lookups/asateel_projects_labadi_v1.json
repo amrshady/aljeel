@@ -2,6 +2,26 @@
   "agency_rules": [
     {
       "agency_aliases": [
+        "KLS Martin"
+      ],
+      "agency_code": "10052",
+      "agency_name": "KLS Martin",
+      "employee_strategy": "agency_manager",
+      "manager": {
+        "employee_aliases": [
+          "Aamir Abdellatif Sharif"
+        ],
+        "employee_name": "Aamir Abdellatif Sharif",
+        "employee_no": "1000615"
+      },
+      "source_cells": {
+        "agency": "F5",
+        "employee_name": "G5",
+        "employee_no": "H5"
+      }
+    },
+    {
+      "agency_aliases": [
         "Steris"
       ],
       "agency_code": "10055",
@@ -15,9 +35,9 @@
         "employee_no": "1000320"
       },
       "source_cells": {
-        "agency": "F10",
-        "employee_name": "G10",
-        "employee_no": "H10"
+        "agency": "F6",
+        "employee_name": "G6",
+        "employee_no": "H6"
       }
     },
     {
@@ -35,9 +55,9 @@
         "employee_no": "1000157"
       },
       "source_cells": {
-        "agency": "F8",
-        "employee_name": "G8",
-        "employee_no": "H8"
+        "agency": "F7",
+        "employee_name": "G7",
+        "employee_no": "H7"
       }
     },
     {
@@ -55,9 +75,9 @@
         "employee_no": "1000593"
       },
       "source_cells": {
-        "agency": "F11",
-        "employee_name": "G11",
-        "employee_no": "H11"
+        "agency": "F8",
+        "employee_name": "G8",
+        "employee_no": "H8"
       }
     },
     {
@@ -75,9 +95,9 @@
         "employee_no": "1001061"
       },
       "source_cells": {
-        "agency": "F12",
-        "employee_name": "G12",
-        "employee_no": "H12"
+        "agency": "F9",
+        "employee_name": "G9",
+        "employee_no": "H9"
       }
     },
     {
@@ -95,9 +115,9 @@
         "employee_no": "1000157"
       },
       "source_cells": {
-        "agency": "F9",
-        "employee_name": "G9",
-        "employee_no": "H9"
+        "agency": "F10",
+        "employee_name": "G10",
+        "employee_no": "H10"
       }
     },
     {
@@ -115,9 +135,9 @@
         "employee_no": "1001982"
       },
       "source_cells": {
-        "agency": "F5",
-        "employee_name": "G5",
-        "employee_no": "H5"
+        "agency": "F11",
+        "employee_name": "G11",
+        "employee_no": "H11"
       }
     },
     {
@@ -137,13 +157,35 @@
           "juniors": [
             {
               "employee_aliases": [
+                "Tariq Tayseer Rafiq Alhamedi"
+              ],
+              "employee_name": "Tariq Tayseer Rafiq Alhamedi",
+              "employee_no": "1000389",
+              "source_cells": {
+                "employee_name": "I16",
+                "employee_no": "I17"
+              }
+            },
+            {
+              "employee_aliases": [
                 "Abdelrahman Mohammad Abed Hamed"
               ],
               "employee_name": "Abdelrahman Mohammad Abed Hamed",
               "employee_no": "1000526",
               "source_cells": {
-                "employee_name": "I16",
-                "employee_no": "I17"
+                "employee_name": "J16",
+                "employee_no": "J17"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Zayed Saleh Almuhanna"
+              ],
+              "employee_name": "Zayed Saleh Almuhanna",
+              "employee_no": "1001016",
+              "source_cells": {
+                "employee_name": "K16",
+                "employee_no": "K17"
               }
             },
             {
@@ -153,8 +195,8 @@
               "employee_name": "Ahmed Hani  M Alem",
               "employee_no": "1001811",
               "source_cells": {
-                "employee_name": "J16",
-                "employee_no": "J17"
+                "employee_name": "L16",
+                "employee_no": "L17"
               }
             },
             {
@@ -163,28 +205,6 @@
               ],
               "employee_name": "Moayad Ahmed A Baghlaf",
               "employee_no": "1002442",
-              "source_cells": {
-                "employee_name": "K16",
-                "employee_no": "K17"
-              }
-            },
-            {
-              "employee_aliases": [
-                "Tariq Tayseer Rafiq Alhamedi"
-              ],
-              "employee_name": "Tariq Tayseer Rafiq Alhamedi",
-              "employee_no": "1000389",
-              "source_cells": {
-                "employee_name": "L16",
-                "employee_no": "L17"
-              }
-            },
-            {
-              "employee_aliases": [
-                "Zayed Saleh Almuhanna"
-              ],
-              "employee_name": "Zayed Saleh Almuhanna",
-              "employee_no": "1001016",
               "source_cells": {
                 "employee_name": "M16",
                 "employee_no": "M17"
@@ -216,10 +236,10 @@
             },
             {
               "employee_aliases": [
-                "Jawdat  Ammar  Jawdat  Shorab"
+                "Waleed  Hassan A Alasiri"
               ],
-              "employee_name": "Jawdat  Ammar  Jawdat  Shorab",
-              "employee_no": "1002057",
+              "employee_name": "Waleed  Hassan A Alasiri",
+              "employee_no": "1001906",
               "source_cells": {
                 "employee_name": "J20",
                 "employee_no": "J21"
@@ -238,10 +258,10 @@
             },
             {
               "employee_aliases": [
-                "Waleed  Hassan A Alasiri"
+                "Jawdat  Ammar  Jawdat  Shorab"
               ],
-              "employee_name": "Waleed  Hassan A Alasiri",
-              "employee_no": "1001906",
+              "employee_name": "Jawdat  Ammar  Jawdat  Shorab",
+              "employee_no": "1002057",
               "source_cells": {
                 "employee_name": "L20",
                 "employee_no": "L21"
@@ -262,24 +282,13 @@
           "juniors": [
             {
               "employee_aliases": [
-                "Ahmed  Abdelhakim  Elsayed"
-              ],
-              "employee_name": "Ahmed  Abdelhakim  Elsayed",
-              "employee_no": "1002437",
-              "source_cells": {
-                "employee_name": "I24",
-                "employee_no": "I25"
-              }
-            },
-            {
-              "employee_aliases": [
                 "Khaled  Abdulwahhab  S Alwahhabi"
               ],
               "employee_name": "Khaled  Abdulwahhab  S Alwahhabi",
               "employee_no": "1001815",
               "source_cells": {
-                "employee_name": "J24",
-                "employee_no": "J25"
+                "employee_name": "I24",
+                "employee_no": "I25"
               }
             },
             {
@@ -288,6 +297,17 @@
               ],
               "employee_name": "Mohamed  Ahmed Gad Mosa",
               "employee_no": "1002312",
+              "source_cells": {
+                "employee_name": "J24",
+                "employee_no": "J25"
+              }
+            },
+            {
+              "employee_aliases": [
+                "Ahmed  Abdelhakim  Elsayed"
+              ],
+              "employee_name": "Ahmed  Abdelhakim  Elsayed",
+              "employee_no": "1002437",
               "source_cells": {
                 "employee_name": "K24",
                 "employee_no": "K25"
@@ -320,9 +340,9 @@
         "employee_no": "1001982"
       },
       "source_cells": {
-        "agency": "F7",
-        "employee_name": "G7",
-        "employee_no": "H7"
+        "agency": "F12",
+        "employee_name": "G12",
+        "employee_no": "H12"
       }
     },
     {
@@ -340,9 +360,9 @@
         "employee_no": "1000375"
       },
       "source_cells": {
-        "agency": "F6",
-        "employee_name": "G6",
-        "employee_no": "H6"
+        "agency": "F13",
+        "employee_name": "G13",
+        "employee_no": "H13"
       }
     }
   ],
@@ -361,21 +381,21 @@
     "master_sha256": "ec8d7fe48f22371f6b14b06a90e622a2e5e7115d207f31b8140dd49b73e72a50",
     "master_size_bytes": 105137,
     "source_cells": [
-      "F4:H12",
-      "F14:M25"
+      "PtAgencyMapping",
+      "PtSalesmanMapping"
     ],
-    "source_label": "Labadi Book1 Asateel projects allocation workbook",
-    "source_sha256": "a1a2cdee4863669cc625c122e9254fb2ca3af70fa43b5082bc2723ca3fc7a40c",
-    "source_sheet": "Sheet1",
-    "source_size_bytes": 10251
+    "source_label": "P&T managed database tables",
+    "source_sha256": "cd85700b0522ccb8e16da6862dbdbea3d1adf60730afc775d62cabf80667deb5",
+    "source_sheet": "managed-table",
+    "source_size_bytes": 7095
   },
   "schema_version": 1,
   "statistics": {
-    "agency_rules": 9,
+    "agency_rules": 10,
     "bmx_heads": 3,
     "bmx_junior_to_head_rules": 12,
-    "direct_agency_manager_rules": 8,
-    "referenced_employee_codes": 21
+    "direct_agency_manager_rules": 9,
+    "referenced_employee_codes": 22
   },
   "validation": {
     "ambiguities": [],

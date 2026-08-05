@@ -968,6 +968,11 @@ def _apply_l8_manager_cc_fallback(
     if emp_no is None:
         return r7_result
 
+    # A manager-only reference is not an employee allocation record.
+    # Keep the row unresolved instead of inheriting allocation from reports.
+    if emp_no not in md.employees:
+        return r7_result
+
     # Find all Manpower rows where Manager No == emp_no
     subordinates = [e for e in md.employees.values() if e.manager_no == emp_no]
 

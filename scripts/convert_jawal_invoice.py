@@ -63,7 +63,7 @@ KSA_AIRPORT_TOKENS = {
     "NUM", "RAH", "SHW", "SLF", "TUU", "TIF", "TUI", "WAE", "EJH",
     "YNB", "ULH", "ZUL", "KMX", "DHA", "HBT", "MJH", "AKH", "KMC",
 }
-KSA_RAIL_TOKENS = {"RYD", "MAK", "MED", "JED", "DMM", "HOF"}
+KSA_RAIL_TOKENS = {"RYD", "MAK", "MEK", "MED", "MAD", "JED", "JDD", "DMM", "HOF"}
 KNOWN_INTERNATIONAL_ROUTE_TOKENS = {
     "BRU", "CAI", "CDG", "CMN", "DOH", "DXB", "FCO", "IST", "LHR", "LYS",
     "MUC", "ZRH",

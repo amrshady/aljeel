@@ -396,16 +396,18 @@ def collect_evidence(folder: Path) -> dict:
 def call_gemini(prompt: str, model: str, retries: int = 3) -> dict:
     """Call Gemini with retry. Returns {'json': dict, 'in_tokens': int, 'out_tokens': int, 'model': str, 'error': str}."""
     url = f"{GEMINI_BASE_URL}/models/{model}:generateContent?key={GEMINI_API_KEY}"
+    generation_config = {
+        "temperature": 0,
+        "seed": 42,
+        "candidateCount": 1,
+        "maxOutputTokens": 8192,
+        "responseMimeType": "application/json",
+    }
+    if "flash" in model.lower():
+        generation_config["thinkingConfig"] = {"thinkingBudget": 0}
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0,
-            "seed": 42,
-            "candidateCount": 1,
-            "maxOutputTokens": 8192,
-            "responseMimeType": "application/json",
-            "thinkingConfig": {"thinkingBudget": 0},
-        },
+        "generationConfig": generation_config,
     }
     last_err = None
     unavailable = False

@@ -188,6 +188,31 @@ def test_ambiguous_participant_folder_never_falls_back_by_serial(tmp_path, monke
     assert "SPONSORSHIP_ALLOCATION_TABLE_REVIEW" in final["_agent_flag_details"]
 
 
+def test_call2_employee_survives_missing_sponsorship_form(tmp_path, monkeypatch):
+    classify = {
+        "row_type": "sponsorship",
+        "employee_no_in_doc": "",
+        "requesting_emp_no": "",
+        "sponsorship_agency_from_form": "",
+        "_folder": str(tmp_path),
+        "_evidence": {"files": [], "total_chars": 0},
+    }
+    llm = {"account": "60307021", "emp_no": "1001959", "opex_serial": "CRM-2026-42"}
+    monkeypatch.setattr("run_v16.classify_row", lambda *args, **kwargs: classify)
+    monkeypatch.setattr("run_v16.full_resolve_row", lambda *args, **kwargs: llm)
+    monkeypatch.setattr("run_v16.apply_overlays_v16", lambda *args: (dict(llm), "llm"))
+    monkeypatch.setattr("run_v16.enforce_sponsorship_rules", lambda final, *args: final)
+    monkeypatch.setattr(run_v30, "find_folder_v25", lambda *args, **kwargs: None)
+
+    result = run_v30.process_row_v25(
+        58, {"Description": "ALAMRI/MANAL"}, "TEST", "J26-0000",
+        tmp_path, [], {}, {},
+    )
+    assert result["emp_no"] == "1001959"
+    assert result["_sponsorship_requesting_emp_no"] == "1001959"
+    assert "SPONSORSHIP_ALLOCATION_TABLE_REVIEW" in result["_agent_flag_details"]
+
+
 def test_apply_allocation_replaces_requester_with_all_table_employees(tmp_path, monkeypatch):
     pdf = tmp_path / "OPEX-CRM-2026-31.pdf"
     pdf.write_bytes(b"fixture")

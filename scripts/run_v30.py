@@ -157,6 +157,72 @@ from run_v24 import (
     utc_ts,
 )
 
+_RAIL_STATIONS = {"RYD", "MED", "MAK", "HOF", "HAF", "DMM", "JED"}
+_RAIL_TEXT_RE = re.compile(
+    r"\bTRAIN\b|\bSAR\b|\bSAUDI\s+RAILWAYS\b|"
+    r"\bRAIL(?:WAY)?\s+STATION\b|\bSAR-TICKET\b",
+    re.IGNORECASE,
+)
+
+
+def trip_transport_type(desc: str) -> str:
+    """Classify trip evidence without treating employee/name identity as travel identity."""
+    text = str(desc or "")
+    if re.search(r"\b\d{10}\b", text):
+        return "air"
+    if _RAIL_TEXT_RE.search(text):
+        return "rail"
+    if re.search(r"\b[A-Z]{3}\s*(?:[-–—>/]|\bTO\b)\s*[A-Z]{3}\b", text.upper()):
+        return "air"
+    return "other"
+
+
+def _trip_corridor(text: str) -> list[str]:
+    """Use the legacy parser first, with a narrow station/city-pair fallback."""
+    corridor = [code.upper() for code in _parse_route_corridor(str(text or ""))]
+    if corridor:
+        return corridor
+    pairs = re.findall(
+        r"\b([A-Z]{3})\s*(?:[-–—>/]|\bTO\b)\s*([A-Z]{3})\b",
+        str(text or "").upper(),
+    )
+    return [code for pair in pairs for code in pair]
+
+
+def trips_match(row_desc: str, evidence_hint: str) -> bool:
+    """Require matching transport modes and at least one complete route corridor."""
+    if trip_transport_type(row_desc) != trip_transport_type(evidence_hint):
+        return False
+    row_route = set(_trip_corridor(row_desc))
+    evidence_route = set(_trip_corridor(evidence_hint))
+    return len(row_route & evidence_route) >= 2
+
+
+def trip_identity_state(row_desc: str, evidence_hint: str) -> str:
+    """Return MATCH, MISMATCH, or UNKNOWN for available trip identity evidence."""
+    # fix #1 tighten: 3-state trip identity
+    row_transport = trip_transport_type(row_desc)
+    evidence_transport = trip_transport_type(evidence_hint)
+    row_route = set(_trip_corridor(row_desc))
+    evidence_route = set(_trip_corridor(evidence_hint))
+    if (
+        "other" in {row_transport, evidence_transport}
+        or not row_route
+        or not evidence_route
+    ):
+        return "UNKNOWN"
+    if row_transport != evidence_transport or len(row_route & evidence_route) < 2:
+        return "MISMATCH"
+    return "MATCH"
+
+
+def _is_rail_row(desc: str) -> bool:
+    """Recognize invoice rail rows without confusing airline ticket identity."""
+    text = str(desc or "")
+    return bool(re.search(r"\bTRAIN\b", text, re.IGNORECASE)) and not bool(
+        re.search(r"\b\d{10}\b", text)
+    )
+
 VERSION      = "v30"
 COST_CEILING = 4.0
 
@@ -337,6 +403,7 @@ def find_folder_v25(
     notes: str,
     all_folders: list[Path],
     reverse_index: dict[str, Path],
+    row_desc: str = "",
 ) -> Path | None:
     """
     v25 override of find_folder_with_index.
@@ -350,6 +417,7 @@ def find_folder_v25(
     Exact/substring/range folder discovery runs first (deterministic, zero false
     positives).  Then reverse_index ticket match.  Surname fallback is last.
     """
+    find_folder_v25._trip_identity_mismatch = False
     # Step 1: exact / substring / range — identical to fea.find_ticket_folder steps 1-2
     for f in all_folders:
         if f.name.strip() == ticket_no:
@@ -442,9 +510,14 @@ def find_folder_v25(
             folders_by_basename.setdefault(folder.name, []).append(folder)
 
         if len(folders_by_basename) == 1:
-            return sorted(
+            # fix #1 tighten: deterministic tie-break
+            candidate = sorted(
                 next(iter(folders_by_basename.values())), key=lambda p: str(p)
             )[0]
+            # fix #1 tighten: 3-state trip identity
+            if trip_identity_state(row_desc, _evidence_folder_hint(candidate)) != "MISMATCH":
+                return candidate
+            find_folder_v25._trip_identity_mismatch = True
         if len(folders_by_basename) > 1:
             pc_emp_nos = {
                 match.group(1)
@@ -455,7 +528,20 @@ def find_folder_v25(
                 for match in re.finditer(r"(?<!\d)(1\d{6})(?!\d)", norm)
             }
             if len(pc_emp_nos) == 1:
-                return sorted((folder for folder, _names in matching_folders), key=lambda p: str(p))[0]
+                candidates = [
+                    folder for folder, _names in matching_folders
+                    if trips_match(row_desc, _evidence_folder_hint(folder))
+                ]
+                if len(candidates) == 1:
+                    return candidates[0]
+                non_mismatches = [
+                    folder for folder, _names in matching_folders
+                    if trip_identity_state(row_desc, _evidence_folder_hint(folder)) != "MISMATCH"
+                ]
+                if non_mismatches:
+                    # fix #1 tighten: deterministic tie-break
+                    return sorted(non_mismatches, key=lambda p: str(p))[0]
+                find_folder_v25._trip_identity_mismatch = True
 
     return None
 
@@ -2035,7 +2121,10 @@ def _apply_multi_salesman_from_opex(
     if not opex_pdfs:
         final.pop("_sponsorship_allocations", None)
         final.pop("_sponsorship_salesmen", None)
-        final["emp_no"] = ""
+        requesting_emp_no = str(
+            final.get("_sponsorship_requesting_emp_no", "") or ""
+        ).strip()
+        final["emp_no"] = requesting_emp_no if re.fullmatch(r"\d{6,7}", requesting_emp_no) else ""
         _append_agent_flag_detail(final, "SPONSORSHIP_ALLOCATION_TABLE_REVIEW")
         final["_flags"] = (str(final.get("_flags", "") or "") + " SPONSORSHIP_ALLOCATION_TABLE_REVIEW").strip()
         return
@@ -2233,7 +2322,9 @@ def process_row_v25(
     ref_no = _row_invoice_ref_no(cascade_row)
     ref_folder, ref_status, ref_note = (None, "", "")
     if not classify_evidence_files or route_reason == REFNO_FALLBACK_FLAG:
-        ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(ref_no, invoice_ref_index)
+        ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(
+            ref_no, invoice_ref_index, desc
+        )
         if ref_folder:
             ref_evidence = fea.collect_evidence(ref_folder)
             if not list((ref_evidence or {}).get("files", [])):
@@ -2542,7 +2633,12 @@ def process_row_v25(
     final["opex_serial"] = str(llm.get("opex_serial", "") or "").strip()
 
     if str(final.get("account", "") or "").strip() == "60307021":
-        final["_sponsorship_requesting_emp_no"] = requesting_no
+        resolved_emp_no = str(final.get("emp_no") or llm.get("emp_no") or "").strip()
+        final["_sponsorship_requesting_emp_no"] = (
+            requesting_no
+            if requesting_no
+            else resolved_emp_no if re.fullmatch(r"\d{6,7}", resolved_emp_no) else ""
+        )
 
     # Replace the provisional requester with the OPEX allocation-table employees.
     if str(final.get("account", "") or "").strip() == "60307021":
@@ -2757,6 +2853,12 @@ INVOICE_REF_EMP_FILENAME_FLAG = "INVOICE_REF_EMP_FILENAME_MATCH"
 INVOICE_REF_FUZZY_FLAG = "REF_FUZZY"
 REFNO_FALLBACK_FLAG = "REFNO_FALLBACK"
 EMP_FILENAME_FALLBACK_FLAG = "EMP_FILENAME_FALLBACK"
+EMP_NOT_IN_MASTER_FLAG = "EMP_NOT_IN_MASTER"
+EVIDENCE_TRIP_IDENTITY_MISMATCH = "EVIDENCE_TRIP_IDENTITY_MISMATCH"
+EVIDENCE_SAME_EMPLOYEE_MULTIPLE_TRIPS = "EVIDENCE_SAME_EMPLOYEE_MULTIPLE_TRIPS"
+ZERO_AMOUNT_REISSUE_INHERITED = "ZERO_AMOUNT_REISSUE_INHERITED"
+ZERO_AMOUNT_REISSUE_NO_DONOR = "ZERO_AMOUNT_REISSUE_NO_DONOR"
+ZERO_AMOUNT_REISSUE_AMBIGUOUS = "ZERO_AMOUNT_REISSUE_AMBIGUOUS"
 SPONSORSHIP_ACCOUNT = "60307021"
 ANNUAL_TICKET_ACCOUNT = "21070229"
 SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED = "SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED"
@@ -2823,6 +2925,16 @@ def _row_invoice_ref_no(cascade_row: dict) -> str:
     return str(cascade_row.get("_invoice_ref_no", "") or "").strip()
 
 
+def _evidence_folder_hint(folder: Path, extra_text: str = "") -> str:
+    """Return deterministic route/transport text available without attaching evidence."""
+    parts = [str(folder), extra_text]
+    try:
+        parts.extend(child.name for child in fea.iter_evidence_files(folder))
+    except (OSError, PermissionError):
+        pass
+    return " ".join(parts)
+
+
 def _invoice_ref_is_event(ref_no: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-z]+-\d{1,4}-\d{2,4}", str(ref_no or "").strip()))
 
@@ -2859,13 +2971,20 @@ def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
     """Index evidence folders by event ref and PC approval employee numbers."""
     event_folders: list[tuple[str, Path]] = []
     canonical_event_folders: dict[str, Path] = {}
-    emp_filename: dict[str, Path] = {}
+    emp_filename: dict[str, list[Path]] = {}
+    folder_hints: dict[Path, str] = {}
+    rail_by_booking: dict[str, list[Path]] = {}
+    rail_candidates: list[Path] = []
     sis_siblings: dict[tuple[str, str], list[tuple[int, str, Path]]] = {}
 
     for folder in all_folders:
         if not folder.exists():
             continue
         folder_name = folder.name.strip()
+        hint_parts = [str(folder)]
+        # Regression fix #2: employee refs are indexed from explicit filename tokens only.
+        filename_hint_parts = [folder_name]
+        rail_booking_nos = set(re.findall(r"(?<!\d)(\d{12})(?!\d)", folder_name))
         folder_key = _norm_invoice_ref_key(folder_name)
         event_folders.append((folder_key, folder))
         # Some event directories contain a nested evidence leaf whose own name
@@ -2878,20 +2997,45 @@ def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
             sis_siblings.setdefault(prefix, []).append((int(m.group(3)), m.group(0), folder))
         try:
             for child in fea.iter_evidence_files(folder):
+                filename_hint_parts.append(child.name)
                 if child.suffix.lower() not in {".msg", ".pdf"}:
                     continue
                 fname_l = child.name.casefold()
+                hint_parts.append(child.name)
+                rail_booking_nos.update(
+                    re.findall(r"SAR-TICKET[-_ ]*(\d{10,})", child.name, re.IGNORECASE)
+                )
                 if "personal contribution" not in fname_l and "approved" not in fname_l:
                     continue
-                for emp_m in re.finditer(r"(?<!\d)(\d{6,7})(?!\d)", child.name):
-                    emp_filename.setdefault(emp_m.group(1), folder)
+                try:
+                    if child.suffix.lower() == ".pdf":
+                        import pypdf
+                        reader = pypdf.PdfReader(str(child))
+                        hint_parts.extend(
+                            page.extract_text() or "" for page in reader.pages[:2]
+                        )
+                    else:
+                        hint_parts.append(child.read_bytes().decode("utf-8", errors="ignore"))
+                except Exception:
+                    pass
         except (OSError, PermissionError):
-            continue
+            pass
+        hint = " ".join(hint_parts)
+        folder_hints[folder] = hint
+        for emp_m in EMP_FILENAME_RE.finditer(" ".join(filename_hint_parts)):
+            emp_filename.setdefault(emp_m.group(1), []).append(folder)
+        if rail_booking_nos:
+            rail_candidates.append(folder)
+            for booking_no in rail_booking_nos:
+                rail_by_booking.setdefault(booking_no, []).append(folder)
 
     return {
         "event_folders": event_folders,
         "canonical_event_folders": canonical_event_folders,
         "emp_filename": emp_filename,
+        "folder_hints": folder_hints,
+        "rail_by_booking": rail_by_booking,
+        "rail_candidates": rail_candidates,
         "sis_siblings": sis_siblings,
     }
 
@@ -2925,18 +3069,20 @@ def _existing_evidence_folder_claims(
         ref_token = _row_reference_token(row)
         if ref_token:
             passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else desc.strip()
-            folder = find_folder_v25(ref_token, passenger, notes, all_folders, reverse_index)
+            folder = find_folder_v25(ref_token, passenger, notes, all_folders, reverse_index, desc)
             if folder:
                 claimed.add(folder.resolve(strict=False))
         ref_folder, _status, _note = resolve_invoice_ref_folder(
-            _row_invoice_ref_no(row), invoice_ref_index
+            _row_invoice_ref_no(row), invoice_ref_index, desc
         )
         if ref_folder:
             claimed.add(ref_folder.resolve(strict=False))
     return claimed
 
 
-def resolve_invoice_ref_folder(ref_no: str, ref_index: dict | None) -> tuple[Path | None, str, str]:
+def resolve_invoice_ref_folder(
+    ref_no: str, ref_index: dict | None, row_desc: str = ""
+) -> tuple[Path | None, str, str]:
     """Resolve invoice Ref. No. to evidence folder. Returns (folder, status, note)."""
     ref_no = str(ref_no or "").strip()
     if not ref_no or not ref_index:
@@ -2947,10 +3093,35 @@ def resolve_invoice_ref_folder(ref_no: str, ref_index: dict | None) -> tuple[Pat
         return None, "", ""
 
     if re.fullmatch(r"\d{6,7}", ref_no):
-        folder = (ref_index.get("emp_filename") or {}).get(ref_no)
-        if folder:
-            return folder, "REF_EMP_FILENAME", f"invoice Ref. No. employee {ref_no} found in evidence filename"
-        return None, "", ""
+        # fix #1 tighten: deterministic tie-break
+        folders = sorted(
+            dict.fromkeys((ref_index.get("emp_filename") or {}).get(ref_no, [])),
+            key=lambda p: str(p),
+        )
+        if len(folders) == 1:
+            # fix #1 tighten: 3-state trip identity
+            if trip_identity_state(
+                row_desc, (ref_index.get("folder_hints") or {}).get(folders[0], "")
+            ) != "MISMATCH":
+                return folders[0], "REF_EMP_FILENAME", f"invoice Ref. No. employee {ref_no} found in evidence filename"
+            return None, EVIDENCE_TRIP_IDENTITY_MISMATCH, f"invoice Ref. No. employee {ref_no} has no unique matching-trip evidence"
+        matches = [
+            folder for folder in folders
+            if trips_match(row_desc, (ref_index.get("folder_hints") or {}).get(folder, ""))
+        ]
+        if len(matches) == 1:
+            return matches[0], "REF_EMP_FILENAME", f"invoice Ref. No. employee {ref_no} found in matching-trip evidence"
+        non_mismatches = [
+            folder for folder in folders
+            if trip_identity_state(
+                row_desc, (ref_index.get("folder_hints") or {}).get(folder, "")
+            ) != "MISMATCH"
+        ]
+        if non_mismatches:
+            # fix #1 tighten: deterministic tie-break
+            return sorted(non_mismatches, key=lambda p: str(p))[0], "REF_EMP_FILENAME", f"invoice Ref. No. employee {ref_no} found in evidence filename"
+        status = EVIDENCE_SAME_EMPLOYEE_MULTIPLE_TRIPS if len(folders) > 1 else EVIDENCE_TRIP_IDENTITY_MISMATCH
+        return None, status, f"invoice Ref. No. employee {ref_no} has no unique matching-trip evidence"
 
     if _invoice_ref_is_event(ref_no):
         for folder_key, folder in ref_index.get("event_folders") or []:
@@ -3113,6 +3284,21 @@ def row_verified_emp_locked(row: dict) -> bool:
 def _append_hybrid_flag(row: dict, flag: str) -> None:
     if flag not in str(row.get("_flags", "") or ""):
         row["_flags"] = (str(row.get("_flags", "") or "") + " " + flag).strip()
+
+
+def blank_jawal_emp_not_in_master(hybrid_rows: list[dict], manpower: dict) -> int:
+    """Blank only settled employee numbers that do not resolve in Manpower."""
+    blanked = 0
+    for row in hybrid_rows:
+        emp_no = str(row.get("emp_no", "") or "").strip()
+        if not emp_no or _emp_resolves_in_manpower(emp_no, manpower):
+            continue
+        row["emp_no"] = ""
+        _append_hybrid_flag(row, EMP_NOT_IN_MASTER_FLAG)
+        if row.get("_agent_method", "cascade") == "cascade":
+            row["_agent_method"] = "hybrid_overlay"
+        blanked += 1
+    return blanked
 
 
 def _append_row_flag(row: dict, key: str, flag: str) -> None:
@@ -3336,7 +3522,7 @@ def cascade_row_no_folder(
         return False
     invoice_ref = _row_invoice_ref_no(cascade_row)
     if invoice_ref:
-        folder, _status, _note = resolve_invoice_ref_folder(invoice_ref, invoice_ref_index)
+        folder, _status, _note = resolve_invoice_ref_folder(invoice_ref, invoice_ref_index, desc)
         if folder:
             return False
     return True
@@ -3354,6 +3540,50 @@ def row_missing_evidence(row: dict) -> bool:
         MISSING_EVIDENCE_FLAG in str(row.get(k, "") or "")
         for k in ("_flags", "Agent Flags")
     )
+
+
+def _invoice_line_amount(cascade_row: dict) -> float | None:
+    raw = cascade_row.get("*Amount", cascade_row.get("Amount", ""))
+    try:
+        return float(str(raw).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _zero_amount_reissue_donors(
+    row_idx: int,
+    hybrid_rows: list[dict],
+    cascade_rows: list[dict],
+    ticket_folder_index: set[str],
+    invoice_ref_index: dict | None,
+) -> list[int]:
+    row = cascade_rows[row_idx]
+    desc = str(row.get("Description", "") or "")
+    ticket_no = _row_ticket_no(row)
+    passenger_tokens = _row_passenger_tokens(row)
+    transport_type = trip_transport_type(desc)
+    emp_no = str(row.get("Employee No", "") or hybrid_rows[row_idx].get("emp_no", "") or "").strip()
+    donors: list[int] = []
+    for donor_idx, (donor_h, donor_c) in enumerate(zip(hybrid_rows, cascade_rows)):
+        if donor_idx == row_idx or not str(donor_h.get("account", "") or "").strip():
+            continue
+        donor_ticket = _row_ticket_no(donor_c)
+        if not ticket_no or not donor_ticket or donor_ticket == ticket_no:
+            continue
+        donor_desc = str(donor_c.get("Description", "") or "")
+        if transport_type != trip_transport_type(donor_desc) or not trips_match(desc, donor_desc):
+            continue
+        if not _passenger_tokens_match(passenger_tokens, _row_passenger_tokens(donor_c)):
+            continue
+        donor_emp_no = str(donor_c.get("Employee No", "") or donor_h.get("emp_no", "") or "").strip()
+        if emp_no and donor_emp_no and emp_no != donor_emp_no:
+            continue
+        donor_has_evidence = donor_h.get("_missing_evidence_resolved") or not cascade_row_no_folder(
+            donor_c, ticket_folder_index, invoice_ref_index
+        )
+        if donor_has_evidence and not donor_h.get("_missing_evidence"):
+            donors.append(donor_idx)
+    return donors
 
 
 def stamp_missing_evidence_gate(
@@ -3384,7 +3614,7 @@ def stamp_missing_evidence_gate(
             ref_folder, ref_status, ref_note = (None, "", "")
             if not ticket_resolved:
                 ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(
-                    _row_invoice_ref_no(c), invoice_ref_index
+                    _row_invoice_ref_no(c), invoice_ref_index, str(c.get("Description", "") or "")
                 )
             if ref_folder:
                 h = hybrid_rows[i]
@@ -3421,6 +3651,9 @@ def stamp_missing_evidence_gate(
                 )
             continue
         h = hybrid_rows[i]
+        _unused_folder, identity_status, _unused_note = resolve_invoice_ref_folder(
+            _row_invoice_ref_no(c), invoice_ref_index, str(c.get("Description", "") or "")
+        )
         if enable_passenger_name_fallback:
             desc = str(c.get("Description", "") or "")
             passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else desc.strip()
@@ -3430,7 +3663,12 @@ def stamp_missing_evidence_gate(
                 str(c.get("Notes", "") or ""),
                 all_folders,
                 reverse_index,
+                desc,
             )
+            passenger_trip_mismatch = bool(
+                getattr(find_folder_v25, "_trip_identity_mismatch", False)
+            )
+            # Fix: find_folder_v25 already applies trip matching only for ambiguity.
             if folder:
                 claimed_folders.add(folder.resolve(strict=False))
                 h["_missing_evidence_resolved"] = True
@@ -3442,11 +3680,48 @@ def stamp_missing_evidence_gate(
                     flush=True,
                 )
                 continue
+        else:
+            passenger_trip_mismatch = False
         emp_no = str(h.get("emp_no", "") or "").strip()
-        candidates = [
+        raw_candidates = [
             folder for folder in emp_filename_index.get(emp_no, [])
             if folder.resolve(strict=False) not in claimed_folders
         ] if emp_no else []
+        # fix #1 tighten: 3-state trip identity
+        candidates = [
+            folder for folder in raw_candidates
+            if trip_identity_state(
+                str(c.get("Description", "") or ""), _evidence_folder_hint(folder)
+            ) != "MISMATCH"
+        ] if len(raw_candidates) == 1 else [
+            folder for folder in raw_candidates
+            if trips_match(str(c.get("Description", "") or ""), _evidence_folder_hint(folder))
+        ]
+        rail_emp_candidates: list[Path] = []
+        if _is_rail_row(str(c.get("Description", "") or "")) and emp_no:
+            rail_folders = list(dict.fromkeys((invoice_ref_index or {}).get("rail_candidates", [])))
+            rail_emp_candidates = [
+                folder for folder in rail_folders
+                if re.search(
+                    rf"(?<!\d){re.escape(emp_no)}(?!\d)",
+                    (invoice_ref_index or {}).get("folder_hints", {}).get(folder, ""),
+                )
+                and folder.resolve(strict=False) not in claimed_folders
+            ]
+            # fix #1 tighten: 3-state trip identity
+            candidates = [
+                folder for folder in rail_emp_candidates
+                if trip_identity_state(
+                    str(c.get("Description", "") or ""),
+                    (invoice_ref_index or {}).get("folder_hints", {}).get(folder, ""),
+                ) != "MISMATCH"
+            ] if len(rail_emp_candidates) == 1 else [
+                folder for folder in rail_emp_candidates
+                if trips_match(
+                    str(c.get("Description", "") or ""),
+                    (invoice_ref_index or {}).get("folder_hints", {}).get(folder, ""),
+                )
+            ]
         if len(candidates) == 1:
             folder = candidates[0]
             claimed_folders.add(folder.resolve(strict=False))
@@ -3459,8 +3734,42 @@ def stamp_missing_evidence_gate(
                 flush=True,
             )
             continue
+        amount = _invoice_line_amount(c)
+        if amount is not None and abs(amount) <= 0.01:
+            donors = _zero_amount_reissue_donors(
+                i, hybrid_rows, cascade_rows, ticket_folder_index, invoice_ref_index
+            )
+            if len(donors) == 1:
+                donor_idx = donors[0]
+                donor = hybrid_rows[donor_idx]
+                donor_ticket = _row_ticket_no(cascade_rows[donor_idx])
+                for key in ("account", "cost_center", "div", "solution", "agency"):
+                    h[key] = donor.get(key, "") or ""
+                h.pop("_missing_evidence", None)
+                h["_missing_evidence_resolved"] = True
+                h["_route_reason"] = ZERO_AMOUNT_REISSUE_INHERITED
+                h["_agent_method"] = "zero_amount_reissue_inherited"
+                _append_hybrid_flag(h, f"{ZERO_AMOUNT_REISSUE_INHERITED}:{donor_ticket}")
+                print(
+                    f"[zero-amount-reissue] row {i}: inherited allocation from ticket {donor_ticket}",
+                    flush=True,
+                )
+                continue
+            _append_hybrid_flag(
+                h,
+                ZERO_AMOUNT_REISSUE_AMBIGUOUS if len(donors) > 1 else ZERO_AMOUNT_REISSUE_NO_DONOR,
+            )
         h["_missing_evidence"] = True
         _append_hybrid_flag(h, MISSING_EVIDENCE_FLAG)
+        if identity_status in {
+            EVIDENCE_TRIP_IDENTITY_MISMATCH,
+            EVIDENCE_SAME_EMPLOYEE_MULTIPLE_TRIPS,
+        }:
+            _append_hybrid_flag(h, identity_status)
+        elif len(raw_candidates) > 1 or len(rail_emp_candidates) > 1:
+            _append_hybrid_flag(h, EVIDENCE_SAME_EMPLOYEE_MULTIPLE_TRIPS)
+        elif raw_candidates or rail_emp_candidates or passenger_trip_mismatch or _is_rail_row(str(c.get("Description", "") or "")):
+            _append_hybrid_flag(h, EVIDENCE_TRIP_IDENTITY_MISMATCH)
         for key in ("account", "cost_center", "div", "solution", "agency"):
             h[key] = ""
         if not row_verified_emp_locked(h):
@@ -5214,7 +5523,7 @@ def main():
         ref_token = _row_reference_token(row)
         if not (ref_token and ref_token in ticket_folder_index):
             ref_folder, ref_status, _ref_note = resolve_invoice_ref_folder(
-                _row_invoice_ref_no(row), invoice_ref_index
+                _row_invoice_ref_no(row), invoice_ref_index, str(row.get("Description", "") or "")
             )
             if ref_folder:
                 return True, (
@@ -5676,13 +5985,15 @@ def main():
             notes = str(cascade_rows[idx].get("Notes", "") or "")
             tm    = re.search(r"\b(\d{10,})\b", desc + " " + notes)
             ticket_no = tm.group(1) if tm else ""
-            if not ticket_no:
+            # Ancillary 26-NNN rows have no airline ticket number, but can still
+            # be authoritatively linked to sponsorship by their event Ref No.
+            if not ticket_no and not found_folder:
                 continue
             passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""
             import os as _os26
 
             # Pre-check: does this ticket already have its own per-ticket folder anywhere in raw_root?
-            ticket_has_own_folder = any(
+            ticket_has_own_folder = bool(ticket_no) and any(
                 ticket_no in dir_name
                 for _root26, _dirs26, _files26 in _os26.walk(raw_root)
                 for dir_name in _dirs26
@@ -5938,6 +6249,13 @@ def main():
     )
     ancillary_inherited = inherit_ancillary_event_allocations(hybrid_rows, cascade_rows)
     print(f"[ancillary-event] {ancillary_inherited} missing ancillary row(s) inherited event allocation", flush=True)
+
+    if batch_dir.name.casefold().startswith("jawal-"):
+        emp_not_in_master = blank_jawal_emp_not_in_master(hybrid_rows, manpower)
+        print(
+            f"[jawal-emp-master] {emp_not_in_master} out-of-master emp_no value(s) blanked",
+            flush=True,
+        )
 
     for h in hybrid_rows:
         m = h.get("_agent_method", "")

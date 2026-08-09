@@ -1111,6 +1111,7 @@ def process_batch(
             amount=amount,
             md=md,
             msg_filenames=v2_msg_filenames,
+            invoice_ref_text=invoice_ref_no,
         )
         
         # Override match method with v2 layer info

@@ -377,7 +377,7 @@ def derive_sponsor_segments(description: str) -> dict:
 
 
 def classify_account(description: str, emp: Optional[Employee], md: MasterData,
-                     approver_name: str = "") -> tuple[str, str]:
+                     approver_name: str = "", invoice_ref_text: str = "") -> tuple[str, str]:
     """Classify expense type → Account code per Labadi matrix (2026-05-22).
 
     Priority order:
@@ -394,6 +394,7 @@ def classify_account(description: str, emp: Optional[Employee], md: MasterData,
     Returns (account_code, rule_description).
     """
     desc_lower = (description or "").lower()
+    invoice_ref_lower = (invoice_ref_text or "").lower()
 
     # L1: Sponsorship — OPEX form / event reference codes
     is_sponsor, sponsor_pat = _is_sponsorship(description)
@@ -404,6 +405,8 @@ def classify_account(description: str, emp: Optional[Employee], md: MasterData,
     for kw in ("new employee", "new hire", "candidate", "interview"):
         if kw in desc_lower:
             return ("60308007", f"L2_recruitment: {kw}")
+        if kw in invoice_ref_lower:
+            return ("60308007", f"L2_recruitment_refno: {kw}")
     if approver_name:
         approver_low = approver_name.lower()
         for hr in ("elham", "hessa"):
@@ -550,6 +553,7 @@ def resolve_line(
     amount: float,
     md: MasterData,
     msg_filenames: list[str] | None = None,
+    invoice_ref_text: str = "",
 ) -> ResolvedLine:
     """Resolve one invoice line to full 10-segment combo."""
     flags = []
@@ -596,7 +600,8 @@ def resolve_line(
         sol_flag = "Need to allocate"
         flags.append("EMPLOYEE_NOT_IN_MASTER")
         # Classify account first (may detect sponsorship from description)
-        account, account_rule = classify_account(description, None, md)
+        account, account_rule = classify_account(
+            description, None, md, invoice_ref_text=invoice_ref_text)
         if account == "60307021":
             # Sponsorship: derive segments from OPEX reference code
             sponsor_segs = derive_sponsor_segments(description)
@@ -617,7 +622,8 @@ def resolve_line(
             agency = "00000"
     else:
         # Step 3: Classify account
-        account, account_rule = classify_account(description, emp, md)
+        account, account_rule = classify_account(
+            description, emp, md, invoice_ref_text=invoice_ref_text)
         account_flag = None
 
         # (L7/L8 in classify_account now handle DIV-based routing)

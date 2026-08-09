@@ -1,0 +1,79 @@
+{
+  "account_breakout": {
+    "": {"evaluated": 25, "full5": 7, "full5_emp": 4},
+    "21070229": {"evaluated": 2, "full5": 1, "full5_emp": 1},
+    "60301003": {"evaluated": 53, "full5": 53, "full5_emp": 28},
+    "60301004": {"evaluated": 3, "full5": 3, "full5_emp": 3},
+    "60307021": {"evaluated": 19, "full5": 19, "full5_emp": 16}
+  },
+  "all_5": 83,
+  "all_5_plus_employee": 52,
+  "artifact_gate": true,
+  "end_to_end": {"denominator": 102, "full5": 83, "full5_emp": 52},
+  "logical_virtual_evaluated": 102,
+  "off_by_1": {"account": 1, "emp_no": 31},
+  "pairing_integrity": {
+    "ambiguous_groups": 0,
+    "amount_sum_mismatches": 0,
+    "direct_1_to_1_pairs": 76,
+    "extra_employees": 0,
+    "missing_employees": 3,
+    "multiplicity_groups": {"1:1": 79, "N:1": 11},
+    "pairing_methods": {"direct": 75, "missing-employee": 3, "shared-pipeline": 7, "unique-reference-amount": 1, "virtual-employee": 16},
+    "virtual_sponsorship_allocations": 16
+  },
+  "per_field": {
+    "account": {"match": 83, "mismatch": 19},
+    "agency": {"match": 84, "mismatch": 18},
+    "cc": {"match": 84, "mismatch": 18},
+    "div": {"match": 84, "mismatch": 18},
+    "emp_no": {"match": 69, "mismatch": 33},
+    "solution": {"match": 84, "mismatch": 18}
+  },
+  "pipeline_only_logical_groups": [],
+  "pipeline_physical_rows": 90,
+  "pipeline_sha256": "fce2ac2a23edc0d8f350a3fafe89de2490845f54fe6f6c0e7f1b938ede38c182",
+  "schema_version": "jawal-j26-1108-golden/v1",
+  "scorer_schema_version": "jawal-truth-scorer/v2",
+  "sponsorship": {
+    "all_5": 19,
+    "all_5_plus_employee": 16,
+    "evaluated": 19,
+    "per_field": {
+      "account": {"match": 19, "mismatch": 0},
+      "agency": {"match": 19, "mismatch": 0},
+      "cc": {"match": 19, "mismatch": 0},
+      "div": {"match": 19, "mismatch": 0},
+      "emp_no": {"match": 16, "mismatch": 3},
+      "solution": {"match": 19, "mismatch": 0}
+    }
+  },
+  "structure": {
+    "pipeline_columns": {"account": 19, "agency": 27, "amount": 13, "cc": 21, "company": 17, "description": 11, "distribution": 14, "div": 23, "emp_no": 16, "flags": 39, "invoice_ref": 64, "location": 18, "method": 68, "opex_details": 69, "opex_serial": 65, "solution": 25},
+    "pipeline_header_row": 3,
+    "pipeline_sheet": "Sheet1",
+    "ticketless_truth_rows": 1,
+    "truth_columns": {"account": 21, "agency": 29, "amount": 13, "cc": 23, "company": 19, "description": 11, "distribution": 15, "div": 25, "emp_no": 18, "flags": 41, "invoice_ref": 66, "location": 20, "method": 70, "opex_details": 71, "opex_serial": 67, "solution": 27},
+    "truth_employee_coverage": 102,
+    "truth_header_row": 3,
+    "truth_physical_rows": 102,
+    "truth_sheet": "Sheet1",
+    "truth_sponsorship_employee_coverage": 19,
+    "truth_sponsorship_rows": 19
+  },
+  "travel": {
+    "all_5": 64,
+    "all_5_plus_employee": 36,
+    "evaluated": 83,
+    "per_field": {
+      "account": {"match": 64, "mismatch": 19},
+      "agency": {"match": 65, "mismatch": 18},
+      "cc": {"match": 65, "mismatch": 18},
+      "div": {"match": 65, "mismatch": 18},
+      "emp_no": {"match": 53, "mismatch": 30},
+      "solution": {"match": 65, "mismatch": 18}
+    }
+  },
+  "truth_only_logical_groups": [],
+  "truth_sha256": "97d01ad7e683cb325bd9dc481008651b6c16e5d78da2b9a65bd97504a3979048"
+}

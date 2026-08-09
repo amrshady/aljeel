@@ -123,12 +123,14 @@ PIPELINE_EXIT=${PIPESTATUS[0]}
 # Stage 6: Golden regression check
 # -----------------------------------------------------------------------------
 log ""
-log "── Stage 6: Golden fixture regression check ──"
-if [[ -x "$ALJEEL_HOME/scripts/validate_golden.py" ]] || python3 -c "import sys; sys.path.insert(0, '$ALJEEL_HOME/scripts')" 2>/dev/null; then
-  python3 "$ALJEEL_HOME/scripts/validate_golden.py" 2>&1 | tee -a "$RUN_LOG" || log "⚠ golden regression check returned non-zero (review log)"
-else
-  log "⚠ validate_golden.py not executable — skipped"
-fi
+log "── Stage 6: Jawal golden gates ──"
+log "  PRIMARY: J26-1108 artifact-based semantic accuracy"
+python3 "$ALJEEL_HOME/qc/jawal_j26_1108_golden_check.py" 2>&1 | tee -a "$RUN_LOG"
+PRIMARY_GOLDEN_EXIT=${PIPESTATUS[0]}
+[[ "$PRIMARY_GOLDEN_EXIT" -eq 0 ]] || die "J26-1108 primary semantic golden gate failed"
+
+log "  RETAINED: J26-788 artifact-summary regression"
+python3 "$ALJEEL_HOME/qc/jawal_golden_check.py" 2>&1 | tee -a "$RUN_LOG" || log "⚠ J26-788 artifact-summary regression returned non-zero (review log)"
 
 # -----------------------------------------------------------------------------
 # Stage 7: Post-run verification

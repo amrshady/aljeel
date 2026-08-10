@@ -5987,6 +5987,15 @@ def main():
             ticket_no = tm.group(1) if tm else ""
             # Ancillary 26-NNN rows have no airline ticket number, but can still
             # be authoritatively linked to sponsorship by their event Ref No.
+            # Do not let that fallback rebind an already-settled sponsorship
+            # row whose OPEX allocation identity has already been established.
+            settled_sponsorship_identity = bool(
+                h.get("_sponsorship_allocations")
+                or str(h.get("opex_serial") or h.get("_opex_serial") or "").strip()
+                or str(cascade_rows[idx].get("OPEX Serial", "") or "").strip()
+            )
+            if not ticket_no and acct == "60307021" and settled_sponsorship_identity:
+                continue
             if not ticket_no and not found_folder:
                 continue
             passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else ""

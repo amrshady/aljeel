@@ -317,9 +317,13 @@ def classify_truth_row(row: TruthRow) -> Literal["sponsorship", "travel"]:
 
 def _logical_description(row: BaseRow) -> str:
     text = _norm_text(row.description)
-    serial = _norm_text(row.opex_serial)
-    if serial and text.startswith(serial):
-        text = text[len(serial):].lstrip(" -–—:|/")
+    prefixes = (_norm_text(row.opex_serial), _norm_text(_norm_ref(row.invoice_ref)))
+    for prefix in prefixes:
+        if prefix:
+            match = re.match(rf"^{re.escape(prefix)}[\s\-–—:|/]+", text, re.I)
+            if match:
+                text = text[match.end():]
+                break
     return _WS_RE.sub(" ", _PUNCT_RE.sub(" ", text)).strip()
 
 

@@ -24,9 +24,22 @@ snapshot that fresh run, and diff it here. Do NOT block current use on this.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
+
+
+if os.environ.get("ALLOW_DEPRECATED_JAWAL_GATE") != "1":
+    print(
+        "DEPRECATED: jawal_golden_check.py (J26-788 gate) is retired. "
+        "The J26-1108 gate (qc/jawal_j26_1108_golden_check.py) is the ONLY "
+        "authoritative Jawal golden gate. Refusing to run. "
+        "To override for forensic/historical use, set "
+        "ALLOW_DEPRECATED_JAWAL_GATE=1.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 
 
 ROOT = Path(__file__).resolve().parents[1]

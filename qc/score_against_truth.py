@@ -34,7 +34,7 @@ def _header_name(value: object) -> str:
 HEADER_ALIASES = {
     "description": ("description",),
     "amount": ("*amount", "amount", "inv. amt. incl. vat"),
-    "distribution": ("distribution combination[..]",),
+    "combo": ("distribution combination", "distribution combination[..]"),
     "emp_no": ("employee no", "emp no new"),
     "company": ("company",),
     "location": ("location",),
@@ -148,7 +148,10 @@ def discover_columns(path: Path) -> WorkbookLayout:
         for row_no in range(1, min(ws.max_row, 12) + 1):
             found: dict[str, list[int]] = defaultdict(list)
             for col_no, cell in enumerate(ws[row_no], 1):
-                logical = alias_lookup.get(_header_name(cell.value))
+                header = _header_name(cell.value)
+                logical = alias_lookup.get(header)
+                if logical is None and header.startswith("distribution combination"):
+                    logical = "combo"
                 if logical:
                     found[logical].append(col_no)
             # Optional diagnostic aliases may legitimately coexist (for example
@@ -270,19 +273,27 @@ def _load_rows(path: Path, truth: bool, profile: str = "auto") -> tuple[list[Bas
             passenger = description.split(" - ", 1)[0]
             identifier = extract_line_identifier(description)
         emp_value = _cell(values, layout.columns, "emp_no")
+        combo_value = _cell(values, layout.columns, "combo")
+        combo_parts = [part.strip() for part in str(combo_value or "").split("-")]
+        if len(combo_parts) < 7:
+            combo_parts = []
+
+        def segment(name: str, index: int) -> object:
+            return combo_parts[index] if combo_parts and combo_parts[index] else _cell(values, layout.columns, name)
+
         common = dict(
             excel_row=excel_row,
             description=description,
             amount=_norm_amount(_cell(values, layout.columns, "amount")),
             emp_no=_norm_emp(emp_value),
             employee_set=normalize_employee_set(emp_value),
-            company=_norm(_cell(values, layout.columns, "company")),
-            location=_norm(_cell(values, layout.columns, "location")),
-            account=_norm(_cell(values, layout.columns, "account")),
-            cc=_norm(_cell(values, layout.columns, "cc")),
-            div=_norm(_cell(values, layout.columns, "div")),
-            solution=_norm(_cell(values, layout.columns, "solution")),
-            agency=_norm(_cell(values, layout.columns, "agency")),
+            company=_norm(segment("company", 0)),
+            location=_norm(segment("location", 1)),
+            account=_norm(segment("account", 2)),
+            cc=_norm(segment("cc", 3)),
+            div=_norm(segment("div", 4)),
+            solution=_norm(segment("solution", 5)),
+            agency=_norm(segment("agency", 6)),
             invoice_ref=_norm_ref(_cell(values, layout.columns, "invoice_ref")),
             opex_serial=_norm_text(_cell(values, layout.columns, "opex_serial")),
             identifier=identifier,

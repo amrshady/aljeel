@@ -24,11 +24,14 @@ SCRIPTS = ROOT / "scripts"
 RUN_LOCK = ROOT / "run.lock"
 RUN_LOCK_TS = ROOT / "run.lock.ts"
 UPLOADS_DIR = ROOT / "uploads" / "portal"
+SOLVENTUM_UPLOADS_DIR = UPLOADS_DIR / "solventum"
+SOLVENTUM_OUTPUT_NAME = "Chargeback report supported by PODs attached.xlsx"
 PIPELINE_LOGS_DIR = ROOT / "tmp" / "pipeline-logs"
 VOLUME_BASE = Path("/mnt/aljeel_ap_kb/current")
 sys.path.insert(0, str(SCRIPTS))
 sys.modules.setdefault("droplet_api_flask", sys.modules[__name__])
 from msg_parser import parse_msg
+from solventum_chargeback import generate_chargeback
 
 # Load environment variables from .env
 env_path = Path("/home/clawdbot/.openclaw/.env")
@@ -1301,6 +1304,129 @@ def evidence_msg_attachment():
         as_attachment=False,
         download_name=name,
     )
+
+
+def _solventum_upload_dir(upload_id):
+    if not re.fullmatch(r"[a-f0-9]{24}", str(upload_id or "")):
+        return None
+    upload_dir = (SOLVENTUM_UPLOADS_DIR / upload_id).resolve(strict=False)
+    if not upload_dir.is_relative_to(SOLVENTUM_UPLOADS_DIR.resolve(strict=False)):
+        return None
+    return upload_dir
+
+
+def _solventum_clerk_request():
+    """Accept only the identity headers trusted by the authenticated v2 proxy."""
+    if (request.headers.get("Cf-Access-Authenticated-User-Email") or "").strip():
+        return True
+    proxy_email = (request.headers.get("X-V2-User-Email") or "").strip()
+    if not proxy_email:
+        return False
+    proxy_secret = os.environ.get("V2_PROXY_SECRET", "").strip()
+    return not proxy_secret or request.headers.get("X-V2-Proxy-Secret", "") == proxy_secret
+
+
+@app.before_request
+def require_solventum_clerk():
+    if request.path.startswith("/v2/solventum/") and not _solventum_clerk_request():
+        return jsonify({"error": "access_header_required"}), 401
+    return None
+
+
+@app.route('/v2/solventum/upload', methods=['POST'])
+def solventum_upload():
+    """Upload one Solventum sales workbook or POD PDF into an isolated run."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in request"}), 400
+    uploaded = request.files['file']
+    if not uploaded.filename:
+        return jsonify({"error": "Empty filename"}), 400
+
+    safe_name = secure_filename(uploaded.filename)
+    suffix = Path(safe_name).suffix.lower()
+    if not safe_name or suffix not in (".xlsx", ".xls", ".pdf"):
+        return jsonify({"error": "Only Excel sales workbooks and PDF PODs are accepted"}), 400
+
+    upload_id = request.form.get('upload_id', '').strip() or uuid.uuid4().hex[:24]
+    upload_dir = _solventum_upload_dir(upload_id)
+    if upload_dir is None:
+        return jsonify({"error": "invalid upload id"}), 400
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_id = uuid.uuid4().hex[:12]
+    stored_name = f"{file_id}__{safe_name}"
+    destination = upload_dir / stored_name
+    uploaded.save(str(destination))
+    print(f"[solventum-upload] Saved {safe_name} -> {destination}", flush=True)
+    return jsonify({
+        "upload_id": upload_id,
+        "file_id": file_id,
+        "filename": safe_name,
+        "kind": "pod" if suffix == ".pdf" else "sales",
+    })
+
+
+@app.route('/v2/solventum/upload/<upload_id>/<file_id>', methods=['DELETE'])
+def solventum_remove_upload(upload_id, file_id):
+    """Remove one previously uploaded Solventum input."""
+    upload_dir = _solventum_upload_dir(upload_id)
+    if upload_dir is None or not re.fullmatch(r"[a-f0-9]{12}", file_id):
+        return jsonify({"error": "invalid upload or file id"}), 400
+    matches = list(upload_dir.glob(f"{file_id}__*")) if upload_dir.is_dir() else []
+    if len(matches) != 1 or not matches[0].is_file():
+        return jsonify({"error": "file not found"}), 404
+    matches[0].unlink()
+    return jsonify({"removed": True, "file_id": file_id})
+
+
+@app.route('/v2/solventum/run', methods=['POST'])
+def solventum_run():
+    """Generate a POD-backed Solventum chargeback from an uploaded input set."""
+    body = request.get_json(silent=True) or {}
+    upload_id = str(body.get("upload_id", "")).strip()
+    upload_dir = _solventum_upload_dir(upload_id)
+    if upload_dir is None or not upload_dir.is_dir():
+        return jsonify({"error": "upload not found"}), 404
+
+    workbooks = sorted(
+        path for path in upload_dir.iterdir()
+        if path.is_file()
+        and path.name != SOLVENTUM_OUTPUT_NAME
+        and path.suffix.lower() in (".xlsx", ".xls")
+    )
+    pods = sorted(path for path in upload_dir.iterdir() if path.is_file() and path.suffix.lower() == ".pdf")
+    if len(workbooks) != 1:
+        return jsonify({"error": "Exactly one sales workbook is required", "workbook_count": len(workbooks)}), 400
+    if not pods:
+        return jsonify({"error": "At least one POD PDF is required", "pod_count": 0}), 400
+
+    output_path = upload_dir / SOLVENTUM_OUTPUT_NAME
+    try:
+        row_count = generate_chargeback(workbooks[0], pods, output_path)
+    except (OSError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 422
+    except Exception as exc:
+        print(f"[solventum-run] Generation failed for {upload_id}: {exc}", flush=True)
+        return jsonify({"error": "Chargeback generation failed"}), 500
+
+    return jsonify({
+        "upload_id": upload_id,
+        "row_count": row_count,
+        "filename": SOLVENTUM_OUTPUT_NAME,
+        "download_url": f"/api/v2/solventum/download/{upload_id}",
+    })
+
+
+@app.route('/v2/solventum/download/<upload_id>', methods=['GET'])
+def solventum_download(upload_id):
+    """Download a generated chargeback from the authenticated clerk portal."""
+    upload_dir = _solventum_upload_dir(upload_id)
+    if upload_dir is None:
+        return jsonify({"error": "invalid upload id"}), 400
+    output_path = upload_dir / SOLVENTUM_OUTPUT_NAME
+    if not output_path.is_file():
+        return jsonify({"error": "chargeback not found"}), 404
+    return send_file(output_path, as_attachment=True, download_name=SOLVENTUM_OUTPUT_NAME)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():

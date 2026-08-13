@@ -20,6 +20,23 @@ const enc = encodeURIComponent;
 // GET /v2/ping → {ok:true}
 export const ping = () => apiFetch('/ping');
 
+// ── Solventum chargebacks (clerk-only) ─────────────────────────────────────
+export const uploadSolventumFile = (file, uploadId = null) => {
+  const body = new FormData();
+  body.append('file', file);
+  if (uploadId) body.append('upload_id', uploadId);
+  return apiFetch('/solventum/upload', { method: 'POST', body });
+};
+export const removeSolventumFile = (uploadId, fileId) =>
+  apiFetch(`/solventum/upload/${enc(uploadId)}/${enc(fileId)}`, { method: 'DELETE' });
+export const runSolventum = (uploadId) => apiFetch('/solventum/run', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ upload_id: uploadId }),
+});
+export const solventumDownloadUrl = (uploadId) =>
+  `${API_BASE}/solventum/download/${enc(uploadId)}`;
+
 // ── Batches ─────────────────────────────────────────────────────────────────
 // GET /v2/batches
 // → {batches:[{batch_id, evidence_root, item_count,

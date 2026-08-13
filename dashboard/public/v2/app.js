@@ -16,6 +16,7 @@ import { mount as mountRuns } from './views/runs.js';
 import { mount as mountRunDetail } from './views/run-detail.js';
 import { mount as mountRunsAll } from './views/runs-all.js';
 import { mount as mountEvidenceBrowse } from './views/evidence-browse.js';
+import { mount as mountSolventum } from './views/solventum.js';
 import { stopActivePoll } from './poll.js';
 
 // ── Global fetch wrapper ─────────────────────────────────────────────────────
@@ -306,6 +307,8 @@ function setBreadcrumb(route) {
     parts.push(crumb('Batches', '#/'), sep(),
       crumb(route.params.batchId, `#/b/${route.params.batchId}`), sep(),
       crumb(`Run ${shortRun(route.params.runId)}`, '#', true));
+  } else if (route.name === 'solventum') {
+    parts.push(crumb('Solventum', '#/solventum', true));
   }
   parts.forEach((p) => bc.append(p));
 }
@@ -341,7 +344,7 @@ function setupNav() {
 }
 
 // Map a route to the top-level nav section it belongs under.
-const NAV_FOR_ROUTE = { batches: 'batches', runs: 'batches', run: 'batches', runsAll: 'runs', evidence: 'evidence' };
+const NAV_FOR_ROUTE = { batches: 'batches', runs: 'batches', run: 'batches', runsAll: 'runs', evidence: 'evidence', solventum: 'solventum' };
 function setActiveNav(route) {
   const key = NAV_FOR_ROUTE[route.name] || 'batches';
   document.querySelectorAll('.sidenav__item').forEach((a) => {
@@ -359,6 +362,7 @@ function parseHash() {
   if (m) return { name: 'runs', params: { batchId: decodeURIComponent(m[1]) } };
   // #/runs — global recent runs across all batches
   if (/^\/runs\/?$/.test(raw)) return { name: 'runsAll', params: {} };
+  if (/^\/solventum\/?$/.test(raw)) return { name: 'solventum', params: {} };
   // #/evidence  and  #/evidence/<batch>
   m = raw.match(/^\/evidence(?:\/([^/]+))?\/?$/);
   if (m) return { name: 'evidence', params: { batchId: m[1] ? decodeURIComponent(m[1]) : null } };
@@ -381,6 +385,7 @@ async function route() {
     if (r.name === 'evidence') return await mountEvidenceBrowse(view, r.params);
     if (r.name === 'runs') return await mountRuns(view, r.params);
     if (r.name === 'run') return await mountRunDetail(view, r.params);
+    if (r.name === 'solventum') return await mountSolventum(view, r.params);
     return await mountBatches(view, r.params);
   } catch (err) {
     // Always render a static error (incl. access_required). Never silently return

@@ -627,6 +627,52 @@ a:hover { text-decoration: underline; }
 .page-head__title { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
 .page-head__caption { margin-top: var(--sp-1); }
 
+/* ── Solventum chargeback workflow ───────────────────────────────────────── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.solventum-workflow { padding: var(--sp-6); }
+.solventum-instructions {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--sp-4); margin-bottom: var(--sp-5);
+}
+.solventum-instructions p { max-width: 72ch; margin: var(--sp-1) 0 0; }
+.solventum-drop {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-5); border: 1px dashed var(--ink2); border-radius: var(--radius-card);
+  background: var(--sage); transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.solventum-drop > .stack { flex: 1; }
+.solventum-drop.is-dragging { border-color: var(--action); background: rgba(37, 99, 235, .06); }
+.solventum-files { margin-top: var(--sp-4); border-top: 1px solid var(--line); }
+.solventum-empty { padding: var(--sp-4) 0 0; }
+.solventum-file {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: var(--sp-3); padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.solventum-file__name { display: flex; flex-direction: column; min-width: 0; }
+.solventum-file__name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.solventum-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4); margin-top: var(--sp-5);
+}
+.solventum-validation { color: var(--ink2); }
+.solventum-validation.is-error { color: var(--err); }
+.solventum-result {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-5); padding: var(--sp-5) var(--sp-6); margin-top: var(--sp-4);
+}
+.solventum-result__copy { display: flex; flex-direction: column; gap: var(--sp-1); }
+
+@media (max-width: 640px) {
+  .solventum-instructions, .solventum-actions, .solventum-result { align-items: stretch; flex-direction: column; }
+  .solventum-drop { align-items: flex-start; flex-wrap: wrap; }
+  .solventum-drop .btn { width: 100%; justify-content: center; }
+  .solventum-actions .btn, .solventum-result .btn { justify-content: center; }
+}
+
 /* ── Summary strip (small stat chips above a grid/list) ─────────────────────── */
 .summary-strip { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-4); }
 .summary-stat {

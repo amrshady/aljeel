@@ -48,7 +48,7 @@ function ApClerkDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSubmitBody')}</p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <Link
               href="/invoices/new?integration=JAWAL"
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
@@ -68,6 +68,17 @@ function ApClerkDashboard() {
               <p className="mt-2 text-sm text-muted-foreground">{t('apClerkAsateelBody')}</p>
               <span className="mt-4 inline-flex text-sm font-medium text-primary">
                 {t('submitInvoice')} →
+              </span>
+            </Link>
+
+            <Link
+              href="/invoices/new?integration=SOLVENTUM"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
+            >
+              <h3 className="text-base font-semibold">{t('apClerkSolventumTitle')}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t('apClerkSolventumBody')}</p>
+              <span className="mt-4 inline-flex text-sm font-medium text-primary">
+                {t('generateChargeback')} →
               </span>
             </Link>
           </div>
@@ -99,9 +110,7 @@ function SupplierDashboard() {
     enabled: !!user?.supplierId,
   });
 
-  const totalInvoices = pipeline
-    ? Object.values(pipeline).reduce((sum, n) => sum + n, 0)
-    : 0;
+  const totalInvoices = pipeline ? Object.values(pipeline).reduce((sum, n) => sum + n, 0) : 0;
 
   const showEmpty = !pipelineLoading && totalInvoices === 0;
   const isAllSelected = !showArchived && status === '';

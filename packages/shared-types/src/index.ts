@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-export const SupplierStatusSchema = z.enum([
-  'PENDING',
-  'ACTIVE',
-  'SUSPENDED',
-  'REJECTED',
-]);
+export const SupplierStatusSchema = z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED']);
 export type SupplierStatus = z.infer<typeof SupplierStatusSchema>;
 
 export const UserRoleSchema = z.enum([
@@ -50,7 +45,7 @@ export type AsateelRunStatus = z.infer<typeof AsateelRunStatusSchema>;
 export const ReconRunStatusSchema = AsateelRunStatusSchema;
 export type ReconRunStatus = AsateelRunStatus;
 
-export const SupplierErpIntegrationSchema = z.enum(['ASATEEL', 'JAWAL']);
+export const SupplierErpIntegrationSchema = z.enum(['ASATEEL', 'JAWAL', 'SOLVENTUM']);
 export type SupplierErpIntegration = z.infer<typeof SupplierErpIntegrationSchema>;
 
 export const VerificationStatusSchema = z.enum(['PENDING', 'VERIFIED', 'REJECTED']);

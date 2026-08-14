@@ -17,6 +17,7 @@ enum SupplierStatus {
 enum SupplierErpIntegration {
   ASATEEL
   JAWAL
+  SOLVENTUM
 }
 
 enum UserRole {

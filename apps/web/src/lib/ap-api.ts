@@ -10,6 +10,33 @@ import {
 } from '@aljeel/shared-types';
 import { apiFetch } from './api-client';
 
+const SOLVENTUM_OUTPUT_FILE_NAME = 'Chargeback report supported by PODs attached.xlsx';
+
+export async function generateSolventumChargeback(files: File[]): Promise<void> {
+  const form = new FormData();
+  files.forEach((file) => form.append('files', file, file.name));
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+  const response = await fetch(`${baseUrl}/ap/solventum/chargeback`, {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    throw new Error(body?.error?.message ?? 'Could not generate the chargeback workbook.');
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = SOLVENTUM_OUTPUT_FILE_NAME;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function listApExceptions(params: Record<string, string | undefined> = {}) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {

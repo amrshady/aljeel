@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import {
   ApExceptionListQuerySchema,
   ApHoldRequestSchema,
@@ -54,9 +50,7 @@ export class ApService {
         : {}),
     };
 
-    const orderBy = processedView
-      ? { updatedAt: 'desc' as const }
-      : { createdAt: 'desc' as const };
+    const orderBy = processedView ? { updatedAt: 'desc' as const } : { createdAt: 'desc' as const };
 
     const [total, rows] = await Promise.all([
       this.prisma.invoice.count({ where }),
@@ -117,21 +111,30 @@ export class ApService {
       ...serializeInvoice(invoice),
       supplierName: invoice.supplier.legalName,
       erpIntegration: invoice.supplier.erpIntegration,
-      reconciliation: await this.reconServiceFor(invoice.supplier.erpIntegration).getStatus(id),
+      reconciliation:
+        invoice.supplier.erpIntegration === 'SOLVENTUM'
+          ? null
+          : await this.reconServiceFor(invoice.supplier.erpIntegration).getStatus(id),
       timeline: events.map(serializeTimelineEvent),
     };
   }
 
   /** Route reconciliation calls to the vendor engine configured on the supplier. */
   private reconServiceFor(
-    erpIntegration: 'ASATEEL' | 'JAWAL' | null,
+    erpIntegration: 'ASATEEL' | 'JAWAL' | 'SOLVENTUM' | null,
   ): AsateelIntegrationService | JawalIntegrationService {
+    if (erpIntegration === 'SOLVENTUM') {
+      throw new UnprocessableEntityException({
+        code: 'SOLVENTUM_INVOICE_RECONCILIATION_UNAVAILABLE',
+        message: 'Solventum chargebacks are generated from the AP upload workflow.',
+      });
+    }
     return erpIntegration === 'JAWAL' ? this.jawal : this.asateel;
   }
 
   private async erpIntegrationForInvoice(
     id: string,
-  ): Promise<'ASATEEL' | 'JAWAL' | null> {
+  ): Promise<'ASATEEL' | 'JAWAL' | 'SOLVENTUM' | null> {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       select: { supplier: { select: { erpIntegration: true } } },
@@ -234,8 +237,7 @@ export class ApService {
       throw error;
     }
 
-    const sequence =
-      (await this.prisma.approvalStep.count({ where: { invoiceId: id } })) + 1;
+    const sequence = (await this.prisma.approvalStep.count({ where: { invoiceId: id } })) + 1;
 
     const approvalAction =
       toStatus === 'APPROVED'

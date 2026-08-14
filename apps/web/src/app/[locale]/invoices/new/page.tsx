@@ -17,6 +17,7 @@ import { FormEvent, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { AppShell } from '@/components/app-shell';
+import { SolventumChargebackUploader } from '@/components/solventum-chargeback-uploader';
 import { displayInvoiceName } from '@/components/invoice-folder-table';
 import {
   KbFileUploader,
@@ -51,7 +52,7 @@ const UPLOAD_CONCURRENCY = 6;
 const DONE_PAUSE_MS = 900;
 
 function parseIntegration(value: string | null): SupplierErpIntegration | null {
-  return value === 'JAWAL' || value === 'ASATEEL' ? value : null;
+  return value === 'JAWAL' || value === 'ASATEEL' || value === 'SOLVENTUM' ? value : null;
 }
 
 function InvoiceUploadContent() {
@@ -63,9 +64,8 @@ function InvoiceUploadContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const isApClerk = user?.role === 'AP_CLERK';
-  const selectedIntegration = isApClerk
-    ? parseIntegration(searchParams.get('integration'))
-    : null;
+  const selectedIntegration = isApClerk ? parseIntegration(searchParams.get('integration')) : null;
+
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
   const [folderName, setFolderName] = useState<string | null>(null);
@@ -90,8 +90,7 @@ function InvoiceUploadContent() {
   const isAsateelSupplier = isApClerk
     ? selectedIntegration === 'ASATEEL'
     : supplier?.erpIntegration === 'ASATEEL';
-  const skipXlsxRequirement =
-    isJawalSupplier || Boolean(user?.supplierId && !supplierFetched);
+  const skipXlsxRequirement = isJawalSupplier || Boolean(user?.supplierId && !supplierFetched);
   const filesHint = isAsateelSupplier
     ? t('filesHintAsateel')
     : isJawalSupplier
@@ -110,6 +109,19 @@ function InvoiceUploadContent() {
       }),
     enabled: !isApClerk || !!selectedIntegration,
   });
+
+  if (selectedIntegration === 'SOLVENTUM') {
+    return (
+      <AppShell>
+        <div className="max-w-3xl">
+          <Link href="/dashboard" className="text-sm text-primary underline">
+            {tDetail('back')}
+          </Link>
+          <SolventumChargebackUploader />
+        </div>
+      </AppShell>
+    );
+  }
 
   function fileLabel(item: KbQueuedFile): string {
     return item.relativePath ?? item.file.name;
@@ -221,9 +233,7 @@ function InvoiceUploadContent() {
             setWarning(null);
             return;
           }
-          setWarning(
-            manifest?.warning ? formatAsateelManifestIssue(manifest.warning, t) : null,
-          );
+          setWarning(manifest?.warning ? formatAsateelManifestIssue(manifest.warning, t) : null);
         }
       }
     } else {
@@ -257,7 +267,7 @@ function InvoiceUploadContent() {
         const invoice = await createInvoiceDraft(
           folderName ?? undefined,
           isAsateelSupplier ? asateelRegion || undefined : undefined,
-          isApClerk ? selectedIntegration ?? undefined : undefined,
+          isApClerk ? (selectedIntegration ?? undefined) : undefined,
         );
         invoiceId = invoice.id;
         setDraftInvoiceId(invoice.id);
@@ -324,7 +334,7 @@ function InvoiceUploadContent() {
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{t('integrationRequiredTitle')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('integrationRequiredBody')}</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             <Link
               href="/invoices/new?integration=JAWAL"
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
@@ -336,6 +346,12 @@ function InvoiceUploadContent() {
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
             >
               <h2 className="font-semibold">{t('integrationAsateel')}</h2>
+            </Link>
+            <Link
+              href="/invoices/new?integration=SOLVENTUM"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+            >
+              <h2 className="font-semibold">{t('integrationSolventum')}</h2>
             </Link>
           </div>
         </div>

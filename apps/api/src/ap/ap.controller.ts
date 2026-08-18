@@ -42,7 +42,7 @@ export class ApController {
   @Roles('AP_CLERK')
   @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Generate and download a POD-backed Solventum chargeback' })
-  generateSolventumChargeback(
+  async generateSolventumChargeback(
     @UploadedFiles() files: UploadedFile[] | undefined,
     @Res() response: Response,
   ) {
@@ -60,9 +60,9 @@ export class ApController {
         message: 'Upload exactly one Excel workbook and at least one POD PDF.',
       });
     }
-    const output = this.solventum.generateChargeback(
+    const output = await this.solventum.generateChargeback(
       workbooks[0]!.buffer,
-      pods.map((file) => file.originalname),
+      pods.map((file) => ({ originalname: file.originalname, buffer: file.buffer })),
     );
     response.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

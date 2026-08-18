@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -18,10 +18,19 @@ const MIN_CONFIDENCE = 0.8;
 const lineSchema = z.object({
   trx: z.union([z.string(), z.number()]).transform(String),
   itemDescription: z.string(),
-  manufacturer: z.union([z.string(), z.number()]).transform(String),
-  lot: z.union([z.string(), z.number()]).transform(String),
+  manufacturer: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((value) => (value == null ? '' : String(value))),
+  lot: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((value) => (value == null ? '' : String(value))),
   quantity: z.coerce.number().finite(),
-  uom: z.union([z.string(), z.number()]).transform(String),
+  uom: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((value) => (value == null ? '' : String(value))),
   sourceDoc: z.string(),
   confidence: z.coerce.number().min(0).max(1),
 });
@@ -35,6 +44,8 @@ Do not use markdown. Do not infer lines that are not attested by the document. U
 
 @Injectable()
 export class GeminiSolventumPodExtractor extends SolventumPodExtractor {
+  private readonly logger = new Logger(GeminiSolventumPodExtractor.name);
+
   constructor(private readonly prisma: PrismaService) {
     super();
   }
@@ -97,13 +108,13 @@ export class GeminiSolventumPodExtractor extends SolventumPodExtractor {
       };
       const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('');
       if (!text) return null;
-      return this.parseJson(text);
+      return this.parseJson(text, model);
     } catch {
       return null;
     }
   }
 
-  private parseJson(text: string): SolventumPodLine[] | null {
+  private parseJson(text: string, model: string): SolventumPodLine[] | null {
     const cleaned = text
       .trim()
       .replace(/^```(?:json)?\s*/i, '')
@@ -111,10 +122,18 @@ export class GeminiSolventumPodExtractor extends SolventumPodExtractor {
     const start = cleaned.indexOf('[');
     const end = cleaned.lastIndexOf(']');
     if (start < 0 || end < start) return null;
+    let parsed: unknown;
     try {
-      return linesSchema.parse(JSON.parse(cleaned.slice(start, end + 1)));
+      parsed = JSON.parse(cleaned.slice(start, end + 1));
     } catch {
       return null;
     }
+
+    const result = linesSchema.safeParse(parsed);
+    if (!result.success) {
+      this.logger.error(`Gemini POD response from ${model} failed validation: ${result.error.message}`);
+      return null;
+    }
+    return result.data;
   }
 }

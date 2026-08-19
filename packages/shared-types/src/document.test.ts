@@ -17,11 +17,15 @@ describe('resolveDocumentMimeType', () => {
   });
 
   it('accepts files within the size limit', () => {
-    expect(isAcceptedDocumentFile('archive.zip', 'application/zip', 1024)).toBe(true);
     expect(isAcceptedDocumentFile('notes.docx', '', 2048)).toBe(true);
     expect(isAcceptedDocumentFile('invoice.pdf', 'application/pdf', MAX_DOCUMENT_SIZE_BYTES)).toBe(
       true,
     );
+  });
+
+  it('rejects .zip files', () => {
+    expect(isAcceptedDocumentFile('archive.zip', 'application/zip', 1024)).toBe(false);
+    expect(isAcceptedDocumentFile('folder/evidence.ZIP', '', 1024)).toBe(false);
   });
 
   it('rejects files over the size limit', () => {

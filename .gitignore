@@ -41,3 +41,6 @@ pnpm-debug.log*
 
 # Misc
 *.tsbuildinfo
+
+# Tesseract language packs downloaded by local Solventum OCR runs
+*.traineddata

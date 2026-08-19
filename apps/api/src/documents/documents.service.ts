@@ -127,6 +127,7 @@ export class DocumentsService {
     }
 
     const { fileName, sizeBytes, type } = DocumentUploadUrlRequestSchema.parse(body);
+    this.assertNotZip(fileName);
     if (sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException({
         code: 'FILE_TOO_LARGE',
@@ -153,6 +154,7 @@ export class DocumentsService {
     const payload = DocumentCompleteUploadSchema.parse(body);
     const { storageKey, fileName, mimeType, sizeBytes, checksumSha256, type } = payload;
     this.assertSupplierUploadType(type);
+    this.assertNotZip(fileName);
 
     if (sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException({
@@ -250,6 +252,7 @@ export class DocumentsService {
       });
     }
     const resolvedMime = resolveDocumentMimeType(file.originalname, file.mimetype);
+    this.assertNotZip(file.originalname);
     if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException({
         code: 'FILE_TOO_LARGE',
@@ -465,6 +468,7 @@ export class DocumentsService {
         message: 'That file name is not allowed.',
       });
     }
+    this.assertNotZip(nextFileName);
 
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
@@ -613,6 +617,15 @@ export class DocumentsService {
       throw new UnprocessableEntityException({
         code: 'DOCUMENT_TYPE_NOT_ALLOWED',
         message: 'This document type is reserved for AP integrations.',
+      });
+    }
+  }
+
+  private assertNotZip(fileName: string) {
+    if (fileName.toLowerCase().endsWith('.zip')) {
+      throw new UnprocessableEntityException({
+        code: 'FILE_TYPE_NOT_ALLOWED',
+        message: 'ZIP files are not allowed.',
       });
     }
   }

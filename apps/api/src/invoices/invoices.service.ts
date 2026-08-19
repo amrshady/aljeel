@@ -773,7 +773,7 @@ export class InvoicesService {
       if (!erpIntegration) {
         throw new BadRequestException({
           code: 'ERP_INTEGRATION_REQUIRED',
-          message: 'Select whether this invoice is for Jawal or Asateel.',
+          message: 'Select whether this invoice is for Jawal, Asateel, or Solventum.',
         });
       }
       const supplier = await this.prisma.supplier.findFirst({

@@ -120,9 +120,11 @@ export function resolveDocumentMimeType(fileName: string, mimeType: string): str
 }
 
 export function isAcceptedDocumentFile(
-  _fileName: string,
+  fileName: string,
   _mimeType: string,
   sizeBytes: number,
 ): boolean {
+  // ZIP archives break golden-gate evidence checks; upload files individually.
+  if (fileName.toLowerCase().endsWith('.zip')) return false;
   return sizeBytes <= MAX_DOCUMENT_SIZE_BYTES;
 }

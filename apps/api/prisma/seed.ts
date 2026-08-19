@@ -54,6 +54,25 @@ async function main() {
     },
   });
 
+  await prisma.supplier.upsert({
+    where: { id: 'supplier_solventum' },
+    create: {
+      id: 'supplier_solventum',
+      legalName: 'Solventum',
+      crNumber: 'CR-SOLVENTUM-001',
+      vatNumber: 'VAT-SOLVENTUM-001',
+      status: 'ACTIVE',
+      paymentTerms: 'Net 30',
+      defaultCurrency: 'SAR',
+      erpVendorId: 'SOLVENTUM-001',
+      erpIntegration: 'SOLVENTUM',
+    },
+    update: {
+      erpVendorId: 'SOLVENTUM-001',
+      erpIntegration: 'SOLVENTUM',
+    },
+  });
+
   await prisma.supplierUser.upsert({
     where: { id: 'user_supplier_admin' },
     create: {

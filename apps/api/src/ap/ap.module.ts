@@ -6,6 +6,8 @@ import { JawalIntegrationService } from './jawal-integration.service';
 import { SolventumIntegrationService } from './solventum-integration.service';
 import { SolventumPodExtractor } from './solventum-pod.types';
 import { GeminiSolventumPodExtractor } from './gemini-solventum-pod.extractor';
+import { LocalSolventumPodExtractor } from './local-solventum-pod.extractor';
+import { CompositeSolventumPodExtractor } from './composite-solventum-pod.extractor';
 import { KbModule } from '../kb/kb.module';
 
 @Module({
@@ -16,7 +18,9 @@ import { KbModule } from '../kb/kb.module';
     AsateelIntegrationService,
     JawalIntegrationService,
     SolventumIntegrationService,
-    { provide: SolventumPodExtractor, useClass: GeminiSolventumPodExtractor },
+    LocalSolventumPodExtractor,
+    GeminiSolventumPodExtractor,
+    { provide: SolventumPodExtractor, useClass: CompositeSolventumPodExtractor },
   ],
 })
 export class ApModule {}

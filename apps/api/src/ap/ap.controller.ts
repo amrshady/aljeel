@@ -41,7 +41,10 @@ export class ApController {
   @Post('solventum/chargeback')
   @Roles('AP_CLERK')
   @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
-  @ApiOperation({ summary: 'Generate and download a POD-backed Solventum chargeback' })
+  @ApiOperation({
+    summary:
+      'Generate Solventum chargeback: filename TRX → sales rows; POD scan overrides Quantity',
+  })
   async generateSolventumChargeback(
     @UploadedFiles() files: UploadedFile[] | undefined,
     @Res() response: Response,

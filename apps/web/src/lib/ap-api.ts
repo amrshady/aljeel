@@ -23,9 +23,13 @@ export async function generateSolventumChargeback(files: File[]): Promise<void> 
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
-      error?: { message?: string };
+      error?: { message?: string; code?: string };
+      message?: string | string[];
     } | null;
-    throw new Error(body?.error?.message ?? 'Could not generate the chargeback workbook.');
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ')
+      : body?.error?.message || body?.message;
+    throw new Error(message || 'Could not generate the chargeback workbook.');
   }
   const url = URL.createObjectURL(await response.blob());
   const anchor = document.createElement('a');

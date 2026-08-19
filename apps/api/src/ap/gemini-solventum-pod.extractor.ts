@@ -52,8 +52,12 @@ export class GeminiSolventumPodExtractor extends SolventumPodExtractor {
 
   async extract(file: SolventumPodFile): Promise<SolventumPodLine[]> {
     const pdfSha256 = createHash('sha256').update(file.buffer).digest('hex');
-    const cached = await this.prisma.solventumPodCache.findUnique({ where: { pdfSha256 } });
-    if (cached) return linesSchema.parse(cached.lineItems);
+    try {
+      const cached = await this.prisma.solventumPodCache.findUnique({ where: { pdfSha256 } });
+      if (cached) return linesSchema.parse(cached.lineItems);
+    } catch (error) {
+      this.logger.warn(`Solventum POD cache read skipped: ${String(error)}`);
+    }
 
     let model = FLASH_MODEL;
     let lines = await this.tryExtract(file.buffer, model);
@@ -69,11 +73,15 @@ export class GeminiSolventumPodExtractor extends SolventumPodExtractor {
     }
 
     const cachedLines = lines as unknown as Prisma.InputJsonValue;
-    await this.prisma.solventumPodCache.upsert({
-      where: { pdfSha256 },
-      create: { pdfSha256, lineItems: cachedLines, model },
-      update: { lineItems: cachedLines, model },
-    });
+    try {
+      await this.prisma.solventumPodCache.upsert({
+        where: { pdfSha256 },
+        create: { pdfSha256, lineItems: cachedLines, model },
+        update: { lineItems: cachedLines, model },
+      });
+    } catch (error) {
+      this.logger.warn(`Solventum POD cache write skipped: ${String(error)}`);
+    }
     return lines;
   }
 

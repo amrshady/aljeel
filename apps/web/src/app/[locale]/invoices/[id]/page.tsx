@@ -366,7 +366,7 @@ function InvoiceDetailContent() {
               ? t('documentsDraftHint')
               : t('documentsHint')}
         </p>
-        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:items-start">
+        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-start">
           <InvoiceDocuments
             invoiceId={invoice.id}
             editable={canUploadDocs}

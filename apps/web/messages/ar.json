@@ -261,6 +261,9 @@
     "loading": "جاري تحميل المستندات…",
     "empty": "لا توجد مستندات مرفقة بعد",
     "download": "تنزيل",
+    "downloadAll": "تنزيل الكل",
+    "downloadAllError": "تعذر تنزيل المستندات",
+    "downloadingAll": "جاري تجهيز التنزيل…",
     "remove": "إزالة",
     "rename": "إعادة تسمية",
     "saveRename": "حفظ",
@@ -293,7 +296,10 @@
     "emailImagesBlocked": "{count, plural, one {لم يتم عرض صورة واحدة} other {لم يتم عرض # صور}}",
     "searchFiles": "بحث في الملفات…",
     "searchNoResults": "لا توجد ملفات مطابقة",
-    "searchMatchCount": "{count, plural, one {تطابق واحد} other {# تطابقات}}"
+    "searchMatchCount": "{count, plural, one {تطابق واحد} other {# تطابقات}}",
+    "expandAll": "توسيع الكل",
+    "collapseAll": "طي الكل",
+    "folderFileCount": "{count, plural, one {ملف واحد} other {# ملفات}}"
   },
   "timeline": {
     "empty": "لا يوجد نشاط مسجل بعد",

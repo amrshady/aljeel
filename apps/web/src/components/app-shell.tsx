@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
       <header className="border-b border-primary bg-primary text-primary-foreground">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[90rem] items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="cursor-pointer">
               <AljeelLogo variant="light" className="h-10 w-auto" />
@@ -59,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-8 sm:px-6">{children}</main>
 
       <SiteFooter />
     </div>

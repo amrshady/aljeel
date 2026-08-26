@@ -95,6 +95,17 @@ export function listInvoiceDocuments(invoiceId: string) {
   });
 }
 
+/** Downloads all invoice documents as a zip that preserves folder paths. */
+export function downloadInvoiceDocumentsArchive(
+  invoiceId: string,
+  fileName = 'documents.zip',
+) {
+  return downloadFile(`/invoices/${invoiceId}/documents/archive`, fileName, {
+    // Large evidence packs can take a few minutes to zip from object storage.
+    timeoutMs: 5 * 60_000,
+  });
+}
+
 export async function getDocumentViewUrl(documentId: string) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 

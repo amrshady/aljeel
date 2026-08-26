@@ -261,6 +261,9 @@
     "loading": "Loading documents…",
     "empty": "No documents attached yet",
     "download": "Download",
+    "downloadAll": "Download all",
+    "downloadAllError": "Could not download documents",
+    "downloadingAll": "Preparing download…",
     "remove": "Remove",
     "rename": "Rename",
     "saveRename": "Save",
@@ -293,7 +296,10 @@
     "emailImagesBlocked": "{count, plural, one {# image was not shown} other {# images were not shown}}",
     "searchFiles": "Search files…",
     "searchNoResults": "No matching files",
-    "searchMatchCount": "{count, plural, one {# match} other {# matches}}"
+    "searchMatchCount": "{count, plural, one {# match} other {# matches}}",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "folderFileCount": "{count, plural, one {# file} other {# files}}"
   },
   "timeline": {
     "empty": "No activity recorded yet",

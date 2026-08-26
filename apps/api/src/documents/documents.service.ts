@@ -21,6 +21,7 @@ import {
   type DocumentType,
 } from '@aljeel/shared-types';
 import { Prisma } from '@prisma/client';
+import archiver from 'archiver';
 import type { ReadStream } from 'node:fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -31,6 +32,7 @@ import {
   EmailPreviewService,
   type EmailAttachmentContent,
 } from './email-preview.service';
+import { archiveDownloadFileName, uniqueZipEntryName } from './zip-entry-name';
 import type { AuthUser } from '../auth/auth.types';
 import { getSupplierScope } from '../auth/guards/tenant.guard';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
@@ -307,6 +309,80 @@ export class DocumentsService {
       orderBy: { createdAt: 'asc' },
     });
     return docs.map(serializeDocument);
+  }
+
+  /**
+   * Builds a zip of all visible invoice documents. Zip entry names use each
+   * document's logical relative path so folder hierarchy is preserved.
+   * Missing/unreadable storage objects are skipped so one bad file does not
+   * fail the whole download.
+   */
+  async createArchive(
+    user: AuthUser,
+    invoiceId: string,
+  ): Promise<{ buffer: Buffer; fileName: string }> {
+    const invoice = await this.assertInvoiceAccess(user, invoiceId);
+    const docs = await this.prisma.document.findMany({
+      where: {
+        invoiceId,
+        ...(isApUser(user) ? {} : { type: { not: 'ORACLE_UPLOAD' as const } }),
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (docs.length === 0) {
+      throw new NotFoundException({
+        code: 'NO_DOCUMENTS',
+        message: 'This invoice has no documents to download.',
+      });
+    }
+
+    const archive = archiver('zip', { zlib: { level: 5 } });
+    const chunks: Buffer[] = [];
+    archive.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    const finished = new Promise<void>((resolve, reject) => {
+      archive.once('end', () => resolve());
+      archive.once('error', (error) => reject(error));
+    });
+
+    const usedNames = new Set<string>();
+    let packed = 0;
+    for (const doc of docs) {
+      try {
+        const buffer = await this.readDocumentBuffer(doc);
+        const entryName = uniqueZipEntryName(doc.fileName, usedNames);
+        archive.append(buffer, { name: entryName });
+        packed += 1;
+      } catch {
+        // Skip missing local files / storage errors; continue packing the rest.
+      }
+    }
+
+    if (packed === 0) {
+      archive.abort();
+      throw new NotFoundException({
+        code: 'NO_DOCUMENTS_READABLE',
+        message: 'None of the invoice documents could be read for download.',
+      });
+    }
+
+    await archive.finalize();
+    await finished;
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Invoice',
+      entityId: invoiceId,
+      action: 'DOWNLOAD_DOCUMENTS_ARCHIVE',
+      after: { documentCount: docs.length, packedCount: packed },
+    });
+
+    return {
+      buffer: Buffer.concat(chunks),
+      fileName: archiveDownloadFileName(invoice.invoiceNumber),
+    };
   }
 
   async getForDownload(

@@ -81,14 +81,42 @@ export function getHealth() {
   return apiFetch('/health', { schema: HealthResponseSchema });
 }
 
-async function fetchBinary(path: string): Promise<Blob> {
+async function fetchBinary(
+  path: string,
+  options: { timeoutMs?: number } = {},
+): Promise<{ blob: Blob; fileName?: string }> {
   const headers = new Headers();
+  const timeoutMs = options.timeoutMs;
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timeout = timeoutMs
+    ? setTimeout(() => controller!.abort(), timeoutMs)
+    : undefined;
 
-  const response = await fetch(`${getBaseUrl()}${path}`, {
-    headers,
-    credentials: 'include',
-    redirect: 'follow',
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getBaseUrl()}${path}`, {
+      headers,
+      credentials: 'include',
+      redirect: 'follow',
+      signal: controller?.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ApiClientError(
+        'TIMEOUT',
+        'The download took too long. Try again, or download fewer files.',
+        'unknown',
+      );
+    }
+    throw new ApiClientError(
+      'NETWORK_ERROR',
+      'Could not reach the server. Check your connection and try again.',
+      'unknown',
+    );
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     const parsed = ApiErrorSchema.safeParse(body);
@@ -103,21 +131,32 @@ async function fetchBinary(path: string): Promise<Blob> {
     );
   }
 
-  return response.blob();
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  const quotedMatch = disposition.match(/filename="([^"]+)"/i);
+  const rawName = utf8Match?.[1] ?? quotedMatch?.[1];
+  const fileName = rawName ? decodeURIComponent(rawName) : undefined;
+
+  return { blob: await response.blob(), fileName };
 }
 
 /** Fetches a binary resource (e.g. a document) as a Blob. */
-export function fetchFile(path: string): Promise<Blob> {
-  return fetchBinary(path);
+export async function fetchFile(path: string): Promise<Blob> {
+  const { blob } = await fetchBinary(path);
+  return blob;
 }
 
 /** Fetches a binary resource (e.g. a document) and triggers a browser download. */
-export async function downloadFile(path: string, fileName: string): Promise<void> {
-  const blob = await fetchBinary(path);
+export async function downloadFile(
+  path: string,
+  fileName: string,
+  options: { timeoutMs?: number } = {},
+): Promise<void> {
+  const { blob, fileName: headerName } = await fetchBinary(path, options);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = fileName;
+  anchor.download = headerName || fileName;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

@@ -1,14 +1,23 @@
 'use client';
 
 import { Button } from '@aljeel/ui';
+import type { Document } from '@aljeel/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { HighlightText, textMatchesQuery } from './highlight-text';
 import { ApiClientError } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
 import {
+  allFolderPaths,
+  buildDocumentTree,
+  defaultExpandedFolderPaths,
+  folderPathsForDocumentIds,
+  type DocumentTreeNode,
+} from '@/lib/document-tree';
+import {
   deleteInvoiceDocument,
+  downloadInvoiceDocumentsArchive,
   listInvoiceDocuments,
   renameInvoiceDocument,
 } from '@/lib/invoices-api';
@@ -76,6 +85,30 @@ function PendingFileRow({
   );
 }
 
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ${
+        open ? 'rotate-90' : ''
+      }`}
+      aria-hidden
+    >
+      <path
+        fillRule="evenodd"
+        d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+/** Keeps file rows aligned with folder rows that have a chevron. */
+function TreeGutter({ children }: { children?: ReactNode }) {
+  return <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">{children}</span>;
+}
+
 export function InvoiceDocuments({
   invoiceId,
   editable,
@@ -92,6 +125,9 @@ export function InvoiceDocuments({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set());
+  const [userToggledFolders, setUserToggledFolders] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
   const showSearch = compact && viewable;
 
@@ -99,6 +135,14 @@ export function InvoiceDocuments({
     queryKey: ['invoices', invoiceId, 'documents'],
     queryFn: () => listInvoiceDocuments(invoiceId),
   });
+
+  const documentById = useMemo(() => {
+    const map = new Map<string, Document>();
+    for (const doc of documents) map.set(doc.id, doc);
+    return map;
+  }, [documents]);
+
+  const tree = useMemo(() => buildDocumentTree(documents), [documents]);
 
   const uploadMutation = useMutation({
     mutationFn: async (files: KbQueuedFile[]) => {
@@ -185,6 +229,27 @@ export function InvoiceDocuments({
     return documents.find((doc) => textMatchesQuery(doc.fileName, trimmedSearch))?.id ?? null;
   }, [documents, trimmedSearch]);
 
+  const matchingFolderPaths = useMemo(
+    () => folderPathsForDocumentIds(tree, matchingDocumentIds),
+    [tree, matchingDocumentIds],
+  );
+
+  const visibleExpandedPaths = useMemo(() => {
+    if (trimmedSearch) {
+      return matchingFolderPaths;
+    }
+    if (!userToggledFolders) {
+      return defaultExpandedFolderPaths(tree);
+    }
+    return expandedPaths;
+  }, [trimmedSearch, matchingFolderPaths, tree, userToggledFolders, expandedPaths]);
+
+  useEffect(() => {
+    if (!userToggledFolders && !trimmedSearch && tree.length > 0) {
+      setExpandedPaths(defaultExpandedFolderPaths(tree));
+    }
+  }, [tree, userToggledFolders, trimmedSearch]);
+
   useEffect(() => {
     if (!firstMatchingDocumentId || !listRef.current) return;
     const row = listRef.current.querySelector(`[data-doc-id="${firstMatchingDocumentId}"]`);
@@ -193,7 +258,10 @@ export function InvoiceDocuments({
   }, [firstMatchingDocumentId, onSelectDocument]);
 
   const busy =
-    uploadMutation.isPending || deleteMutation.isPending || renameMutation.isPending;
+    uploadMutation.isPending ||
+    deleteMutation.isPending ||
+    renameMutation.isPending ||
+    downloadingAll;
   const pendingUploads = pending.filter((f) => f.status === 'pending');
   const uploading = pending.filter((f) => !['pending'].includes(f.status));
   const showList =
@@ -201,6 +269,43 @@ export function InvoiceDocuments({
     uploading.length > 0 ||
     pendingUploads.length > 0 ||
     documents.length > 0;
+  const canDownloadAll = !isLoading && documents.length > 0;
+  const hasFolders = tree.some((node) => node.kind === 'folder');
+
+  async function handleDownloadAll() {
+    if (!canDownloadAll || downloadingAll) return;
+    setDownloadingAll(true);
+    setError(null);
+    try {
+      await downloadInvoiceDocumentsArchive(invoiceId);
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : t('downloadAllError'));
+    } finally {
+      setDownloadingAll(false);
+    }
+  }
+
+  function toggleFolder(path: string) {
+    setUserToggledFolders(true);
+    setExpandedPaths((current) => {
+      const base =
+        current.size > 0 || userToggledFolders ? current : defaultExpandedFolderPaths(tree);
+      const next = new Set(base);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }
+
+  function expandAllFolders() {
+    setUserToggledFolders(true);
+    setExpandedPaths(allFolderPaths(tree));
+  }
+
+  function collapseAllFolders() {
+    setUserToggledFolders(true);
+    setExpandedPaths(new Set());
+  }
 
   function startRename(documentId: string, fileName: string) {
     setEditingId(documentId);
@@ -237,6 +342,171 @@ export function InvoiceDocuments({
     setError(null);
   }
 
+  function renderTreeNodes(nodes: DocumentTreeNode[], depth: number): ReactNode[] {
+    const rows: ReactNode[] = [];
+
+    for (const node of nodes) {
+      if (node.kind === 'folder') {
+        const open = visibleExpandedPaths.has(node.path);
+        const folderMatchesSearch =
+          trimmedSearch.length > 0 &&
+          (matchingFolderPaths.has(node.path) || textMatchesQuery(node.name, trimmedSearch));
+
+        rows.push(
+          <li key={`folder:${node.path}`} className="list-none text-sm">
+            <button
+              type="button"
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50 ${
+                trimmedSearch && !folderMatchesSearch ? 'opacity-40' : ''
+              }`}
+              style={{ paddingInlineStart: `${10 + depth * 12}px` }}
+              onClick={() => toggleFolder(node.path)}
+              aria-expanded={open}
+            >
+              <TreeGutter>
+                <Chevron open={open} />
+              </TreeGutter>
+              <span className="text-base leading-none" aria-hidden>
+                📁
+              </span>
+              <span className="min-w-0 flex-1 break-all font-medium" title={node.path}>
+                {trimmedSearch ? (
+                  <HighlightText text={node.name} query={trimmedSearch} />
+                ) : (
+                  node.name
+                )}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {t('folderFileCount', { count: node.fileCount })}
+              </span>
+            </button>
+            {open && (
+              <ul className="m-0 list-none p-0">{renderTreeNodes(node.children, depth + 1)}</ul>
+            )}
+          </li>,
+        );
+        continue;
+      }
+
+      const doc = documentById.get(node.document.id);
+      if (!doc) continue;
+
+      const editing = editingId === doc.id;
+      const searchMatch =
+        trimmedSearch.length > 0 && matchingDocumentIds.has(doc.id);
+      const searchMismatch = trimmedSearch.length > 0 && !searchMatch;
+
+      rows.push(
+        <li
+          key={doc.id}
+          data-doc-id={doc.id}
+          className={`list-none py-1.5 pe-3 text-sm ${
+            viewable && !editing ? 'cursor-pointer hover:bg-muted/50' : ''
+          } ${
+            searchMatch
+              ? 'bg-yellow-50 ring-1 ring-inset ring-yellow-300 dark:bg-yellow-950/30 dark:ring-yellow-600/50'
+              : selectedDocumentId === doc.id
+                ? 'bg-muted'
+                : ''
+          } ${searchMismatch ? 'opacity-40' : ''}`}
+          style={{ paddingInlineStart: `${10 + depth * 12}px` }}
+          onClick={
+            viewable && onSelectDocument && !editing
+              ? () => onSelectDocument(doc.id)
+              : undefined
+          }
+        >
+          <div className="flex min-w-0 items-start gap-2">
+            <TreeGutter />
+            <span className="mt-0.5 text-base leading-none" aria-hidden>
+              {fileIcon(node.name)}
+            </span>
+            <div className="min-w-0 flex-1">
+              {editing ? (
+                <form
+                  className="space-y-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    saveRename(doc.id);
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <input
+                    autoFocus
+                    value={draftName}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    disabled={renameMutation.isPending}
+                    className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                    aria-label={t('rename')}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      disabled={renameMutation.isPending}
+                      className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                    >
+                      {t('saveRename')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelRename}
+                      disabled={renameMutation.isPending}
+                      className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
+                    >
+                      {t('cancelRename')}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <p className="break-all font-medium leading-snug" title={doc.fileName}>
+                    {trimmedSearch ? (
+                      <HighlightText text={node.name} query={trimmedSearch} />
+                    ) : (
+                      node.name
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatBytes(doc.sizeBytes)} · {t(`scan.${doc.virusScanStatus}`)}
+                  </p>
+                  {(canRename || editable) && (
+                    <div
+                      className="mt-1 flex flex-wrap items-center gap-3"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {canRename && (
+                        <button
+                          type="button"
+                          onClick={() => startRename(doc.id, doc.fileName)}
+                          disabled={busy}
+                          className="text-xs text-primary hover:underline disabled:opacity-50"
+                        >
+                          {t('rename')}
+                        </button>
+                      )}
+                      {editable && (
+                        <button
+                          type="button"
+                          onClick={() => deleteMutation.mutate(doc.id)}
+                          disabled={busy}
+                          className="text-xs text-destructive hover:underline disabled:opacity-50"
+                        >
+                          {t('remove')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </li>,
+      );
+    }
+
+    return rows;
+  }
+
   return (
     <section className={compact ? undefined : 'mt-8'}>
       {!compact && (
@@ -250,28 +520,66 @@ export function InvoiceDocuments({
         <div
           className={`overflow-hidden rounded-xl border bg-card shadow-sm ${compact ? '' : 'mt-4'}`}
         >
-          {showSearch && (
-            <div className="border-b px-3 py-2">
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={t('searchFiles')}
-                className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-                aria-label={t('searchFiles')}
-              />
-              {trimmedSearch && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {matchingDocumentIds.size === 0
-                    ? t('searchNoResults')
-                    : t('searchMatchCount', { count: matchingDocumentIds.size })}
-                </p>
+          {(showSearch || canDownloadAll || hasFolders) && (
+            <div className="border-b">
+              {showSearch && (
+                <div className="px-3 pt-2">
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t('searchFiles')}
+                    className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                    aria-label={t('searchFiles')}
+                  />
+                  {trimmedSearch && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {matchingDocumentIds.size === 0
+                        ? t('searchNoResults')
+                        : t('searchMatchCount', { count: matchingDocumentIds.size })}
+                    </p>
+                  )}
+                </div>
+              )}
+              {(hasFolders || canDownloadAll) && (
+                <div className="flex items-center justify-between gap-2 px-3 py-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {hasFolders && !trimmedSearch && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={expandAllFolders}
+                          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        >
+                          {t('expandAll')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={collapseAllFolders}
+                          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        >
+                          {t('collapseAll')}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {canDownloadAll && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDownloadAll()}
+                      disabled={busy}
+                      className="shrink-0 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                    >
+                      {downloadingAll ? t('downloadingAll') : t('downloadAll')}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
           <ul
             ref={listRef}
-            className={`divide-y ${compact ? 'max-h-[min(80vh,900px)] overflow-y-auto' : ''}`}
+            className={`m-0 list-none p-0 ${compact ? 'max-h-[min(80vh,900px)] overflow-y-auto' : ''}`}
           >
             {isLoading && (
               <>
@@ -305,120 +613,7 @@ export function InvoiceDocuments({
                   t={t}
                 />
               ))}
-            {!isLoading &&
-              documents.map((doc) => {
-                const editing = editingId === doc.id;
-                const searchMatch =
-                  trimmedSearch.length > 0 && textMatchesQuery(doc.fileName, trimmedSearch);
-                const searchMismatch = trimmedSearch.length > 0 && !searchMatch;
-                return (
-                  <li
-                    key={doc.id}
-                    data-doc-id={doc.id}
-                    className={`flex items-center justify-between gap-3 p-3 text-sm ${
-                      viewable && !editing ? 'cursor-pointer hover:bg-muted/50' : ''
-                    } ${
-                      searchMatch
-                        ? 'bg-yellow-50 ring-1 ring-inset ring-yellow-300 dark:bg-yellow-950/30 dark:ring-yellow-600/50'
-                        : selectedDocumentId === doc.id
-                          ? 'bg-muted'
-                          : ''
-                    } ${searchMismatch ? 'opacity-40' : ''}`}
-                    onClick={
-                      viewable && onSelectDocument && !editing
-                        ? () => onSelectDocument(doc.id)
-                        : undefined
-                    }
-                  >
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <span className="text-lg leading-none" aria-hidden>
-                        {fileIcon(doc.fileName)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        {editing ? (
-                          <form
-                            className="space-y-2"
-                            onSubmit={(event) => {
-                              event.preventDefault();
-                              saveRename(doc.id);
-                            }}
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <input
-                              autoFocus
-                              value={draftName}
-                              onChange={(event) => setDraftName(event.target.value)}
-                              disabled={renameMutation.isPending}
-                              className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-                              aria-label={t('rename')}
-                            />
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="submit"
-                                disabled={renameMutation.isPending}
-                                className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
-                              >
-                                {t('saveRename')}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelRename}
-                                disabled={renameMutation.isPending}
-                                className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
-                              >
-                                {t('cancelRename')}
-                              </button>
-                            </div>
-                          </form>
-                        ) : (
-                          <>
-                            <p
-                              className={`font-medium ${trimmedSearch ? 'break-all' : 'truncate'}`}
-                              title={doc.fileName}
-                            >
-                              {trimmedSearch ? (
-                                <HighlightText text={doc.fileName} query={trimmedSearch} />
-                              ) : (
-                                doc.fileName
-                              )}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatBytes(doc.sizeBytes)} · {t(`scan.${doc.virusScanStatus}`)}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {!editing && (canRename || editable) && (
-                      <div
-                        className="flex shrink-0 items-center gap-3"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {canRename && (
-                          <button
-                            type="button"
-                            onClick={() => startRename(doc.id, doc.fileName)}
-                            disabled={busy}
-                            className="text-xs text-primary hover:underline disabled:opacity-50"
-                          >
-                            {t('rename')}
-                          </button>
-                        )}
-                        {editable && (
-                          <button
-                            type="button"
-                            onClick={() => deleteMutation.mutate(doc.id)}
-                            disabled={busy}
-                            className="text-xs text-destructive hover:underline disabled:opacity-50"
-                          >
-                            {t('remove')}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
+            {!isLoading && renderTreeNodes(tree, 0)}
           </ul>
         </div>
       )}

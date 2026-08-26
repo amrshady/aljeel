@@ -93,6 +93,32 @@ export class DocumentsController {
     return this.documentsService.upload(user, invoiceId, file, body);
   }
 
+  @Get('invoices/:id/documents/archive')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @ApiOperation({
+    summary:
+      'Download all invoice documents as a zip (entry paths preserve folder hierarchy)',
+  })
+  async archive(
+    @CurrentUser() user: AuthUser,
+    @Param('id') invoiceId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { buffer, fileName } = await this.documentsService.createArchive(
+      user,
+      invoiceId,
+    );
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+    });
+    return new StreamableFile(buffer, {
+      type: 'application/zip',
+      disposition: `attachment; filename="${encodeURIComponent(fileName)}"`,
+      length: buffer.length,
+    });
+  }
+
   @Get('invoices/:id/documents')
   @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'List documents attached to an invoice' })

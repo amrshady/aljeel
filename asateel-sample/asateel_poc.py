@@ -1810,11 +1810,9 @@ def supplier_inherited_allocation(
     }
 
 
-def _additional_info(supplier_line: dict[str, Any] | None, display_jq: Any = "") -> str:
-    if not supplier_line:
-        return ""
-    emp_no = _code(supplier_line.get("employee_number")).strip()
-    jq = _clean(display_jq).strip() or _clean(supplier_line.get("jq")).strip()
+def _additional_info(employee_no: Any, supplier_line: dict[str, Any] | None, display_jq: Any = "") -> str:
+    emp_no = _code(employee_no).strip()
+    jq = _clean(display_jq).strip() or _clean((supplier_line or {}).get("jq")).strip()
     if emp_no and jq:
         return f"{emp_no}.{jq}"
     return emp_no or jq
@@ -2445,7 +2443,7 @@ def build_rows(
                     # Match on the canonical key, but preserve SO_Detail's
                     # exact ORDER_NUMBER (including zeros/suffixes) in output.
                     jq_display = _clean(matched_so_detail.get("raw_jq"))
-            additional_info = _additional_info(supplier_match, jq_display)
+            additional_info = _additional_info(output_employee_no, supplier_match, jq_display)
             if supplier_match and not additional_info:
                 notes.append("Employee Number and JQ unavailable for matched Supplier Expenses Format line")
             elif not supplier_match:

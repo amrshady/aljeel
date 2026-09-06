@@ -12,9 +12,10 @@ import {
 } from './jawal-evidence-check';
 
 describe('jawal ref / ticket canonical rules (B1a)', () => {
-  it('accepts well-formed CE-20-2026 and SIS-14', () => {
+  it('accepts well-formed standard and EP-CRM refs', () => {
     expect(isCanonicalJawalRef('CE-20-2026')).toBe(true);
     expect(isCanonicalJawalRef('sis-14')).toBe(true);
+    expect(isCanonicalJawalRef('EP-CRM-2026-5')).toBe(true);
     expect(isCanonicalJawalTicket('6905428831')).toBe(true);
   });
 
@@ -90,9 +91,105 @@ describe('extractJawalInvoiceLines', () => {
       }),
     ).toBe('TRAVEL');
   });
+
+  it('skips ticket-count and total-sales footers without malformed-ticket findings', () => {
+    const rows = [
+      ['Sl.#', '', '', 'Ticket No.', '', 'Pax', '', '', 'Ref.No', '', '', 'Amount'],
+      ['1', '', '', '065 4861593384', '', 'Passenger', '', '', '1001001', '', '', '500'],
+      ['TICKET COUNT :', '', '', '99', '', 'TOTAL SALES :', '', '', '', '', '', '267,378.02'],
+    ];
+    const lines = extractJawalInvoiceLines([rows]);
+    const result = validateJawalEvidencePack({ lines, files: [] });
+
+    expect(lines).toHaveLength(1);
+    expect(lines.some((line) => line.ticket === '99')).toBe(false);
+    expect(
+      result.findings.some((finding) => finding.message.includes('Ticket "99" is malformed')),
+    ).toBe(false);
+  });
+
+  it('skips refund-count, total-refunds, and net-sales footers', () => {
+    const rows = [
+      ['Sl.#', '', '', 'Ticket No.', '', 'Pax', '', '', 'Ref.No', '', '', 'Amount'],
+      ['LESS REFUNDS'],
+      ['', '', '', '065 4861593384', '', 'Refund passenger', '', '', '1001001', '', '', '500'],
+      ['', '', '', '560 4861625313', '', 'Refund passenger', '', '', '1001002', '', '', '655.65'],
+      ['TICKET COUNT :', '', '', '2', '', 'TOTAL REFUNDS :', '', '', '', '', '', '1,155.65'],
+      ['', '', '', '266222', '', 'NET SALES :', '', '', '', '', '', '266,222.37'],
+    ];
+    const lines = extractJawalInvoiceLines([rows]);
+    const result = validateJawalEvidencePack({ lines, files: [] });
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.ticket).toBe('065 4861593384');
+    expect(lines[1]?.ticket).toBe('560 4861625313');
+    expect(lines.every((line) => line.isRefund)).toBe(true);
+    expect(
+      result.findings.some((finding) => finding.message.includes('Ticket "2" is malformed')),
+    ).toBe(false);
+  });
+
+  it('still flags malformed tickets in actual data rows', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description'],
+        ['1001001', '99', 'Passenger RUH-JED'],
+      ],
+    ]);
+    const result = validateJawalEvidencePack({ lines, files: [] });
+
+    expect(lines).toHaveLength(1);
+    expect(
+      result.findings.some((finding) => finding.message.includes('Ticket "99" is malformed')),
+    ).toBe(true);
+  });
 });
 
 describe('validateJawalEvidencePack', () => {
+  it('warns instead of blocking when a new employee has no matching evidence folder', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['new employee', '6905428831', 'Staff travel'],
+        ],
+      ]),
+      files: [],
+    });
+
+    expect(result.warning).not.toBeNull();
+    expect(
+      result.findings.some(
+        (finding) => finding.code === 'JAWAL_FOLDER_MISMATCH' && finding.rule === 'B2',
+      ),
+    ).toBe(true);
+    expect(
+      result.warning?.details?.findings?.some(
+        (finding) => finding.code === 'JAWAL_FOLDER_MISMATCH' && finding.rule === 'B2',
+      ),
+    ).toBe(true);
+    expect(result.error).toBeNull();
+  });
+
+  it('still blocks a numeric employee ref with no matching evidence folder', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '6905428831', 'Staff travel'],
+        ],
+      ]),
+      files: [],
+    });
+
+    expect(result.error).not.toBeNull();
+    expect(
+      result.error?.details?.findings?.some(
+        (finding) => finding.code === 'JAWAL_FOLDER_MISMATCH' && finding.rule === 'B2',
+      ),
+    ).toBe(true);
+  });
+
   it('blocks malformed refs and does not invent folder matches', () => {
     const lines = extractJawalInvoiceLines([
       [
@@ -169,8 +266,7 @@ describe('validateJawalEvidencePack', () => {
       files: [
         { fileName: 'naif_ticket/ELDS5J.pdf', sizeBytes: 100 },
         {
-          fileName:
-            'naif_ticket/Approved_Personal_Contribution_Approval_Requested_for_Naif.msg',
+          fileName: 'naif_ticket/Approved_Personal_Contribution_Approval_Requested_for_Naif.msg',
           sizeBytes: 100,
         },
       ],
@@ -214,11 +310,9 @@ describe('validateJawalEvidencePack', () => {
         { fileName: '6905655864/eticket.pdf', sizeBytes: 100 },
       ],
     });
-    expect(
-      result.findings.some(
-        (f) => f.row === 3 && f.code === 'JAWAL_APPROVAL_MISSING',
-      ),
-    ).toBe(true);
+    expect(result.findings.some((f) => f.row === 3 && f.code === 'JAWAL_APPROVAL_MISSING')).toBe(
+      true,
+    );
   });
 
   it('matches hotel/train lines to named reservation folders via Ref text', () => {
@@ -280,8 +374,7 @@ describe('validateJawalEvidencePack', () => {
       lines,
       files: [
         {
-          fileName:
-            'Euro Anesthesia 2026 - Approvals/MR MAJED ALOTAIBI-9GCSWM change.pdf',
+          fileName: 'Euro Anesthesia 2026 - Approvals/MR MAJED ALOTAIBI-9GCSWM change.pdf',
           sizeBytes: 100,
         },
         {
@@ -398,6 +491,26 @@ describe('validateJawalEvidencePack', () => {
     expect(result.error?.details?.duplicateRefs).toEqual(['6905428831']);
     expect(result.error?.message).toContain('Duplicate Ticket');
     expect(result.warning).toBeNull();
+  });
+
+  it('does not flag an original ticket repeated after LESS REFUNDS', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description', 'Amount'],
+          ['1001001', '065 4861593384', 'Original booking', '500'],
+          ['', '', 'LESS REFUNDS', ''],
+          ['1001002', '065 4861593384', 'Refund', '500'],
+        ],
+      ]),
+      files: [
+        { fileName: '4861593384/approval.msg', sizeBytes: 100 },
+        { fileName: '4861593384/ticket.pdf', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.findings.some((f) => f.message.includes('Duplicate Ticket'))).toBe(false);
+    expect(result.error).toBeNull();
   });
 
   it('keeps Ref.No warnings when a separate ticket duplicate also blocks', () => {
@@ -542,9 +655,7 @@ describe('empty-folder detection', () => {
       ],
     });
     expect(
-      result.findings.some(
-        (f) => f.code === 'JAWAL_EMPTY_FOLDER' && f.path === 'SIS-99',
-      ),
+      result.findings.some((f) => f.code === 'JAWAL_EMPTY_FOLDER' && f.path === 'SIS-99'),
     ).toBe(true);
   });
 

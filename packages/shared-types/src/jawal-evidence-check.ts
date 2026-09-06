@@ -78,23 +78,25 @@ export interface JawalInvoiceLine {
   opexSerial: string | null;
   date: string | null;
   amount: string | null;
+  /** True for credit lines below LESS REFUNDS or with an explicitly negative amount. */
+  isRefund: boolean;
   kind: JawalLineKind;
 }
 
 /** PREFIX-NN-YYYY (e.g. CE-20-2026) — exact segment widths. */
-export const JAWAL_REF_PREFIX_YEAR =
-  /^[A-Z]{2,5}-\d{2}-\d{4}$/;
+export const JAWAL_REF_PREFIX_YEAR = /^[A-Z]{2,5}-\d{2}-\d{4}$/;
 
 /** PREFIX-YYYY-NN (e.g. EP-2026-14, CRM-2026-30). */
-export const JAWAL_REF_PREFIX_YEAR_FIRST =
-  /^[A-Z]{2,5}-\d{4}-\d{1,3}$/;
+export const JAWAL_REF_PREFIX_YEAR_FIRST = /^[A-Z]{2,5}-\d{4}-\d{1,3}$/;
+
+/** EP-CRM-YYYY-N (e.g. EP-CRM-2026-5). */
+export const JAWAL_REF_EP_CRM_YEAR = /^EP-CRM-\d{4}-\d{1,3}$/;
 
 /** PREFIX-N… (e.g. SIS-14) — single dash, digit-only suffix. */
 export const JAWAL_REF_PREFIX_NUM = /^[A-Z]{2,5}-\d{1,4}$/;
 
 /** Looks like a letter-prefix serial that must obey exact widths. */
-export const JAWAL_REF_PREFIX_CANDIDATE =
-  /^[A-Z]{2,5}-\d+(?:-\d+)?$/;
+export const JAWAL_REF_PREFIX_CANDIDATE = /^(?:[A-Z]{2,5}|EP-CRM)-\d+(?:-\d+)?$/;
 
 /** Airline / GDS ticket bodies (digits only). */
 export const JAWAL_TICKET = /^\d{6,12}$/;
@@ -106,7 +108,10 @@ export const JAWAL_TICKET_TRAIN = /^\d{2}-\d{3,4}$/;
 export const JAWAL_TICKET_PNR = /^\d{1,3}\s+[A-Z0-9]{5,8}$/i;
 
 function normalizeHeaderLabel(label: string): string {
-  return label.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return label
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Real Jawwal tax invoices use bilingual headers such as `رقم المرجع  Ref. No.`. */
@@ -191,7 +196,8 @@ function isEvidenceFolderSegment(candidate: string): boolean {
   if (isLetterPrefixRef(token) && isCanonicalJawalRef(token)) return true;
   // Named packs: naif_ticket, barcelona_reservation_may, TRAIN_…, Re_Barcelona_…
   if (/_ticket$/i.test(token)) return true;
-  if (/^(train|hotel|barcelona|opex|sponsor|re_barcelona|re_opex|fw_opex)/i.test(token)) return true;
+  if (/^(train|hotel|barcelona|opex|sponsor|re_barcelona|re_opex|fw_opex)/i.test(token))
+    return true;
   if (/reservation|congress|combined_training/i.test(token)) return true;
   return false;
 }
@@ -264,7 +270,10 @@ export function sanitizeEvidenceRelativePath(name: string): string {
   if (parts.length === 0) return 'file';
 
   const safeParts = parts.map((part) => {
-    const cleaned = part.replace(/[^\w.\-]+/g, '_').replace(/_+/g, '_').slice(0, 120);
+    const cleaned = part
+      .replace(/[^\w.\-]+/g, '_')
+      .replace(/_+/g, '_')
+      .slice(0, 120);
     return cleaned || 'x';
   });
 
@@ -330,6 +339,7 @@ export function isCanonicalJawalRef(value: string): boolean {
     return (
       JAWAL_REF_PREFIX_YEAR.test(token) ||
       JAWAL_REF_PREFIX_YEAR_FIRST.test(token) ||
+      JAWAL_REF_EP_CRM_YEAR.test(token) ||
       JAWAL_REF_PREFIX_NUM.test(token)
     );
   }
@@ -337,6 +347,10 @@ export function isCanonicalJawalRef(value: string): boolean {
   // Opaque free-text refs (hotel notes, change markers) — allowed as structure;
   // folder matching still prefers the Ticket column.
   return true;
+}
+
+function isNewEmployeePlaceholderRef(ref: string): boolean {
+  return /^new\s+employee\s*$/.test(ref.trim().toLowerCase());
 }
 
 export function isCanonicalJawalTicket(value: string): boolean {
@@ -368,6 +382,22 @@ function cellText(value: unknown): string {
     return Number.isInteger(value) ? String(value) : String(value);
   }
   return String(value).trim();
+}
+
+const SUMMARY_FOOTER_LABEL =
+  /^(?:ticket\s+count|total(?:\s+(?:sales|refunds))?|net\s+sales|grand\s+total|sub\s*total|vat(?:\s+\d+(?:\.\d+)?\s*%)?|tax|balance(?:\s+due)?|summary|amount\s+due)\s*:?$/i;
+
+function isSummaryFooterRow(cells: unknown[]): boolean {
+  return cells.some((cell) => {
+    const text = cellText(cell);
+    return SUMMARY_FOOTER_LABEL.test(text) || /(?:المجموع|الإجمالي|الاجمالي|ضريبة)/.test(text);
+  });
+}
+
+function isNegativeAmount(value: string | null): boolean {
+  if (!value) return false;
+  const normalized = value.trim().replace(/[,\s]/g, '');
+  return /^-/.test(normalized) || /^\(.*\)$/.test(normalized);
 }
 
 function findHeaderMap(grid: unknown[][]): {
@@ -430,19 +460,33 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
     if (!header) continue;
 
     let emptyStreak = 0;
+    let inRefundSection = false;
     for (let row = header.headerRow + 1; row < sheet.length; row += 1) {
       const cells = sheet[row] ?? [];
+
+      // Jawwal sheets delimit credit lines with a standalone LESS REFUNDS row.
+      // It is a section marker, not a line item; all following tickets are refunds.
+      if (cells.some((cell) => /\bLESS\s+REFUNDS\b/i.test(cellText(cell)))) {
+        inRefundSection = true;
+        emptyStreak = 0;
+        continue;
+      }
+
+      // Footer labels may be outside the mapped content columns, while their
+      // numeric counts can occupy the Ticket column. Detect them row-wide.
+      if (isSummaryFooterRow(cells)) {
+        emptyStreak = 0;
+        continue;
+      }
+
       const ref = cellText(cells[header.columns.ref]);
       const ticketRaw =
         header.columns.ticket !== null ? cellText(cells[header.columns.ticket]) : '';
       const description =
-        header.columns.description !== null
-          ? cellText(cells[header.columns.description])
-          : '';
+        header.columns.description !== null ? cellText(cells[header.columns.description]) : '';
       const account =
         header.columns.account !== null ? cellText(cells[header.columns.account]) : '';
-      const type =
-        header.columns.type !== null ? cellText(cells[header.columns.type]) : '';
+      const type = header.columns.type !== null ? cellText(cells[header.columns.type]) : '';
       const date =
         header.columns.date !== null ? cellText(cells[header.columns.date]) || null : null;
       const amount =
@@ -463,18 +507,13 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
       if (!ref && !ticketRaw) {
         // A data row that carries line content (passenger/route, account, type or
         // OPEX) but is missing BOTH Ref.No and Ticket is a structural defect the
-        // validator must surface (B1) — don't silently drop it. Skip totals /
-        // summary rows so we don't block on non-line-item footers.
+        // validator must surface (B1) — don't silently drop it.
         const hasLineContent =
           description.length > 0 ||
           account.length > 0 ||
           type.length > 0 ||
           (opexSerial ?? '').length > 0;
-        const looksLikeTotalsRow =
-          /\b(total|subtotal|grand\s*total|vat|tax|balance|summary|amount\s*due)\b/i.test(
-            description,
-          ) || /المجموع|الإجمالي|الاجمالي|ضريبة/.test(description);
-        if (!hasLineContent || looksLikeTotalsRow) continue;
+        if (!hasLineContent) continue;
       }
 
       lines.push({
@@ -487,6 +526,7 @@ export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLin
         date,
         amount,
         opexSerial,
+        isRefund: inRefundSection || isNegativeAmount(amount),
         kind: classifyJawalLineKind({ ref, description, account, type }),
       });
     }
@@ -588,10 +628,7 @@ function isSupportingDocName(fileName: string): boolean {
   return /\.(pdf|png|jpe?g|webp|tif{1,2}|doc|docx|msg|eml)$/i.test(base);
 }
 
-function folderFiles(
-  files: JawalEvidenceFileMeta[],
-  folder: string,
-): JawalEvidenceFileMeta[] {
+function folderFiles(files: JawalEvidenceFileMeta[], folder: string): JawalEvidenceFileMeta[] {
   return files.filter((file) => {
     const name = evidenceFolderName(file.fileName);
     return name !== null && folderMatchesKey(name, folder);
@@ -607,7 +644,11 @@ function uniqueFolders(files: JawalEvidenceFileMeta[]): string[] {
   return [...folders];
 }
 
-function folderHasOpex(files: JawalEvidenceFileMeta[], folder: string, opexSerial: string | null): boolean {
+function folderHasOpex(
+  files: JawalEvidenceFileMeta[],
+  folder: string,
+  opexSerial: string | null,
+): boolean {
   const inFolder = folderFiles(files, folder);
   const opexFiles = inFolder.filter((file) => isOpexName(file.fileName));
   if (opexFiles.length === 0) return false;
@@ -672,10 +713,7 @@ function lineFolderKeys(line: JawalInvoiceLine, allLines: JawalInvoiceLine[]): s
       for (const sibling of consecutiveTicketKeys(ticket)) {
         const shared = allLines.some((other) => {
           if (normalizeJawalTicket(other.ticket || '') !== sibling) return false;
-          if (
-            /^\d{4,8}$/.test(line.ref.trim()) &&
-            exactCanonicalMatch(other.ref, line.ref)
-          ) {
+          if (/^\d{4,8}$/.test(line.ref.trim()) && exactCanonicalMatch(other.ref, line.ref)) {
             return true;
           }
           const a = passengerKey(line);
@@ -723,8 +761,10 @@ function folderContainsPassenger(
 
   return inFolder.some((file) => {
     const hay = normalizeCanonicalToken(file.fileName);
-    return needles.every((needle) => hay.includes(needle)) ||
-      (strong.length > 0 && strong.some((needle) => hay.includes(needle)));
+    return (
+      needles.every((needle) => hay.includes(needle)) ||
+      (strong.length > 0 && strong.some((needle) => hay.includes(needle)))
+    );
   });
 }
 
@@ -869,8 +909,7 @@ export function validateJawalEvidencePack(input: {
   if (lines.length === 0) {
     pushBlock({
       code: 'JAWAL_TABLE_EMPTY',
-      message:
-        'The Jawal spreadsheet has Ref.No / Ticket headers but no line items to validate.',
+      message: 'The Jawal spreadsheet has Ref.No / Ticket headers but no line items to validate.',
       gate: 'B',
       rule: 'B1',
     });
@@ -944,7 +983,7 @@ export function validateJawalEvidencePack(input: {
           ticket: line.ticket,
           row: line.row,
         });
-      } else {
+      } else if (!line.isRefund) {
         const key = normalizeCanonicalToken(normalizeJawalTicket(line.ticket));
         const first = seenTickets.get(key);
         if (first !== undefined) {
@@ -996,8 +1035,7 @@ export function validateJawalEvidencePack(input: {
     const matched = findEvidenceFolderForLine(folders, line, files, lines);
     const folderKey = folderKeys[0]!;
     if (!matched) {
-      missingFolders.push(folderKey);
-      pushBlock({
+      const finding: JawalEvidenceFinding = {
         code: 'JAWAL_FOLDER_MISMATCH',
         message: `No evidence folder exactly matching "${folderKey}" (row ${line.row}). Prefix-similar names do not count.`,
         gate: 'B',
@@ -1005,7 +1043,13 @@ export function validateJawalEvidencePack(input: {
         ref: line.ref || undefined,
         ticket: line.ticket || undefined,
         row: line.row,
-      });
+      };
+      if (isNewEmployeePlaceholderRef(line.ref)) {
+        pushWarning(finding);
+      } else {
+        missingFolders.push(folderKey);
+        pushBlock(finding);
+      }
       continue;
     }
 
@@ -1106,9 +1150,7 @@ export function validateJawalEvidencePack(input: {
             findings: blockingFindings,
             malformedRefs: malformedRefs.length > 0 ? [...new Set(malformedRefs)] : undefined,
             duplicateRefs:
-              blockingDuplicateRefs.length > 0
-                ? [...new Set(blockingDuplicateRefs)]
-                : undefined,
+              blockingDuplicateRefs.length > 0 ? [...new Set(blockingDuplicateRefs)] : undefined,
             missingFolders: missingFolders.length > 0 ? [...new Set(missingFolders)] : undefined,
             orphanFolders: orphanFolders.length > 0 ? orphanFolders : undefined,
             sourceSpreadsheet: input.sourceSpreadsheet,
@@ -1125,9 +1167,7 @@ export function validateJawalEvidencePack(input: {
           details: {
             findings: warningFindings,
             duplicateRefs:
-              warningDuplicateRefs.length > 0
-                ? [...new Set(warningDuplicateRefs)]
-                : undefined,
+              warningDuplicateRefs.length > 0 ? [...new Set(warningDuplicateRefs)] : undefined,
             sourceSpreadsheet: input.sourceSpreadsheet,
           },
         }
@@ -1145,7 +1185,9 @@ export function sniffPdfBuffer(bytes: Uint8Array): { ok: boolean; reason?: strin
   // trailing whitespace bytes). Its absence anywhere in the tail means the file
   // was truncated mid-upload — flag it regardless of overall size.
   const tail = bytes.slice(Math.max(0, bytes.length - 2048));
-  const text = Array.from(tail, (b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : ' ')).join('');
+  const text = Array.from(tail, (b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : ' ')).join(
+    '',
+  );
   if (!/%%EOF/i.test(text)) {
     return { ok: false, reason: 'missing EOF (truncated PDF)' };
   }
@@ -1185,8 +1227,7 @@ export function sniffImageMagic(
   }
   if (/\.webp$/i.test(base)) {
     const riff = startsWithSignature(bytes, [0x52, 0x49, 0x46, 0x46]);
-    const webp =
-      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    const webp = bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
     return riff && webp ? { ok: true } : { ok: false, reason: 'expected webp' };
   }
   if (/\.tiff?$/i.test(base)) {
@@ -1227,9 +1268,10 @@ export function sniffContainerMagic(
   if (bytes.length === 0) return { ok: false, reason: 'empty' };
 
   const isZip =
-    bytes[0] === 0x50 && bytes[1] === 0x4b && (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07);
-  const isOle =
-    bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0;
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07);
+  const isOle = bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0;
 
   if (/\.xlsx$/i.test(base) || /\.xlsm$/i.test(base)) {
     return isZip ? { ok: true } : { ok: false, reason: 'expected zip/xlsx' };

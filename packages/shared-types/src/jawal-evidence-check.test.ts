@@ -146,6 +146,73 @@ describe('extractJawalInvoiceLines', () => {
 });
 
 describe('validateJawalEvidencePack', () => {
+  it('warns when ticket and passenger co-occur in a misfiled evidence file', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4861625331', 'ALDHAFEERI/ABEER MS'],
+        ],
+      ]),
+      files: [
+        {
+          fileName: 'misfiled-ticket.pdf',
+          sizeBytes: 100,
+          extractedText: 'Passenger ABEER ALDHAFEERI E-ticket SV 065-4861625330-31',
+        },
+      ],
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.warning?.code).toBe('JAWAL_FOLDER_MISMATCH');
+    expect(result.warning?.details?.findings?.[0]?.resolvedByContent).toBe(true);
+    expect(result.warning?.details?.missingFolders).toBeUndefined();
+  });
+
+  it('still blocks when ticket content exists without the passenger name', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4861593411', 'ALDHAFEERI/ABEER MS'],
+        ],
+      ]),
+      files: [
+        {
+          fileName: 'misfiled-ticket.pdf',
+          sizeBytes: 100,
+          extractedText: 'E-ticket 065 4861593411 Passenger SOMEONE ELSE',
+        },
+      ],
+    });
+
+    expect(result.error?.code).toBe('JAWAL_FOLDER_MISMATCH');
+    expect(result.error?.details?.missingFolders).toContain('4861593411');
+    expect(result.warning).toBeNull();
+  });
+
+  it('still blocks when no extracted content contains the ticket body', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '26-1233', 'HOSSAM MOHAMMED OSMAN'],
+        ],
+      ]),
+      files: [
+        {
+          fileName: 'misfiled-ticket.eml',
+          sizeBytes: 100,
+          extractedText: 'Passenger HOSSAM MOHAMMED OSMAN ticket 26-9999',
+        },
+      ],
+    });
+
+    expect(result.error?.code).toBe('JAWAL_FOLDER_MISMATCH');
+    expect(result.error?.details?.missingFolders).toContain('26-1233');
+    expect(result.warning).toBeNull();
+  });
+
   it('warns instead of blocking when a new employee has no matching evidence folder', () => {
     const result = validateJawalEvidencePack({
       lines: extractJawalInvoiceLines([

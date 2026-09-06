@@ -33,6 +33,7 @@ export interface JawalEvidenceFinding {
   ticket?: string;
   path?: string;
   row?: number;
+  resolvedByContent?: boolean;
 }
 
 export interface JawalEvidenceIssue {
@@ -64,6 +65,8 @@ export interface JawalEvidenceFileMeta {
   magicMismatch?: boolean;
   pdfInvalid?: boolean;
   workbookInvalid?: boolean;
+  /** Extracted text layer/body for content-based evidence matching. */
+  extractedText?: string;
 }
 
 export type JawalLineKind = 'EVENT_SPONSORSHIP' | 'TRAVEL';
@@ -307,6 +310,10 @@ export function exactCanonicalMatch(a: string, b: string): boolean {
 export function normalizeJawalTicket(value: string): string {
   const raw = String(value).trim();
   if (!raw) return '';
+  const combined = raw.match(/\d{6,12}-\d{1,4}/g);
+  if (combined && combined.length > 0) {
+    return combined[combined.length - 1]!;
+  }
   const digits = raw.match(/\d{6,12}/g);
   if (digits && digits.length > 0) {
     return digits[digits.length - 1]!;
@@ -357,7 +364,12 @@ export function isCanonicalJawalTicket(value: string): boolean {
   const raw = value.trim();
   const token = normalizeJawalTicket(raw);
   if (!token) return false;
-  if (JAWAL_TICKET.test(token) || JAWAL_TICKET_TRAIN.test(token)) return true;
+  if (
+    JAWAL_TICKET.test(token) ||
+    JAWAL_TICKET_TRAIN.test(token) ||
+    /^\d{6,12}-\d{1,4}$/.test(token)
+  )
+    return true;
   // PNR body extracted from `176 ELDS5J`
   if (/^[A-Z0-9]{5,8}$/i.test(token) && JAWAL_TICKET_PNR.test(raw)) return true;
   return false;
@@ -746,17 +758,8 @@ function folderContainsPassenger(
   const inFolder = folderFiles(files, folder);
   if (inFolder.length === 0) return false;
 
-  const tokens = line.description
-    .split(/[/\s]+/)
-    .map((part) => part.replace(/[^A-Za-z]/g, ''))
-    .filter((part) => part.length >= 4)
-    .map((part) => normalizeCanonicalToken(part));
-
-  if (tokens.length === 0) return false;
-
   // Prefer unique / multi-token matches — avoid short common names like SALEH.
-  const strong = tokens.filter((token) => token.length >= 6);
-  const needles = strong.length > 0 ? strong : tokens.length >= 2 ? tokens : [];
+  const { needles, strong } = passengerTokensForMatch(line.description);
   if (needles.length === 0) return false;
 
   return inFolder.some((file) => {
@@ -766,6 +769,58 @@ function folderContainsPassenger(
       (strong.length > 0 && strong.some((needle) => hay.includes(needle)))
     );
   });
+}
+
+function passengerTokensForMatch(description: string): {
+  needles: string[];
+  strong: string[];
+} {
+  const tokens = description
+    .split(/[/\s]+/)
+    .map((part) => part.replace(/[^A-Za-z]/g, ''))
+    .filter((part) => part.length >= 4)
+    .map((part) => normalizeCanonicalToken(part));
+  const strong = tokens.filter((token) => token.length >= 6);
+  return { strong, needles: strong.length > 0 ? strong : tokens.length >= 2 ? tokens : [] };
+}
+
+function contentContainsPassenger(text: string, description: string): boolean {
+  const { needles, strong } = passengerTokensForMatch(description);
+  if (needles.length === 0) return false;
+  const hay = normalizeCanonicalToken(text);
+  return (
+    needles.every((needle) => hay.includes(needle)) ||
+    (strong.length > 0 && strong.some((needle) => hay.includes(needle)))
+  );
+}
+
+function contentContainsTicket(text: string, ticket: string): boolean {
+  const normalized = normalizeCanonicalToken(normalizeJawalTicket(ticket));
+  if (!normalized) return false;
+  const wanted = new Set([normalized, ...expandCombinedTicketFolder(normalized)]);
+  const candidates =
+    text.match(
+      /(?<!\d)\d{6,12}(?:\s*[-–—]\s*\d{1,4})?(?!\d)|(?<!\d)\d{2}\s*[-–—]\s*\d{3,4}(?!\d)/g,
+    ) ?? [];
+  return candidates.some((candidate) => {
+    const canonical = normalizeCanonicalToken(candidate).replace(/\s*[-–—]\s*/g, '-');
+    return [canonical, ...expandCombinedTicketFolder(canonical)].some((key) => wanted.has(key));
+  });
+}
+
+function findContentEvidenceFile(
+  files: JawalEvidenceFileMeta[],
+  line: JawalInvoiceLine,
+): JawalEvidenceFileMeta | null {
+  if (!line.ticket) return null;
+  return (
+    files.find(
+      (file) =>
+        !!file.extractedText &&
+        contentContainsTicket(file.extractedText, line.ticket!) &&
+        contentContainsPassenger(file.extractedText, line.description),
+    ) ?? null
+  );
 }
 
 /**
@@ -1046,6 +1101,13 @@ export function validateJawalEvidencePack(input: {
       };
       if (isNewEmployeePlaceholderRef(line.ref)) {
         pushWarning(finding);
+      } else if (findContentEvidenceFile(files, line)) {
+        const ticketBody = normalizeJawalTicket(line.ticket ?? folderKey);
+        pushWarning({
+          ...finding,
+          message: `Ticket "${ticketBody}" found inside evidence file but no matching folder name (row ${line.row}) — misfiled, verify manually.`,
+          resolvedByContent: true,
+        });
       } else {
         missingFolders.push(folderKey);
         pushBlock(finding);

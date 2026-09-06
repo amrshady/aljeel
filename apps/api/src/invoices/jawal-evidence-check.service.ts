@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import MsgReader from '@kenjiuno/msgreader';
 import {
   extractJawalInvoiceLines,
   isSpreadsheetFileName,
@@ -13,6 +14,7 @@ import {
   type JawalEvidenceValidation,
 } from '@aljeel/shared-types';
 import { Readable } from 'node:stream';
+import { simpleParser } from 'mailparser';
 import * as XLSX from 'xlsx';
 import { KbStorageService } from '../kb/kb-storage.service';
 import { StorageService } from '../storage/storage.service';
@@ -23,16 +25,19 @@ interface InvoiceDocument {
   sizeBytes?: number;
 }
 
+const MAX_EVIDENCE_TEXT_BYTES = 15 * 1024 * 1024;
+const MAX_EVIDENCE_PDF_PAGES = 30;
+
 @Injectable()
 export class JawalEvidenceCheckService {
+  private readonly logger = new Logger(JawalEvidenceCheckService.name);
+
   constructor(
     private readonly storage: StorageService,
     private readonly kb: KbStorageService,
   ) {}
 
-  async validateUploadedFolder(
-    documents: InvoiceDocument[],
-  ): Promise<JawalEvidenceValidation> {
+  async validateUploadedFolder(documents: InvoiceDocument[]): Promise<JawalEvidenceValidation> {
     const spreadsheetDocuments = documents.filter((document) =>
       isSpreadsheetFileName(document.fileName),
     );
@@ -71,9 +76,7 @@ export class JawalEvidenceCheckService {
 
       const needsBytes =
         isXlsxFileName(document.fileName) ||
-        /\.(pdf|msg|eml|xlsx|xlsm|xls|png|jpe?g|gif|webp|tiff?|bmp)$/i.test(
-          document.fileName,
-        );
+        /\.(pdf|msg|eml|xlsx|xlsm|xls|png|jpe?g|gif|webp|tiff?|bmp)$/i.test(document.fileName);
 
       if (needsBytes) {
         try {
@@ -110,6 +113,18 @@ export class JawalEvidenceCheckService {
           if (/\.pdf$/i.test(document.fileName) && !meta.pdfInvalid) {
             const pdf = sniffPdfBuffer(buffer);
             if (!pdf.ok) meta.pdfInvalid = true;
+          }
+
+          if (
+            /\.(pdf|msg|eml)$/i.test(document.fileName) &&
+            buffer.length <= MAX_EVIDENCE_TEXT_BYTES &&
+            !meta.pdfInvalid &&
+            !meta.magicMismatch
+          ) {
+            meta.extractedText = await this.extractSupportingEvidenceText(
+              document.fileName,
+              buffer,
+            );
           }
         } catch {
           // Spreadsheet parse is required for Gate B; other read failures are infra,
@@ -187,13 +202,57 @@ export class JawalEvidenceCheckService {
 
   private parseWorkbookSheets(buffer: Buffer): unknown[][][] {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    return workbook.SheetNames.map((sheetName) =>
-      XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]!, {
-        header: 1,
-        defval: null,
-        raw: true,
-      }) as unknown[][],
+    return workbook.SheetNames.map(
+      (sheetName) =>
+        XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]!, {
+          header: 1,
+          defval: null,
+          raw: true,
+        }) as unknown[][],
     );
+  }
+
+  /** Kept separate so a checksumSha256-backed cache can wrap extraction later. */
+  private async extractSupportingEvidenceText(
+    fileName: string,
+    buffer: Buffer,
+  ): Promise<string | undefined> {
+    try {
+      if (/\.pdf$/i.test(fileName)) {
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        const document = await pdfjs.getDocument({
+          data: new Uint8Array(buffer),
+          useSystemFonts: true,
+        }).promise;
+        const parts: string[] = [];
+        const pageCount = Math.min(document.numPages, MAX_EVIDENCE_PDF_PAGES);
+        for (let pageNo = 1; pageNo <= pageCount; pageNo += 1) {
+          const page = await document.getPage(pageNo);
+          const content = await page.getTextContent();
+          parts.push(
+            content.items.map((item) => ('str' in item ? String(item.str) : '')).join(' '),
+          );
+        }
+        return parts.join('\n');
+      }
+
+      if (/\.msg$/i.test(fileName)) {
+        const bytes = buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength,
+        ) as ArrayBuffer;
+        const data = new MsgReader(bytes).getFileData();
+        return [data.subject, data.body].filter(Boolean).join('\n');
+      }
+
+      if (/\.eml$/i.test(fileName)) {
+        const mail = await simpleParser(buffer);
+        return [mail.subject, mail.text].filter(Boolean).join('\n');
+      }
+    } catch (error) {
+      this.logger.warn(`Jawal evidence text extraction failed for ${fileName}: ${String(error)}`);
+    }
+    return undefined;
   }
 
   private async readDocumentBuffer(storageKey: string): Promise<Buffer> {

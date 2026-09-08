@@ -120,9 +120,7 @@ export function InvoiceFolderTable({
             <th className="p-3 text-start font-medium">{t('columns.modified')}</th>
             {showSize && <th className="p-3 text-start font-medium">{t('columns.size')}</th>}
             {showStatus && <th className="p-3 text-start font-medium">{t('columns.status')}</th>}
-            {renderActions && (
-              <th className="p-3 text-end font-medium">{t('columns.actions')}</th>
-            )}
+            {renderActions && <th className="p-3 text-end font-medium">{t('columns.actions')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -156,7 +154,19 @@ export function InvoiceFolderTable({
                 </td>
               )}
               {showStatus && (
-                <td className="p-3 text-start">{row.status && tStatus(`status.${row.status}`)}</td>
+                <td className="p-3 text-start">
+                  {row.status && (
+                    <span
+                      className={
+                        row.status === 'CHANGES_REQUESTED'
+                          ? 'inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900'
+                          : 'inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground'
+                      }
+                    >
+                      {tStatus(`status.${row.status}`)}
+                    </span>
+                  )}
+                </td>
               )}
               {renderActions && (
                 <td className="p-3 text-end" onClick={(e) => e.stopPropagation()}>

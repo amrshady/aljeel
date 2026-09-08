@@ -41,6 +41,7 @@ enum VerificationStatus {
 enum InvoiceStatus {
   DRAFT
   SUBMITTED
+  CHANGES_REQUESTED
   UNDER_REVIEW
   APPROVED
   ON_HOLD
@@ -89,6 +90,13 @@ enum ScanStatus {
   FAILED
 }
 
+enum SolventumChargebackJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum ApprovalAction {
   PENDING
   APPROVED
@@ -112,9 +120,27 @@ enum PtAuditAction {
 model SolventumPodCache {
   pdfSha256 String   @id
   lineItems Json
-  model      String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  model     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SolventumChargebackJob {
+  id             String                       @id @default(cuid())
+  status         SolventumChargebackJobStatus @default(PENDING)
+  podCount       Int
+  failedPodCount Int                          @default(0)
+  failedPodNames String[]                     @default([])
+  error          String?
+  workbookBytes  Bytes
+  podNames       String[]
+  podBytes       Bytes[]
+  resultBytes    Bytes?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 model Supplier {
@@ -234,6 +260,7 @@ model Invoice {
   source                  InvoiceSource     @default(UPLOAD)
   matchResult             Json?
   rejectionReason         String?
+  rejectionFindings       Json?
   archivedAt              DateTime?
   asateelRunId            String?           @unique
   asateelStatus           AsateelRunStatus?
@@ -248,15 +275,15 @@ model Invoice {
   asateelLastPolledAt     DateTime?
   asateelOracleDocumentId String?
   jawalRunId              String?           @unique
-  jawalStatus            AsateelRunStatus?
-  jawalQueuePosition     Int?
-  jawalError             String?
-  jawalFolderName        String?
-  jawalTriggeredAt       DateTime?
-  jawalStartedAt         DateTime?
-  jawalFinishedAt        DateTime?
-  jawalLastPolledAt      DateTime?
-  jawalOutputDocumentId  String?
+  jawalStatus             AsateelRunStatus?
+  jawalQueuePosition      Int?
+  jawalError              String?
+  jawalFolderName         String?
+  jawalTriggeredAt        DateTime?
+  jawalStartedAt          DateTime?
+  jawalFinishedAt         DateTime?
+  jawalLastPolledAt       DateTime?
+  jawalOutputDocumentId   String?
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 

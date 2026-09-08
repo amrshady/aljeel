@@ -2,7 +2,8 @@ import type { InvoiceStatus } from './index';
 
 const TRANSITIONS: Record<InvoiceStatus, InvoiceStatus[]> = {
   DRAFT: ['SUBMITTED'],
-  SUBMITTED: ['UNDER_REVIEW', 'APPROVED'],
+  SUBMITTED: ['CHANGES_REQUESTED', 'UNDER_REVIEW', 'APPROVED'],
+  CHANGES_REQUESTED: ['SUBMITTED', 'DRAFT'],
   UNDER_REVIEW: ['APPROVED', 'REJECTED', 'ON_HOLD'],
   ON_HOLD: ['UNDER_REVIEW'],
   REJECTED: ['DRAFT'],

@@ -39,13 +39,15 @@ import { JawalEvidenceCheckService } from './jawal-evidence-check.service';
 const JAWAL_INVALID_BATCH_ID_MESSAGE =
   'Batch ID must follow the sequence format J26-#### (for example J26-1080). A label like "01-07jul" can be the display title but the batch ID must match the sequence.';
 
+// Above this size, Jawal's content validation can require hundreds of serial
+// object-storage reads. Keep that work outside the request/response lifetime.
+const ASYNC_SUBMIT_DOCUMENT_THRESHOLD = 100;
+
 function isApClerk(user: AuthUser): boolean {
   return user.role === 'AP_CLERK';
 }
 
-export function serializeInvoice(
-  invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>,
-) {
+export function serializeInvoice(invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>) {
   return {
     id: invoice.id,
     supplierId: invoice.supplierId,
@@ -59,6 +61,7 @@ export function serializeInvoice(
     status: invoice.status,
     source: invoice.source,
     rejectionReason: invoice.rejectionReason,
+    rejectionFindings: Array.isArray(invoice.rejectionFindings) ? invoice.rejectionFindings : null,
     archivedAt: invoice.archivedAt?.toISOString() ?? null,
     asateelRegion: invoice.asateelRegion ?? null,
     createdAt: invoice.createdAt.toISOString(),
@@ -118,10 +121,7 @@ export class InvoicesService {
         where: { id: supplierId },
         select: { erpIntegration: true },
       });
-      if (
-        supplier?.erpIntegration === 'JAWAL' &&
-        !isValidJawalBatchId(dto.invoiceNumber)
-      ) {
+      if (supplier?.erpIntegration === 'JAWAL' && !isValidJawalBatchId(dto.invoiceNumber)) {
         throw new BadRequestException({
           code: 'JAWAL_INVALID_BATCH_ID',
           message: JAWAL_INVALID_BATCH_ID_MESSAGE,
@@ -136,15 +136,12 @@ export class InvoicesService {
           supplierId,
           invoiceNumber: dto.invoiceNumber,
           archivedAt: null,
-          status: { in: ['DRAFT', 'REJECTED'] },
+          status: { in: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] },
         },
         include: { lines: true },
       });
       if (existingDraft) {
-        if (
-          dto.asateelRegion &&
-          dto.asateelRegion !== existingDraft.asateelRegion
-        ) {
+        if (dto.asateelRegion && dto.asateelRegion !== existingDraft.asateelRegion) {
           const updated = await this.prisma.invoice.update({
             where: { id: existingDraft.id },
             data: { asateelRegion: dto.asateelRegion },
@@ -168,7 +165,7 @@ export class InvoicesService {
           supplierId,
           invoiceNumber: dto.invoiceNumber,
           archivedAt: null,
-          status: { notIn: ['DRAFT', 'REJECTED'] },
+          status: { notIn: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] },
         },
         select: { id: true },
       });
@@ -187,8 +184,7 @@ export class InvoicesService {
         data: {
           supplierId,
           invoiceNumber:
-            dto.invoiceNumber ??
-            `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
+            dto.invoiceNumber ?? `${PLACEHOLDER_INVOICE_NUMBER_PREFIX}${randomUUID().slice(0, 8)}`,
           invoiceDate: new Date(),
           currency: 'SAR',
           asateelRegion: dto.asateelRegion ?? null,
@@ -232,7 +228,7 @@ export class InvoicesService {
     const dto: UpdateAsateelRegion = UpdateAsateelRegionSchema.parse(body);
     const existing = await this.findInvoiceForUser(user, id);
 
-    if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
+    if (!['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'].includes(existing.status)) {
       throw new UnprocessableEntityException({
         code: 'INVOICE_NOT_EDITABLE',
         message: 'Only draft or rejected invoices can be edited.',
@@ -262,7 +258,7 @@ export class InvoicesService {
     const supplierId = requireSupplierId(user);
     const existing = await this.findOwnedInvoice(supplierId, id);
 
-    if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
+    if (!['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'].includes(existing.status)) {
       throw new UnprocessableEntityException({
         code: 'INVOICE_NOT_EDITABLE',
         message: 'Only draft or rejected invoices can be edited.',
@@ -288,6 +284,7 @@ export class InvoicesService {
           total: totals.total,
           status: 'DRAFT',
           rejectionReason: null,
+          rejectionFindings: Prisma.DbNull,
           lines: {
             create: totals.lines.map((line) => ({
               description: line.description,
@@ -333,15 +330,11 @@ export class InvoicesService {
 
     const where: Prisma.InvoiceWhereInput = {
       supplierId,
-      ...(params.archived
-        ? { archivedAt: { not: null } }
-        : { archivedAt: null }),
+      ...(params.archived ? { archivedAt: { not: null } } : { archivedAt: null }),
       ...(params.status ? { status: params.status } : {}),
       ...(params.q
         ? {
-            OR: [
-              { invoiceNumber: { contains: params.q, mode: 'insensitive' } },
-            ],
+            OR: [{ invoiceNumber: { contains: params.q, mode: 'insensitive' } }],
           }
         : {}),
     };
@@ -419,7 +412,7 @@ export class InvoicesService {
       };
     }
 
-    if (invoice.status !== 'DRAFT' && invoice.status !== 'REJECTED') {
+    if (!['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'].includes(invoice.status)) {
       throw new UnprocessableEntityException({
         code: 'INVOICE_NOT_ARCHIVABLE',
         message: 'Only draft or rejected invoices can be archived.',
@@ -447,11 +440,43 @@ export class InvoicesService {
   }
 
   async submit(user: AuthUser, id: string) {
+    try {
+      return await this.processSubmission(user, id, false);
+    } catch (error) {
+      await this.persistCorrectableSubmissionFailure(user, id, error, [
+        'DRAFT',
+        'CHANGES_REQUESTED',
+      ]);
+      throw error;
+    }
+  }
+
+  private async processSubmission(user: AuthUser, id: string, resumeAsyncSubmission: boolean) {
     const invoice = await this.findInvoiceForUser(user, id);
     const supplierId = invoice.supplierId;
 
+    // A repeated click (or a retry after the client lost the response) is safe.
+    // SUBMITTED is the durable in-progress state for a large submission.
+    if (!resumeAsyncSubmission && invoice.status === 'SUBMITTED') {
+      return { id: invoice.id, status: invoice.status };
+    }
+    if (!resumeAsyncSubmission && invoice.status === 'UNDER_REVIEW') {
+      return {
+        id: invoice.id,
+        status: invoice.status,
+        matchResult: { type: 'MANUAL_REVIEW' as const, withinTolerance: false as const },
+      };
+    }
+
     try {
-      assertInvoiceTransition(invoice.status, 'SUBMITTED');
+      if (resumeAsyncSubmission && invoice.status === 'SUBMITTED') {
+        assertInvoiceTransition('SUBMITTED', 'UNDER_REVIEW');
+      } else {
+        assertInvoiceTransition(
+          invoice.status as Parameters<typeof assertInvoiceTransition>[0],
+          'SUBMITTED',
+        );
+      }
     } catch (error) {
       if (error instanceof InvalidInvoiceTransitionError) {
         throw new UnprocessableEntityException({
@@ -502,7 +527,6 @@ export class InvoicesService {
       });
     }
 
-    let jawalWarning: JawalEvidenceIssue | null = null;
     if (supplier?.erpIntegration === 'ASATEEL') {
       if (!invoice.asateelRegion) {
         throw new UnprocessableEntityException({
@@ -510,6 +534,65 @@ export class InvoicesService {
           message: 'Select an Asateel region before submitting this invoice.',
         });
       }
+    }
+
+    if (invoice.lines.length > 0) {
+      const mathIssues = validateInvoiceMath(
+        invoice.lines.map((line) => ({
+          description: line.description,
+          qty: line.qty.toString(),
+          unitPrice: line.unitPrice.toString(),
+          vatRate: line.vatRate.toString(),
+        })),
+      );
+      if (mathIssues.length > 0) {
+        throw new UnprocessableEntityException({
+          code: 'VALIDATION_FAILED',
+          message: 'Invoice validation failed.',
+          details: { fields: mathIssues },
+        });
+      }
+    }
+
+    if (!resumeAsyncSubmission && documents.length > ASYNC_SUBMIT_DOCUMENT_THRESHOLD) {
+      const claimed = await this.prisma.invoice.updateMany({
+        where: { id, status: invoice.status },
+        data: { status: 'SUBMITTED', rejectionReason: null, rejectionFindings: Prisma.DbNull },
+      });
+      if (claimed.count === 0) {
+        const current = await this.prisma.invoice.findUnique({
+          where: { id },
+          select: { status: true },
+        });
+        if (current?.status === 'SUBMITTED' || current?.status === 'UNDER_REVIEW') {
+          return { id, status: current.status };
+        }
+        throw new ConflictException({
+          code: 'SUBMIT_CONFLICT',
+          message: 'Invoice status changed while it was being submitted.',
+        });
+      }
+
+      await this.audit.record({
+        actorId: user.sub,
+        entity: 'Invoice',
+        entityId: id,
+        action: 'SUBMIT',
+        before: { status: invoice.status },
+        after: { status: 'SUBMITTED', async: true },
+      });
+
+      setImmediate(() => {
+        void this.processSubmission(user, id, true).catch((error: unknown) =>
+          this.failAsyncSubmission(user, id, error),
+        );
+      });
+
+      return { id, status: 'SUBMITTED' as const };
+    }
+
+    let jawalWarning: JawalEvidenceIssue | null = null;
+    if (supplier?.erpIntegration === 'ASATEEL') {
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
       if (manifest.error) {
         throw new UnprocessableEntityException({
@@ -529,24 +612,6 @@ export class InvoicesService {
         });
       }
       jawalWarning = evidence.warning;
-    }
-
-    if (invoice.lines.length > 0) {
-      const mathIssues = validateInvoiceMath(
-        invoice.lines.map((line) => ({
-          description: line.description,
-          qty: line.qty.toString(),
-          unitPrice: line.unitPrice.toString(),
-          vatRate: line.vatRate.toString(),
-        })),
-      );
-      if (mathIssues.length > 0) {
-        throw new UnprocessableEntityException({
-          code: 'VALIDATION_FAILED',
-          message: 'Invoice validation failed.',
-          details: { fields: mathIssues },
-        });
-      }
     }
 
     if (supplier?.erpIntegration === 'ASATEEL') {
@@ -569,7 +634,7 @@ export class InvoicesService {
             invoice: {
               supplierId,
               archivedAt: null,
-              status: { notIn: ['DRAFT', 'REJECTED'] },
+              status: { notIn: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] },
             },
           },
           orderBy: [{ invoice: { createdAt: 'asc' } }, { createdAt: 'asc' }],
@@ -639,7 +704,7 @@ export class InvoicesService {
           invoiceNumber: invoice.invoiceNumber,
           id: { not: id },
           archivedAt: null,
-          status: { notIn: ['DRAFT', 'REJECTED'] },
+          status: { notIn: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] },
         },
       });
       if (duplicate) {
@@ -651,30 +716,32 @@ export class InvoicesService {
       }
     }
 
-    await this.prisma.invoice.update({
-      where: { id },
-      data: { status: 'SUBMITTED' },
-    });
+    if (!resumeAsyncSubmission) {
+      await this.prisma.invoice.update({
+        where: { id },
+        data: { status: 'SUBMITTED', rejectionReason: null, rejectionFindings: Prisma.DbNull },
+      });
 
-    await this.audit.record({
-      actorId: user.sub,
-      entity: 'Invoice',
-      entityId: id,
-      action: 'SUBMIT',
-      before: { status: invoice.status },
-      after: {
-        status: 'SUBMITTED',
-        ...(jawalWarning
-          ? {
-              jawalEvidenceWarning: {
-                code: jawalWarning.code,
-                message: jawalWarning.message,
-                details: jawalWarning.details ?? null,
-              },
-            }
-          : {}),
-      } as Prisma.InputJsonValue,
-    });
+      await this.audit.record({
+        actorId: user.sub,
+        entity: 'Invoice',
+        entityId: id,
+        action: 'SUBMIT',
+        before: { status: invoice.status },
+        after: {
+          status: 'SUBMITTED',
+          ...(jawalWarning
+            ? {
+                jawalEvidenceWarning: {
+                  code: jawalWarning.code,
+                  message: jawalWarning.message,
+                  details: jawalWarning.details ?? null,
+                },
+              }
+            : {}),
+        } as Prisma.InputJsonValue,
+      });
+    }
 
     assertInvoiceTransition('SUBMITTED', 'UNDER_REVIEW');
 
@@ -718,6 +785,78 @@ export class InvoicesService {
     };
   }
 
+  private async failAsyncSubmission(user: AuthUser, id: string, error: unknown): Promise<void> {
+    const persisted = await this.persistCorrectableSubmissionFailure(user, id, error, [
+      'SUBMITTED',
+    ]);
+    if (persisted) {
+      this.logger.error({ invoiceId: id, err: error }, 'Async invoice submission failed');
+    }
+  }
+
+  private async persistCorrectableSubmissionFailure(
+    user: AuthUser,
+    id: string,
+    error: unknown,
+    fromStatuses: Array<'DRAFT' | 'CHANGES_REQUESTED' | 'SUBMITTED'>,
+  ): Promise<boolean> {
+    if (!(
+      error instanceof UnprocessableEntityException ||
+      error instanceof BadRequestException ||
+      error instanceof ConflictException
+    )) {
+      return false;
+    }
+    const response =
+      error instanceof UnprocessableEntityException ||
+      error instanceof BadRequestException ||
+      error instanceof ConflictException
+        ? error.getResponse()
+        : null;
+    const reason =
+      typeof response === 'object' && response && 'message' in response
+        ? String(response.message)
+        : 'Invoice submission processing failed. Please submit again.';
+    const responseDetails =
+      typeof response === 'object' && response && 'details' in response ? response.details : null;
+    const responseCode =
+      typeof response === 'object' && response && 'code' in response ? String(response.code) : null;
+    if (responseCode === 'INVALID_TRANSITION') return false;
+    const rejectionFindings =
+      typeof responseDetails === 'object' &&
+      responseDetails &&
+      'findings' in responseDetails &&
+      Array.isArray(responseDetails.findings)
+        ? responseDetails.findings
+        : null;
+
+    const failed = await this.prisma.invoice.updateMany({
+      where: { id, status: { in: fromStatuses } },
+      data: {
+        status: 'CHANGES_REQUESTED',
+        rejectionReason: reason,
+        rejectionFindings: rejectionFindings
+          ? (rejectionFindings as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+      },
+    });
+    if (failed.count === 0) return false;
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Invoice',
+      entityId: id,
+      action: 'STATUS_CHANGE',
+      before: { status: fromStatuses.length === 1 ? fromStatuses[0] : 'SUPPLIER_EDITABLE' },
+      after: {
+        status: 'CHANGES_REQUESTED',
+        submissionError: reason,
+        ...(rejectionFindings ? { rejectionFindings } : {}),
+      },
+    });
+    return true;
+  }
+
   async getSummary(supplierId: string) {
     const groups = await this.prisma.invoice.groupBy({
       by: ['status'],
@@ -728,6 +867,7 @@ export class InvoicesService {
     const counts = {
       draft: 0,
       submitted: 0,
+      changesRequested: 0,
       underReview: 0,
       approved: 0,
       scheduled: 0,
@@ -739,6 +879,7 @@ export class InvoicesService {
     const map = {
       DRAFT: 'draft',
       SUBMITTED: 'submitted',
+      CHANGES_REQUESTED: 'changesRequested',
       UNDER_REVIEW: 'underReview',
       APPROVED: 'approved',
       SCHEDULED: 'scheduled',

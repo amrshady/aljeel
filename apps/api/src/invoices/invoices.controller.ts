@@ -37,6 +37,7 @@ export class InvoicesController {
       return InvoicePipelineCountsSchema.parse({
         draft: 0,
         submitted: 0,
+        changesRequested: 0,
         underReview: 0,
         approved: 0,
         scheduled: 0,
@@ -45,9 +46,7 @@ export class InvoicesController {
         onHold: 0,
       });
     }
-    return InvoicePipelineCountsSchema.parse(
-      await this.invoicesService.getSummary(supplierId),
-    );
+    return InvoicePipelineCountsSchema.parse(await this.invoicesService.getSummary(supplierId));
   }
 
   @Get(':id')

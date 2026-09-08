@@ -8,7 +8,7 @@ import {
   InvalidInvoiceTransitionError,
   type ApExceptionListQuery,
 } from '@aljeel/shared-types';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
@@ -226,7 +226,10 @@ export class ApService {
     }
 
     try {
-      assertInvoiceTransition(invoice.status, toStatus);
+      assertInvoiceTransition(
+        invoice.status as Parameters<typeof assertInvoiceTransition>[0],
+        toStatus,
+      );
     } catch (error) {
       if (error instanceof InvalidInvoiceTransitionError) {
         throw new UnprocessableEntityException({
@@ -254,7 +257,7 @@ export class ApService {
         data: {
           status: toStatus,
           ...(extra?.rejectionReason !== undefined
-            ? { rejectionReason: extra.rejectionReason }
+            ? { rejectionReason: extra.rejectionReason, rejectionFindings: Prisma.DbNull }
             : {}),
         },
       });

@@ -19,7 +19,11 @@ type InvoiceListSectionProps = {
   onShowDrafts?: () => void;
 };
 
-export function InvoiceListSection({ status, showArchived, onShowDrafts }: InvoiceListSectionProps) {
+export function InvoiceListSection({
+  status,
+  showArchived,
+  onShowDrafts,
+}: InvoiceListSectionProps) {
   const t = useTranslations('invoices');
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -63,7 +67,7 @@ export function InvoiceListSection({ status, showArchived, onShowDrafts }: Invoi
   });
 
   function canArchive(invoiceStatus: string) {
-    return invoiceStatus === 'DRAFT' || invoiceStatus === 'REJECTED';
+    return ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'].includes(invoiceStatus);
   }
 
   const rows: InvoiceFolderRow[] =

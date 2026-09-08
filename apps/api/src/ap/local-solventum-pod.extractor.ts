@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   extractTrxFromFilename,
+  isLikelyGarbagePodText,
   isPlausibleDeliveredQuantity,
   normalizeArabicIndicDigits,
   parsePodTextToLines,
@@ -45,7 +46,8 @@ export class LocalSolventumPodExtractor extends SolventumPodExtractor {
   async extract(file: SolventumPodFile): Promise<SolventumPodLine[]> {
     const pdfSha256 = createHash('sha256').update(file.buffer).digest('hex');
     const cached = await this.readCache(pdfSha256);
-    if (cached?.model?.includes('-v4')) {
+    // v5 invalidates v4 entries, which may have trusted a garbage embedded text layer.
+    if (cached?.model?.includes('-v5')) {
       const cachedLines = (cached.lineItems as unknown as SolventumPodLine[]).filter((line) =>
         isPlausibleDeliveredQuantity(line.quantity, line.manufacturer, line.itemDescription),
       );
@@ -53,44 +55,32 @@ export class LocalSolventumPodExtractor extends SolventumPodExtractor {
     }
 
     const filenameTrx = extractTrxFromFilename(file.originalname);
-    let model = 'local-text-v4';
-    let text = await this.extractDigitalText(file.buffer);
-    let confidence = 0.92;
+    const digitalText = normalizeArabicIndicDigits(await this.extractDigitalText(file.buffer));
+    const digitalIsUsable =
+      digitalText.replace(/\s+/g, '').length >= MIN_TEXT_CHARS &&
+      !isLikelyGarbagePodText(digitalText);
+    const digitalLines = digitalIsUsable
+      ? parsePodTextToLines(digitalText, file.originalname, filenameTrx, 0.92)
+      : [];
+    if (digitalLines.length > 0) {
+      await this.writeCache(pdfSha256, digitalLines, 'local-text-v5');
+      return digitalLines;
+    }
 
-    if (text.replace(/\s+/g, '').length < MIN_TEXT_CHARS) {
-      try {
-        model = 'local-ocr-tesseractjs-v4';
-        text = await withOcrLock(() => this.ocrPdf(file.buffer, file.originalname));
-        confidence = 0.8;
-      } catch (error) {
-        this.logger.warn(`OCR skipped for ${file.originalname}: ${String(error)}`);
-        text = '';
+    try {
+      const ocrText = await withOcrLock(() => this.ocrPdf(file.buffer, file.originalname));
+      const ocrLines = parsePodTextToLines(ocrText, file.originalname, filenameTrx, 0.8);
+      if (ocrLines.length > 0) {
+        await this.writeCache(pdfSha256, ocrLines, 'local-ocr-tesseractjs-v5');
+        return ocrLines;
       }
-    }
-
-    text = normalizeArabicIndicDigits(text);
-    const lines = parsePodTextToLines(text, file.originalname, filenameTrx, confidence);
-    if (lines.length > 0) {
-      await this.writeCache(pdfSha256, lines, model);
-      return lines;
-    }
-
-    if (filenameTrx.length > 0) {
-      return filenameTrx.map((trx) => ({
-        trx,
-        itemDescription: '',
-        manufacturer: '',
-        lot: '',
-        quantity: 0,
-        uom: '',
-        sourceDoc: `${file.originalname}#filename`,
-        confidence: 0.4,
-      }));
+    } catch (error) {
+      this.logger.warn(`OCR failed for ${file.originalname}: ${String(error)}`);
     }
 
     throw new BadGatewayException({
       code: 'SOLVENTUM_POD_EXTRACTION_FAILED',
-      message: `No delivered lines or TRX numbers could be extracted from ${file.originalname}.`,
+      message: `No delivered line quantities could be extracted from ${file.originalname}.`,
     });
   }
 
@@ -151,7 +141,7 @@ export class LocalSolventumPodExtractor extends SolventumPodExtractor {
         logger: () => undefined,
       });
       await this.worker.setParameters({
-        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        tessedit_pageseg_mode: PSM.AUTO,
         preserve_interword_spaces: '1',
       });
     } catch (error) {
@@ -160,7 +150,7 @@ export class LocalSolventumPodExtractor extends SolventumPodExtractor {
         logger: () => undefined,
       });
       await this.worker.setParameters({
-        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        tessedit_pageseg_mode: PSM.AUTO,
         preserve_interword_spaces: '1',
       });
     }

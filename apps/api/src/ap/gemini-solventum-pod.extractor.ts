@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
+import { isPlausibleDeliveredQuantity } from './solventum-pod-parse';
 import {
   SolventumPodExtractor,
   type SolventumPodFile,
@@ -54,7 +55,15 @@ export class GeminiSolventumPodExtractor extends SolventumPodExtractor {
     const pdfSha256 = createHash('sha256').update(file.buffer).digest('hex');
     try {
       const cached = await this.prisma.solventumPodCache.findUnique({ where: { pdfSha256 } });
-      if (cached) return linesSchema.parse(cached.lineItems);
+      // Do not let stale local OCR/text cache entries short-circuit Gemini fallback.
+      if (cached?.model?.startsWith('gemini-')) {
+        const cachedLines = linesSchema
+          .parse(cached.lineItems)
+          .filter((line) =>
+            isPlausibleDeliveredQuantity(line.quantity, line.manufacturer, line.itemDescription),
+          );
+        if (cachedLines.length > 0) return cachedLines;
+      }
     } catch (error) {
       this.logger.warn(`Solventum POD cache read skipped: ${String(error)}`);
     }

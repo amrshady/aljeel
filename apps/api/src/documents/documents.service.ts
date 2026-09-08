@@ -59,13 +59,14 @@ interface UploadedFile {
 const UPLOAD_ALLOWED_STATUSES = new Set([
   'DRAFT',
   'REJECTED',
+  'CHANGES_REQUESTED',
   'SUBMITTED',
   'UNDER_REVIEW',
   'ON_HOLD',
 ]);
 
 /** Rename is pre-submit only (Jawal vendors need to fix evidence paths before Gate B). */
-const RENAME_ALLOWED_STATUSES = new Set(['DRAFT', 'REJECTED']);
+const RENAME_ALLOWED_STATUSES = new Set(['DRAFT', 'CHANGES_REQUESTED', 'REJECTED']);
 
 /** Email preview holds the whole message in memory, so cap it well below the upload limit. */
 const MAX_EMAIL_PREVIEW_BYTES = 40 * 1024 * 1024;

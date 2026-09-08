@@ -86,6 +86,19 @@ export interface JawalInvoiceLine {
   kind: JawalLineKind;
 }
 
+export interface JawalWorkbookCandidate {
+  fileName: string;
+  lines: JawalInvoiceLine[];
+}
+
+export interface JawalWorkbookScore {
+  canonicalPassengerLines: number;
+  passengerLines: number;
+  canonicalIdentifierLines: number;
+  lineCount: number;
+  invoiceFileNameHint: number;
+}
+
 /** PREFIX-NN-YYYY (e.g. CE-20-2026) — exact segment widths. */
 export const JAWAL_REF_PREFIX_YEAR = /^[A-Z]{2,5}-\d{2}-\d{4}$/;
 
@@ -464,6 +477,62 @@ export function looksLikeJawalWorkbook(sheets: unknown[][][]): boolean {
   return sheets.some((sheet) => findHeaderMap(sheet) !== null);
 }
 
+/** A passenger cell in the primary invoice is normally `SURNAME/GIVEN NAMES`. */
+function isPassengerStyleDescription(description: string): boolean {
+  return /[A-Z][A-Z .'-]*\/[A-Z]/i.test(description.trim());
+}
+
+/**
+ * Content-first rank for choosing the primary invoice when an upload also
+ * contains a Jawal cover sheet. Filename is deliberately only the last
+ * meaningful tiebreaker; cover sheets commonly expose the same headers and
+ * tickets but put route codes in the description column.
+ */
+export function scoreJawalWorkbookCandidate(
+  candidate: JawalWorkbookCandidate,
+): JawalWorkbookScore {
+  const hasCanonicalRef = (line: JawalInvoiceLine): boolean =>
+    isCanonicalJawalRef(line.ref) && !/[()]/.test(line.ref);
+  const hasCanonicalIdentifiers = (line: JawalInvoiceLine): boolean =>
+    hasCanonicalRef(line) && isCanonicalJawalTicket(line.ticket ?? '');
+
+  return {
+    canonicalPassengerLines: candidate.lines.filter(
+      (line) => isPassengerStyleDescription(line.description) && hasCanonicalIdentifiers(line),
+    ).length,
+    passengerLines: candidate.lines.filter((line) =>
+      isPassengerStyleDescription(line.description),
+    ).length,
+    canonicalIdentifierLines: candidate.lines.filter(hasCanonicalIdentifiers).length,
+    lineCount: candidate.lines.length,
+    invoiceFileNameHint: /(?:^|[_\s-])INV(?:[_\s.-]|$)/i.test(candidate.fileName) ? 1 : 0,
+  };
+}
+
+export function selectPreferredJawalWorkbook(
+  current: JawalWorkbookCandidate | undefined,
+  candidate: JawalWorkbookCandidate,
+): JawalWorkbookCandidate {
+  if (!current) return candidate;
+
+  const currentScore = scoreJawalWorkbookCandidate(current);
+  const candidateScore = scoreJawalWorkbookCandidate(candidate);
+  const fields: Array<keyof JawalWorkbookScore> = [
+    'canonicalPassengerLines',
+    'passengerLines',
+    'canonicalIdentifierLines',
+    'lineCount',
+    'invoiceFileNameHint',
+  ];
+  for (const field of fields) {
+    if (candidateScore[field] > currentScore[field]) return candidate;
+    if (candidateScore[field] < currentScore[field]) return current;
+  }
+
+  // Exact score ties must not depend on upload iteration order.
+  return candidate.fileName.localeCompare(current.fileName) < 0 ? candidate : current;
+}
+
 export function extractJawalInvoiceLines(sheets: unknown[][][]): JawalInvoiceLine[] {
   const lines: JawalInvoiceLine[] = [];
 
@@ -823,6 +892,22 @@ function findContentEvidenceFile(
   );
 }
 
+function isCompanionFolderOwnedByAnotherLine(
+  folder: string,
+  line: JawalInvoiceLine,
+  allLines: JawalInvoiceLine[],
+): boolean {
+  const ticket = normalizeJawalTicket(line.ticket ?? '');
+  if (!JAWAL_TICKET.test(ticket) || folderMatchesKey(folder, ticket)) return false;
+
+  const companions = new Set(consecutiveTicketKeys(ticket));
+  return allLines.some((other) => {
+    if (other === line) return false;
+    const otherTicket = normalizeJawalTicket(other.ticket ?? '');
+    return companions.has(otherTicket) && folderMatchesKey(folder, otherTicket);
+  });
+}
+
 /**
  * Prefer exact ticket/ref/slug matches over weak passenger-name heuristics.
  */
@@ -1089,7 +1174,23 @@ export function validateJawalEvidencePack(input: {
     const folders = uniqueFolders(files);
     const matched = findEvidenceFolderForLine(folders, line, files, lines);
     const folderKey = folderKeys[0]!;
-    if (!matched) {
+    const matchedByFolderKey =
+      matched !== null && folderKeys.some((key) => folderMatchesKey(matched, key));
+    const normalizedTicket = normalizeJawalTicket(line.ticket ?? '');
+    // Passenger/employee filename heuristics can locate legacy named evidence
+    // packs, but must not turn a wrong numeric ticket folder into a B2 match.
+    // Give content matching the chance to resolve that misfile instead.
+    const numericTicketMatchedOnlyByHeuristic =
+      matched !== null && JAWAL_TICKET.test(normalizedTicket) && !matchedByFolderKey;
+    // A consecutive folder that is itself owned by another billed line is not a
+    // clean match when this line's ticket is verifiably co-located inside it.
+    // Without that content proof, retain the established return-leg shortcut.
+    const contentEvidenceFile = findContentEvidenceFile(files, line);
+    const verifiedInCompanionOwnedFolder =
+      matched !== null &&
+      isCompanionFolderOwnedByAnotherLine(matched, line, lines) &&
+      contentEvidenceFile !== null;
+    if (!matched || numericTicketMatchedOnlyByHeuristic || verifiedInCompanionOwnedFolder) {
       const finding: JawalEvidenceFinding = {
         code: 'JAWAL_FOLDER_MISMATCH',
         message: `No evidence folder exactly matching "${folderKey}" (row ${line.row}). Prefix-similar names do not count.`,
@@ -1101,8 +1202,8 @@ export function validateJawalEvidencePack(input: {
       };
       if (isNewEmployeePlaceholderRef(line.ref)) {
         pushWarning(finding);
-      } else if (findContentEvidenceFile(files, line)) {
-        const ticketBody = normalizeJawalTicket(line.ticket ?? folderKey);
+      } else if (contentEvidenceFile) {
+        const ticketBody = normalizedTicket || normalizeJawalTicket(folderKey);
         pushWarning({
           ...finding,
           message: `Ticket "${ticketBody}" found inside evidence file but no matching folder name (row ${line.row}) — misfiled, verify manually.`,

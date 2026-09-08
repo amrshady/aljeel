@@ -7,6 +7,17 @@ describe('invoice FSM', () => {
     expect(() => assertInvoiceTransition('DRAFT', 'SUBMITTED')).not.toThrow();
   });
 
+  it('allows supplier correction and resubmission without changing AP rejection semantics', () => {
+    expect(() => assertInvoiceTransition('SUBMITTED', 'CHANGES_REQUESTED')).not.toThrow();
+    expect(() => assertInvoiceTransition('CHANGES_REQUESTED', 'SUBMITTED')).not.toThrow();
+    expect(() => assertInvoiceTransition('CHANGES_REQUESTED', 'DRAFT')).not.toThrow();
+    expect(() => assertInvoiceTransition('UNDER_REVIEW', 'REJECTED')).not.toThrow();
+    expect(() => assertInvoiceTransition('REJECTED', 'DRAFT')).not.toThrow();
+    expect(() => assertInvoiceTransition('REJECTED', 'SUBMITTED')).toThrow(
+      InvalidInvoiceTransitionError,
+    );
+  });
+
   it('blocks paid to draft', () => {
     expect(() => assertInvoiceTransition('PAID', 'DRAFT')).toThrow(InvalidInvoiceTransitionError);
   });

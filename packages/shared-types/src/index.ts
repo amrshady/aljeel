@@ -19,6 +19,7 @@ export type UserRole = z.infer<typeof UserRoleSchema>;
 export const InvoiceStatusSchema = z.enum([
   'DRAFT',
   'SUBMITTED',
+  'CHANGES_REQUESTED',
   'UNDER_REVIEW',
   'APPROVED',
   'ON_HOLD',

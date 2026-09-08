@@ -7,6 +7,7 @@ import {
   isXlsxFileName,
   looksLikeJawalWorkbook,
   sanitizeEvidenceRelativePath,
+  selectPreferredJawalWorkbook,
   sniffContainerMagic,
   sniffPdfBuffer,
   validateJawalEvidencePack,
@@ -62,8 +63,9 @@ export class JawalEvidenceCheckService {
       };
     }
 
-    let lines: ReturnType<typeof extractJawalInvoiceLines> = [];
-    let sourceSpreadsheet: string | undefined;
+    let selectedWorkbook:
+      | { fileName: string; lines: ReturnType<typeof extractJawalInvoiceLines> }
+      | undefined;
     const fileMetas: JawalEvidenceFileMeta[] = [];
 
     for (const document of documents) {
@@ -100,10 +102,10 @@ export class JawalEvidenceCheckService {
               const sheets = this.parseWorkbookSheets(buffer);
               if (looksLikeJawalWorkbook(sheets)) {
                 const extracted = extractJawalInvoiceLines(sheets);
-                if (extracted.length > 0 || lines.length === 0) {
-                  sourceSpreadsheet = document.fileName;
-                  lines = extracted;
-                }
+                selectedWorkbook = selectPreferredJawalWorkbook(selectedWorkbook, {
+                  fileName: document.fileName,
+                  lines: extracted,
+                });
               }
             } catch {
               meta.workbookInvalid = true;
@@ -138,7 +140,7 @@ export class JawalEvidenceCheckService {
       fileMetas.push(meta);
     }
 
-    if (!sourceSpreadsheet && spreadsheetDocuments.length > 0) {
+    if (!selectedWorkbook && spreadsheetDocuments.length > 0) {
       return {
         error: {
           code: 'JAWAL_TABLE_REQUIRED',
@@ -157,6 +159,9 @@ export class JawalEvidenceCheckService {
         ],
       };
     }
+
+    const lines = selectedWorkbook?.lines ?? [];
+    const sourceSpreadsheet = selectedWorkbook?.fileName;
 
     const result = validateJawalEvidencePack({
       lines,

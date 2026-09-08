@@ -3,6 +3,7 @@ import {
   extractCatalogCodes,
   extractTrxFromFilename,
   isPlausibleDeliveredQuantity,
+  isLikelyGarbagePodText,
   normalizeArabicIndicDigits,
   parsePodTextToLines,
   stripManufacturerPrefix,
@@ -155,5 +156,32 @@ Total Net Price 3025
   it('normalizes Arabic-Indic digits', () => {
     expect(normalizeArabicIndicDigits('٥٥')).toBe('55');
     expect(normalizeArabicIndicDigits('٣٠٢٥')).toBe('3025');
+  });
+
+  it('parses broken scanned rows and repairs numeric OCR substitutions', () => {
+    const text = `
+محضر استلام مواد  Ministry of Health
+Description                 Manufacturer / Catalog
+FILTEK Z250 XT restorative
+147OA2
+LOT: N2O24A
+٣ O   E A
+ADPER SINGLE BOND
+5I202
+Batch B1179X
+l6 gach
+`;
+    const lines = parsePodTextToLines(text, '2600018681 pod.pdf', ['2600018681'], 0.8);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ manufacturer: '1470A2', quantity: 30, lot: 'N2024A' }),
+        expect.objectContaining({ manufacturer: '51202', quantity: 16, lot: 'B1179X' }),
+      ]),
+    );
+  });
+
+  it('identifies a garbage embedded text layer without rejecting readable POD text', () => {
+    expect(isLikelyGarbagePodText(', lll Ilrrllllllllll!1Eo?zE5a? /// ||| !!! 895 %%% xxx')).toBe(true);
+    expect(isLikelyGarbagePodText(NUPCO_5875_TEXT)).toBe(false);
   });
 });

@@ -30,6 +30,39 @@ export function normalizeArabicIndicDigits(text: string): string {
   return text.replace(/[٠-٩۰-۹]/g, (digit) => ARABIC_INDIC_DIGITS[digit] ?? digit);
 }
 
+/**
+ * Repair conservative OCR substitutions inside numeric-looking tokens.  Restricting
+ * this to tokens containing a digit avoids changing ordinary words such as LOT.
+ */
+export function normalizeOcrDigitConfusions(text: string): string {
+  return normalizeArabicIndicDigits(text).replace(/\b[A-Z0-9./-]*\d[A-Z0-9./-]*\b/gi, (token) => {
+    const protectedPrefix = token.match(/^3MO[CR]-/i)?.[0] ?? '';
+    const suffix = protectedPrefix ? token.slice(protectedPrefix.length) : token;
+    return `${protectedPrefix}${suffix
+      .replace(/[Oo]/g, '0')
+      .replace(/[Il|]/g, '1')
+      .replace(/[Ss]/g, '5')}`;
+  });
+}
+
+/** Reject long embedded PDF text layers made mostly from punctuation/gibberish. */
+export function isLikelyGarbagePodText(text: string): boolean {
+  const compact = normalizeArabicIndicDigits(text).replace(/\s/g, '');
+  if (compact.length < 20) return true;
+
+  const readable = compact.match(/[\p{L}\p{N}]/gu)?.length ?? 0;
+  const tokens = text.match(/[\p{L}\p{N}]+/gu) ?? [];
+  const wordLike = tokens.filter(
+    (token) => /\p{L}/u.test(token) && token.length >= 2 && /[aeiou\p{Script=Arabic}]/iu.test(token),
+  ).length;
+  const repeatedGlyphNoise = /([A-Za-z])\1{4,}/.test(compact);
+  return (
+    readable / compact.length < 0.55 ||
+    repeatedGlyphNoise ||
+    (compact.length >= 80 && wordLike < 2)
+  );
+}
+
 export function cleanPodText(value: unknown): string {
   return normalizeArabicIndicDigits(String(value ?? ''))
     .replace(MARKS, '')
@@ -164,7 +197,15 @@ export function parsePodTextToLines(
   filenameTrx: string[],
   confidence: number,
 ): SolventumPodLine[] {
-  const collapsed = normalizeArabicIndicDigits(text).replace(/\r/g, '\n');
+  const collapsed = normalizeOcrDigitConfusions(text)
+    .replace(/\r/g, '\n')
+    // Tesseract commonly separates short column values into individual glyphs.
+    .replace(/\bE\s+A\b/gi, 'EA')
+    .replace(/\bP\s*C\s*S\b/gi, 'PCS')
+    .replace(
+      /(\d)\s*[Oo](?=\s*(?:EA|EACH|BOX|BAG|KIT|PIE|PICCE|PCS|BACH|GACH)\b)/gi,
+      (_match, digit: string) => `${digit}0`,
+    );
   const lines: SolventumPodLine[] = [];
   const seen = new Set<string>();
   const trxHint = filenameTrx[0] ?? '';
@@ -350,7 +391,10 @@ export function parsePodTextToLines(
       manufacturer: '51202',
       quantity: Number(match[2]),
       uom: 'Each',
-      lot: match[0].match(/\b(117\d{5})\b/)?.[1] ?? '',
+      lot:
+        match[0].match(/(?:LOT|BATCH)\s*[:#-]?\s*([A-Z0-9./-]{3,24})/i)?.[1] ??
+        match[0].match(/\b(117\d{5})\b/)?.[1] ??
+        '',
       receiving: false,
     });
   }
@@ -370,6 +414,39 @@ export function parsePodTextToLines(
       manufacturer,
       quantity,
       uom: match[3] ?? 'Each',
+    });
+  }
+
+  // Pass 1b: scanned bilingual notes often lose the 3M brand column and split a
+  // single item row over several lines. Anchor on qty+UOM, then find the nearest
+  // catalog and optional labelled lot in the preceding row-sized window.
+  for (const match of collapsed.matchAll(
+    /\b(\d{1,5}(?:\.\d+)?)\s*(EA|EACH|BOX(?:-\d+)?|BAG(?:-\d+)?|KIT(?:-\d+)?|PIE(?:CE)?|PICCE|PCS|BACH|GACH)\b/gi,
+  )) {
+    const quantity = Number(match[1]);
+    const end = (match.index ?? 0) + match[0].length;
+    const start = Math.max(0, (match.index ?? 0) - 260);
+    const window = collapsed.slice(start, end);
+    const labelledLot =
+      window.match(/(?:LOT|BATCH|تشغيلة|رقم\s*التشغيلة)\s*[:#-]?\s*([A-Z0-9./-]{3,24})/i)?.[1] ?? '';
+    const candidates = extractCatalogCodes(window).filter(
+      (code) =>
+        !/^\d{8,}$/.test(code) &&
+        !/^(19|20)\d{2}$/.test(code) &&
+        normalizePodKey(code) !== normalizePodKey(labelledLot),
+    );
+    // Numeric-leading Solventum catalog numbers (1470A2, 51202) are stronger
+    // than product-name fragments that resemble codes (for example Z250).
+    const manufacturer =
+      [...candidates].reverse().find((code) => /^\d{3,5}/.test(code)) ?? candidates.at(-1);
+    if (!manufacturer || !isPlausibleDeliveredQuantity(quantity, manufacturer, window)) continue;
+    push({
+      itemDescription: window,
+      manufacturer,
+      lot: labelledLot,
+      quantity,
+      uom: /^(?:PI|PCS|BACH|GACH)/i.test(match[2] ?? '') ? 'Each' : match[2] ?? 'Each',
+      receiving: /محضر\s*استلام|Ministr[yv]\s+of\s+Health/i.test(collapsed),
     });
   }
 

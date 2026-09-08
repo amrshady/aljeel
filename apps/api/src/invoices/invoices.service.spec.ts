@@ -3,6 +3,7 @@ import { InvoicesService } from './invoices.service';
 import {
   BadRequestException,
   ConflictException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -47,6 +48,7 @@ describe('InvoicesService Jawal batch ID validation', () => {
       },
       invoice: {
         findFirst: vi.fn().mockResolvedValue(invoice),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
     return new InvoicesService(
@@ -95,6 +97,7 @@ describe('InvoicesService Jawal batch ID validation', () => {
     const prisma = {
       invoice: {
         findFirst: vi.fn().mockResolvedValue(invoice),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       document: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -119,6 +122,13 @@ describe('InvoicesService Jawal batch ID validation', () => {
         code: 'JAWAL_INVALID_BATCH_ID',
         details: { invoiceNumber: '01-07jul' },
       },
+    });
+    expect(prisma.invoice.updateMany).toHaveBeenCalledWith({
+      where: { id: invoice.id, status: { in: ['DRAFT', 'CHANGES_REQUESTED'] } },
+      data: expect.objectContaining({
+        status: 'CHANGES_REQUESTED',
+        rejectionReason: expect.any(String),
+      }),
     });
   });
 
@@ -157,9 +167,7 @@ describe('InvoicesService Jawal batch ID validation', () => {
       { record: vi.fn() } as never,
       { validateUploadedFolder: vi.fn() } as never,
       {
-        validateUploadedFolder: vi
-          .fn()
-          .mockResolvedValue({ error: null, warning: null }),
+        validateUploadedFolder: vi.fn().mockResolvedValue({ error: null, warning: null }),
       } as never,
       {
         notifyInvoiceSubmitted: vi.fn().mockResolvedValue(undefined),
@@ -233,10 +241,7 @@ describe('InvoicesService invoice number reuse', () => {
         findUnique: vi.fn().mockResolvedValue({ erpIntegration: 'JAWAL' }),
       },
       invoice: {
-        findFirst: vi
-          .fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({ id: 'inv_active' }),
+        findFirst: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'inv_active' }),
         create: vi.fn(),
       },
     };
@@ -254,14 +259,11 @@ describe('InvoicesService invoice number reuse', () => {
   });
 
   it('maps a concurrent active-create P2002 to INVOICE_NUMBER_TAKEN', async () => {
-    const uniqueError = new Prisma.PrismaClientKnownRequestError(
-      'Unique constraint failed',
-      {
-        code: 'P2002',
-        clientVersion: '6.19.3',
-        meta: { target: ['supplierId', 'invoiceNumber'] },
-      },
-    );
+    const uniqueError = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: '6.19.3',
+      meta: { target: ['supplierId', 'invoiceNumber'] },
+    });
     const prisma = {
       supplier: {
         findUnique: vi.fn().mockResolvedValue({ erpIntegration: 'JAWAL' }),
@@ -443,6 +445,7 @@ describe('InvoicesService submit duplicate file guard', () => {
     const prisma = {
       invoice: {
         findFirst: vi.fn().mockResolvedValueOnce(invoice).mockResolvedValueOnce(null),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         update: vi
           .fn()
           .mockResolvedValueOnce({ ...invoice, status: 'SUBMITTED' })
@@ -552,19 +555,22 @@ describe('InvoicesService submit duplicate file guard', () => {
     );
   });
 
-  it.each(['DRAFT', 'REJECTED'])('does not block a match on a %s invoice', async (status) => {
-    const { service } = createService([
-      {
-        checksumSha256: 'hash-current',
-        supplierId: 'supplier_a',
-        status,
-      },
-    ]);
+  it.each(['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'])(
+    'does not block a match on a %s invoice',
+    async (status) => {
+      const { service } = createService([
+        {
+          checksumSha256: 'hash-current',
+          supplierId: 'supplier_a',
+          status,
+        },
+      ]);
 
-    await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
-      status: 'UNDER_REVIEW',
-    });
-  });
+      await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
+        status: 'UNDER_REVIEW',
+      });
+    },
+  );
 
   it('does not block a matching document owned by a different supplier', async () => {
     const { service } = createService([
@@ -599,7 +605,7 @@ describe('InvoicesService submit duplicate file guard', () => {
           invoice: {
             supplierId: 'supplier_a',
             archivedAt: null,
-            status: { notIn: ['DRAFT', 'REJECTED'] },
+            status: { notIn: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] },
           },
         }),
       }),
@@ -624,11 +630,139 @@ describe('InvoicesService submit duplicate file guard', () => {
           invoice: {
             supplierId: 'supplier_a',
             archivedAt: null,
-            status: { notIn: ['DRAFT', 'REJECTED'] },
+            status: { notIn: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] },
           },
         }),
       }),
     );
+  });
+});
+
+describe('InvoicesService corrective submission state', () => {
+  it('persists synchronous evidence validation findings as changes requested', async () => {
+    const invoice = draftInvoice('J26-1080');
+    const findings = [{ code: 'POD_MISSING', message: 'Upload the missing POD.', gate: 'A' }];
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const service = new InvoicesService(
+      {
+        invoice: {
+          findFirst: vi.fn().mockResolvedValue(invoice),
+          updateMany,
+        },
+        document: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: 'doc_pdf',
+              fileName: 'invoice.pdf',
+              storageKey: 'invoices/inv_current/invoice.pdf',
+              sizeBytes: 100,
+              checksumSha256: null,
+              virusScanStatus: 'CLEAN',
+            },
+          ]),
+        },
+        supplier: {
+          findUnique: vi.fn().mockResolvedValue({
+            erpIntegration: 'JAWAL',
+            legalName: 'Jawal',
+          }),
+        },
+      } as never,
+      { record: vi.fn().mockResolvedValue(undefined) } as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      {
+        validateUploadedFolder: vi.fn().mockResolvedValue({
+          error: {
+            code: 'VALIDATION_FAILED',
+            message: 'Evidence validation failed.',
+            details: { findings },
+          },
+          warning: null,
+        }),
+      } as never,
+      { notifyInvoiceSubmitted: vi.fn() } as never,
+    );
+
+    await expect(service.submit(supplierUser, invoice.id)).rejects.toMatchObject({
+      response: {
+        code: 'VALIDATION_FAILED',
+        details: { findings },
+      },
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: invoice.id, status: { in: ['DRAFT', 'CHANGES_REQUESTED'] } },
+      data: {
+        status: 'CHANGES_REQUESTED',
+        rejectionReason: 'Evidence validation failed.',
+        rejectionFindings: findings,
+      },
+    });
+  });
+
+  it('persists async validation findings as changes requested', async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const audit = { record: vi.fn().mockResolvedValue(undefined) };
+    const service = new InvoicesService(
+      { invoice: { updateMany } } as never,
+      audit as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const asyncFailure = service as unknown as {
+      failAsyncSubmission(user: typeof supplierUser, id: string, error: unknown): Promise<void>;
+    };
+    const findings = [{ code: 'POD_MISSING', message: 'Upload the missing POD.', gate: 'A' }];
+
+    await asyncFailure.failAsyncSubmission(
+      supplierUser,
+      'inv_async',
+      new UnprocessableEntityException({
+        code: 'VALIDATION_FAILED',
+        message: 'Evidence validation failed.',
+        details: { findings },
+      }),
+    );
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'inv_async', status: { in: ['SUBMITTED'] } },
+      data: {
+        status: 'CHANGES_REQUESTED',
+        rejectionReason: 'Evidence validation failed.',
+        rejectionFindings: findings,
+      },
+    });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        before: { status: 'SUBMITTED' },
+        after: expect.objectContaining({
+          status: 'CHANGES_REQUESTED',
+          rejectionFindings: findings,
+        }),
+      }),
+    );
+  });
+
+  it('reports changes requested separately from rejected', async () => {
+    const service = new InvoicesService(
+      {
+        invoice: {
+          groupBy: vi.fn().mockResolvedValue([
+            { status: 'CHANGES_REQUESTED', _count: { status: 2 } },
+            { status: 'REJECTED', _count: { status: 1 } },
+          ]),
+        },
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(service.getSummary('supplier_a')).resolves.toMatchObject({
+      changesRequested: 2,
+      rejected: 1,
+    });
   });
 });
 

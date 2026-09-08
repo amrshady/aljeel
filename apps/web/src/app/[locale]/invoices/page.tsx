@@ -11,6 +11,7 @@ import { Link } from '@/i18n/routing';
 const FILTERS = [
   { labelKey: 'all', status: '' },
   { labelKey: 'unfinished', status: 'DRAFT' },
+  { labelKey: 'changesRequested', status: 'CHANGES_REQUESTED' },
   { labelKey: 'underReview', status: 'UNDER_REVIEW' },
   { labelKey: 'approved', status: 'APPROVED' },
   { labelKey: 'rejected', status: 'REJECTED' },

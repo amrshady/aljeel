@@ -7,6 +7,8 @@ import {
   isCanonicalJawalTicket,
   looksLikeJawalWorkbook,
   sanitizeEvidenceRelativePath,
+  scoreJawalWorkbookCandidate,
+  selectPreferredJawalWorkbook,
   sniffContainerMagic,
   validateJawalEvidencePack,
 } from './jawal-evidence-check';
@@ -145,7 +147,130 @@ describe('extractJawalInvoiceLines', () => {
   });
 });
 
+describe('Jawal primary workbook selection', () => {
+  it('prefers passenger invoice content over a later cover sheet', () => {
+    const invoice = {
+      fileName: 'AL_JEEL_24-31_AUG_26_INV.xlsx',
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1002584', '065 4861593411', 'ALKULAIB/OMAR AHMED MR'],
+          ['1001686', '065 4861593412', 'ELSHAMALY/MAHMOUD MR'],
+        ],
+      ]),
+    };
+    const coverSheet = {
+      fileName: 'AL_JEEL_24-31_AUG_26_CS.xlsx',
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Route'],
+          ['(1002584', '065 4861593411', 'JED RUH'],
+          ['1001686', '065 4861593412', 'RUH JED'],
+          ['1009999', '065 4861593413', 'DMM RUH'],
+        ],
+      ]),
+    };
+
+    expect(scoreJawalWorkbookCandidate(invoice).canonicalPassengerLines).toBe(2);
+    expect(scoreJawalWorkbookCandidate(coverSheet).canonicalPassengerLines).toBe(0);
+    const selected = selectPreferredJawalWorkbook(invoice, coverSheet);
+    expect(selected.fileName).toBe(invoice.fileName);
+    expect(selected.lines[0]?.description).toContain('ALKULAIB');
+  });
+});
+
 describe('validateJawalEvidencePack', () => {
+  it('warns by content when a consecutive folder is owned by a separate billed line', () => {
+    const lines = extractJawalInvoiceLines([
+      [
+        ['Ref.No', 'Ticket', 'Description'],
+        ['1002584', '593 4861593410', 'ALKULAIB/OMAR AHMED'],
+        ['1002584', '065 4861593411', 'ALKULAIB/OMAR AHMED'],
+      ],
+    ]).map((line, index) => ({ ...line, row: index === 0 ? 51 : 52 }));
+    const result = validateJawalEvidencePack({
+      lines,
+      files: [
+        { fileName: '4861593410/approval.msg', sizeBytes: 100 },
+        {
+          fileName: '4861593410/ALKULAIB OMAR.pdf',
+          sizeBytes: 100,
+          extractedText:
+            'E-ticket XY 593-4861593410 and E-ticket SV 065-4861593411 for Mr Omar Ahmed Alkulaib',
+        },
+      ],
+    });
+
+    expect(result.error, JSON.stringify(result.findings, null, 2)).toBeNull();
+    expect(
+      result.findings.some(
+        (finding) => finding.row === 51 && finding.code === 'JAWAL_FOLDER_MISMATCH',
+      ),
+    ).toBe(false);
+    expect(result.warning?.details?.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'JAWAL_FOLDER_MISMATCH',
+          row: 52,
+          resolvedByContent: true,
+        }),
+      ]),
+    );
+  });
+
+  it('warns by content when a passenger-named PDF is in an off-by-one ticket folder', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4861593411', 'ALKULAIB/OMAR AHMED MR'],
+        ],
+      ]).map((line) => ({ ...line, row: 52 })),
+      files: [
+        {
+          fileName: '4861593410/ALKULAIB OMAR.pdf',
+          sizeBytes: 100,
+          extractedText: 'XY 593-4861593410 for another trip. E-ticket SV 065-4861593411 for Mr Omar Ahmed Alkulaib',
+        },
+      ],
+    });
+
+    expect(result.error, JSON.stringify(result.findings, null, 2)).toBeNull();
+    expect(result.warning?.details?.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'JAWAL_FOLDER_MISMATCH',
+          row: 52,
+          resolvedByContent: true,
+        }),
+      ]),
+    );
+  });
+
+  it('still blocks an off-by-one passenger folder when its content lacks the ticket body', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4861593411', 'ALKULAIB/OMAR AHMED MR'],
+        ],
+      ]).map((line) => ({ ...line, row: 52 })),
+      files: [
+        {
+          fileName: '4861593410/ALKULAIB OMAR.pdf',
+          sizeBytes: 100,
+          extractedText: 'E-ticket SV 065-4861593410 for Mr Omar Ahmed Alkulaib',
+        },
+      ],
+    });
+
+    expect(result.error).not.toBeNull();
+    expect(result.error?.code).toBe('JAWAL_FOLDER_MISMATCH');
+    expect(result.error?.details?.missingFolders).toContain('4861593411');
+    expect(result.findings.some((finding) => finding.row === 52)).toBe(true);
+    expect(result.findings.some((finding) => finding.resolvedByContent)).toBe(false);
+  });
+
   it('warns when ticket and passenger co-occur in a misfiled evidence file', () => {
     const result = validateJawalEvidencePack({
       lines: extractJawalInvoiceLines([
@@ -358,6 +483,7 @@ describe('validateJawalEvidencePack', () => {
       ],
     });
     expect(result.error).toBeNull();
+    expect(result.warning).toBeNull();
   });
 
   it('does not borrow a consecutive ticket folder from a different employee', () => {

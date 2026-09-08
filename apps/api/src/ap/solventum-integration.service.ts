@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import {
   catalogsOverlap,
@@ -46,9 +46,58 @@ const normalizeTrx = (value: unknown) => {
 };
 
 const isFilenamePlaceholder = (pod: SolventumPodLine) =>
-  pod.quantity === 0 && !pod.itemDescription && !pod.manufacturer && pod.sourceDoc.includes('#filename');
+  pod.quantity === 0 &&
+  !pod.itemDescription &&
+  !pod.manufacturer &&
+  pod.sourceDoc.includes('#filename');
 
 const isGenericUom = (value: unknown) => /^(EA|EACH|PIECE|PCS)$/i.test(clean(value));
+
+const envInt = (name: string, fallback: number, minimum: number) => {
+  const parsed = Number.parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(parsed) ? Math.max(minimum, parsed) : fallback;
+};
+
+const settleWithConcurrency = async <T>(
+  tasks: Array<() => Promise<T>>,
+  concurrency: number,
+): Promise<PromiseSettledResult<T>[]> => {
+  const results = new Array<PromiseSettledResult<T>>(tasks.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < tasks.length) {
+      const index = nextIndex++;
+      try {
+        results[index] = { status: 'fulfilled', value: await tasks[index]!() };
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason };
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
+  return results;
+};
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, filename: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`POD extraction timed out after ${timeoutMs}ms: ${filename}`)),
+      timeoutMs,
+    );
+    timer.unref?.();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 
 /**
  * LOCKED RULE (row selection by filename):
@@ -66,9 +115,18 @@ const isGenericUom = (value: unknown) => /^(EA|EACH|PIECE|PCS)$/i.test(clean(val
  */
 @Injectable()
 export class SolventumIntegrationService {
+  private readonly logger = new Logger(SolventumIntegrationService.name);
+
   constructor(@Inject(SolventumPodExtractor) private readonly extractor: SolventumPodExtractor) {}
 
   async generateChargeback(workbookBuffer: Buffer, podFiles: SolventumPodFile[]): Promise<Buffer> {
+    return (await this.generateChargebackWithMetadata(workbookBuffer, podFiles)).output;
+  }
+
+  async generateChargebackWithMetadata(
+    workbookBuffer: Buffer,
+    podFiles: SolventumPodFile[],
+  ): Promise<{ output: Buffer; failedPodNames: string[] }> {
     const salesRows = this.readSalesRows(workbookBuffer);
     const podTrx = this.collectTrxFromPodFilenames(podFiles);
 
@@ -88,7 +146,7 @@ export class SolventumIntegrationService {
       });
     }
 
-    const podLines = await this.extractPodLines(podFiles);
+    const { lines: podLines, failedNames: failedPodNames } = await this.extractPodLines(podFiles);
     const chargebackRows = this.applyPodQuantities(selected, podLines).map((row) =>
       this.toChargebackRow(row),
     );
@@ -101,7 +159,10 @@ export class SolventumIntegrationService {
       }),
       'Sheet1',
     );
-    return XLSX.write(output, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    return {
+      output: XLSX.write(output, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+      failedPodNames,
+    };
   }
 
   private collectTrxFromPodFilenames(podFiles: SolventumPodFile[]): Set<string> {
@@ -114,9 +175,26 @@ export class SolventumIntegrationService {
     return trx;
   }
 
-  private async extractPodLines(podFiles: SolventumPodFile[]): Promise<SolventumPodLine[]> {
+  private async extractPodLines(
+    podFiles: SolventumPodFile[],
+  ): Promise<{ lines: SolventumPodLine[]; failedNames: string[] }> {
     const lines: SolventumPodLine[] = [];
-    const settled = await Promise.allSettled(podFiles.map((file) => this.extractor.extract(file)));
+    const concurrency = envInt('SOLVENTUM_POD_OCR_CONCURRENCY', 3, 1);
+    const timeoutMs = envInt('SOLVENTUM_POD_EXTRACT_TIMEOUT_MS', 120_000, 10_000);
+    const settled = await settleWithConcurrency(
+      podFiles.map(
+        (file) => () => withTimeout(this.extractor.extract(file), timeoutMs, file.originalname),
+      ),
+      concurrency,
+    );
+    const failedNames = settled.flatMap((result, index) =>
+      result.status === 'rejected' ? [podFiles[index]!.originalname] : [],
+    );
+    if (failedNames.length > 0) {
+      this.logger.warn(
+        `Solventum: ${failedNames.length}/${podFiles.length} PODs failed extraction: ${failedNames.join(', ')}`,
+      );
+    }
     settled.forEach((result, index) => {
       if (result.status !== 'fulfilled') return;
       const fileTrxs = extractTrxFromFilename(podFiles[index]?.originalname ?? '');
@@ -129,7 +207,7 @@ export class SolventumIntegrationService {
         });
       }
     });
-    return lines;
+    return { lines, failedNames };
   }
 
   /**
@@ -187,10 +265,7 @@ export class SolventumIntegrationService {
         const podUom = clean(best.pod.uom);
         const packConverted =
           appliedQty != null && appliedQty !== best.pod.quantity && /^Box-1$/i.test(salesUom);
-        if (
-          !packConverted &&
-          !(isGenericUom(podUom) && salesUom && !isGenericUom(salesUom))
-        ) {
+        if (!packConverted && !(isGenericUom(podUom) && salesUom && !isGenericUom(salesUom))) {
           next.UOM = best.pod.uom;
         }
       }
@@ -209,7 +284,10 @@ export class SolventumIntegrationService {
       return next;
     });
 
-    return [...matched, ...this.podOnlyRows(filtered, podLines, usedPod, detailedTrx, droppedByTrx)];
+    return [
+      ...matched,
+      ...this.podOnlyRows(filtered, podLines, usedPod, detailedTrx, droppedByTrx),
+    ];
   }
 
   /**
@@ -319,7 +397,9 @@ export class SolventumIntegrationService {
         return;
       }
       if (
-        matchedSales.some((row) => normalizeTrx(row['TRX #']) === trx && this.catalogsMatch(row, pod))
+        matchedSales.some(
+          (row) => normalizeTrx(row['TRX #']) === trx && this.catalogsMatch(row, pod),
+        )
       ) {
         return;
       }
@@ -333,9 +413,7 @@ export class SolventumIntegrationService {
         'Item Description': pod.itemDescription || template['Item Description'],
         'Lot Number': clean(pod.lot) || this.lotDonorFromDropped(pod, dropped) || '',
         Quantity: pod.quantity,
-        UOM: /KIT/i.test(`${pod.itemDescription} ${pod.uom}`)
-          ? 'kit-1'
-          : pod.uom || template.UOM,
+        UOM: /KIT/i.test(`${pod.itemDescription} ${pod.uom}`) ? 'kit-1' : pod.uom || template.UOM,
       });
       usedPod.add(index);
     });
@@ -369,7 +447,9 @@ export class SolventumIntegrationService {
     const salesManuf = normalizePodKey(stripManufacturerPrefix(row.Manufacturer));
     const podManuf = normalizePodKey(stripManufacturerPrefix(pod.manufacturer));
     if (salesManuf !== '1954' && podManuf !== '1954') return null;
-    if (!/POLISHING|SOF-?LEX|1954/i.test(`${pod.itemDescription} ${row['Item Description'] ?? ''}`)) {
+    if (
+      !/POLISHING|SOF-?LEX|1954/i.test(`${pod.itemDescription} ${row['Item Description'] ?? ''}`)
+    ) {
       return null;
     }
 
@@ -556,7 +636,9 @@ export class SolventumIntegrationService {
     ] as const;
     const missing = required.filter((column) => !headers.includes(column));
     const hasOrderType =
-      headers.includes('Order Type') || headers.includes('TRX Type') || headers.includes('OrderType');
+      headers.includes('Order Type') ||
+      headers.includes('TRX Type') ||
+      headers.includes('OrderType');
     if (!hasOrderType) missing.push('Order Type' as never);
     if (missing.length) {
       throw new BadRequestException({

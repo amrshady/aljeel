@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -22,6 +23,7 @@ import {
   SOLVENTUM_OUTPUT_FILE_NAME,
   SolventumIntegrationService,
 } from './solventum-integration.service';
+import { SolventumChargebackJobService } from './solventum-chargeback-job.service';
 
 interface UploadedFile {
   originalname: string;
@@ -36,19 +38,10 @@ export class ApController {
   constructor(
     private readonly apService: ApService,
     private readonly solventum: SolventumIntegrationService,
+    private readonly solventumJobs: SolventumChargebackJobService,
   ) {}
 
-  @Post('solventum/chargeback')
-  @Roles('AP_CLERK')
-  @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
-  @ApiOperation({
-    summary:
-      'Generate Solventum chargeback: filename TRX → sales rows; POD scan overrides Quantity',
-  })
-  async generateSolventumChargeback(
-    @UploadedFiles() files: UploadedFile[] | undefined,
-    @Res() response: Response,
-  ) {
+  private solventumFiles(files: UploadedFile[] | undefined) {
     const workbooks = (files ?? []).filter((file) => /\.xlsx?$/i.test(file.originalname));
     const pods = (files ?? []).filter(
       (file) => file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname),
@@ -63,10 +56,58 @@ export class ApController {
         message: 'Upload exactly one Excel workbook and at least one POD PDF.',
       });
     }
+    return { workbook: workbooks[0]!, pods };
+  }
+
+  @Post('solventum/chargeback')
+  @Roles('AP_CLERK')
+  @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
+  @ApiOperation({
+    summary:
+      'Generate Solventum chargeback: filename TRX → sales rows; POD scan overrides Quantity',
+  })
+  async generateSolventumChargeback(
+    @UploadedFiles() files: UploadedFile[] | undefined,
+    @Res() response: Response,
+  ) {
+    const { workbook, pods } = this.solventumFiles(files);
     const output = await this.solventum.generateChargeback(
-      workbooks[0]!.buffer,
+      workbook.buffer,
       pods.map((file) => ({ originalname: file.originalname, buffer: file.buffer })),
     );
+    response.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${SOLVENTUM_OUTPUT_FILE_NAME}"`,
+      'Content-Length': String(output.length),
+    });
+    response.send(output);
+  }
+
+  @Post('solventum/chargeback/jobs')
+  @HttpCode(202)
+  @Roles('AP_CLERK')
+  @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
+  @ApiOperation({ summary: 'Queue a Solventum chargeback workbook for background generation' })
+  createSolventumChargebackJob(@UploadedFiles() files: UploadedFile[] | undefined) {
+    const { workbook, pods } = this.solventumFiles(files);
+    return this.solventumJobs.create(
+      workbook.buffer,
+      pods.map((file) => ({ originalname: file.originalname, buffer: file.buffer })),
+    );
+  }
+
+  @Get('solventum/chargeback/jobs/:jobId')
+  @Roles('AP_CLERK')
+  @ApiOperation({ summary: 'Get Solventum chargeback generation status' })
+  getSolventumChargebackJob(@Param('jobId') jobId: string) {
+    return this.solventumJobs.get(jobId);
+  }
+
+  @Get('solventum/chargeback/jobs/:jobId/result')
+  @Roles('AP_CLERK')
+  @ApiOperation({ summary: 'Download a completed Solventum chargeback workbook' })
+  async getSolventumChargebackResult(@Param('jobId') jobId: string, @Res() response: Response) {
+    const output = await this.solventumJobs.result(jobId);
     response.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${SOLVENTUM_OUTPUT_FILE_NAME}"`,

@@ -15,6 +15,7 @@ import { Link } from '@/i18n/routing';
 
 const PIPELINE_STAGES = [
   { key: 'draft', status: 'DRAFT' },
+  { key: 'changesRequested', status: 'CHANGES_REQUESTED' },
   { key: 'underReview', status: 'UNDER_REVIEW' },
   { key: 'onHold', status: 'ON_HOLD' },
   { key: 'approved', status: 'APPROVED' },
@@ -166,7 +167,11 @@ function SupplierDashboard() {
               >
                 <span>{t(`stages.${stage.key}`)}</span>
                 <span className="tabular-nums font-semibold">
-                  {pipelineLoading ? '—' : (pipeline?.[stage.key] ?? 0)}
+                  {pipelineLoading
+                    ? '—'
+                    : ((pipeline as (typeof pipeline & { changesRequested: number }) | undefined)?.[
+                        stage.key
+                      ] ?? 0)}
                 </span>
               </button>
             );

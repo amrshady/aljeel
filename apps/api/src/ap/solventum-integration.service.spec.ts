@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
-import { describe, expect, it } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SOLVENTUM_OUTPUT_COLUMNS,
   SolventumIntegrationService,
@@ -59,6 +60,86 @@ const run = async (
 };
 
 describe('SolventumIntegrationService', () => {
+  afterEach(() => {
+    delete process.env.SOLVENTUM_POD_OCR_CONCURRENCY;
+    delete process.env.SOLVENTUM_POD_EXTRACT_TIMEOUT_MS;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('bounds concurrent POD extractions and preserves successful rows', async () => {
+    process.env.SOLVENTUM_POD_OCR_CONCURRENCY = '2';
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const extractor = new (class extends SolventumPodExtractor {
+      async extract(): Promise<SolventumPodLine[]> {
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight--;
+        return [];
+      }
+    })();
+    const service = new SolventumIntegrationService(extractor);
+    const names = Array.from({ length: 6 }, (_, index) => `26000142${30 + index} POD.pdf`);
+    const buffer = await service.generateChargeback(
+      workbook(names.map((name) => salesRow({ 'TRX #': Number(name.slice(0, 10)) }))),
+      names.map((originalname) => ({ originalname, buffer: Buffer.from('pdf') })),
+    );
+
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(maxInFlight).toBe(2);
+  });
+
+  it('times out one hanging POD and still returns rows from successful PODs', async () => {
+    vi.useFakeTimers();
+    process.env.SOLVENTUM_POD_EXTRACT_TIMEOUT_MS = '10000';
+    const extractor = new (class extends SolventumPodExtractor {
+      async extract(file: SolventumPodFile): Promise<SolventumPodLine[]> {
+        if (file.originalname.startsWith('2600014236')) return new Promise(() => undefined);
+        return [];
+      }
+    })();
+    const service = new SolventumIntegrationService(extractor);
+    const pending = service.generateChargeback(
+      workbook([salesRow({ 'TRX #': 2600014236 }), salesRow({ 'TRX #': 2600014237 })]),
+      ['2600014236 POD.pdf', '2600014237 POD.pdf'].map((originalname) => ({
+        originalname,
+        buffer: Buffer.from('pdf'),
+      })),
+    );
+    await vi.advanceTimersByTimeAsync(10_000);
+    const output = XLSX.read(await pending, { type: 'buffer' });
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(output.Sheets.Sheet1!);
+
+    expect(rows.map((row) => String(row['TRX #']))).toEqual(['2600014236', '2600014237']);
+  });
+
+  it('warns once for rejected PODs and still generates the workbook', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const failedName = '2600014236 failed.pdf';
+    const extractor = new (class extends SolventumPodExtractor {
+      async extract(file: SolventumPodFile): Promise<SolventumPodLine[]> {
+        if (file.originalname === failedName) throw new Error('OCR failed');
+        return [];
+      }
+    })();
+    const service = new SolventumIntegrationService(extractor);
+    const buffer = await service.generateChargeback(
+      workbook([salesRow({ 'TRX #': 2600014236 }), salesRow({ 'TRX #': 2600014237 })]),
+      [failedName, '2600014237 good.pdf'].map((originalname) => ({
+        originalname,
+        buffer: Buffer.from('pdf'),
+      })),
+    );
+
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(
+      `Solventum: 1/2 PODs failed extraction: ${failedName}`,
+    );
+  });
+
   it('omits Item Description from output columns', async () => {
     const { matrix } = await run(
       [salesRow({ 'TRX #': 2600014236 })],

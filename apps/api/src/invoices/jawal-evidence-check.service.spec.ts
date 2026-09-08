@@ -21,6 +21,64 @@ function buildJawalXlsx(
 }
 
 describe('JawalEvidenceCheckService', () => {
+  it('keeps invoice lines when a Jawal-looking cover sheet is uploaded last', async () => {
+    const invoice = buildJawalXlsx([
+      ['1002584', '065 4861593411', 'ALKULAIB/OMAR AHMED MR', '', ''],
+    ]);
+    const coverSheet = buildJawalXlsx([
+      ['(1002584', '065 4861593411', 'JED RUH', '', ''],
+      ['1001686', '065 4861593412', 'RUH JED', '', ''],
+    ]);
+    const evidence = Buffer.from(
+      'Subject: Misfiled ticket\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n' +
+        'E-ticket SV 065-4861593411 for Mr Omar Ahmed Alkulaib',
+    );
+    const buffers = new Map([
+      ['invoices/inv-1/invoice.xlsx', invoice],
+      ['invoices/inv-1/cover-sheet.xlsx', coverSheet],
+    ]);
+    const kb = {
+      createReadStream: vi.fn().mockImplementation(async (key: string) =>
+        streamFromBuffer(buffers.get(key)!),
+      ),
+    };
+    const storage = {
+      createReadStream: vi.fn().mockReturnValue(streamFromBuffer(evidence)),
+    };
+    const service = new JawalEvidenceCheckService(storage as never, kb as never);
+
+    const result = await service.validateUploadedFolder([
+      {
+        fileName: 'AL_JEEL_24-31_AUG_26_INV.xlsx',
+        storageKey: 'invoices/inv-1/invoice.xlsx',
+        sizeBytes: invoice.length,
+      },
+      {
+        fileName: 'misfiled-ticket.eml',
+        storageKey: 'local:evidence.eml',
+        sizeBytes: evidence.length,
+      },
+      {
+        fileName: 'AL_JEEL_24-31_AUG_26_CS.xlsx',
+        storageKey: 'invoices/inv-1/cover-sheet.xlsx',
+        sizeBytes: coverSheet.length,
+      },
+    ]);
+
+    expect(result.error, JSON.stringify(result.findings, null, 2)).toBeNull();
+    expect(result.warning?.details?.sourceSpreadsheet).toBe(
+      'AL_JEEL_24-31_AUG_26_INV.xlsx',
+    );
+    expect(result.warning?.details?.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ticket: '065 4861593411',
+          resolvedByContent: true,
+        }),
+      ]),
+    );
+  });
+
   it('blocks submission when Ref.No is malformed', async () => {
     const report = buildJawalXlsx([
       ['CE-202-26', '6905428831', 'Travel', '51000001', 'Travel'],

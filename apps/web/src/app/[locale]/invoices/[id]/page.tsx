@@ -55,11 +55,17 @@ function InvoiceDetailContent() {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
 
-  const { data: invoice, isLoading, isError } = useQuery({
+  const {
+    data: invoice,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
-    queryFn: () =>
-      isApUser ? getApInvoice(params.id) : getInvoice(params.id),
+    queryFn: () => (isApUser ? getApInvoice(params.id) : getInvoice(params.id)),
     enabled: !!user,
+    // Large submissions return while server-side evidence validation continues.
+    refetchInterval: (query) => (query.state.data?.status === 'SUBMITTED' ? 3_000 : false),
+    refetchIntervalInBackground: true,
   });
 
   const { data: supplier } = useQuery({
@@ -92,8 +98,7 @@ function InvoiceDetailContent() {
     }
   }, [documents, selectedDocumentId]);
 
-  const selectedDocument =
-    documents?.find((doc) => doc.id === selectedDocumentId) ?? null;
+  const selectedDocument = documents?.find((doc) => doc.id === selectedDocumentId) ?? null;
 
   useEffect(() => {
     if (invoice?.asateelRegion) {
@@ -151,6 +156,12 @@ function InvoiceDetailContent() {
       await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
     } catch (err) {
       setError(formatInvoiceError(err, tForm, t('submitError')));
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      await queryClient.refetchQueries({
+        queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
+        exact: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } finally {
       setSavingRegion(false);
     }
@@ -177,9 +188,17 @@ function InvoiceDetailContent() {
       if (isAsateelSupplier && asateelRegion && invoice.asateelRegion !== asateelRegion) {
         await updateInvoiceAsateelRegion(invoice.id, asateelRegion);
       }
-      await submitInvoice(invoice.id);
+      const submittedInvoice = await submitInvoice(invoice.id);
+      queryClient.setQueryData(
+        ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
+        (current: typeof invoice | undefined) =>
+          current ? { ...current, ...submittedInvoice } : current,
+      );
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
+      await queryClient.refetchQueries({
+        queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
+        exact: true,
+      });
     } catch (err) {
       setError(formatInvoiceError(err, tForm, t('submitError')));
     } finally {
@@ -210,11 +229,9 @@ function InvoiceDetailContent() {
   }
 
   const canSubmit =
-    (invoice.status === 'DRAFT' || invoice.status === 'REJECTED') &&
+    (invoice.status === 'DRAFT' || String(invoice.status) === 'CHANGES_REQUESTED') &&
     (!isApUser || user?.role === 'AP_CLERK');
-  const canUploadDocs =
-    isApUser ||
-    !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
+  const canUploadDocs = isApUser || !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
   const canRenameDocs = isApUser || (canSubmit && isJawalSupplier);
   const canEditFolderName = isApUser;
   const supplierName = 'supplierName' in invoice ? invoice.supplierName : undefined;
@@ -225,7 +242,9 @@ function InvoiceDetailContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link
-            href={isApUser ? (user?.role === 'AP_CLERK' ? '/dashboard' : '/ap/review') : '/dashboard'}
+            href={
+              isApUser ? (user?.role === 'AP_CLERK' ? '/dashboard' : '/ap/review') : '/dashboard'
+            }
             className="text-sm text-primary underline"
           >
             {isApUser ? (user?.role === 'AP_CLERK' ? t('back') : t('backToReview')) : t('back')}
@@ -274,9 +293,7 @@ function InvoiceDetailContent() {
               </div>
             ) : (
               <div className="mt-2 flex items-center gap-2">
-                <h1 className="text-2xl font-bold">
-                  {displayInvoiceName(invoice.invoiceNumber)}
-                </h1>
+                <h1 className="text-2xl font-bold">{displayInvoiceName(invoice.invoiceNumber)}</h1>
                 <Button
                   type="button"
                   variant="ghost"
@@ -290,14 +307,11 @@ function InvoiceDetailContent() {
               </div>
             )
           ) : (
-            <h1 className="mt-2 text-2xl font-bold">
-              {displayInvoiceName(invoice.invoiceNumber)}
-            </h1>
+            <h1 className="mt-2 text-2xl font-bold">{displayInvoiceName(invoice.invoiceNumber)}</h1>
           )}
           <p className="text-sm text-muted-foreground">
             {supplierName ? `${supplierName} · ` : ''}
-            {new Date(invoice.invoiceDate).toLocaleDateString()} ·{' '}
-            {t(`status.${invoice.status}`)}
+            {new Date(invoice.invoiceDate).toLocaleDateString()} · {t(`status.${invoice.status}`)}
           </p>
         </div>
         {canSubmit && (
@@ -337,9 +351,34 @@ function InvoiceDetailContent() {
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
       {invoice.rejectionReason && (
-        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
-          <p className="font-medium">{t('rejectionReason')}</p>
+        <div
+          className={
+            String(invoice.status) === 'CHANGES_REQUESTED'
+              ? 'mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950'
+              : 'mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm'
+          }
+        >
+          {String(invoice.status) === 'CHANGES_REQUESTED' && (
+            <p className="mb-3 font-medium">{t('changesRequestedMessage')}</p>
+          )}
+          <p className="font-medium">
+            {String(invoice.status) === 'CHANGES_REQUESTED'
+              ? t('changesRequestedReason')
+              : t('rejectionReason')}
+          </p>
           <p className="mt-1">{invoice.rejectionReason}</p>
+          {invoice.rejectionFindings && invoice.rejectionFindings.length > 0 && (
+            <>
+              <p className="mt-3 font-medium">{t('validationIssues')}</p>
+              <ul className="mt-1 list-disc space-y-1 ps-5">
+                {invoice.rejectionFindings.map((finding, index) => (
+                  <li key={`${finding.code}-${finding.row ?? index}-${finding.path ?? ''}`}>
+                    {finding.message}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
 
@@ -347,10 +386,7 @@ function InvoiceDetailContent() {
         <div className="mt-6 space-y-4">
           <ApReviewActions invoiceId={invoice.id} status={invoice.status} />
           {apInvoice && (
-            <ReconciliationPanel
-              invoiceId={invoice.id}
-              initialStatus={apInvoice.reconciliation}
-            />
+            <ReconciliationPanel invoiceId={invoice.id} initialStatus={apInvoice.reconciliation} />
           )}
         </div>
       )}

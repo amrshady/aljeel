@@ -1,9 +1,7 @@
 import { z } from 'zod';
 import { AsateelRegionSchema, InvoiceStatusSchema, SupplierErpIntegrationSchema } from './index';
 
-const decimalString = z
-  .string()
-  .regex(/^-?\d+(\.\d{1,4})?$/, 'Must be a valid decimal');
+const decimalString = z.string().regex(/^-?\d+(\.\d{1,4})?$/, 'Must be a valid decimal');
 
 export const InvoiceLineInputSchema = z.object({
   description: z.string().min(1).max(500),
@@ -76,6 +74,20 @@ export const InvoiceSchema = z.object({
   status: InvoiceStatusSchema,
   source: z.enum(['UPLOAD', 'EMAIL', 'XML', 'BULK']),
   rejectionReason: z.string().nullable(),
+  rejectionFindings: z
+    .array(
+      z.object({
+        code: z.string(),
+        message: z.string(),
+        gate: z.enum(['A', 'B']),
+        rule: z.enum(['B1', 'B1a', 'B2', 'B3', 'B4', 'B5', 'B6']).optional(),
+        ref: z.string().optional(),
+        ticket: z.string().optional(),
+        path: z.string().optional(),
+        row: z.number().optional(),
+      }),
+    )
+    .nullable(),
   archivedAt: z.string().nullable(),
   asateelRegion: AsateelRegionSchema.nullable(),
   createdAt: z.string(),
@@ -118,6 +130,8 @@ export type InvoiceListQuery = z.infer<typeof InvoiceListQuerySchema>;
 export const SubmitInvoiceResponseSchema = z.object({
   id: z.string(),
   status: InvoiceStatusSchema,
+  rejectionReason: z.string().nullable().optional(),
+  rejectionFindings: InvoiceSchema.shape.rejectionFindings.optional(),
   matchResult: z
     .object({
       type: z.literal('MANUAL_REVIEW'),

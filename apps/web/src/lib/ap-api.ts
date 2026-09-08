@@ -12,26 +12,75 @@ import { apiFetch } from './api-client';
 
 const SOLVENTUM_OUTPUT_FILE_NAME = 'Chargeback report supported by PODs attached.xlsx';
 
-export async function generateSolventumChargeback(files: File[]): Promise<void> {
+export interface SolventumChargebackResult {
+  failedPodCount: number;
+  failedPodNames: string[];
+}
+
+type SolventumJobStatus = {
+  jobId: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  podCount: number;
+  failedPodCount?: number;
+  failedPodNames?: string[];
+  error?: string;
+};
+
+async function solventumError(response: Response, fallback: string) {
+  const responseText = await response.text().catch(() => '');
+  const body = (() => {
+    try {
+      return JSON.parse(responseText) as {
+        error?: { message?: string } | string;
+        message?: string | string[];
+      };
+    } catch {
+      return null;
+    }
+  })();
+  const nestedMessage = typeof body?.error === 'object' ? body.error.message : body?.error;
+  const message = Array.isArray(body?.message)
+    ? body.message.join(', ')
+    : nestedMessage || body?.message || responseText;
+  return new Error(message || fallback);
+}
+
+export async function generateSolventumChargeback(
+  files: File[],
+): Promise<SolventumChargebackResult> {
   const form = new FormData();
   files.forEach((file) => form.append('files', file, file.name));
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
-  const response = await fetch(`${baseUrl}/ap/solventum/chargeback`, {
+  const response = await fetch(`${baseUrl}/ap/solventum/chargeback/jobs`, {
     method: 'POST',
     body: form,
     credentials: 'include',
   });
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      error?: { message?: string; code?: string };
-      message?: string | string[];
-    } | null;
-    const message = Array.isArray(body?.message)
-      ? body.message.join(', ')
-      : body?.error?.message || body?.message;
-    throw new Error(message || 'Could not generate the chargeback workbook.');
+    throw await solventumError(response, 'Could not start chargeback generation.');
   }
-  const url = URL.createObjectURL(await response.blob());
+  const created = (await response.json()) as { jobId: string };
+  const deadline = Date.now() + 15 * 60 * 1000;
+  let status: SolventumJobStatus;
+  while (true) {
+    if (Date.now() >= deadline) throw new Error('Chargeback generation timed out.');
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+    const poll = await fetch(
+      `${baseUrl}/ap/solventum/chargeback/jobs/${encodeURIComponent(created.jobId)}`,
+      { credentials: 'include' },
+    );
+    if (!poll.ok) throw await solventumError(poll, 'Could not check chargeback generation status.');
+    status = (await poll.json()) as SolventumJobStatus;
+    if (status.status === 'FAILED')
+      throw new Error(status.error || 'Could not generate the chargeback workbook.');
+    if (status.status === 'COMPLETED') break;
+  }
+  const result = await fetch(
+    `${baseUrl}/ap/solventum/chargeback/jobs/${encodeURIComponent(created.jobId)}/result`,
+    { credentials: 'include' },
+  );
+  if (!result.ok) throw await solventumError(result, 'Could not download the chargeback workbook.');
+  const url = URL.createObjectURL(await result.blob());
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = SOLVENTUM_OUTPUT_FILE_NAME;
@@ -39,6 +88,10 @@ export async function generateSolventumChargeback(files: File[]): Promise<void> 
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+  return {
+    failedPodCount: status.failedPodCount ?? 0,
+    failedPodNames: status.failedPodNames ?? [],
+  };
 }
 
 export function listApExceptions(params: Record<string, string | undefined> = {}) {

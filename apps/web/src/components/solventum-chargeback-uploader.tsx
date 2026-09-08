@@ -20,15 +20,20 @@ export function SolventumChargebackUploader() {
   const [files, setFiles] = useState<File[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const workbookCount = files.filter(isWorkbook).length;
-  const pdfCount = files.filter(isPdf).length;
-  const invalidCount = files.length - workbookCount - pdfCount;
+  const [note, setNote] = useState<string | null>(null);
+  const workbooks = files.filter(isWorkbook);
+  const pdfs = files.filter(isPdf);
+  const invalidFiles = files.filter((file) => !isWorkbook(file) && !isPdf(file));
+  const workbookCount = workbooks.length;
+  const pdfCount = pdfs.length;
+  const invalidCount = invalidFiles.length;
   const canRun = workbookCount === 1 && pdfCount >= 1 && invalidCount === 0 && !running;
 
   function addFiles(event: ChangeEvent<HTMLInputElement>) {
     const additions = Array.from(event.target.files ?? []);
     setFiles((current) => [...current, ...additions]);
     setError(null);
+    setNote(null);
     event.target.value = '';
   }
 
@@ -37,7 +42,9 @@ export function SolventumChargebackUploader() {
     setRunning(true);
     setError(null);
     try {
-      await generateSolventumChargeback(files);
+      const result = await generateSolventumChargeback(files);
+      if (result.failedPodCount > 0)
+        setNote(t('partialFailure', { failed: result.failedPodCount, total: pdfCount }));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t('runError'));
     } finally {
@@ -91,16 +98,41 @@ export function SolventumChargebackUploader() {
         </ul>
       )}
 
-      {workbookCount > 1 && <p className="text-sm text-destructive">{t('tooManyWorkbooks')}</p>}
-      {invalidCount > 0 && <p className="text-sm text-destructive">{t('invalidFiles')}</p>}
+      {files.length > 0 && workbookCount === 0 && (
+        <p className="text-sm text-destructive">{t('missingWorkbook')}</p>
+      )}
+      {files.length > 0 && pdfCount === 0 && (
+        <p className="text-sm text-destructive">{t('missingPdf')}</p>
+      )}
+      {workbookCount > 1 && (
+        <p className="text-sm text-destructive">
+          {t('tooManyWorkbooks', {
+            names: workbooks
+              .slice(1)
+              .map((file) => file.name)
+              .join(', '),
+          })}
+        </p>
+      )}
+      {invalidCount > 0 && (
+        <p className="text-sm text-destructive">
+          {t('invalidFiles', { names: invalidFiles.map((file) => file.name).join(', ') })}
+        </p>
+      )}
       {error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
+      {note && (
+        <p className="rounded-lg border border-amber-400/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {note}
+        </p>
+      )}
       <Button type="button" disabled={!canRun} onClick={run} className="bg-[#2563EB]">
         {running ? t('running') : t('run')}
       </Button>
+      {running && <p className="text-sm text-muted-foreground">{t('backgroundHint')}</p>}
     </section>
   );
 }

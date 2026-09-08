@@ -2870,9 +2870,16 @@ PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECAS
 TRAILING_REF_RE = re.compile(r"\(([^)]+)\)\s*$")
 INVOICE_BASENAME_RE = re.compile(r"INV(?:OICE)?", re.IGNORECASE)
 NON_EVIDENCE_PDF_RE = re.compile(
-    r"(?:^|[^A-Z0-9])(?:SOA|STATEMENT[ _-]*OF[ _-]*ACCOUNT|REFUND)(?:[^A-Z0-9]|$)",
+    r"(?:^|[^A-Z0-9])(?:SOA|STATEMENT[ _-]*OF[ _-]*ACCOUNT)(?:[^A-Z0-9]|$)",
     re.IGNORECASE,
 )
+REFUND_DOCUMENT_RE = re.compile(
+    r"(?:^|[^A-Z0-9])(?:REFUND|CREDIT[ _-]*(?:NOTE|MEMO))(?:[^A-Z0-9]|$)",
+    re.IGNORECASE,
+)
+ORIGINAL_NOT_IN_BATCH_FLAG = "ORIGINAL_NOT_IN_BATCH"
+REFUND_PARSE_FAILED_FLAG = "REFUND_PARSE_FAILED"
+REFUND_AMOUNT_MATCH_TOLERANCE = 0.01
 _OPEX_PREFIX_RE = re.compile(r"^[A-Z]+-\d{4}-\d+-")
 _TITLE_TOKENS = {"MR", "MRS", "MS", "DR", "ENG", "CHD", "INF", "INFANT"}
 TRIP_PURPOSE_INHERIT_CONFIDENCE = 0.85
@@ -2911,6 +2918,376 @@ def _reference_tokens_in_text(text: str) -> set[str]:
         if token:
             refs.add(token)
     return refs
+
+
+def _refund_document_key(path: Path) -> str:
+    """Collapse portal-prefixed and PDF/XLSX copies of one credit note."""
+    stem = re.sub(r"^[a-z0-9]{20,}-", "", path.stem, flags=re.IGNORECASE)
+    return re.sub(r"[^a-z0-9]+", "", stem.casefold())
+
+
+def find_refund_documents(evidence_roots: list[Path]) -> list[Path]:
+    """Find one preferred source (PDF before XLSX) for each refund document."""
+    documents: dict[str, Path] = {}
+    for evidence_root in evidence_roots:
+        if not evidence_root or not evidence_root.is_dir():
+            continue
+        for root, _dirs, files in os.walk(evidence_root):
+            for filename in sorted(files):
+                path = Path(root) / filename
+                if path.suffix.lower() not in {".pdf", ".xlsx"}:
+                    continue
+                if not REFUND_DOCUMENT_RE.search(path.stem):
+                    continue
+                key = _refund_document_key(path)
+                current = documents.get(key)
+                if current is None or (path.suffix.lower() == ".pdf" and current.suffix.lower() != ".pdf"):
+                    documents[key] = path
+    return [documents[key] for key in sorted(documents)]
+
+
+def _parse_refund_pdf(path: Path) -> list[dict]:
+    """Extract Jawwal credit-note detail rows from the PDF's ruled table."""
+    import fitz
+
+    records: list[dict] = []
+    doc = fitz.open(str(path))
+    try:
+        for page in doc:
+            for table in page.find_tables().tables:
+                for cells in table.extract():
+                    line = " ".join(str(cell or "").replace("\n", " ") for cell in cells)
+                    line = re.sub(r"\s+", " ", line).strip()
+                    match = re.match(
+                        r"^\d+\s+\d{4}-\d{2}-\d{2}\s+(\S+)\s+"
+                        r"(?:\d{3}\s+)?(\d{10})\s+(.+?\b(?:MR|MRS|MS|DR|ENG|CHD|INF))\b"
+                        r".*?([\d,]+\.\d{2})\s*$",
+                        line,
+                        re.IGNORECASE,
+                    )
+                    if not match:
+                        continue
+                    records.append({
+                        "reference": match.group(1),
+                        "ticket": match.group(2),
+                        "passenger": match.group(3).strip(),
+                        "amount": -abs(float(match.group(4).replace(",", ""))),
+                        "source": path.name,
+                    })
+    finally:
+        doc.close()
+    return records
+
+
+def _parse_refund_xlsx(path: Path) -> list[dict]:
+    """Best-effort parser for native credit-note workbooks with tabular cells."""
+    records: list[dict] = []
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    try:
+        for ws in wb.worksheets:
+            for values in ws.iter_rows(values_only=True):
+                text = " ".join(str(value) for value in values if value not in (None, ""))
+                tickets = TICKET_SCAN_RE.findall(text)
+                refs = sorted(_reference_tokens_in_text(text) - set(tickets))
+                amounts = re.findall(r"(?<!\d)([\d,]+\.\d{2})(?!\d)", text)
+                if tickets and amounts:
+                    records.append({
+                        "reference": refs[0] if refs else "",
+                        "ticket": tickets[0],
+                        "passenger": "",
+                        "amount": -abs(float(amounts[-1].replace(",", ""))),
+                        "source": path.name,
+                    })
+    finally:
+        wb.close()
+    return records
+
+
+_INLINE_REFUND_BOUNDARIES = (
+    "TICKET COUNT", "TOTAL REFUNDS", "TOTAL SALES", "NET SALES",
+)
+
+
+def _inline_refund_columns(ws, less_refunds_row: int) -> dict[str, int]:
+    """Locate detail columns from nearby labels, with the confirmed CS layout as fallback."""
+    columns = {"ticket": 4, "passenger": 6, "employee_no": 9, "amount": 12}
+    aliases = {
+        "ticket": ("TICKET", "TICKET NO", "TICKET NUMBER"),
+        "passenger": ("PASSENGER", "PASSENGER NAME", "NAME"),
+        "employee_no": ("EMP NO", "EMPLOYEE NO", "EMPLOYEE NUMBER"),
+        "amount": ("AMOUNT", "TOTAL AMOUNT"),
+    }
+    for row_idx in range(max(1, less_refunds_row - 40), less_refunds_row):
+        for col_idx in range(1, ws.max_column + 1):
+            label = re.sub(r"[^A-Z0-9]+", " ", str(ws.cell(row_idx, col_idx).value or "").upper()).strip()
+            for field, names in aliases.items():
+                if label in names:
+                    columns[field] = col_idx
+    return columns
+
+
+def parse_inline_less_refunds(path: Path) -> list[dict]:
+    """Extract refund detail rows following a CS workbook's LESS REFUNDS marker."""
+    records: list[dict] = []
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    try:
+        for ws in wb.worksheets:
+            less_rows = []
+            for row_idx, values in enumerate(ws.iter_rows(values_only=True), start=1):
+                if any(str(value or "").strip().upper() == "LESS REFUNDS" for value in values):
+                    less_rows.append(row_idx)
+            for less_row in less_rows:
+                columns = _inline_refund_columns(ws, less_row)
+                for row_idx in range(less_row + 1, (ws.max_row or less_row) + 1):
+                    values = [ws.cell(row_idx, col).value for col in range(1, ws.max_column + 1)]
+                    if all(value in (None, "") for value in values):
+                        break
+                    row_text = " ".join(str(value) for value in values if value not in (None, "")).upper()
+                    if any(boundary in row_text for boundary in _INLINE_REFUND_BOUNDARIES):
+                        break
+                    ticket_match = TICKET_SCAN_RE.search(
+                        str(ws.cell(row_idx, columns["ticket"]).value or "")
+                    )
+                    if not ticket_match:
+                        continue
+                    amount_value = ws.cell(row_idx, columns["amount"]).value
+                    try:
+                        amount = float(str(amount_value).replace(",", "").strip())
+                    except (TypeError, ValueError):
+                        continue
+                    employee_no = re.match(
+                        r"\s*(\d+)", str(ws.cell(row_idx, columns["employee_no"]).value or "")
+                    )
+                    records.append({
+                        "reference": "",
+                        "ticket": ticket_match.group(1),
+                        "passenger": str(ws.cell(row_idx, columns["passenger"]).value or "").strip(),
+                        "employee_no": employee_no.group(1) if employee_no else "",
+                        "amount": -abs(amount),
+                        "source": path.name,
+                    })
+    finally:
+        wb.close()
+    return records
+
+
+def find_inline_refund_workbooks(evidence_roots: list[Path]) -> list[Path]:
+    """Return non-refund XLSX inputs that contain an exact LESS REFUNDS marker."""
+    workbooks: dict[Path, Path] = {}
+    for evidence_root in evidence_roots:
+        if not evidence_root or not evidence_root.is_dir():
+            continue
+        for root, dirs, files in os.walk(evidence_root):
+            dirs[:] = [directory for directory in dirs if directory != "output"]
+            for filename in files:
+                path = Path(root) / filename
+                if path.suffix.lower() != ".xlsx" or REFUND_DOCUMENT_RE.search(path.stem):
+                    continue
+                try:
+                    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+                    has_marker = any(
+                        str(value or "").strip().upper() == "LESS REFUNDS"
+                        for ws in wb.worksheets
+                        for row in ws.iter_rows(values_only=True)
+                        for value in row
+                    )
+                    wb.close()
+                except Exception as exc:
+                    print(f"[refunds] WARNING: failed to inspect {path}: {exc}", flush=True)
+                    continue
+                if has_marker:
+                    workbooks[path.resolve(strict=False)] = path
+    return [workbooks[key] for key in sorted(workbooks, key=str)]
+
+
+def write_refunds_sheet(
+    out_xlsx: Path,
+    refund_documents: list[Path],
+    header_row: int,
+    inline_refund_workbooks: list[Path] | None = None,
+) -> int:
+    """Append refund reconciliation without changing the main worksheet."""
+    inline_refund_workbooks = inline_refund_workbooks or []
+    if not refund_documents and not inline_refund_workbooks:
+        return 0
+
+    wb = openpyxl.load_workbook(out_xlsx)
+    main_ws = wb.active
+    headers = {
+        str(main_ws.cell(header_row, col).value or "").strip(): col
+        for col in range(1, main_ws.max_column + 1)
+        if str(main_ws.cell(header_row, col).value or "").strip()
+    }
+    row_matches: dict[str, list[int]] = {}
+    for row_idx in range(header_row + 1, main_ws.max_row + 1):
+        blob = " ".join(
+            str(main_ws.cell(row_idx, col).value or "")
+            for col in range(1, main_ws.max_column + 1)
+        )
+        for token in _reference_tokens_in_text(blob):
+            row_matches.setdefault(token, []).append(row_idx)
+
+    records: list[dict] = []
+    for document in refund_documents:
+        try:
+            parsed = (
+                _parse_refund_pdf(document)
+                if document.suffix.lower() == ".pdf"
+                else _parse_refund_xlsx(document)
+            )
+        except Exception as exc:
+            print(f"[refunds] WARNING: failed to parse {document}: {exc}", flush=True)
+            parsed = []
+        if parsed:
+            records.extend(parsed)
+        else:
+            records.append({
+                "reference": "", "ticket": "", "passenger": "", "amount": None,
+                "source": document.name, "parse_failed": True,
+            })
+
+    inline_records: list[dict] = []
+    for workbook in inline_refund_workbooks:
+        try:
+            inline_records.extend(parse_inline_less_refunds(workbook))
+        except Exception as exc:
+            print(f"[refunds] WARNING: failed to scan inline refunds in {workbook}: {exc}", flush=True)
+
+    if inline_records:
+        records.extend(inline_records)
+        # Prefer a record whose ticket/reference matches an original row. On a
+        # tie, retain the first source (separate REFUND_INV records come first).
+        deduped: dict[str, dict] = {}
+        unticketed: list[dict] = []
+        for record in records:
+            ticket = str(record.get("ticket", "") or "")
+            if not ticket:
+                unticketed.append(record)
+                continue
+            current = deduped.get(ticket)
+            record_matches = bool(
+                row_matches.get(ticket)
+                or row_matches.get(str(record.get("reference", "") or ""))
+            )
+            current_matches = bool(current and (
+                row_matches.get(str(current.get("ticket", "") or ""))
+                or row_matches.get(str(current.get("reference", "") or ""))
+            ))
+            if current is None or (record_matches and not current_matches):
+                deduped[ticket] = record
+        records = list(deduped.values()) + unticketed
+
+    if "Refunds" in wb.sheetnames:
+        del wb["Refunds"]
+    ws = wb.create_sheet("Refunds")
+    refund_headers = [
+        "Reference", "Ticket", "Employee No", "Employee Name", "Amount",
+        "Account", "Cost Center", "DIV", "Solution", "Agency",
+        "Distribution Combination", "Source Document", "Notes",
+    ]
+    ws.append(refund_headers)
+    for record in records:
+        candidates: list[int] = []
+        for token in (record.get("ticket", ""), record.get("reference", "")):
+            normalized = _normalize_reference_token(token)
+            if normalized and normalized in row_matches:
+                candidates = row_matches[normalized]
+                break
+        matched_row = candidates[0] if candidates else None
+        multi_leg_ambiguous = False
+        if len(candidates) > 1:
+            amount_col = next(
+                (
+                    column
+                    for header, column in headers.items()
+                    if header == "Amount" or header.startswith("*Amount[")
+                    or header == "*Amount"
+                ),
+                None,
+            )
+            refund_amount = record.get("amount")
+            amount_matches: list[int] = []
+            if amount_col and isinstance(refund_amount, (int, float)):
+                for candidate in candidates:
+                    original_amount = main_ws.cell(candidate, amount_col).value
+                    if isinstance(original_amount, (int, float)) and abs(
+                        abs(float(original_amount)) - abs(float(refund_amount))
+                    ) <= REFUND_AMOUNT_MATCH_TOLERANCE:
+                        amount_matches.append(candidate)
+
+            if len(amount_matches) == 1:
+                matched_row = amount_matches[0]
+            else:
+                coding_names = (
+                    "Account", "Cost Center", "DIV", "Solution", "Agency",
+                    "Distribution Combination",
+                )
+
+                def coding_for(row_idx: int) -> tuple:
+                    values = []
+                    for name in coding_names:
+                        col = next(
+                            (
+                                column
+                                for header, column in headers.items()
+                                if header == name or header.startswith(name + "[")
+                                or (name == "Distribution Combination" and header.startswith("*" + name))
+                            ),
+                            None,
+                        )
+                        values.append(main_ws.cell(row_idx, col).value if col else "")
+                    return tuple(values)
+
+                multi_leg_ambiguous = len({coding_for(row) for row in candidates}) > 1
+
+        if record.get("parse_failed"):
+            notes = REFUND_PARSE_FAILED_FLAG
+        elif len(candidates) == 1:
+            notes = f"MATCHED_ORIGINAL ticket={record['ticket']} row={matched_row}"
+        elif candidates:
+            rows = ",".join(str(row) for row in candidates)
+            prefix = "MATCHED_MULTI_LEG_REVIEW" if multi_leg_ambiguous else "MATCHED_ORIGINAL"
+            notes = f"{prefix} ticket={record['ticket']} rows={rows}"
+        else:
+            notes = ORIGINAL_NOT_IN_BATCH_FLAG
+
+        def original_value(*names: str):
+            if not matched_row:
+                return ""
+            col = next(
+                (
+                    column
+                    for name in names
+                    for header, column in headers.items()
+                    if header == name or header.startswith(name + "[")
+                ),
+                None,
+            )
+            return main_ws.cell(matched_row, col).value if col else ""
+
+        employee_name = original_value("Employee Name", "Passenger Name")
+        if not employee_name:
+            employee_name = record.get("passenger", "")
+        ws.append([
+            record.get("reference", ""), record.get("ticket", ""),
+            original_value("Employee No") or record.get("employee_no", ""), employee_name,
+            record.get("amount"), original_value("Account"), original_value("Cost Center"),
+            original_value("DIV"), original_value("Solution"), original_value("Agency"),
+            original_value("Distribution Combination", "*Distribution Combination"),
+            record.get("source", ""), notes,
+        ])
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+    wb.save(str(out_xlsx))
+    wb.close()
+    if inline_refund_workbooks:
+        print(
+            f"[refunds] {len(records)} row(s) written from {len(refund_documents)} document(s) "
+            f"and {len(inline_refund_workbooks)} inline workbook(s)", flush=True,
+        )
+    else:
+        print(f"[refunds] {len(records)} row(s) written from {len(refund_documents)} document(s)", flush=True)
+    return len(records)
 
 
 def _norm_invoice_ref_key(value: str) -> str:
@@ -3359,6 +3736,7 @@ def build_ticket_folder_index(evidence_root: Path) -> set[str]:
                 or file_path.stem.lower() in invoice_skip_stems
                 or INVOICE_BASENAME_RE.search(file_path.stem)
                 or NON_EVIDENCE_PDF_RE.search(file_path.stem)
+                or REFUND_DOCUMENT_RE.search(file_path.stem)
             ):
                 continue
             index.update(_reference_tokens_in_text(file_path.stem))
@@ -3445,6 +3823,8 @@ def _should_scan_ticket_body_pdf(
     if INVOICE_BASENAME_RE.search(pdf_path.stem):
         return False
     if NON_EVIDENCE_PDF_RE.search(pdf_path.stem):
+        return False
+    if REFUND_DOCUMENT_RE.search(pdf_path.stem):
         return False
     return True
 
@@ -5422,17 +5802,20 @@ def main():
     direct_ticket_index: set[str] = set()
     bundled_ticket_pdf_map: dict[str, str] = {}
     _ticket_pdf_text_cache: dict[Path, set[str]] = {}
-    for _ticket_root in (
+    evidence_scan_roots = [
         raw_root,
         gdrive_root,
         batch_dir / "gdrive-evidence2",
         ROOT / "archive" / f"raw-{batch_id}",
         VOLUME_BASE / batch_id,
-    ):
+    ]
+    for _ticket_root in evidence_scan_roots:
         direct_ticket_index.update(build_ticket_folder_index(_ticket_root))
         bundled_ticket_pdf_map.update(
             build_bundled_ticket_pdf_map(_ticket_root, _ticket_pdf_text_cache)
         )
+    refund_documents = find_refund_documents(evidence_scan_roots)
+    inline_refund_workbooks = find_inline_refund_workbooks(evidence_scan_roots)
     ticket_folder_index = set(direct_ticket_index)
     ticket_folder_index.update(bundled_ticket_pdf_map)
     print(
@@ -5440,6 +5823,8 @@ def main():
         f"{len(bundled_ticket_pdf_map)} bundled PDF ticket(s) indexed",
         flush=True,
     )
+    if refund_documents:
+        print(f"[refunds] {len(refund_documents)} refund document(s) detected", flush=True)
     invoice_id = args.invoice_id or batch_id
 
     if not batch_dir.exists():
@@ -6670,6 +7055,14 @@ def main():
                   f"with invoice reference", flush=True)
     except Exception as _dp_err:
         print(f"[v30-desc-serial] error prefixing Descriptions: {_dp_err}", flush=True)
+
+    # Refunds are reconciled only after the main sheet has reached its final
+    # account/employee/segment state. With neither separate nor inline refunds,
+    # this is a no-op and the workbook is never opened or saved here.
+    write_refunds_sheet(
+        out_xlsx, refund_documents, hdr_row,
+        inline_refund_workbooks=inline_refund_workbooks,
+    )
 
     # ── stage 6: fraud detection ───────────────────────────────────────────
     fraud_catches: list[dict] = []

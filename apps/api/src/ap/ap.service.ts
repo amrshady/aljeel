@@ -38,13 +38,15 @@ export class ApService {
         ? [...REJECTED_PROCESSED_STATUSES]
         : [...APPROVED_PROCESSED_STATUSES];
 
+    const q = params.q?.trim();
     const where: Prisma.InvoiceWhereInput = {
       status: { in: processedView ? processedStatuses : [...EXCEPTION_STATUSES] },
-      ...(params.q
+      ...(q
         ? {
             OR: [
-              { invoiceNumber: { contains: params.q, mode: 'insensitive' } },
-              { supplier: { legalName: { contains: params.q, mode: 'insensitive' } } },
+              { invoiceNumber: { contains: q, mode: 'insensitive' } },
+              { supplier: { legalName: { contains: q, mode: 'insensitive' } } },
+              { documents: { some: { fileName: { contains: q, mode: 'insensitive' } } } },
             ],
           }
         : {}),

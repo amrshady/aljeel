@@ -12,7 +12,7 @@ import {
 import { Button } from '@aljeel/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { z } from 'zod';
@@ -43,6 +43,8 @@ function InvoiceDetailContent() {
   const t = useTranslations('invoiceDetail');
   const tForm = useTranslations('invoiceForm');
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const fileSearch = searchParams.get('q')?.trim() ?? '';
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isApUser = !!(user && AP_ROLES.has(user.role));
@@ -409,6 +411,7 @@ function InvoiceDetailContent() {
             canRename={canRenameDocs}
             viewable
             compact
+            initialSearch={fileSearch}
             selectedDocumentId={selectedDocumentId}
             onSelectDocument={setSelectedDocumentId}
           />

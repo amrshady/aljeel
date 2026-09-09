@@ -7,6 +7,8 @@ import { mightBeEmailDocument } from '@aljeel/shared-types';
 import { ApiClientError } from '@/lib/api-client';
 import { getDocumentEmailPreview, getDocumentViewUrl } from '@/lib/invoices-api';
 import { EmailPreviewView } from '@/components/email-preview';
+import { SpreadsheetPreviewView } from '@/components/spreadsheet-preview';
+import { isSpreadsheetDocument } from '@/lib/spreadsheet-preview';
 
 function fileExtension(fileName: string): string {
   return fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -38,9 +40,11 @@ export function DocumentEvidenceViewer({
 }: DocumentEvidenceViewerProps) {
   const t = useTranslations('documents');
 
+  const wantsSpreadsheet = isSpreadsheetDocument(mimeType ?? '', fileName ?? '');
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['documents', documentId, 'view'],
-    queryFn: () => getDocumentViewUrl(documentId!),
+    queryKey: ['documents', documentId, 'view', wantsSpreadsheet ? 'bytes' : 'view'],
+    queryFn: () => getDocumentViewUrl(documentId!, { proxy: wantsSpreadsheet }),
     enabled: !!documentId,
     staleTime: 5 * 60 * 1000,
   });
@@ -140,6 +144,17 @@ export function DocumentEvidenceViewer({
           className="max-h-full max-w-full object-contain"
         />
       </div>
+    );
+  }
+
+  if (isSpreadsheetDocument(resolvedMime, resolvedName)) {
+    return (
+      <SpreadsheetPreviewView
+        documentId={documentId}
+        fileName={resolvedName}
+        view={data}
+        className={className}
+      />
     );
   }
 

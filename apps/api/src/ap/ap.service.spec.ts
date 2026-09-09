@@ -224,6 +224,43 @@ describe('ApService', () => {
     );
   });
 
+  it('filters exceptions by batch number, supplier, or document file name', async () => {
+    const prisma = {
+      invoice: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([listRow('UNDER_REVIEW')]),
+      },
+      document: {
+        groupBy: vi.fn().mockResolvedValue([]),
+      },
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    await service.listExceptions({ page: '1', pageSize: '10', q: '  ticket-99  ' });
+
+    expect(prisma.invoice.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: { in: ['UNDER_REVIEW', 'ON_HOLD'] },
+          OR: [
+            { invoiceNumber: { contains: 'ticket-99', mode: 'insensitive' } },
+            { supplier: { legalName: { contains: 'ticket-99', mode: 'insensitive' } } },
+            {
+              documents: {
+                some: { fileName: { contains: 'ticket-99', mode: 'insensitive' } },
+              },
+            },
+          ],
+        },
+      }),
+    );
+  });
+
   it('dispatches reconciliation to both vendor engines after approve', async () => {
     const prisma = underReviewPrisma();
     const service = new ApService(

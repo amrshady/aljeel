@@ -106,10 +106,28 @@ export function downloadInvoiceDocumentsArchive(
   });
 }
 
-export async function getDocumentViewUrl(documentId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+export type DocumentView =
+  | {
+      kind: 'remote';
+      url: string;
+      mimeType: string;
+      fileName: string;
+    }
+  | {
+      kind: 'blob';
+      blob: Blob;
+      mimeType: string;
+      fileName: string;
+    };
 
-  const response = await fetch(`${baseUrl}/documents/${documentId}/content`, {
+export async function getDocumentViewUrl(
+  documentId: string,
+  options: { proxy?: boolean } = {},
+): Promise<DocumentView> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+  const qs = options.proxy ? '?proxy=1' : '';
+
+  const response = await fetch(`${baseUrl}/documents/${documentId}/content${qs}`, {
     credentials: 'include',
   });
 
@@ -122,7 +140,7 @@ export async function getDocumentViewUrl(documentId: string) {
     const data: unknown = await response.json();
     const parsed = DocumentContentUrlSchema.parse(data);
     return {
-      kind: 'remote' as const,
+      kind: 'remote',
       url: parsed.url,
       mimeType: parsed.mimeType,
       fileName: parsed.fileName,
@@ -133,7 +151,7 @@ export async function getDocumentViewUrl(documentId: string) {
   const disposition = response.headers.get('content-disposition') ?? '';
   const match = disposition.match(/filename="([^"]+)"/);
   return {
-    kind: 'blob' as const,
+    kind: 'blob',
     blob,
     mimeType: contentType || 'application/octet-stream',
     fileName: match?.[1] ?? 'document',
@@ -146,6 +164,11 @@ export function getDocumentEmailPreview(documentId: string) {
     schema: EmailPreviewSchema,
     timeoutMs: 60_000,
   });
+}
+
+export function downloadInvoiceDocument(documentId: string, fileName: string) {
+  const baseName = fileName.split(/[\\/]/).pop() || fileName;
+  return downloadFile(`/documents/${documentId}/download`, baseName);
 }
 
 export function downloadEmailAttachment(

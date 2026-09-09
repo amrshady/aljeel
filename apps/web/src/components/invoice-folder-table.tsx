@@ -5,6 +5,7 @@ import { formatBytes } from '@aljeel/kb-upload';
 import { isPlaceholderInvoiceNumber } from '@aljeel/shared-types';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { HighlightText } from '@/components/highlight-text';
 import { Link, useRouter } from '@/i18n/routing';
 
 export type InvoiceFolderRow = {
@@ -42,6 +43,7 @@ type InvoiceFolderTableProps = {
   showStatus?: boolean;
   showSize?: boolean;
   statusNamespace?: 'invoices' | 'apReview';
+  highlightQuery?: string;
   renderActions?: (row: InvoiceFolderRow) => ReactNode;
 };
 
@@ -57,6 +59,7 @@ export function InvoiceFolderTable({
   showStatus = false,
   showSize = true,
   statusNamespace = 'invoices',
+  highlightQuery,
   renderActions,
 }: InvoiceFolderTableProps) {
   const t = useTranslations('invoices');
@@ -83,7 +86,13 @@ export function InvoiceFolderTable({
         <span className="text-lg leading-none" aria-hidden>
           📁
         </span>
-        <span className="truncate">{displayInvoiceName(row.invoiceNumber)}</span>
+        <span className="truncate">
+          {highlightQuery ? (
+            <HighlightText text={displayInvoiceName(row.invoiceNumber)} query={highlightQuery} />
+          ) : (
+            displayInvoiceName(row.invoiceNumber)
+          )}
+        </span>
       </span>
     );
 
@@ -140,7 +149,13 @@ export function InvoiceFolderTable({
             >
               <td className="p-3 text-start">{nameCell(row)}</td>
               {showSupplier && (
-                <td className="p-3 text-start text-muted-foreground">{row.supplierName}</td>
+                <td className="p-3 text-start text-muted-foreground">
+                  {highlightQuery && row.supplierName ? (
+                    <HighlightText text={row.supplierName} query={highlightQuery} />
+                  ) : (
+                    row.supplierName
+                  )}
+                </td>
               )}
               <td className="p-3 text-start text-muted-foreground">
                 {t('fileCount', { count: row.documentCount })}

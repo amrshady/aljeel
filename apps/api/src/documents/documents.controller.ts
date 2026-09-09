@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Res,
   StreamableFile,
   UploadedFile,
@@ -19,7 +20,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { MAX_DOCUMENT_SIZE_BYTES } from '@aljeel/shared-types';
+import { MAX_DOCUMENT_SIZE_BYTES, resolveDocumentMimeType } from '@aljeel/shared-types';
 import { DocumentsService } from './documents.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupplierScoped } from '../auth/guards/tenant.guard';
@@ -153,9 +154,12 @@ export class DocumentsController {
   async content(
     @CurrentUser() user: AuthUser,
     @Param('id') documentId: string,
+    @Query('proxy') proxy: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.documentsService.getForView(user, documentId);
+    const result = await this.documentsService.getForView(user, documentId, {
+      proxy: proxy === '1' || proxy === 'true',
+    });
     if ('viewUrl' in result && result.viewUrl) {
       res.json({
         url: result.viewUrl,
@@ -165,12 +169,16 @@ export class DocumentsController {
       return;
     }
     const { document, stream } = result as {
-      document: { mimeType: string; fileName: string };
+      document: { mimeType: string; fileName: string; sizeBytes?: number };
       stream: NodeJS.ReadableStream;
     };
+    const mimeType = resolveDocumentMimeType(document.fileName, document.mimeType);
     res.set({
-      'Content-Type': document.mimeType,
+      'Content-Type': mimeType,
       'Content-Disposition': `inline; filename="${encodeURIComponent(document.fileName)}"`,
+      ...(document.sizeBytes != null
+        ? { 'Content-Length': String(document.sizeBytes) }
+        : {}),
     });
     stream.pipe(res);
   }

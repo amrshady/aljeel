@@ -42,6 +42,7 @@ interface InvoiceDocumentsProps {
   selectedDocumentId?: string | null;
   onSelectDocument?: (documentId: string) => void;
   compact?: boolean;
+  initialSearch?: string;
 }
 
 function DocumentSkeleton() {
@@ -117,6 +118,7 @@ export function InvoiceDocuments({
   selectedDocumentId,
   onSelectDocument,
   compact = false,
+  initialSearch = '',
 }: InvoiceDocumentsProps) {
   const t = useTranslations('documents');
   const queryClient = useQueryClient();
@@ -124,7 +126,7 @@ export function InvoiceDocuments({
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set());
   const [userToggledFolders, setUserToggledFolders] = useState(false);

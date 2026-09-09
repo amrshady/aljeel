@@ -505,7 +505,11 @@ export class DocumentsService {
     return this.storage.read(document.storageKey.replace(/^local:/, ''), maxBytes);
   }
 
-  async getForView(user: AuthUser, documentId: string) {
+  async getForView(
+    user: AuthUser,
+    documentId: string,
+    options: { proxy?: boolean } = {},
+  ) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { invoice: true },
@@ -516,12 +520,17 @@ export class DocumentsService {
     await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
     this.assertDocumentVisible(user, document);
 
-    if (this.isKbStorageKey(document.storageKey)) {
+    if (this.isKbStorageKey(document.storageKey) && !options.proxy) {
       const url = await this.kb.createPreviewUrl(document.storageKey, {
         fileName: document.fileName,
         mimeType: resolveDocumentMimeType(document.fileName, document.mimeType),
       });
       return { document, viewUrl: url };
+    }
+
+    if (this.isKbStorageKey(document.storageKey)) {
+      const stream = await this.kb.createReadStream(document.storageKey);
+      return { document, stream };
     }
 
     const localKey = document.storageKey.replace(/^local:/, '');

@@ -810,7 +810,10 @@ def load_truth_rows() -> list[dict]:
             "passenger": str(row[4] or ""),
             "route": str(row[5] or ""),
             "service_date": str(row[6] or ""),
-            "amount": row[10],  # Inv. Amt. Incl. VAT
+            "amount_taxable": row[7] if row[7] is not None else "",  # Taxable Amt. (before VAT)
+            "amount_vat": row[9] if row[9] is not None else "",  # VAT Amt.
+            "amount_incl": row[10] if row[10] is not None else "",  # Inv. Amt. Incl. VAT
+            "amount": row[10] if row[10] is not None else "",  # Backward-compatible invoice total
             "description": str(row[29] or "") if len(row) > 29 else "",
             "notes": str(row[12] or "") if len(row) > 12 else "",
             # GROUND TRUTH (kept separate; never shown to LLM)
@@ -929,13 +932,13 @@ def write_output_xlsx(results: list[dict], path: Path):
     
     # Match v15.11.2 format header rows
     ws.append([])  # row 1 blank
-    section = ["ORACLE FUSION TEMPLATE"] + [""] * 15 + ["CODE & DESCRIPTION"] + [""] * 15 + ["LLM AGENT OUTPUT"]
+    section = ["ORACLE FUSION TEMPLATE"] + [""] * 17 + ["CODE & DESCRIPTION"] + [""] * 15 + ["LLM AGENT OUTPUT"]
     ws.append(section)  # row 2
     
     hdr = [
         "*Invoice Header Identifier", "*Business Unit", "*Invoice Number", "*Invoice Currency",
         "*Invoice Amount", "*Invoice Date", "**Supplier", "**Supplier Number", "*Supplier Site",
-        "Invoice Type", "Description", "*Type", "*Amount", "Distribution Combination",
+        "Invoice Type", "Description", "*Type", "*Amount", "VAT Amt.", "Inv. Amt. Incl. VAT", "Distribution Combination",
         "Tax Classification Code", "Employee No",
         "Company", "Location", "Account", "GL", "Cost Center", "Cost Name", "DIV", "Contribution",
         "Solution", "Solution Name", "Agency", "Agency Name", "Project", "Intercompany", "Future 1",
@@ -958,7 +961,7 @@ def write_output_xlsx(results: list[dict], path: Path):
             "شركة جوال للسفر والسياحة المحد", "10394", "شركة جوال للسفر",
             "Standard",
             f"{row.get('passenger','')} - {row.get('route','')}",
-            "Item", row.get("amount", ""),
+            "Item", row.get("amount_taxable", ""), row.get("amount_vat", ""), row.get("amount_incl", ""),
             f"03-40100-{gem.get('account','')}-{gem.get('cost_center','')}-{gem.get('div','')}-{gem.get('solution','')}-{gem.get('agency','')}-00000-00-000000",
             "KSA VAT STANDARD",
             gem.get("emp_no", ""),

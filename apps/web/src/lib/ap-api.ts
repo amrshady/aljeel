@@ -26,6 +26,16 @@ type SolventumJobStatus = {
   error?: string;
 };
 
+function isCreatedSolventumJob(value: unknown): value is { jobId: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'jobId' in value &&
+    typeof value.jobId === 'string' &&
+    value.jobId.length > 0
+  );
+}
+
 async function solventumError(response: Response, fallback: string) {
   const responseText = await response.text().catch(() => '');
   const body = (() => {
@@ -42,7 +52,7 @@ async function solventumError(response: Response, fallback: string) {
   const message = Array.isArray(body?.message)
     ? body.message.join(', ')
     : nestedMessage || body?.message || responseText;
-  return new Error(message || fallback);
+  return new Error(message || `${fallback} (HTTP ${response.status})`);
 }
 
 export async function generateSolventumChargeback(
@@ -59,7 +69,10 @@ export async function generateSolventumChargeback(
   if (!response.ok) {
     throw await solventumError(response, 'Could not start chargeback generation.');
   }
-  const created = (await response.json()) as { jobId: string };
+  const created = (await response.json().catch(() => null)) as unknown;
+  if (!isCreatedSolventumJob(created)) {
+    throw new Error('The server did not return a chargeback job ID.');
+  }
   const deadline = Date.now() + 15 * 60 * 1000;
   let status: SolventumJobStatus;
   while (true) {

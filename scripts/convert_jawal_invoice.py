@@ -294,13 +294,17 @@ def classify_line(line, employees):
 
 
 def derive_tax_classification(line):
-    """Derive Oracle tax code from amount and route geography, never vendor VAT."""
+    """Derive Oracle tax code from vendor VAT, with geography as a fallback."""
     flags = []
     amount = round(_safe_float(line.get("taxable_amt")), 2)
+    vat_pct = _safe_float(line.get("vat_pct"))
+    vat_amt = _safe_float(line.get("vat_amt"))
     route = str(line.get("route") or "").strip()
 
     if amount == 0:
         code = "KSA VAT ZERO"
+    elif vat_pct == 15 or (vat_amt > 0 and amount > 0):
+        code = "KSA VAT STANDARD"
     else:
         is_train = bool(re.search(r"\bTRAIN\b", route, re.IGNORECASE))
         is_flight = bool(re.fullmatch(r"\d{10}", str(line.get("ticket_no") or "").strip()))
@@ -324,7 +328,7 @@ def derive_tax_classification(line):
                 code = "KSA VAT ZERO"
             flags.append("TAX_CODE_NEEDS_REVIEW")
 
-    if (_safe_float(line.get("vat_pct")) == 15) != (code == "KSA VAT STANDARD"):
+    if (vat_pct == 15) != (code == "KSA VAT STANDARD"):
         flags.append("VENDOR_VAT_MISMATCH")
     return code, flags
 

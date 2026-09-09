@@ -120,6 +120,7 @@ class PairingResult:
     missing_employees: int = 0
     extra_employees: int = 0
     ambiguous_groups: int = 0
+    ambiguity_details: list[str] = field(default_factory=list)
     amount_sum_mismatches: int = 0
 
     def merge(self, other: "PairingResult") -> None:
@@ -133,6 +134,7 @@ class PairingResult:
         self.missing_employees += other.missing_employees
         self.extra_employees += other.extra_employees
         self.ambiguous_groups += other.ambiguous_groups
+        self.ambiguity_details.extend(other.ambiguity_details)
         self.amount_sum_mismatches += other.amount_sum_mismatches
 
 
@@ -171,13 +173,6 @@ def discover_columns(path: Path) -> WorkbookLayout:
         raise ValueError(f"Expected one scoring header in {path}, discovered {len(candidates)}")
     ws, header_row, cols = candidates[0]
     profile = "j26-1108" if header_row == 3 and "invoice_ref" in cols and "description" in cols else "j26-640"
-    expected = {
-        "j26-1108": {"description": 11, "amount": 13, "emp_no": 18 if cols["emp_no"] == 18 else 16},
-    }.get(profile)
-    if expected:
-        mismatched = {key: (expected[key], cols.get(key)) for key in expected if cols.get(key) != expected[key]}
-        if mismatched:
-            raise ValueError(f"Unexpected {profile} column indices in {path}: {mismatched}")
     return WorkbookLayout(path, ws.title, header_row, cols, profile)
 
 
@@ -326,6 +321,10 @@ def classify_truth_row(row: TruthRow) -> Literal["sponsorship", "travel"]:
     return "sponsorship" if row.account == "60307021" else "travel"
 
 
+def classify_pipeline_row(row: PipelineRow) -> Literal["sponsorship", "travel"]:
+    return "sponsorship" if row.account == "60307021" else "travel"
+
+
 def _logical_description(row: BaseRow) -> str:
     text = _norm_text(row.description)
     prefixes = (_norm_text(row.opex_serial), _norm_text(_norm_ref(row.invoice_ref)))
@@ -339,7 +338,8 @@ def _logical_description(row: BaseRow) -> str:
 
 
 def sponsorship_group_key(row: BaseRow) -> tuple[str, str, str, str]:
-    return ("sponsorship", _norm_text(row.opex_serial), _logical_description(row), _norm_ref(row.invoice_ref).casefold())
+    serial = re.sub(r"[^0-9a-z]+", "", _norm_text(row.opex_serial))
+    return ("sponsorship", serial, _logical_description(row), _norm_ref(row.invoice_ref).casefold())
 
 
 def _key_text(key: tuple[Any, ...]) -> str:
@@ -471,6 +471,38 @@ def pair_travel_rows(truth_rows: list[TruthRow], pipeline_rows: list[PipelineRow
     return result
 
 
+def _pair_sponsorship_group(
+    key: tuple[Any, ...], truths: list[TruthRow], pipes: list[PipelineRow], method: str
+) -> PairingResult:
+    result = PairingResult()
+    result.multiplicity_counts[_multiplicity(len(truths), len(pipes))] += 1
+    truth_sum = sum((row.amount or Decimal(0)) for row in truths)
+    pipe_sum = sum((row.amount or Decimal(0)) for row in pipes)
+    if truth_sum != pipe_sum:
+        result.amount_sum_mismatches += 1
+    allocations: dict[str, list[PipelineRow]] = defaultdict(list)
+    for pipe in sorted(pipes, key=lambda row: row.excel_row):
+        result.virtual_sponsorship_allocations += len(pipe.employee_set)
+        for employee in sorted(pipe.employee_set):
+            allocations[employee].append(pipe)
+    for truth in sorted(truths, key=lambda row: row.excel_row):
+        matches = allocations.get(truth.emp_no, [])
+        if truth.emp_no and matches:
+            pipe = matches.pop(0)
+            result.pairs.append(PairedRow(key, truth, pipe, "sponsorship", method))
+            result.method_counts[method] += 1
+        else:
+            result.missing_employees += bool(truth.emp_no)
+            result.pairs.append(PairedRow(key, truth, pipes[0], "sponsorship", "missing-employee"))
+            result.method_counts["missing-employee"] += 1
+    result.extra_employees += sum(len(rows) for rows in allocations.values())
+    return result
+
+
+def _fallback_signature(row: BaseRow) -> tuple[str, str]:
+    return (_norm_ref(row.invoice_ref).casefold(), _logical_description(row))
+
+
 def pair_sponsorship_rows(truth_rows: list[TruthRow], pipeline_rows: list[PipelineRow]) -> PairingResult:
     result = PairingResult()
     truth_groups: dict[tuple[str, str, str, str], list[TruthRow]] = defaultdict(list)
@@ -479,48 +511,78 @@ def pair_sponsorship_rows(truth_rows: list[TruthRow], pipeline_rows: list[Pipeli
         truth_groups[sponsorship_group_key(row)].append(row)
     for row in pipeline_rows:
         pipe_groups[sponsorship_group_key(row)].append(row)
+    remaining_truth: list[TruthRow] = []
+    remaining_pipe: list[PipelineRow] = []
     for key in sorted(set(truth_groups) | set(pipe_groups), key=_key_text):
         truths, pipes = truth_groups.get(key, []), pipe_groups.get(key, [])
         if not truths:
-            result.pipeline_only_groups.append(_key_text(key))
+            remaining_pipe.extend(pipes)
             continue
         if not pipes:
-            result.truth_only_groups.append(_key_text(key))
-            result.missing_employees += sum(bool(row.emp_no) for row in truths)
-            result.pairs.extend(PairedRow(key, truth, None, "sponsorship", "unmatched-truth") for truth in truths)
+            remaining_truth.extend(truths)
             continue
-        result.multiplicity_counts[_multiplicity(len(truths), len(pipes))] += 1
-        truth_sum = sum((row.amount or Decimal(0)) for row in truths)
-        pipe_sum = sum((row.amount or Decimal(0)) for row in pipes)
-        if truth_sum != pipe_sum:
-            result.amount_sum_mismatches += 1
-        allocations: dict[str, list[PipelineRow]] = defaultdict(list)
-        for pipe in sorted(pipes, key=lambda row: row.excel_row):
-            result.virtual_sponsorship_allocations += len(pipe.employee_set)
-            for employee in sorted(pipe.employee_set):
-                allocations[employee].append(pipe)
-        for truth in sorted(truths, key=lambda row: row.excel_row):
-            matches = allocations.get(truth.emp_no, [])
-            if truth.emp_no and matches:
-                pipe = matches.pop(0)
-                result.pairs.append(PairedRow(key, truth, pipe, "sponsorship", "virtual-employee"))
-                result.method_counts["virtual-employee"] += 1
-            else:
-                result.missing_employees += bool(truth.emp_no)
-                result.pairs.append(PairedRow(key, truth, None if not pipes else pipes[0], "sponsorship", "missing-employee"))
-                result.method_counts["missing-employee"] += 1
-        extras = sum(len(rows) for rows in allocations.values())
-        result.extra_employees += extras
+        result.merge(_pair_sponsorship_group(key, truths, pipes, "virtual-employee"))
+
+    truth_ids: dict[str, list[TruthRow]] = defaultdict(list)
+    pipe_ids: dict[str, list[PipelineRow]] = defaultdict(list)
+    for row in remaining_truth:
+        if row.identifier:
+            truth_ids[row.identifier].append(row)
+    for row in remaining_pipe:
+        if row.identifier:
+            pipe_ids[row.identifier].append(row)
+    claimed_truth: set[int] = set()
+    claimed_pipe: set[int] = set()
+    for identifier in sorted(set(truth_ids) & set(pipe_ids)):
+        truths, pipes = truth_ids[identifier], pipe_ids[identifier]
+        truth_signatures = {_fallback_signature(row) for row in truths}
+        pipe_signatures = {_fallback_signature(row) for row in pipes}
+        if len(truth_signatures) > 1 and len(pipe_signatures) > 1:
+            disambiguated = False
+            for signature_index, label in ((0, "invoice-ref"), (1, "description")):
+                truth_parts: dict[str, list[TruthRow]] = defaultdict(list)
+                pipe_parts: dict[str, list[PipelineRow]] = defaultdict(list)
+                for row in truths:
+                    truth_parts[_fallback_signature(row)[signature_index]].append(row)
+                for row in pipes:
+                    pipe_parts[_fallback_signature(row)[signature_index]].append(row)
+                if "" in truth_parts or "" in pipe_parts or set(truth_parts) != set(pipe_parts):
+                    continue
+                for value in sorted(truth_parts):
+                    key = ("sponsorship-fallback", identifier, label, value)
+                    result.merge(_pair_sponsorship_group(key, truth_parts[value], pipe_parts[value], "stable-identifier"))
+                claimed_truth.update(row.excel_row for row in truths)
+                claimed_pipe.update(row.excel_row for row in pipes)
+                disambiguated = True
+                break
+            if not disambiguated:
+                detail = f"sponsorship-ambiguous|{identifier}|truth_rows={len(truths)}|pipeline_rows={len(pipes)}"
+                result.ambiguous_groups += 1
+                result.ambiguity_details.append(detail)
+            continue
+        key = ("sponsorship-fallback", identifier)
+        result.merge(_pair_sponsorship_group(key, truths, pipes, "stable-identifier"))
+        claimed_truth.update(row.excel_row for row in truths)
+        claimed_pipe.update(row.excel_row for row in pipes)
+
+    for truth in remaining_truth:
+        if truth.excel_row not in claimed_truth:
+            key = sponsorship_group_key(truth)
+            result.truth_only_groups.append(_key_text(key))
+            result.missing_employees += bool(truth.emp_no)
+            result.pairs.append(PairedRow(key, truth, None, "sponsorship", "unmatched-truth"))
+    for pipe in remaining_pipe:
+        if pipe.excel_row not in claimed_pipe:
+            result.pipeline_only_groups.append(_key_text(sponsorship_group_key(pipe)))
+            result.pairs.append(PairedRow(sponsorship_group_key(pipe), None, pipe, "sponsorship", "unmatched-pipeline"))
     return result
 
 
 def pair_rows_by_policy(truth_rows: list[TruthRow], pipeline_rows: list[PipelineRow]) -> PairingResult:
     sponsorship_truth = [row for row in truth_rows if classify_truth_row(row) == "sponsorship"]
     travel_truth = [row for row in truth_rows if classify_truth_row(row) == "travel"]
-    sponsorship_keys = {sponsorship_group_key(row) for row in sponsorship_truth}
-    sponsorship_pipe = [row for row in pipeline_rows if sponsorship_group_key(row) in sponsorship_keys]
-    sponsorship_pipe_ids = {id(row) for row in sponsorship_pipe}
-    travel_pipe = [row for row in pipeline_rows if id(row) not in sponsorship_pipe_ids]
+    sponsorship_pipe = [row for row in pipeline_rows if classify_pipeline_row(row) == "sponsorship"]
+    travel_pipe = [row for row in pipeline_rows if classify_pipeline_row(row) == "travel"]
     result = pair_sponsorship_rows(sponsorship_truth, sponsorship_pipe)
     result.merge(pair_travel_rows(travel_truth, travel_pipe))
     return result
@@ -602,6 +664,9 @@ def score_pairs(pairing: PairingResult) -> dict[str, object]:
         if len(diffs) == 1:
             off_by_1[diffs[0]] += 1
     truth_rows = sum(pair.truth is not None for pair in pairing.pairs)
+    unmatched_truth_physical_rows = sum(
+        pair.truth is not None and pair.pipeline is None for pair in pairing.pairs
+    )
     end_to_end = {
         "denominator": truth_rows,
         "full5": full5,
@@ -628,7 +693,9 @@ def score_pairs(pairing: PairingResult) -> dict[str, object]:
             "missing_employees": pairing.missing_employees,
             "extra_employees": pairing.extra_employees,
             "ambiguous_groups": pairing.ambiguous_groups,
+            "ambiguous_group_details": sorted(set(pairing.ambiguity_details)),
             "amount_sum_mismatches": pairing.amount_sum_mismatches,
+            "unmatched_truth_physical_rows": unmatched_truth_physical_rows,
         },
         "only_truth_tickets": sorted(set(pairing.truth_only_groups)),
         "only_pipe_tickets": sorted(set(pairing.pipeline_only_groups)),

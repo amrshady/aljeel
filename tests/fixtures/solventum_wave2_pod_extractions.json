@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "notes": "Reviewed offline Wave 2 fixture. Non-focal TRXs retain all POD-backed Sales lines because their clerk and Sales counts agree. TRX 2600015875 contains its six hand-verified delivered lines.",
+  "extractions": {
+    "2600014042": {"retain_all_sales": true, "lines": []},
+    "2600015471": {"retain_all_sales": true, "lines": []},
+    "2600015669": {"retain_all_sales": true, "lines": []},
+    "2600015875": {
+      "document_references": ["PO 4600162237", "supplier reference 260009137"],
+      "confidence": 1.0,
+      "lines": [
+        {"manufacturer_code": "1470A2", "description": "FILTEK Z250 XT UNIVERSAL RESTORATIVE 1470A2", "delivered_quantity": 30, "uom": "Bag-1", "source_page": 1, "confidence": 1.0},
+        {"manufacturer_code": "1470A1", "description": "FILTEK Z250 XT UNIVERSAL RESTORATIVE 1470A1", "delivered_quantity": 20, "uom": "Bag-1", "source_page": 1, "confidence": 1.0},
+        {"manufacturer_code": "1470A3", "description": "FILTEK Z250 XT UNIVERSAL RESTORATIVE 1470A3", "delivered_quantity": 60, "uom": "Bag-1", "source_page": 1, "confidence": 1.0},
+        {"manufacturer_code": "1954", "description": "SOF-LEX 1954 FINISHING STRIPS", "delivered_quantity": 20, "uom": "Box-1", "pack_size": 100, "source_page": 1, "confidence": 1.0},
+        {"catalog_code": "56921", "manufacturer_code": "56921KIT", "description": "LIGHT CURE LUTING COMP KIT 56921 ", "lot": "0012625407-7020140871", "delivered_quantity": 5, "uom": "kit-1", "source_page": 1, "confidence": 1.0},
+        {"manufacturer_code": "1470B2", "description": "FILTEK Z250 XT UNIVERSAL RESTORATIVE 1470B2", "delivered_quantity": 30, "uom": "Bag-1", "source_page": 1, "confidence": 1.0}
+      ]
+    },
+    "2600015947": {"retain_all_sales": true, "lines": []},
+    "2600015963": {"retain_all_sales": true, "lines": []},
+    "2600015965": {"retain_all_sales": true, "lines": []},
+    "2600015967": {"retain_all_sales": true, "lines": []},
+    "2600015968": {"retain_all_sales": true, "lines": []},
+    "2600016032": {"retain_all_sales": true, "lines": []},
+    "2600016033": {"retain_all_sales": true, "lines": []},
+    "2600016255": {"retain_all_sales": true, "lines": []},
+    "2600016282": {"retain_all_sales": true, "lines": []},
+    "2600016310": {"retain_all_sales": true, "lines": []},
+    "2600016384": {"retain_all_sales": true, "lines": []},
+    "2600016541": {"retain_all_sales": true, "lines": []},
+    "2600016577": {"retain_all_sales": true, "lines": []},
+    "2600016659": {"retain_all_sales": true, "lines": []},
+    "2600016726": {"retain_all_sales": true, "lines": []},
+    "2600016855": {"retain_all_sales": true, "lines": []},
+    "2600016942": {"retain_all_sales": true, "lines": []},
+    "2600017290": {"retain_all_sales": true, "lines": []},
+    "2600017291": {"retain_all_sales": true, "lines": []},
+    "2600017490": {"retain_all_sales": true, "lines": []}
+  }
+}

@@ -205,13 +205,30 @@ def extract_pdf_text(path: Path) -> str:
 
 _DATE_LAYER_RE = re.compile(r"^\d{2}[a-z]{3}$", re.IGNORECASE)
 _EVIDENCE_SUFFIXES = {".msg", ".pdf", ".eml"}
+_OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+_TRUNCATED_MSG_SUFFIXES = {"", ".m", ".ms"}
 _MERGED_EVIDENCE_FOLDERS: dict[str, list[Path]] = {}
+
+
+def is_outlook_message(path: Path) -> bool:
+    """Accept normal .msg files and signature-confirmed truncated .msg names."""
+    suffix = path.suffix.lower()
+    if suffix == ".msg":
+        return True
+    if suffix not in _TRUNCATED_MSG_SUFFIXES or not path.is_file():
+        return False
+    try:
+        with path.open("rb") as stream:
+            return stream.read(len(_OLE2_MAGIC)) == _OLE2_MAGIC
+    except OSError:
+        return False
 
 
 def _has_direct_evidence_files(folder: Path) -> bool:
     try:
         return any(
-            child.is_file() and child.suffix.lower() in _EVIDENCE_SUFFIXES
+            child.is_file()
+            and (child.suffix.lower() in _EVIDENCE_SUFFIXES or is_outlook_message(child))
             for child in folder.iterdir()
         )
     except OSError:
@@ -370,19 +387,20 @@ def collect_evidence(folder: Path) -> dict:
         out["files"].append(child.name)
         if child.is_file():
             n = child.name.lower()
-            if n.endswith(".msg"):
+            if is_outlook_message(child):
                 try:
                     parsed = parse_msg(child)
+                    body = parsed.get("body_text", parsed.get("body", ""))
                     out["msgs"].append({
                         "filename": child.name,
                         "subject": parsed.get("subject", ""),
-                        "from": parsed.get("from", ""),
+                        "from": parsed.get("sender", parsed.get("from", "")),
                         "to": parsed.get("to", ""),
                         "cc": parsed.get("cc", ""),
-                        "date": parsed.get("date", ""),
-                        "body": parsed.get("body", ""),
+                        "date": parsed.get("received_at", parsed.get("date", "")),
+                        "body": body,
                     })
-                    out["total_chars"] += len(parsed.get("body", "") or "")
+                    out["total_chars"] += len(body or "")
                 except Exception as e:
                     out["msgs"].append({"filename": child.name, "error": str(e)})
             elif n.endswith(".pdf"):

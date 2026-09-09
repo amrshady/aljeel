@@ -38,7 +38,7 @@ OUT_DIR = SAMPLE_ROOT / "_poc_out"
 RENDER_DIR = OUT_DIR / "_rendered"
 CACHE_DIR = OUT_DIR / "_cache"
 SO_DETAIL_CACHE_DIR = ROOT / "state" / "so_detail_cache"
-SO_DETAIL_CACHE_VERSION = 2
+SO_DETAIL_CACHE_VERSION = 3
 MASTER_XLSX = ROOT / "qc/master-data/Aljeel_Lookups-v2.xlsx"
 JAWAL_TEMPLATE_XLSX = ROOT / "batches/jawal-J26-640/output/Spreadsheet-J26-640-FILLED-v30.xlsx"
 ENTRY_FILES = [
@@ -55,7 +55,7 @@ GL_ACCOUNT = "61500027"
 GL_FALLBACK_DESC = "Transportation/Freight Expense"
 COMPANY = "03"
 DEFAULT_LOCATION = "20100"
-WAREHOUSE_DISTRIBUTION_COMBINATION = "03-40100-61500027-140040-190-00000-10200-00000-00-000000"
+WAREHOUSE_DISTRIBUTION_COMBINATION = "03-20100-61500027-140040-190-00000-10200-00000-00-000000"
 SUPPLIER_NAME = "شركة اساطيل الطريق للنقل البري"
 BUSINESS_UNIT = "Al Jeel Medical BU"
 GEMINI_BASE_URL = os.environ.get(
@@ -1332,7 +1332,7 @@ def _canonical_jq(raw: Any, *, allow_bare: bool = True) -> str:
     m = re.search(r"\bJQ\s*-\s*(\d+)(?=\b|_)", text)
     if m:
         return f"JQ-{m.group(1).zfill(8)}"
-    if allow_bare and re.fullmatch(r"\d{1,8}", text):
+    if allow_bare and re.fullmatch(r"\d{1,9}", text):
         return f"JQ-{text.zfill(8)}"
     return ""
 
@@ -1352,8 +1352,12 @@ def _split_jqs(raw: Any, *, allow_bare: bool = True) -> list[str]:
         if jq not in seen:
             seen.add(jq)
             out.append(jq)
-    if allow_bare and not out and re.fullmatch(r"\d{1,8}", text):
-        out.append(f"JQ-{text.zfill(8)}")
+    if allow_bare and not out and re.fullmatch(r"\d{1,9}(?:\s+\d{1,9})*", text):
+        for token in text.split():
+            jq = f"JQ-{token.zfill(8)}"
+            if jq not in seen:
+                seen.add(jq)
+                out.append(jq)
     return out
 
 

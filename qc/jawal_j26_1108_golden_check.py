@@ -114,7 +114,11 @@ def _validate_invariants(snapshot: dict[str, Any]) -> list[str]:
         "ticketless_truth_rows": 1,
     }
     errors = [f"structure.{key}: required={value!r} actual={structure.get(key)!r}" for key, value in required.items() if structure.get(key) != value]
-    if snapshot["logical_virtual_evaluated"] + len(snapshot["truth_only_logical_groups"]) < 102:
+    covered_truth_rows = (
+        snapshot["logical_virtual_evaluated"]
+        + snapshot["pairing_integrity"]["unmatched_truth_physical_rows"]
+    )
+    if covered_truth_rows < structure["truth_physical_rows"]:
         errors.append("truth coverage: one or more truth rows were silently skipped")
     return errors
 

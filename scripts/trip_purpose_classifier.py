@@ -49,12 +49,14 @@ BUSINESS_TRIP_GOALS = {
     "tender", "project", "installation", "service call", "inspection",
     "meeting", "delivery", "provide training", "site visit", "commissioning",
     "providing training", "deliver training", "delivering training",
+    "conduct training", "conducting training", "trainer",
     "handover", "warranty", "after sales", "demo", "presentation",
     "attending conferences & exhibitions",
 }
 
 BUSINESS_TRAINING_GOALS = {
     "provide training", "providing training", "deliver training", "delivering training",
+    "conduct training", "conducting training", "trainer",
 }
 
 # Trip Goals that are unambiguously PERSONAL/VACATION
@@ -84,7 +86,20 @@ def _matches_business_trip_goal(text: str) -> bool:
 def _matches_business_training_goal(text: str) -> bool:
     """Return True when training means providing it to a customer."""
     text_lower = (text or "").lower()
-    return bool(text_lower) and any(bg in text_lower or text_lower in bg for bg in BUSINESS_TRAINING_GOALS)
+    return bool(text_lower) and any(bg in text_lower for bg in BUSINESS_TRAINING_GOALS)
+
+
+def _matches_take_training_goal(text: str) -> bool:
+    """Return True only for positive receive/attend-training evidence."""
+    text_lower = (text or "").lower()
+    if not text_lower or _matches_business_training_goal(text_lower):
+        return False
+    return bool(
+        re.search(r"\btraining\b", text_lower)
+        or re.search(r"\b(?:attend|take|receive)\w*\b.*\b(?:course|certification)\b", text_lower)
+        or re.search(r"\b(?:course|certification)\s+attendance\b", text_lower)
+        or re.search(r"\bto\s+be\s+trained\b", text_lower)
+    )
 
 
 @dataclass
@@ -148,10 +163,7 @@ def classify_trip(
             trace_parts.append(f"award_name='{award_name}' → BUSINESS_TRIP")
 
             # If trip goal explicitly says training, override award to TRAINING
-            if (
-                any(kw in trip_goal_lower for kw in ("training", "attend training"))
-                and not _matches_business_training_goal(trip_goal_lower)
-            ):
+            if _matches_take_training_goal(trip_goal_lower):
                 signals.append("form_trip_goal_training_override")
                 purpose = "TRAINING"
                 confidence = 0.92
@@ -173,7 +185,10 @@ def classify_trip(
             trace_parts.append(f"award_name='{award_name}' → RECRUITMENT")
 
         # 1e. Award means providing training to a customer → BUSINESS_TRIP
-        elif _matches_business_training_goal(award_lower):
+        elif (
+            _matches_business_training_goal(award_lower)
+            or _matches_business_training_goal(trip_goal_lower)
+        ):
             signals.append(f"form_award_business_goal:{award_lower[:40]}")
             purpose = "BUSINESS_TRIP"
             confidence = 0.85
@@ -201,7 +216,7 @@ def classify_trip(
             trace_parts.append(f"trip_goal='{trip_goal}' → BUSINESS_TRIP")
 
         # 1i. Trip Goal = Training and no award classification yet
-        elif trip_goal_lower and any(kw in trip_goal_lower for kw in ("training", "attend training")):
+        elif trip_goal_lower and _matches_take_training_goal(trip_goal_lower):
             signals.append("form_trip_goal_training")
             purpose = "TRAINING"
             confidence = 0.85
@@ -280,7 +295,7 @@ def classify_trip(
             trace_parts.append("subject has providing-training marker → BUSINESS_TRIP")
 
         # 2f. Training
-        elif re.search(r"(training|course|certification)", subj_lower) and not _matches_business_training_goal(subj_lower):
+        elif _matches_take_training_goal(subj_lower):
             signals.append("subject_training")
             purpose = "TRAINING"
             confidence = 0.85

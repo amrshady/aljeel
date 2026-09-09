@@ -97,15 +97,24 @@ def _iter_evidence_files(folder: Path):
 #   "RE_ Approved_ Personal Contribution Approval Requested for
 #    Yasir Mohamed Hussein (1000160) on 2026-03-25 by Yasir Mohamed Hussein.msg"
 # Body is always empty — filename IS the full signal.
-_PC_EMP_RE = re.compile(r"\(\s*(\d{6,7})\s*\)")
+_PC_EMP_RE = re.compile(r"(?:\(\s*(\d{6,7})\s*\)|_(\d{6,7})_)")
 _PC_SIGNAL  = "personal contribution"
+
+
+def _is_outlook_message(path: Path) -> bool:
+    checker = getattr(fea, "is_outlook_message", None)
+    return checker(path) if checker else path.suffix.lower() == ".msg"
+
+
+def _pc_emp_no(text: str) -> str:
+    match = _PC_EMP_RE.search(text or "")
+    return next((group for group in match.groups() if group), "") if match else ""
 
 
 def build_personal_contribution_index(all_folders: list[Path]) -> dict[str, dict]:
     """
     Return {folder_path_str: {"emp_no": "1000160", "name": "Yasir Mohamed Hussein"}}
-    by scanning every .msg filename across all evidence folders.
-    Pure file-system scan — no body reading, no API calls.
+    by scanning Outlook messages across all evidence folders.
     """
     index: dict[str, dict] = {}
     for folder in all_folders:
@@ -113,19 +122,26 @@ def build_personal_contribution_index(all_folders: list[Path]) -> dict[str, dict
             continue
         try:
             for child in _iter_evidence_files(folder):
-                if child.suffix.lower() != ".msg":
+                if not _is_outlook_message(child):
                     continue
                 fname = child.name
-                if _PC_SIGNAL not in fname.lower():
+                parsed_text = ""
+                if _PC_SIGNAL not in fname.lower() or not _pc_emp_no(fname):
+                    try:
+                        parsed = fea.parse_msg(child)
+                        parsed_text = " ".join(str(parsed.get(key, "") or "") for key in (
+                            "subject", "body", "body_text"
+                        ))
+                    except Exception:
+                        parsed_text = ""
+                if _PC_SIGNAL not in (fname + " " + parsed_text).lower():
                     continue
-                # Extract emp_no: "... for Full Name (1000160) on ..."
-                m = _PC_EMP_RE.search(fname)
-                emp_no = m.group(1).strip() if m else ""
-                # Extract name: between "for " and " (EMP_NO)"
+                emp_no = _pc_emp_no(fname) or _pc_emp_no(parsed_text)
+                # Extract name between "for " and either supported emp-no form.
                 name = ""
-                fm = re.search(r"for\s+(.+?)\s*\(", fname)
+                fm = re.search(r"for[\s_]+(.+?)(?:\s*\(|_)(?:\d{6,7})(?:\s*\)|_)", fname, re.I)
                 if fm:
-                    name = fm.group(1).strip()
+                    name = re.sub(r"_+", " ", fm.group(1)).strip()
                 if folder_str := str(folder):
                     # One folder can have multiple personal contribution forms;
                     # keep the first one found (they're all for the same trip).
@@ -177,14 +193,11 @@ def build_reverse_folder_index(all_folders: list[Path]) -> dict[str, Path]:
                 # the safe source for passenger→folder mapping.
 
                 # ── 3. Ticket refs in .msg subject lines ──────────────────
-                if child.suffix.lower() == ".msg":
+                if _is_outlook_message(child):
                     try:
-                        raw = child.read_bytes()[:4096].decode("utf-8", errors="replace")
-                        for line in raw.splitlines()[:40]:
-                            if "subject" in line.lower()[:20]:
-                                for m in _TICKET_26_RE.finditer(line):
-                                    ticket_index.setdefault(m.group(1), folder)
-                                break
+                        subject = str(fea.parse_msg(child).get("subject", "") or "")
+                        for m in _TICKET_26_RE.finditer(subject):
+                            ticket_index.setdefault(m.group(1), folder)
                     except Exception:
                         pass
         except PermissionError:
@@ -312,7 +325,7 @@ def _folder_has_pc_email(folder: Path | None) -> bool:
         return False
     try:
         return any(
-            child.suffix.lower() == ".msg" and "personal contribution" in child.name.lower()
+            _is_outlook_message(child) and "personal contribution" in child.name.lower()
             for child in _iter_evidence_files(folder)
         )
     except PermissionError:

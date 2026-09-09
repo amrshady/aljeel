@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "description_aliases": [
+    {
+      "id": "alias-celluloid-soflex-to-1954",
+      "aliases": ["CELLULOID", "SOF-LEX POLISHING DISC", "SOFLEX POLISHING DISC"],
+      "catalog_code": "1954",
+      "manufacturer_code": "1954",
+      "provenance": "Wave 2 clerk-verified mapping for the POD polishing/celluloid line; controlled catalog review 2026-08-17."
+    }
+  ],
+  "catalog_pack_rules": [
+    {
+      "id": "pack-1954-box-100",
+      "catalog_code": "1954",
+      "factor": 100,
+      "output_uom": "Box-1",
+      "provenance": "Solventum catalog packaging: catalog 1954 is reconciled in 100-piece packs; Wave 2 clerk result confirms 20 x 100 = 2000."
+    }
+  ],
+  "uom_pack_patterns": [
+    {
+      "id": "generic-box-n",
+      "pattern": "Box-(\\d+(?:\\.\\d+)?)",
+      "factor_group": 1,
+      "provenance": "Generic base-unit normalization encoded by an explicit Box-N UOM."
+    },
+    {
+      "id": "generic-bag-n",
+      "pattern": "Bag-(\\d+(?:\\.\\d+)?)",
+      "factor_group": 1,
+      "provenance": "Generic base-unit normalization encoded by an explicit Bag-N UOM."
+    }
+  ],
+  "identity_exceptions": [
+    {
+      "id": "identity-4870a2-lot-to-56921kit",
+      "source_codes": ["56921", "56921KIT"],
+      "match_sales_codes": ["4870A2"],
+      "sales_lot_anchor": "0012625407-7020140871",
+      "output_catalog_code": "56921",
+      "output_manufacturer_code": "56921KIT",
+      "output_uom": "kit-1",
+      "provenance": "Wave 2 clerk-verified lot-anchored substitution: Sales 4870A2 lot 0012625407-7020140871 corresponds to delivered 56921 kit, quantity 5."
+    }
+  ],
+  "fallback_warning_patterns": [
+    {
+      "id": "fallback-contradictory-missing-delivery-line",
+      "pattern": "not present on (?:the )?(?:NUPCO )?(?:inventory )?receipt",
+      "provenance": "A source packet explicitly reporting that a candidate delivery line is absent from one receipt but present on another delivery artifact is not safe for strict one-to-one filtering; retain the TRX Sales lines for review."
+    }
+  ]
+}

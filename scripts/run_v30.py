@@ -582,7 +582,9 @@ def _parse_own_approved_form(folder: Path | None) -> tuple[dict | None, str, str
     except Exception:
         return None, "", ""
 
-    for msg in sorted(folder.glob("*.msg")):
+    for msg in sorted(fea.iter_evidence_files(folder)):
+        if not fea.is_outlook_message(msg):
+            continue
         parsed = parse_msg(msg, use_cache=True)
         if parsed.get("parse_method") == "failed":
             continue
@@ -617,6 +619,8 @@ def apply_own_form_trip_purpose_precedence(
     cascade_rows: list[dict],
     manpower: dict,
     all_folders: list[Path],
+    business_goal_only: bool = False,
+    take_training_only: bool = False,
 ) -> int:
     """Rows with their own approved form keep that form's trip-purpose account."""
     try:
@@ -657,6 +661,29 @@ def apply_own_form_trip_purpose_precedence(
         if not override or trip_cls.confidence < 0.7:
             continue
 
+        # A positive business Trip Goal in the approved form is authoritative.
+        # "Personal Contribution" in the surrounding Workday email is the
+        # module/approval name, not a reason to route an annual ticket.
+        business_goal_signal = (
+            trip_cls.trip_purpose == "BUSINESS_TRIP"
+            and any(
+                str(signal).startswith("form_trip_goal_business")
+                for signal in trip_cls.signals_used
+            )
+        )
+        take_training_signal = (
+            trip_cls.trip_purpose == "TRAINING"
+            and override == "60308009"
+            and any(
+                str(signal).startswith(("form_trip_goal_training", "form_award_training"))
+                for signal in trip_cls.signals_used
+            )
+        )
+        if business_goal_only and not business_goal_signal:
+            continue
+        if take_training_only and not take_training_signal:
+            continue
+
         old_account = str(h.get("account", "") or "").strip()
         if form_emp and rec:
             h["emp_no"] = form_emp
@@ -672,6 +699,10 @@ def apply_own_form_trip_purpose_precedence(
             "account_override": override,
             "folder": str(folder) if folder else "",
         }
+        if business_goal_signal:
+            h["_business_trip_goal_precedence"] = True
+        if take_training_signal:
+            h["_take_training_precedence"] = True
         h["_flags"] = (
             str(h.get("_flags", "") or "") + " OWN_FORM_TRIP_PURPOSE_PRECEDENCE"
         ).strip()
@@ -1454,6 +1485,16 @@ def _sponsorship_event_folder_for_row(
             # mismatch, not to move common names (for example Khaled) between
             # distinct CRM events.
             if invoice_serial and not invoice_serial.startswith("SIS-"):
+                expected_key = _canonical_event_serial(invoice_serial)
+                existing_key = _canonical_event_serial(str(p))
+                if existing_key == expected_key and _find_opex_pdfs(p):
+                    return p
+                event_pdfs = _build_opex_event_pdf_index(all_folders).get(
+                    expected_key, []
+                )
+                if event_pdfs:
+                    row["_sponsorship_folder_status"] = "NORMALIZED_EVENT_SERIAL"
+                    return _opex_owner_folder(event_pdfs[0])
                 return p
             participant_folder, participant_status = _event_folder_by_participant(
                 cascade_row, all_folders
@@ -2051,26 +2092,56 @@ def _build_sponsoring_form_folder_index(
 ) -> dict[str, Path]:
     """Index raw OPEX folders whose form contains a parsed allocation table."""
     index = {}
-    for dirpath, subdirs, filenames in os.walk(raw_root):
-        folder = Path(dirpath)
-        if re.match(r"^\d{10}", folder.name):
-            subdirs.clear()
+    for pdf_path in _find_opex_pdfs(raw_root):
+        folder = pdf_path.parent
+        try:
+            relative_parents = folder.relative_to(raw_root).parents
+        except ValueError:
             continue
-        for filename in filenames:
-            if not re.match(r"OPEX-.*\.pdf", filename, re.IGNORECASE):
-                continue
-            pdf_path = folder / filename
-            _salesmen, allocations = _extract_sponsorship_allocations_from_opex_pdf(
-                pdf_path, manpower
-            )
-            if allocations and any(
-                item.get("emp_no") and str(item.get("amount", "") or "").strip()
-                for item in allocations
-            ):
-                event_key = _opex_pdf_event_key(pdf_path)
-                if event_key:
-                    index.setdefault(event_key, folder)
+        if re.match(r"^\d{10}", folder.name) or any(
+            re.match(r"^\d{10}", parent.name) for parent in relative_parents
+        ):
+            continue
+        _salesmen, allocations = _extract_sponsorship_allocations_from_opex_pdf(
+            pdf_path, manpower
+        )
+        if allocations and any(
+            item.get("emp_no") and str(item.get("amount", "") or "").strip()
+            for item in allocations
+        ):
+            event_key = _opex_pdf_event_key(pdf_path)
+            if event_key:
+                index.setdefault(event_key, folder)
     return index
+
+
+def _apply_authoritative_sponsoring_form_promotions(
+    hybrid_rows: list[dict], cascade_rows: list[dict]
+) -> int:
+    """Promote exact-ref rows backed by an indexed, allocation-bearing form."""
+    promoted = 0
+    for row, cascade_row in zip(hybrid_rows, cascade_rows):
+        folder_str = str(row.get("_sponsoring_form_folder", "") or "").strip()
+        if not folder_str or row_missing_evidence(row) or row_verified_emp_locked(row):
+            continue
+        invoice_key = _canonical_event_serial(_row_invoice_ref_no(cascade_row))
+        form_key = str(row.get("_sponsoring_form_event_key", "") or "").strip()
+        if not form_key:
+            form_key = _canonical_event_serial(folder_str)
+        if not invoice_key or invoice_key != form_key:
+            continue
+
+        row["account"] = "60307021"
+        row["emp_no"] = ""
+        # Ordinary-travel location is not valid after promotion. Leaving it
+        # blank sends it through the existing requester/manpower sponsorship
+        # location fallback after the allocation employee is populated.
+        row["location"] = ""
+        row["_evidence_folder"] = folder_str
+        row["_agent_method"] = "v30_authoritative_sponsoring_form"
+        row["_route_reason"] = "EXACT_SPONSORING_FORM_REF"
+        promoted += 1
+    return promoted
 
 
 _SHARED_OPEX_PDF_CACHE: dict[str, list[Path]] = {}
@@ -3375,7 +3446,7 @@ def build_invoice_ref_folder_index(all_folders: list[Path]) -> dict:
         try:
             for child in fea.iter_evidence_files(folder):
                 filename_hint_parts.append(child.name)
-                if child.suffix.lower() not in {".msg", ".pdf"}:
+                if not (fea.is_outlook_message(child) or child.suffix.lower() == ".pdf"):
                     continue
                 fname_l = child.name.casefold()
                 hint_parts.append(child.name)
@@ -4495,6 +4566,8 @@ def apply_sibling_leg_trip_purpose_inheritance(
                     "Trip Account Override": host_account,
                     "Trip Purpose Trace": trace,
                 }
+                if host_h.get("_business_trip_goal_precedence"):
+                    sib_h["_business_trip_goal_precedence"] = True
                 inherited += 1
                 print(
                     f"  [sibling-trip-inherit] row {sib_i+1}: ticket {sibling_ticket} "
@@ -4716,6 +4789,8 @@ def collect_family_annual_rows(
         for i, c in enumerate(cascade_rows):
             if row_missing_evidence(hybrid_rows[i]):
                 continue
+            if hybrid_rows[i].get("_business_trip_goal_precedence"):
+                continue
             ticket = _row_ticket_no(c)
             owner = ticket if ticket in family_owner_map else _row_family_folder_owner(hybrid_rows[i])
             if owner and owner in family_owner_map:
@@ -4727,6 +4802,8 @@ def collect_family_annual_rows(
     emp_rows: dict[str, list[int]] = {}
     for i, c in enumerate(cascade_rows):
         if row_missing_evidence(hybrid_rows[i]):
+            continue
+        if hybrid_rows[i].get("_business_trip_goal_precedence"):
             continue
         if row_verified_emp_locked(hybrid_rows[i]):
             continue
@@ -4776,6 +4853,8 @@ def apply_family_annual_account_rule(
         hyb = hybrid_rows[i]
         hyb["_family_annual"] = trigger
         if row_missing_evidence(hyb):
+            continue
+        if hyb.get("_business_trip_goal_precedence"):
             continue
         if row_family_annual_locked(hyb):
             continue  # already processed (rerun safety)
@@ -5653,7 +5732,9 @@ def _collect_flat_evidence_bundles(root: Path) -> list[Path]:
         bundle.mkdir()
         companions = list(ticket_pdfs)
         for path in root_files:
-            if path in ticket_pdfs or path.suffix.lower() not in {".pdf", ".msg", ".eml"}:
+            if path in ticket_pdfs or not (
+                path.suffix.lower() in {".pdf", ".eml"} or fea.is_outlook_message(path)
+            ):
                 continue
             # Never pull a different passenger/ticket PDF into this bundle.
             if path.suffix.lower() == ".pdf":
@@ -5711,7 +5792,8 @@ def _collect_evidence_folders(batch_id: str, batch_dir: Path) -> list[Path]:
                 continue
             try:
                 has_evidence = any(
-                    p.is_file() and p.suffix.lower() in {".msg", ".pdf", ".eml"}
+                    p.is_file()
+                    and (p.suffix.lower() in {".pdf", ".eml"} or fea.is_outlook_message(p))
                     for p in child.iterdir()
                 )
             except OSError:
@@ -5946,10 +6028,12 @@ def main():
 
     sponsoring_form_folders = _build_sponsoring_form_folder_index(raw_root, manpower)
     for h, c in zip(hybrid_rows, cascade_rows):
-        sponsoring_folder = sponsoring_form_folders.get(_row_event_key(h, c))
+        sponsoring_event_key = _row_event_key(h, c)
+        sponsoring_folder = sponsoring_form_folders.get(sponsoring_event_key)
         if not sponsoring_folder:
             continue
         h["_sponsoring_form_folder"] = str(sponsoring_folder)
+        h["_sponsoring_form_event_key"] = sponsoring_event_key
         if "RESOLVED_VIA_GDS_FUZZY" in str(c.get("Agent Flags", "") or ""):
             h["emp_no"] = ""
 
@@ -6259,7 +6343,9 @@ def main():
             for _fp, _prec in pc_index.items():
                 try:
                     _fdir = Path(_fp)
-                    for _msg_f in _fdir.glob("*.msg"):
+                    for _msg_f in fea.iter_evidence_files(_fdir):
+                        if not fea.is_outlook_message(_msg_f):
+                            continue
                         if "personal contribution" in _msg_f.name.lower() and last_token in _msg_f.name.upper():
                             pc_folder_nts = _fdir
                             break
@@ -6273,7 +6359,7 @@ def main():
         has_pc = any(
             "personal contribution" in f.name.lower()
             for f in pc_folder_nts.iterdir()
-            if f.suffix.lower() == ".msg"
+            if fea.is_outlook_message(f)
         )
         if not has_pc:
             continue
@@ -6493,6 +6579,34 @@ def main():
     print(f"[family-folder] {len(family_owner_map)} family folder(s) → "
           f"{family_stamped} rows emp_no stamped (EMP_FROM_FAMILY_FOLDER)", flush=True)
 
+    # Resolve authoritative own-form Trip Goals before family-annual routing can
+    # lock a travel row to 21070229. The existing sibling-itinerary proof then
+    # carries that purpose-derived account to the other leg(s) of the same trip.
+    business_goal_trip_applied = apply_own_form_trip_purpose_precedence(
+        hybrid_rows,
+        cascade_rows,
+        manpower,
+        all_folders,
+        business_goal_only=True,
+    )
+    take_training_trip_applied = apply_own_form_trip_purpose_precedence(
+        hybrid_rows,
+        cascade_rows,
+        manpower,
+        all_folders,
+        take_training_only=True,
+    )
+    business_goal_sibling_inherited = apply_sibling_leg_trip_purpose_inheritance(
+        hybrid_rows,
+        cascade_rows,
+    )
+    print(
+        f"[business-goal-precedence] {business_goal_trip_applied} business row(s), "
+        f"{take_training_trip_applied} take-training row(s), "
+        f"{business_goal_sibling_inherited} sibling leg(s) protected before family routing",
+        flush=True,
+    )
+
     # ── stage 3i: family annual-ticket GL + RULE 5 dual approval (2026-06-10) ──
     # Runs after 3h so emp_nos are settled. Family annual rows (family folder /
     # CHD-group) route to 21070229 and get a Mai+Sanad dual-approval evaluation
@@ -6533,11 +6647,8 @@ def main():
     print(f"[family-annual] {annual_home_stamped} settled 21070229 row(s) "
           "received verified owner home segments", flush=True)
 
-    # ── stage 3i.5: own approved form trip-purpose precedence ───────────────
-    # A dedicated ticket folder with a parseable approved PC/OPEX form is row-owned
-    # evidence. Its form->classifier->account result beats shared-OPEX, bundled PDF,
-    # and master-shortcut fallbacks, while those fallbacks still apply to rows that
-    # do not own a form.
+    # Preserve the existing general own-form precedence for non-business
+    # purposes after the family-annual rule has settled genuine annual travel.
     own_form_trip_applied = apply_own_form_trip_purpose_precedence(
         hybrid_rows,
         cascade_rows,
@@ -6630,6 +6741,17 @@ def main():
     )
 
     # ── stage 4: write XLSX ────────────────────────────────────────────────
+    authoritative_sponsorships = _apply_authoritative_sponsoring_form_promotions(
+        hybrid_rows, cascade_rows
+    )
+    print(
+        f"[sponsor-form-promote] {authoritative_sponsorships} exact-ref row(s) "
+        "promoted from allocation-bearing sponsoring forms",
+        flush=True,
+    )
+    apply_sponsorship_allocations(
+        hybrid_rows, cascade_rows, raw_root, all_folders, reverse_index, manpower
+    )
     apply_sponsorship_event_segments(
         hybrid_rows,
         cascade_rows,
@@ -6637,9 +6759,6 @@ def main():
         raw_root,
         all_folders,
         reverse_index,
-    )
-    apply_sponsorship_allocations(
-        hybrid_rows, cascade_rows, raw_root, all_folders, reverse_index, manpower
     )
     ancillary_inherited = inherit_ancillary_event_allocations(hybrid_rows, cascade_rows)
     print(f"[ancillary-event] {ancillary_inherited} missing ancillary row(s) inherited event allocation", flush=True)

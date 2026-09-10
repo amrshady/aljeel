@@ -143,6 +143,7 @@
       "missingPdf": "أضف ملف PDF واحداً على الأقل لإثبات التسليم.",
       "tooManyWorkbooks": "أزل ملفات Excel الزائدة (يُسمح بملف واحد فقط): {names}",
       "invalidFiles": "أزل الملفات غير المدعومة (يُسمح فقط بملفات .xlsx و.xls و.pdf): {names}",
+      "ignoredFiles": "تم تجاهل ملفات النظام: {names}",
       "run": "تشغيل",
       "running": "جاري الإنشاء في الخلفية…",
       "status": {

@@ -143,6 +143,7 @@
       "missingPdf": "Add at least one POD PDF.",
       "tooManyWorkbooks": "Remove extra workbooks (only one is allowed): {names}",
       "invalidFiles": "Remove unsupported files (only .xlsx, .xls, and .pdf are allowed): {names}",
+      "ignoredFiles": "Ignored system files: {names}",
       "run": "Run",
       "running": "Generating in the background…",
       "status": {

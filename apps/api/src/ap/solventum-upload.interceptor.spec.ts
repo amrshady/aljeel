@@ -1,5 +1,6 @@
-import { CallHandler, ExecutionContext } from '@nestjs/common';
+import { BadRequestException, CallHandler, ExecutionContext } from '@nestjs/common';
 import { EventEmitter } from 'node:events';
+import { firstValueFrom, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   SOLVENTUM_MAX_FILES,
@@ -52,5 +53,34 @@ describe('SolventumUploadInterceptor', () => {
       code: 'SOLVENTUM_UPLOAD_LIMIT',
       details: { maxFiles: 501, maxPods: 500 },
     });
+  });
+
+  it('drains the request before propagating an error from the controller', async () => {
+    const request = new RequestStub();
+    const interceptor = new SolventumUploadInterceptor();
+    const controllerError = new BadRequestException({
+      code: 'SOLVENTUM_FILES_INVALID',
+      message: 'Upload exactly one Excel workbook and at least one POD PDF.',
+    });
+    vi.spyOn(Object.getPrototypeOf(SolventumUploadInterceptor.prototype), 'intercept').mockResolvedValue(
+      throwError(() => controllerError),
+    );
+
+    let settled = false;
+    const result = interceptor
+      .intercept(context(request), {} as CallHandler)
+      .then((stream) => firstValueFrom(stream))
+      .catch((error) => error)
+      .finally(() => {
+        settled = true;
+      });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(request.resume).toHaveBeenCalled();
+    expect(settled).toBe(false);
+
+    request.complete = true;
+    request.emit('end');
+    expect(await result).toBe(controllerError);
   });
 });

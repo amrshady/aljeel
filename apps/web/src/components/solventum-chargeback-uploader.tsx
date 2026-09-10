@@ -14,6 +14,10 @@ function isPdf(file: File) {
   return /\.pdf$/i.test(file.name);
 }
 
+function isJunkFile(file: File) {
+  return file.name.startsWith('.') || /^thumbs\.db$/i.test(file.name);
+}
+
 export function SolventumChargebackUploader() {
   const t = useTranslations('invoiceForm.solventum');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,9 +49,14 @@ export function SolventumChargebackUploader() {
 
   function addFiles(event: ChangeEvent<HTMLInputElement>) {
     const additions = Array.from(event.target.files ?? []);
-    setFiles((current) => [...current, ...additions]);
+    const ignored = additions.filter(isJunkFile);
+    setFiles((current) => [...current, ...additions.filter((file) => !isJunkFile(file))]);
     setError(null);
-    setNote(null);
+    setNote(
+      ignored.length > 0
+        ? t('ignoredFiles', { names: ignored.map((file) => file.name).join(', ') })
+        : null,
+    );
     event.target.value = '';
   }
 

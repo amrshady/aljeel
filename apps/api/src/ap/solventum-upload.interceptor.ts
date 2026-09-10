@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import type { Observable } from 'rxjs';
+import { catchError, from, mergeMap, type Observable, throwError } from 'rxjs';
 
 export const SOLVENTUM_MAX_FILES = 501; // one workbook plus up to 500 PODs
 
@@ -74,7 +74,13 @@ export class SolventumUploadInterceptor
     next: CallHandler,
   ): Promise<Observable<unknown>> {
     try {
-      return await super.intercept(context, next);
+      const request = context.switchToHttp().getRequest<Request>();
+      const stream = await super.intercept(context, next);
+      return stream.pipe(
+        catchError((error: unknown) =>
+          from(waitForRequestBody(request)).pipe(mergeMap(() => throwError(() => error))),
+        ),
+      );
     } catch (error) {
       await waitForRequestBody(context.switchToHttp().getRequest<Request>());
       throw uploadException(error);

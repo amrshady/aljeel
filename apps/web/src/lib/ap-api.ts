@@ -29,6 +29,29 @@ type SolventumJobStatus = {
   error?: string;
 };
 
+function isSolventumWorkbook(file: File) {
+  return /\.xlsx?$/i.test(file.name);
+}
+
+function isSolventumPdf(file: File) {
+  return /\.pdf$/i.test(file.name);
+}
+
+export function validateSolventumFiles(files: File[]): string | null {
+  const workbooks = files.filter(isSolventumWorkbook);
+  const unsupported = files.filter((file) => !isSolventumWorkbook(file) && !isSolventumPdf(file));
+  if (workbooks.length === 0) return 'Add exactly one Excel workbook (.xlsx or .xls).';
+  if (workbooks.length > 1)
+    return `Remove extra workbook${workbooks.length > 2 ? 's' : ''}: ${workbooks
+      .slice(1)
+      .map((file) => file.name)
+      .join(', ')}`;
+  if (unsupported.length > 0)
+    return `Unsupported files: ${unsupported.map((file) => file.name).join(', ')}`;
+  if (!files.some(isSolventumPdf)) return 'Add at least one POD PDF.';
+  return null;
+}
+
 function isCreatedSolventumJob(value: unknown): value is { jobId: string } {
   return (
     typeof value === 'object' &&
@@ -62,6 +85,8 @@ export async function generateSolventumChargeback(
   files: File[],
   onProgress?: (phase: SolventumJobPhase) => void,
 ): Promise<SolventumChargebackResult> {
+  const validationError = validateSolventumFiles(files);
+  if (validationError) throw new Error(validationError);
   const form = new FormData();
   files.forEach((file) => form.append('files', file, file.name));
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';

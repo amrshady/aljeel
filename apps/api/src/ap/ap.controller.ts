@@ -13,7 +13,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { ApService } from './ap.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -24,6 +23,7 @@ import {
   SolventumIntegrationService,
 } from './solventum-integration.service';
 import { SolventumChargebackJobService } from './solventum-chargeback-job.service';
+import { SolventumUploadInterceptor } from './solventum-upload.interceptor';
 
 interface UploadedFile {
   originalname: string;
@@ -61,7 +61,7 @@ export class ApController {
 
   @Post('solventum/chargeback')
   @Roles('AP_CLERK')
-  @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
+  @UseInterceptors(SolventumUploadInterceptor)
   @ApiOperation({
     summary:
       'Generate Solventum chargeback: filename TRX → sales rows; POD scan overrides Quantity',
@@ -86,7 +86,7 @@ export class ApController {
   @Post('solventum/chargeback/jobs')
   @HttpCode(202)
   @Roles('AP_CLERK')
-  @UseInterceptors(FilesInterceptor('files', 101, { limits: { fileSize: 95 * 1024 * 1024 } }))
+  @UseInterceptors(SolventumUploadInterceptor)
   @ApiOperation({ summary: 'Queue a Solventum chargeback workbook for background generation' })
   createSolventumChargebackJob(@UploadedFiles() files: UploadedFile[] | undefined) {
     const { workbook, pods } = this.solventumFiles(files);

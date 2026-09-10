@@ -3,8 +3,8 @@
 import { Button } from '@aljeel/ui';
 import { FileSpreadsheet, FileText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ChangeEvent, useRef, useState } from 'react';
-import { generateSolventumChargeback } from '@/lib/ap-api';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { generateSolventumChargeback, type SolventumJobPhase } from '@/lib/ap-api';
 
 function isWorkbook(file: File) {
   return /\.xlsx?$/i.test(file.name);
@@ -21,6 +21,8 @@ export function SolventumChargebackUploader() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [phase, setPhase] = useState<SolventumJobPhase | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const workbooks = files.filter(isWorkbook);
   const pdfs = files.filter(isPdf);
   const invalidFiles = files.filter((file) => !isWorkbook(file) && !isPdf(file));
@@ -28,6 +30,18 @@ export function SolventumChargebackUploader() {
   const pdfCount = pdfs.length;
   const invalidCount = invalidFiles.length;
   const canRun = workbookCount === 1 && pdfCount >= 1 && invalidCount === 0 && !running;
+
+  useEffect(() => {
+    if (!running) return;
+    const startedAt = Date.now();
+    const timer = window.setInterval(
+      () => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [running]);
+
+  const elapsed = `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}`;
 
   function addFiles(event: ChangeEvent<HTMLInputElement>) {
     const additions = Array.from(event.target.files ?? []);
@@ -40,9 +54,11 @@ export function SolventumChargebackUploader() {
   async function run() {
     if (!canRun) return;
     setRunning(true);
+    setPhase(null);
+    setElapsedSeconds(0);
     setError(null);
     try {
-      const result = await generateSolventumChargeback(files);
+      const result = await generateSolventumChargeback(files, setPhase);
       if (result.failedPodCount > 0)
         setNote(t('partialFailure', { failed: result.failedPodCount, total: pdfCount }));
     } catch (reason) {
@@ -132,7 +148,28 @@ export function SolventumChargebackUploader() {
       <Button type="button" disabled={!canRun} onClick={run} className="bg-[#2563EB]">
         {running ? t('running') : t('run')}
       </Button>
-      {running && <p className="text-sm text-muted-foreground">{t('backgroundHint')}</p>}
+      {running && (
+        <div
+          className="flex items-start gap-3 rounded-xl bg-[#2563EB]/5 px-4 py-3 text-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            className="mt-1 size-2 shrink-0 animate-pulse rounded-full bg-[#2563EB]"
+            aria-hidden
+          />
+          <div className="min-w-0 space-y-1">
+            <p className="font-medium text-foreground">
+              {phase ? t(`status.${phase.toLowerCase()}`) : t('status.uploading')}
+              <span className="font-normal text-muted-foreground">
+                {' · '}
+                {t('elapsed', { time: elapsed })}
+              </span>
+            </p>
+            <p className="text-muted-foreground">{t('backgroundHint')}</p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

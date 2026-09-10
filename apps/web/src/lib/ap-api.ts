@@ -11,15 +11,18 @@ import {
 import { apiFetch } from './api-client';
 
 const SOLVENTUM_OUTPUT_FILE_NAME = 'Chargeback report supported by PODs attached.xlsx';
+const SOLVENTUM_POLLING_TIMEOUT_MS = 30 * 60 * 1000;
 
 export interface SolventumChargebackResult {
   failedPodCount: number;
   failedPodNames: string[];
 }
 
+export type SolventumJobPhase = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
 type SolventumJobStatus = {
   jobId: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status: SolventumJobPhase;
   podCount: number;
   failedPodCount?: number;
   failedPodNames?: string[];
@@ -57,6 +60,7 @@ async function solventumError(response: Response, fallback: string) {
 
 export async function generateSolventumChargeback(
   files: File[],
+  onProgress?: (phase: SolventumJobPhase) => void,
 ): Promise<SolventumChargebackResult> {
   const form = new FormData();
   files.forEach((file) => form.append('files', file, file.name));
@@ -73,8 +77,9 @@ export async function generateSolventumChargeback(
   if (!isCreatedSolventumJob(created)) {
     throw new Error('The server did not return a chargeback job ID.');
   }
-  const deadline = Date.now() + 15 * 60 * 1000;
+  const deadline = Date.now() + SOLVENTUM_POLLING_TIMEOUT_MS;
   let status: SolventumJobStatus;
+  onProgress?.('PENDING');
   while (true) {
     if (Date.now() >= deadline) throw new Error('Chargeback generation timed out.');
     await new Promise((resolve) => setTimeout(resolve, 4000));
@@ -84,6 +89,7 @@ export async function generateSolventumChargeback(
     );
     if (!poll.ok) throw await solventumError(poll, 'Could not check chargeback generation status.');
     status = (await poll.json()) as SolventumJobStatus;
+    onProgress?.(status.status);
     if (status.status === 'FAILED')
       throw new Error(status.error || 'Could not generate the chargeback workbook.');
     if (status.status === 'COMPLETED') break;

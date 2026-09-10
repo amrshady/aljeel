@@ -145,7 +145,15 @@
       "invalidFiles": "Remove unsupported files (only .xlsx, .xls, and .pdf are allowed): {names}",
       "run": "Run",
       "running": "Generating in the background…",
-      "backgroundHint": "Large batches may take a couple of minutes. Keep this page open while generation runs in the background.",
+      "status": {
+        "uploading": "Uploading files",
+        "pending": "Waiting to process",
+        "processing": "Processing PODs",
+        "completed": "Finishing download",
+        "failed": "Generation failed"
+      },
+      "elapsed": "Elapsed {time}",
+      "backgroundHint": "Large batches can take several minutes. Keep this page open while generation runs in the background.",
       "partialFailure": "{failed} of {total} PODs could not be read. The workbook was generated using the remaining files.",
       "runError": "Could not generate the chargeback workbook."
     },

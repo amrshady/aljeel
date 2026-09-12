@@ -156,6 +156,7 @@
       "elapsed": "Elapsed {time}",
       "backgroundHint": "Large batches can take several minutes. Keep this page open while generation runs in the background.",
       "partialFailure": "{failed} of {total} PODs could not be read. The workbook was generated using the remaining files.",
+      "failedPodFiles": "Unreadable POD files:",
       "runError": "Could not generate the chargeback workbook."
     },
     "filesTitle": "Documents",

@@ -25,6 +25,7 @@ export function SolventumChargebackUploader() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [failedPodNames, setFailedPodNames] = useState<string[]>([]);
   const [phase, setPhase] = useState<SolventumJobPhase | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const workbooks = files.filter(isWorkbook);
@@ -52,6 +53,7 @@ export function SolventumChargebackUploader() {
     const ignored = additions.filter(isJunkFile);
     setFiles((current) => [...current, ...additions.filter((file) => !isJunkFile(file))]);
     setError(null);
+    setFailedPodNames([]);
     setNote(
       ignored.length > 0
         ? t('ignoredFiles', { names: ignored.map((file) => file.name).join(', ') })
@@ -66,10 +68,10 @@ export function SolventumChargebackUploader() {
     setPhase(null);
     setElapsedSeconds(0);
     setError(null);
+    setFailedPodNames([]);
     try {
       const result = await generateSolventumChargeback(files, setPhase);
-      if (result.failedPodCount > 0)
-        setNote(t('partialFailure', { failed: result.failedPodCount, total: pdfCount }));
+      if (result.failedPodCount > 0) setFailedPodNames(result.failedPodNames);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t('runError'));
     } finally {
@@ -153,6 +155,19 @@ export function SolventumChargebackUploader() {
         <p className="rounded-lg border border-amber-400/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {note}
         </p>
+      )}
+      {failedPodNames.length > 0 && (
+        <div className="rounded-lg border border-amber-400/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p>{t('partialFailure', { failed: failedPodNames.length, total: pdfCount })}</p>
+          <p className="mt-2 font-medium">{t('failedPodFiles')}</p>
+          <ul className="mt-1 list-disc space-y-1 ps-5">
+            {failedPodNames.map((name, index) => (
+              <li key={`${name}-${index}`}>
+                <bdi>{name}</bdi>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       <Button type="button" disabled={!canRun} onClick={run} className="bg-[#2563EB]">
         {running ? t('running') : t('run')}

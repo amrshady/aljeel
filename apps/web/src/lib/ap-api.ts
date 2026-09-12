@@ -12,6 +12,7 @@ import { apiFetch } from './api-client';
 
 const SOLVENTUM_OUTPUT_FILE_NAME = 'Chargeback report supported by PODs attached.xlsx';
 const SOLVENTUM_POLLING_TIMEOUT_MS = 30 * 60 * 1000;
+const SUPPLIER_RECON_OUTPUT_FILE_NAME = 'Payment details.xlsx';
 
 export interface SolventumChargebackResult {
   failedPodCount: number;
@@ -124,18 +125,50 @@ export async function generateSolventumChargeback(
     { credentials: 'include' },
   );
   if (!result.ok) throw await solventumError(result, 'Could not download the chargeback workbook.');
-  const url = URL.createObjectURL(await result.blob());
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = SOLVENTUM_OUTPUT_FILE_NAME;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  downloadBlob(await result.blob(), SOLVENTUM_OUTPUT_FILE_NAME);
   return {
     failedPodCount: status.failedPodCount ?? 0,
     failedPodNames: status.failedPodNames ?? [],
   };
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function fileNameFromDisposition(header: string | null, fallback: string): string {
+  const utf = header?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (utf) return decodeURIComponent(utf);
+  const quoted = header?.match(/filename="([^"]+)"/i)?.[1];
+  return quoted || fallback;
+}
+
+export async function generateSupplierReconciliation(files: File[]): Promise<void> {
+  const form = new FormData();
+  files.forEach((file) => form.append('files', file, file.name));
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+  const response = await fetch(`${baseUrl}/ap/supplier-reconciliation`, {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw await solventumError(response, 'Could not run supplier reconciliation.');
+  }
+  downloadBlob(
+    await response.blob(),
+    fileNameFromDisposition(
+      response.headers.get('Content-Disposition'),
+      SUPPLIER_RECON_OUTPUT_FILE_NAME,
+    ),
+  );
 }
 
 export function listApExceptions(params: Record<string, string | undefined> = {}) {

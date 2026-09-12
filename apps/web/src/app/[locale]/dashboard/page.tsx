@@ -49,7 +49,7 @@ function ApClerkDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSubmitBody')}</p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Link
               href="/invoices/new?integration=JAWAL"
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
@@ -80,6 +80,17 @@ function ApClerkDashboard() {
               <p className="mt-2 text-sm text-muted-foreground">{t('apClerkSolventumBody')}</p>
               <span className="mt-4 inline-flex text-sm font-medium text-primary">
                 {t('generateChargeback')} →
+              </span>
+            </Link>
+
+            <Link
+              href="/invoices/new?integration=SUPPLIER"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
+            >
+              <h3 className="text-base font-semibold">{t('apClerkSupplierReconTitle')}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t('apClerkSupplierReconBody')}</p>
+              <span className="mt-4 inline-flex text-sm font-medium text-primary">
+                {t('runSupplierRecon')} →
               </span>
             </Link>
           </div>

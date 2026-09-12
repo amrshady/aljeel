@@ -18,6 +18,7 @@ import { useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { AppShell } from '@/components/app-shell';
 import { SolventumChargebackUploader } from '@/components/solventum-chargeback-uploader';
+import { SupplierReconciliationUploader } from '@/components/supplier-reconciliation-uploader';
 import { displayInvoiceName } from '@/components/invoice-folder-table';
 import {
   KbFileUploader,
@@ -65,6 +66,7 @@ function InvoiceUploadContent() {
   const { user } = useAuth();
   const isApClerk = user?.role === 'AP_CLERK';
   const selectedIntegration = isApClerk ? parseIntegration(searchParams.get('integration')) : null;
+  const isSupplierRecon = isApClerk && searchParams.get('integration') === 'SUPPLIER';
 
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
@@ -109,6 +111,19 @@ function InvoiceUploadContent() {
       }),
     enabled: !isApClerk || !!selectedIntegration,
   });
+
+  if (isSupplierRecon) {
+    return (
+      <AppShell>
+        <div className="max-w-3xl">
+          <Link href="/dashboard" className="text-sm text-primary underline">
+            {tDetail('back')}
+          </Link>
+          <SupplierReconciliationUploader />
+        </div>
+      </AppShell>
+    );
+  }
 
   if (selectedIntegration === 'SOLVENTUM') {
     return (
@@ -325,7 +340,7 @@ function InvoiceUploadContent() {
       : t('uploadingFiles')
     : null;
 
-  if (isApClerk && !selectedIntegration) {
+  if (isApClerk && !selectedIntegration && !isSupplierRecon) {
     return (
       <AppShell>
         <div className="max-w-3xl">
@@ -334,7 +349,7 @@ function InvoiceUploadContent() {
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{t('integrationRequiredTitle')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('integrationRequiredBody')}</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Link
               href="/invoices/new?integration=JAWAL"
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
@@ -352,6 +367,12 @@ function InvoiceUploadContent() {
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
             >
               <h2 className="font-semibold">{t('integrationSolventum')}</h2>
+            </Link>
+            <Link
+              href="/invoices/new?integration=SUPPLIER"
+              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+            >
+              <h2 className="font-semibold">{t('integrationSupplierRecon')}</h2>
             </Link>
           </div>
         </div>

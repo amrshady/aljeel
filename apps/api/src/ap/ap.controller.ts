@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { ApService } from './ap.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -24,6 +25,7 @@ import {
 } from './solventum-integration.service';
 import { SolventumChargebackJobService } from './solventum-chargeback-job.service';
 import { SolventumUploadInterceptor } from './solventum-upload.interceptor';
+import { SupplierReconciliationService } from './supplier-reconciliation.service';
 
 interface UploadedFile {
   originalname: string;
@@ -39,6 +41,7 @@ export class ApController {
     private readonly apService: ApService,
     private readonly solventum: SolventumIntegrationService,
     private readonly solventumJobs: SolventumChargebackJobService,
+    private readonly supplierRecon: SupplierReconciliationService,
   ) {}
 
   private solventumFiles(files: UploadedFile[] | undefined) {
@@ -111,6 +114,40 @@ export class ApController {
     response.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${SOLVENTUM_OUTPUT_FILE_NAME}"`,
+      'Content-Length': String(output.length),
+    });
+    response.send(output);
+  }
+
+  @Post('supplier-reconciliation')
+  @Roles('AP_CLERK')
+  @UseInterceptors(FilesInterceptor('files', 4, { limits: { fileSize: 20 * 1024 * 1024 } }))
+  @ApiOperation({
+    summary:
+      'Match Aljeel Oracle unpaid invoices to a supplier statement and download payment + recon sheets',
+  })
+  async reconcileSupplierStatement(
+    @UploadedFiles() files: UploadedFile[] | undefined,
+    @Res() response: Response,
+  ) {
+    const workbooks = (files ?? []).filter((file) => /\.xlsx?$/i.test(file.originalname));
+    if (
+      workbooks.length < 1 ||
+      workbooks.length > 2 ||
+      workbooks.length !== files?.length
+    ) {
+      throw new BadRequestException({
+        code: 'SUPPLIER_RECON_FILES_INVALID',
+        message:
+          'Upload one Excel workbook that contains both ledgers, or two workbooks (Aljeel export + supplier statement).',
+      });
+    }
+    const { output, fileName } = await this.supplierRecon.reconcileWorkbooks(
+      workbooks.map((file) => ({ originalname: file.originalname, buffer: file.buffer })),
+    );
+    response.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
       'Content-Length': String(output.length),
     });
     response.send(output);

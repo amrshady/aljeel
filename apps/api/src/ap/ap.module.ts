@@ -10,6 +10,7 @@ import { LocalSolventumPodExtractor } from './local-solventum-pod.extractor';
 import { CompositeSolventumPodExtractor } from './composite-solventum-pod.extractor';
 import { KbModule } from '../kb/kb.module';
 import { SolventumChargebackJobService } from './solventum-chargeback-job.service';
+import { SupplierReconciliationService } from './supplier-reconciliation.service';
 
 @Module({
   imports: [KbModule],
@@ -20,6 +21,7 @@ import { SolventumChargebackJobService } from './solventum-chargeback-job.servic
     JawalIntegrationService,
     SolventumIntegrationService,
     SolventumChargebackJobService,
+    SupplierReconciliationService,
     LocalSolventumPodExtractor,
     GeminiSolventumPodExtractor,
     { provide: SolventumPodExtractor, useClass: CompositeSolventumPodExtractor },

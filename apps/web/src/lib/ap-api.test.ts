@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { generateSolventumChargeback, validateSolventumFiles } from './ap-api';
+import {
+  generateSolventumChargeback,
+  generateSupplierReconciliation,
+  validateSolventumFiles,
+} from './ap-api';
 
 function file(name: string, type = '') {
   return new File(['test'], name, { type });
@@ -64,5 +68,24 @@ describe('generateSolventumChargeback', () => {
       'Add at least one POD PDF.',
     );
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('generateSupplierReconciliation', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('surfaces supplier reconciliation API errors', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Could not find an Aljeel Oracle export' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(generateSupplierReconciliation([])).rejects.toThrow(
+      'Could not find an Aljeel Oracle export',
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

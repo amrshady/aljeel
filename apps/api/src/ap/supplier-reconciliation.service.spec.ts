@@ -82,4 +82,20 @@ describe('SupplierReconciliationService', () => {
       service.reconcileWorkbooks([{ originalname: 'aljeel.xlsx', buffer }]),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it('rejects a workbook with too many rows using a controlled error code', () => {
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([['Invoice Number', 'Unpaid Amount']]);
+    sheet['!ref'] = 'A1:B100001';
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Oversized');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    expect(() =>
+      service.parseInputs([{ originalname: 'oversized.xlsx', buffer }]),
+    ).toThrowError(
+      expect.objectContaining({
+        response: expect.objectContaining({ code: 'SUPPLIER_RECON_WORKBOOK_TOO_LARGE' }),
+      }),
+    );
+  });
 });

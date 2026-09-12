@@ -132,6 +132,60 @@ describe('reconcileSupplierStatement', () => {
     expect(result.beginningDifference).toBe(10);
   });
 
+  it('aggregates duplicate invoice numbers on both ledgers before matching', () => {
+    const result = reconcileSupplierStatement(
+      [
+        {
+          invoiceNumber: ' inv-duplicate ',
+          date: '2026-01-01',
+          supplierName: 'Acme',
+          unpaidAmount: 40,
+          invoiceAmount: 40,
+          prepaymentAvailable: 2,
+        },
+        {
+          invoiceNumber: 'INV-DUPLICATE',
+          date: '2026-01-02',
+          supplierName: 'Different name',
+          unpaidAmount: 60,
+          invoiceAmount: 60,
+          prepaymentAvailable: 3,
+        },
+      ],
+      [
+        {
+          invoiceNumber: 'INV-DUPLICATE',
+          date: '2026-01-03',
+          amount: 25,
+          description: 'First description',
+          notes: 'First note',
+        },
+        {
+          invoiceNumber: 'inv-duplicate',
+          date: '2026-01-04',
+          amount: 75,
+          description: 'Second description',
+          notes: 'Second note',
+        },
+      ],
+    );
+
+    expect(result.booksBalance).toBe(100);
+    expect(result.supplierBalance).toBe(100);
+    expect(result.prepaymentAvailable).toBe(5);
+    expect(result.matches).toEqual([
+      expect.objectContaining({
+        invoiceNumber: 'INV-DUPLICATE',
+        date: '2026-01-03',
+        supplierAmount: 100,
+        aljeelAmount: 100,
+        unpaidAmount: 100,
+        status: 'FOUND',
+        notes: 'First note',
+      }),
+    ]);
+  });
+
   it('treats near-equal amounts as a match', () => {
     expect(amountsEqual(2472.5, 2472.5000001)).toBe(true);
     expect(amountsEqual(2472.5, 2472.51)).toBe(false);

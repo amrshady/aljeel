@@ -121,7 +121,7 @@ export class ApController {
 
   @Post('supplier-reconciliation')
   @Roles('AP_CLERK')
-  @UseInterceptors(FilesInterceptor('files', 4, { limits: { fileSize: 20 * 1024 * 1024 } }))
+  @UseInterceptors(FilesInterceptor('files', 2, { limits: { fileSize: 10 * 1024 * 1024 } }))
   @ApiOperation({
     summary:
       'Match Aljeel Oracle unpaid invoices to a supplier statement and download payment + recon sheets',

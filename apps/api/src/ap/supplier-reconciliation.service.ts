@@ -19,6 +19,9 @@ interface UploadedWorkbook {
 
 type SheetKind = 'aljeel' | 'supplier' | 'other';
 
+const MAX_WORKBOOK_SHEETS = 20;
+const MAX_SHEET_ROWS = 100_000;
+
 const normalizeHeader = (value: unknown) =>
   String(value ?? '')
     .replace(/[\u202d\u202c\u200e\u200f]/g, '')
@@ -109,14 +112,31 @@ export class SupplierReconciliationService {
   }
 
   private readWorkbook(file: UploadedWorkbook): XLSX.WorkBook {
+    let workbook: XLSX.WorkBook;
     try {
-      return XLSX.read(file.buffer, { type: 'buffer', cellDates: true });
+      workbook = XLSX.read(file.buffer, { type: 'buffer', cellDates: true });
     } catch {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_WORKBOOK_INVALID',
         message: `Could not read Excel workbook: ${file.originalname}`,
       });
     }
+
+    if (
+      workbook.SheetNames.length > MAX_WORKBOOK_SHEETS ||
+      workbook.SheetNames.some((sheetName) => {
+        const ref = workbook.Sheets[sheetName]?.['!ref'];
+        return ref ? XLSX.utils.decode_range(ref).e.r + 1 > MAX_SHEET_ROWS : false;
+      })
+    ) {
+      throw new BadRequestException({
+        code: 'SUPPLIER_RECON_WORKBOOK_TOO_LARGE',
+        message:
+          'Excel workbook exceeds the allowed size (maximum 20 sheets and 100,000 rows per sheet). / يتجاوز ملف Excel الحجم المسموح به (20 ورقة و100,000 صف لكل ورقة كحد أقصى).',
+      });
+    }
+
+    return workbook;
   }
 
   private detectSheetKind(rows: unknown[][]): SheetKind {

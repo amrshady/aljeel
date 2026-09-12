@@ -99,12 +99,36 @@ export function reconcileSupplierStatement(
 ): SupplierReconResult {
   const aljeelByNumber = new Map<string, AljeelInvoiceLine>();
   for (const line of aljeelLines) {
-    aljeelByNumber.set(line.invoiceNumber, line);
+    const invoiceNumber = cleanCell(line.invoiceNumber).toUpperCase();
+    const existing = aljeelByNumber.get(invoiceNumber);
+    if (!existing) {
+      aljeelByNumber.set(invoiceNumber, { ...line, invoiceNumber });
+      continue;
+    }
+    // Dates and names cannot be meaningfully combined; retain the first non-empty value.
+    existing.date ??= line.date;
+    existing.supplierName ??= line.supplierName;
+    existing.unpaidAmount += line.unpaidAmount;
+    existing.invoiceAmount += line.invoiceAmount;
+    existing.prepaymentAvailable += line.prepaymentAvailable;
   }
   const supplierByNumber = new Map<string, SupplierStatementLine>();
   for (const line of supplierLines) {
-    supplierByNumber.set(line.invoiceNumber, line);
+    const invoiceNumber = cleanCell(line.invoiceNumber).toUpperCase();
+    const existing = supplierByNumber.get(invoiceNumber);
+    if (!existing) {
+      supplierByNumber.set(invoiceNumber, { ...line, invoiceNumber });
+      continue;
+    }
+    // Text metadata cannot be meaningfully combined; retain the first non-empty value.
+    existing.date ??= line.date;
+    existing.description ??= line.description;
+    existing.notes ??= line.notes;
+    existing.amount += line.amount;
   }
+
+  const aggregatedAljeelLines = [...aljeelByNumber.values()];
+  const aggregatedSupplierLines = [...supplierByNumber.values()];
 
   const invoiceNumbers = [
     ...new Set([...aljeelByNumber.keys(), ...supplierByNumber.keys()]),
@@ -155,13 +179,13 @@ export function reconcileSupplierStatement(
   const amountMismatches = matches.filter((row) => row.status === 'AMOUNT_MISMATCH');
 
   const booksBalance = roundMoney(
-    aljeelLines.reduce((sum, line) => sum + line.unpaidAmount, 0),
+    aggregatedAljeelLines.reduce((sum, line) => sum + line.unpaidAmount, 0),
   );
   const supplierBalance = roundMoney(
-    supplierLines.reduce((sum, line) => sum + line.amount, 0),
+    aggregatedSupplierLines.reduce((sum, line) => sum + line.amount, 0),
   );
   const prepaymentAvailable = roundMoney(
-    aljeelLines.reduce((sum, line) => sum + line.prepaymentAvailable, 0),
+    aggregatedAljeelLines.reduce((sum, line) => sum + line.prepaymentAvailable, 0),
   );
   const addNotBookedTotal = roundMoney(
     notBookedInAljeel.reduce((sum, row) => sum + (row.supplierAmount ?? 0), 0),
@@ -174,7 +198,7 @@ export function reconcileSupplierStatement(
   );
 
   const supplierName =
-    aljeelLines.find((line) => line.supplierName)?.supplierName ?? null;
+    aggregatedAljeelLines.find((line) => line.supplierName)?.supplierName ?? null;
 
   return {
     supplierName,

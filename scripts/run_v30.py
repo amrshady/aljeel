@@ -573,6 +573,233 @@ def _own_ticket_folder(ticket_no: str, all_folders: list[Path]) -> Path | None:
     return None
 
 
+_TICKET_PASSENGER_RE = re.compile(
+    r"\bE-ticket\s+(?:SV\s+)?065\s*[- ]\s*(\d{10})"
+    r"\s+for\s+(?:Mr|Mrs|Ms)\.?\s+([^\r\n.]+)",
+    re.IGNORECASE,
+)
+_IDENTITY_TITLE_TOKENS = {"MR", "MRS", "MS", "MISS", "DR"}
+_IDENTITY_TOKEN_ALIASES = {
+    "MOHAMMED": "MOHAMMAD",
+    "MOHAMED": "MOHAMMAD",
+    "ABDEL": "ABDUL",
+    "ABDOL": "ABDUL",
+    "KHALED": "KHALID",
+}
+
+
+def _identity_token(token: str) -> str:
+    token = re.sub(r"[^A-Z]", "", str(token or "").upper())
+    if token.startswith("AL") and len(token) > 4:
+        token = token[2:]
+    return _IDENTITY_TOKEN_ALIASES.get(token, token)
+
+
+def _identity_name_parts(name: str) -> tuple[set[str], set[str]]:
+    """Return normalized (given tokens, surname tokens) for GDS or natural names."""
+    raw = re.sub(r"\b(?:MR|MRS|MS|MISS|DR)\.?\b", " ", str(name or "").upper())
+    if "/" in raw:
+        surname_raw, given_raw = raw.split("/", 1)
+        surname_words = re.findall(r"[A-Z]+", surname_raw)
+        given_words = re.findall(r"[A-Z]+", given_raw)
+    else:
+        words = [
+            word for word in re.findall(r"[A-Z]+", raw)
+            if word not in _IDENTITY_TITLE_TOKENS
+        ]
+        if len(words) < 2:
+            return set(), set()
+        given_words = words[:-1]
+        surname_words = words[-1:]
+
+    given = {_identity_token(word) for word in given_words}
+    surname = {_identity_token(word) for word in surname_words}
+    return ({word for word in given if word}, {word for word in surname if word})
+
+
+def _identity_names_match(left: str, right: str) -> bool:
+    """Require both a given-name and surname match; tolerate middle names and Al-."""
+    left_given, left_surname = _identity_name_parts(left)
+    right_given, right_surname = _identity_name_parts(right)
+    return bool(
+        left_given
+        and right_given
+        and left_surname
+        and right_surname
+        and left_given.intersection(right_given)
+        and left_surname.intersection(right_surname)
+    )
+
+
+def _ticket_passengers_from_folder(folder: Path) -> tuple[dict[str, str], list[str]]:
+    """Parse all explicit airline e-ticket/passenger claims in a folder."""
+    claims: dict[str, str] = {}
+    evidence_paths: list[str] = []
+    for evidence_file in fea.iter_evidence_files(folder):
+        if evidence_file.suffix.lower() != ".pdf":
+            continue
+        text = fea.extract_pdf_text(evidence_file)
+        matches = list(_TICKET_PASSENGER_RE.finditer(text or ""))
+        if not matches:
+            continue
+        evidence_paths.append(str(evidence_file))
+        for match in matches:
+            ticket_no = match.group(1)
+            passenger = re.sub(r"\s+", " ", match.group(2)).strip()
+            claims.setdefault(ticket_no, passenger)
+    return claims, evidence_paths
+
+
+def _approved_form_with_path(folder: Path) -> tuple[dict | None, str, str, str]:
+    """Parse the folder's approved Oracle form and retain its evidence path."""
+    try:
+        from msg_parser import parse_msg
+        from oracle_form_parser import parse_form
+    except Exception:
+        return None, "", "", ""
+
+    for msg in sorted(fea.iter_evidence_files(folder)):
+        if not fea.is_outlook_message(msg):
+            continue
+        parsed = parse_msg(msg, use_cache=True)
+        if parsed.get("parse_method") == "failed":
+            continue
+        subject = parsed.get("subject", "") or ""
+        body = parsed.get("body_text", "") or ""
+        form = parse_form(body)
+        if not form:
+            continue
+        approval_text = f"{subject}\n{body}".lower()
+        if "approved" in approval_text or form.get("approver_name") or form.get("approver"):
+            return form, subject, body, str(msg)
+    return None, "", "", ""
+
+
+def run_evidence_identity_catches(
+    cascade_rows: list[dict],
+    hybrid_rows: list[dict],
+    manpower: dict,
+    all_folders: list[Path],
+) -> list[dict]:
+    """Validate ticket/passenger/form identity before evidence is treated as clean."""
+    catches: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+
+    for index, (cascade, hybrid) in enumerate(zip(cascade_rows, hybrid_rows)):
+        desc = str(cascade.get("Description", "") or "")
+        ticket_no = _extract_ticket_no(desc)
+        if not ticket_no:
+            continue
+        folder = _own_ticket_folder(ticket_no, all_folders)
+        if not folder:
+            continue
+
+        claims, pdf_paths = _ticket_passengers_from_folder(folder)
+        ticket_passenger = claims.get(ticket_no)
+        if not ticket_passenger:
+            continue
+
+        form, _subject, _body, msg_path = _approved_form_with_path(folder)
+        if not form:
+            continue
+
+        form_emp_no = str(form.get("emp_no") or "").strip()
+        form_emp_name = str(form.get("emp_name_form") or "").strip()
+        resolved_emp_no = str(hybrid.get("emp_no") or "").strip()
+        resolved_rec = manpower.get(resolved_emp_no) if resolved_emp_no else None
+        resolved_emp_name = _master_emp_name(resolved_rec) if resolved_rec else ""
+        form_rec = manpower.get(form_emp_no) if form_emp_no else None
+        form_master_name = _master_emp_name(form_rec) if form_rec else ""
+
+        try:
+            value_at_risk = float(cascade.get("*Amount", 0) or 0)
+        except (TypeError, ValueError):
+            value_at_risk = 0.0
+
+        common = {
+            "severity": "HIGH",
+            "value_at_risk_sar": value_at_risk,
+            "sl_nos": [cascade.get("SL No", index)],
+            "ticket_no": ticket_no,
+            "folder": str(folder),
+            "pdf_ticket_passenger": ticket_passenger,
+            "msg_employee_name": form_emp_name,
+            "msg_person_number": form_emp_no,
+            "resolved_emp_no": resolved_emp_no,
+            "resolved_employee_name": resolved_emp_name,
+            "evidence_paths": pdf_paths + ([msg_path] if msg_path else []),
+        }
+
+        # A valid Person Number resolves the form employee more strongly than
+        # variations in the free-text form name.
+        form_identity_name = form_master_name or form_emp_name
+        person_numbers_agree = bool(
+            form_emp_no and resolved_emp_no and form_emp_no == resolved_emp_no
+        )
+        if (
+            not person_numbers_agree
+            and form_identity_name
+            and not _identity_names_match(ticket_passenger, form_identity_name)
+        ):
+            key = ("TICKET_PASSENGER_MISMATCH", ticket_no)
+            if key not in seen:
+                seen.add(key)
+                catches.append({
+                    **common,
+                    "category": "TICKET_PASSENGER_MISMATCH",
+                    "reviewer_note": (
+                        f"Folder {folder.name} maps ticket {ticket_no} in the airline PDF "
+                        f"to '{ticket_passenger}', but the approved OPEX form belongs to "
+                        f"'{form_emp_name}' ({form_emp_no or 'no Person Number'}). "
+                        "Quarantine the row and correct the cross-keyed evidence folder."
+                    ),
+                })
+
+        person_number_conflict = bool(
+            form_emp_no and resolved_emp_no and form_emp_no != resolved_emp_no
+        )
+        # Exact Person Number agreement wins. Fall back to normalized names
+        # only when both identifiers are not available.
+        if form_emp_no and resolved_emp_no:
+            msg_employee_conflict = person_number_conflict
+        else:
+            msg_employee_conflict = bool(
+                form_identity_name
+                and not _identity_names_match(ticket_passenger, form_identity_name)
+            ) or bool(
+                resolved_emp_name
+                and not _identity_names_match(ticket_passenger, resolved_emp_name)
+            )
+        if msg_employee_conflict:
+            key = ("MSG_EMPLOYEE_MISMATCH", ticket_no)
+            if key not in seen:
+                seen.add(key)
+                reasons = []
+                if person_number_conflict:
+                    reasons.append(
+                        f"message Person Number {form_emp_no} != resolved employee {resolved_emp_no}"
+                    )
+                if form_identity_name and not _identity_names_match(ticket_passenger, form_identity_name):
+                    reasons.append(
+                        f"message employee does not match PDF passenger '{ticket_passenger}'"
+                    )
+                if resolved_emp_name and not _identity_names_match(ticket_passenger, resolved_emp_name):
+                    reasons.append(
+                        f"resolved employee does not match PDF passenger '{ticket_passenger}'"
+                    )
+                catches.append({
+                    **common,
+                    "category": "MSG_EMPLOYEE_MISMATCH",
+                    "reviewer_note": (
+                        "; ".join(reasons)
+                        + ". Do not use this approval's Trip Goal, Value, or cost-center "
+                          "signals until the employee identity is reconciled."
+                    ),
+                })
+
+    return catches
+
+
 def _parse_own_approved_form(folder: Path | None) -> tuple[dict | None, str, str]:
     if not folder or not folder.exists():
         return None, "", ""
@@ -644,6 +871,29 @@ def apply_own_form_trip_purpose_precedence(
         form, subject, body = _parse_own_approved_form(folder)
         if not form:
             continue
+        claims, _pdf_paths = _ticket_passengers_from_folder(folder)
+        ticket_passenger = claims.get(ticket_no)
+        if ticket_passenger:
+            form_emp = str(form.get("emp_no") or "").strip()
+            resolved_emp = str(h.get("emp_no") or "").strip()
+            form_rec = manpower.get(form_emp) if form_emp else None
+            form_identity_name = (
+                _master_emp_name(form_rec) if form_rec else ""
+            ) or str(form.get("emp_name_form") or "").strip()
+            person_numbers_agree = bool(
+                form_emp and resolved_emp and form_emp == resolved_emp
+            )
+            if (
+                not person_numbers_agree
+                and form_identity_name
+                and not _identity_names_match(ticket_passenger, form_identity_name)
+            ):
+                print(
+                    f"  [own-form-trip] row {i+1}: REFUSED mismatched form "
+                    f"'{form_identity_name}' for ticket passenger '{ticket_passenger}'",
+                    flush=True,
+                )
+                continue
         passenger = desc.split(" - ", 1)[0].strip() if " - " in desc else desc.strip()
         trip_cls = classify_trip(
             subject=subject,
@@ -2392,7 +2642,10 @@ def process_row_v25(
     classify_evidence_files = list((classify.get("_evidence") or {}).get("files", []))
     ref_no = _row_invoice_ref_no(cascade_row)
     ref_folder, ref_status, ref_note = (None, "", "")
-    if not classify_evidence_files or route_reason == REFNO_FALLBACK_FLAG:
+    if (
+        not classify_evidence_files
+        or route_reason in {"INVOICE_REF_FOLDER", REFNO_FALLBACK_FLAG}
+    ):
         ref_folder, ref_status, ref_note = resolve_invoice_ref_folder(
             ref_no, invoice_ref_index, desc
         )
@@ -2405,7 +2658,15 @@ def process_row_v25(
     if (
         ref_folder
         and ref_status != "REF_FUZZY"
-        and (not classify_evidence_files or route_reason == REFNO_FALLBACK_FLAG)
+        and str(ref_folder) != classify_folder_str
+        and not (
+            classify_folder_str
+            and Path(classify_folder_str).is_relative_to(ref_folder)
+        )
+        and (
+            not classify_evidence_files
+            or route_reason in {"INVOICE_REF_FOLDER", REFNO_FALLBACK_FLAG}
+        )
     ):
         if ref_status == "REF_FUZZY" and ref_note:
             hint = {
@@ -4221,14 +4482,20 @@ def stamp_missing_evidence_gate(
             _append_hybrid_flag(h, EVIDENCE_SAME_EMPLOYEE_MULTIPLE_TRIPS)
         elif raw_candidates or rail_emp_candidates or passenger_trip_mismatch or _is_rail_row(str(c.get("Description", "") or "")):
             _append_hybrid_flag(h, EVIDENCE_TRIP_IDENTITY_MISMATCH)
-        for key in ("account", "cost_center", "div", "solution", "agency"):
-            h[key] = ""
-        if not row_verified_emp_locked(h):
-            h["emp_no"] = ""
+        resolved_sponsorship = (
+            str(h.get("account", "") or "").strip() == SPONSORSHIP_ACCOUNT
+            and bool(_emp_tokens(h.get("emp_no")))
+        )
+        if not resolved_sponsorship:
+            for key in ("account", "cost_center", "div", "solution", "agency"):
+                h[key] = ""
+            if not row_verified_emp_locked(h):
+                h["emp_no"] = ""
         if h.get("_agent_method", "cascade") == "cascade":
             h["_agent_method"] = "missing_evidence_gate"
         gated += 1
-        print(f"[missing-evidence] row {i}: no folder - allocation blanked", flush=True)
+        action = "retained resolved sponsorship allocation" if resolved_sponsorship else "allocation blanked"
+        print(f"[missing-evidence] row {i}: no folder - {action}", flush=True)
     return gated
 
 
@@ -5457,7 +5724,11 @@ def stamp_missing_evidence_output(
             and str(h.get("div", "") or "").strip()
             and str(h.get("agency", "") or "").strip()
         )
-        if verified_annual:
+        resolved_sponsorship = (
+            account == SPONSORSHIP_ACCOUNT
+            and bool(_emp_tokens(h.get("emp_no")))
+        )
+        if verified_annual or resolved_sponsorship:
             for key, hdr in (
                 ("account", "Account"),
                 ("cost_center", "Cost Center"),
@@ -5494,7 +5765,7 @@ def stamp_missing_evidence_output(
             if combo_col:
                 ws.cell(row_idx, combo_col).value = ""
         if "Employee No" in cols:
-            if verified_emp_locked:
+            if verified_emp_locked or resolved_sponsorship:
                 ws.cell(row_idx, cols["Employee No"]).value = str(
                     h.get("emp_no", "") or ""
                 ).strip()
@@ -5667,6 +5938,76 @@ def clear_stale_employee_not_in_master_output(
     wb.close()
     print(f"[v30-stale-emp-flag] cleared {cleared} stale EMPLOYEE_NOT_IN_MASTER flag(s)", flush=True)
     return cleared
+
+
+def stamp_authoritative_sponsorship_metadata(
+    out_xlsx: Path,
+    hybrid_rows: list[dict],
+    manpower: dict,
+    hdr_row: int,
+) -> int:
+    """Refresh only metadata made stale by an authoritative sponsorship promotion."""
+    rows = [
+        h for h in hybrid_rows
+        if h.get("_agent_method_orig", h.get("_agent_method"))
+        == "v30_authoritative_sponsoring_form"
+    ]
+    if not rows:
+        return 0
+
+    wb = openpyxl.load_workbook(out_xlsx)
+    ws = wb.active
+    cols = {
+        str(ws.cell(hdr_row, ci).value or "").strip(): ci
+        for ci in range(1, ws.max_column + 1)
+        if str(ws.cell(hdr_row, ci).value or "").strip()
+    }
+    stamped = 0
+    for h in rows:
+        row_idx = h["_row_idx"]
+        emp_tokens = _emp_tokens(h.get("emp_no"))
+        employees_resolved = bool(emp_tokens) and all(emp in manpower for emp in emp_tokens)
+        missing_evidence = row_missing_evidence(h)
+        if "Manpower Allocation Status" in cols:
+            ws.cell(row_idx, cols["Manpower Allocation Status"]).value = (
+                "Can Be used" if employees_resolved else "Need to allocate"
+            )
+        if "Human Review Note" in cols:
+            note_cell = ws.cell(row_idx, cols["Human Review Note"])
+            if "need to allocate" in str(note_cell.value or "").casefold():
+                note_cell.value = (
+                    "Sponsorship allocation resolved from the authoritative sponsoring form."
+                    if employees_resolved else
+                    "Authoritative sponsoring form found; employee allocation requires review."
+                )
+        if "Row Status" in cols:
+            ws.cell(row_idx, cols["Row Status"]).value = (
+                "RED" if missing_evidence else ("GREEN" if employees_resolved else "YELLOW")
+            )
+        if (
+            "Evidence Folder Status" in cols
+            and not missing_evidence
+            and (h.get("_missing_evidence_resolved") or h.get("_sponsoring_form_folder"))
+        ):
+            ws.cell(row_idx, cols["Evidence Folder Status"]).value = "OK"
+        stamped += 1
+
+    wb.save(str(out_xlsx))
+    wb.close()
+    print(f"[sponsor-metadata] refreshed {stamped} authoritative sponsorship row(s)", flush=True)
+    return stamped
+
+
+def normalize_v30_writer_methods(hybrid_rows: list[dict]) -> None:
+    """Translate v30-only methods to values accepted by the legacy v15 writer."""
+    for h in hybrid_rows:
+        m = h.get("_agent_method", "")
+        if m.startswith("v26_") or m.startswith("v25_") or m.startswith("v18_") or m.startswith("v16_") or m in (
+            "v16_master_shortcut", "v16_sponsorship_master", "own_form_trip_purpose",
+            "v30_authoritative_sponsoring_form",
+        ):
+            h["_agent_method_orig"] = m
+            h["_agent_method"] = "cluster_unified" if "cluster" in m else "llm_agent"
 
 
 # ─── main ─────────────────────────────────────────────────────────────────────
@@ -6770,13 +7111,7 @@ def main():
             flush=True,
         )
 
-    for h in hybrid_rows:
-        m = h.get("_agent_method", "")
-        if m.startswith("v26_") or m.startswith("v25_") or m.startswith("v18_") or m.startswith("v16_") or m in (
-            "v16_master_shortcut", "v16_sponsorship_master", "own_form_trip_purpose"
-        ):
-            h["_agent_method_orig"] = m
-            h["_agent_method"] = "cluster_unified" if "cluster" in m else "llm_agent"
+    normalize_v30_writer_methods(hybrid_rows)
 
     v15.write_v15_12_xlsx(cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row)
     stamp_own_form_trip_columns(out_xlsx, hybrid_rows, hdr_row)
@@ -6888,6 +7223,7 @@ def main():
     stamp_missing_evidence_output(out_xlsx, hybrid_rows, hdr_row)
     stamp_opex_email_only_output(out_xlsx, hybrid_rows, hdr_row)
     stamp_sponsorship_form_columns(out_xlsx, hybrid_rows, hdr_row)
+    stamp_authoritative_sponsorship_metadata(out_xlsx, hybrid_rows, manpower, hdr_row)
 
     for h in hybrid_rows:
         if "_agent_method_orig" in h:
@@ -7184,17 +7520,32 @@ def main():
     )
 
     # ── stage 6: fraud detection ───────────────────────────────────────────
-    fraud_catches: list[dict] = []
+    evidence_identity_catches = run_evidence_identity_catches(
+        cascade_rows, hybrid_rows, manpower, all_folders
+    )
+    fraud_catches: list[dict] = list(evidence_identity_catches)
     if not args.skip_fraud:
-        fraud_catches = run_fraud_detection(batch_id, cascade_rows, hybrid_rows, out_dir)
-        # Override fraud output filename to v30
-        fraud_out_v24 = out_dir / "fraud-watch-v24.json"
-        fraud_out_v25 = out_dir / f"fraud-watch-{VERSION}.json"
-        if fraud_out_v24.exists() and not fraud_out_v25.exists():
-            import shutil as _shutil
-            _shutil.copy2(fraud_out_v24, fraud_out_v25)
+        fraud_catches.extend(
+            run_fraud_detection(batch_id, cascade_rows, hybrid_rows, out_dir)
+        )
     else:
         print("[consistency-check] skipped (--skip-fraud)", flush=True)
+
+    # run_fraud_detection is imported from run_v24 and therefore writes a v24
+    # filename. Always write the complete, current-version catch artifact here.
+    fraud_out_v30 = out_dir / f"fraud-watch-{VERSION}.json"
+    fraud_out_v30.write_text(json.dumps({
+        "batch_id": batch_id,
+        "version": VERSION,
+        "timestamp": utc_ts(),
+        "catch_count": len(fraud_catches),
+        "catches": fraud_catches,
+    }, indent=2, default=str))
+    print(
+        f"[fraud] {len(evidence_identity_catches)} evidence-identity catch(es); "
+        f"{fraud_out_v30.name} written",
+        flush=True,
+    )
 
     # ── stage 7: step trace ────────────────────────────────────────────────
     trace_path = out_dir / f"step-trace-{VERSION}.jsonl"

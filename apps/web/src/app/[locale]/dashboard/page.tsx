@@ -37,7 +37,7 @@ function ApClerkDashboard() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-10">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t('portalName')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSubtitle')}</p>
@@ -49,7 +49,7 @@ function ApClerkDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSubmitBody')}</p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <Link
               href="/invoices/new?integration=JAWAL"
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"
@@ -71,7 +71,16 @@ function ApClerkDashboard() {
                 {t('submitInvoice')} →
               </span>
             </Link>
+          </div>
+        </section>
 
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">{t('apClerkSheetsTitle')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t('apClerkSheetsBody')}</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <Link
               href="/invoices/new?integration=SOLVENTUM"
               className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40 hover:bg-card/80"

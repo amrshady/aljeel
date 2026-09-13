@@ -348,33 +348,46 @@ function InvoiceUploadContent() {
             {tDetail('back')}
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{t('integrationRequiredTitle')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('integrationRequiredBody')}</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Link
-              href="/invoices/new?integration=JAWAL"
-              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
-            >
-              <h2 className="font-semibold">{t('integrationJawal')}</h2>
-            </Link>
-            <Link
-              href="/invoices/new?integration=ASATEEL"
-              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
-            >
-              <h2 className="font-semibold">{t('integrationAsateel')}</h2>
-            </Link>
-            <Link
-              href="/invoices/new?integration=SOLVENTUM"
-              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
-            >
-              <h2 className="font-semibold">{t('integrationSolventum')}</h2>
-            </Link>
-            <Link
-              href="/invoices/new?integration=SUPPLIER"
-              className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
-            >
-              <h2 className="font-semibold">{t('integrationSupplierRecon')}</h2>
-            </Link>
-          </div>
+          <section className="mt-8 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">{t('integrationSubmitTitle')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('integrationRequiredBody')}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Link
+                href="/invoices/new?integration=JAWAL"
+                className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+              >
+                <h3 className="font-semibold">{t('integrationJawal')}</h3>
+              </Link>
+              <Link
+                href="/invoices/new?integration=ASATEEL"
+                className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+              >
+                <h3 className="font-semibold">{t('integrationAsateel')}</h3>
+              </Link>
+            </div>
+          </section>
+          <section className="mt-10 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">{t('integrationSheetsTitle')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('integrationSheetsBody')}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Link
+                href="/invoices/new?integration=SOLVENTUM"
+                className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+              >
+                <h3 className="font-semibold">{t('integrationSolventum')}</h3>
+              </Link>
+              <Link
+                href="/invoices/new?integration=SUPPLIER"
+                className="rounded-xl border bg-card p-6 shadow-sm transition-colors hover:border-primary/40"
+              >
+                <h3 className="font-semibold">{t('integrationSupplierRecon')}</h3>
+              </Link>
+            </div>
+          </section>
         </div>
       </AppShell>
     );

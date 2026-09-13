@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-[90rem] items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="cursor-pointer">
-              <AljeelLogo variant="light" className="h-10 w-auto" />
+              <AljeelLogo variant="light" className="h-14 w-auto" />
             </Link>
           </div>
           <div className="flex items-center gap-3">

@@ -7,23 +7,25 @@ type AljeelLogoProps = {
   priority?: boolean;
 };
 
-const LOGO_WIDTH = 148;
-const LOGO_HEIGHT = 113;
+const LOGO = {
+  light: { src: '/aljeel-logo.svg', width: 640, height: 452 },
+  default: { src: '/aljeel-logo-transparent.png', width: 148, height: 113 },
+} as const;
 
 export function AljeelLogo({ variant = 'default', className, priority }: AljeelLogoProps) {
-  const src =
-    variant === 'light' ? '/aljeel-logo-light.png' : '/aljeel-logo-transparent.png';
+  const { src, width, height } = LOGO[variant];
 
   return (
     <Image
       src={src}
       alt="Aljeel"
-      width={LOGO_WIDTH}
-      height={LOGO_HEIGHT}
+      width={width}
+      height={height}
       priority={priority}
+      unoptimized
       className={cn(
-        variant === 'light' ? 'h-8' : 'h-14',
-        'w-auto object-contain',
+        variant === 'light' ? 'h-12' : 'h-14',
+        'w-auto overflow-visible object-contain object-left',
         className,
       )}
     />

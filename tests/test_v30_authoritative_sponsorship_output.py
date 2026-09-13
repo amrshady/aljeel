@@ -127,6 +127,7 @@ def test_authoritative_metadata_removes_stale_need_to_allocate_note(tmp_path):
     assert values["Manpower Allocation Status"] == "Can Be used"
     assert "Need to allocate" not in values["Human Review Note"]
     assert (values["Row Status"], values["Evidence Folder Status"]) == ("GREEN", "OK")
+    assert values["Agent Flags"] == "CLEAN"
     wb.close()
 
 

@@ -143,6 +143,24 @@ def test_real_scanned_ce_and_lab_forms_extract_all_allocation_employees():
     assert all(a["amount"] == "" for a in lab_allocations)
 
 
+def test_lab21_single_recipient_excludes_approval_signatories():
+    manpower = run_v30.fea.load_manpower()
+    pdf = ROOT / (
+        "batches/jawal-J26-1339/raw/J26-1339/LAB-21-2026/"
+        "SOPTFIRE_Launch_OPEX-LAB-21-2026-J-2026-157_Fully_Approved_.pdf"
+    )
+    salesmen, allocations = run_v30._extract_sponsorship_allocations_from_opex_pdf(
+        pdf, manpower
+    )
+    assert salesmen == ["1000467"]
+    assert [(a["emp_no"], a["amount"]) for a in allocations] == [
+        ("1000467", "75,000.00"),
+    ]
+    assert {"1001150", "1000995"}.isdisjoint(
+        allocation["emp_no"] for allocation in allocations
+    )
+
+
 def test_participant_folder_overrides_ref_folder_and_flags_mismatch(tmp_path, monkeypatch):
     sis14 = tmp_path / "SIS-14-2026"; sis14.mkdir()
     sis15 = tmp_path / "SIS-15-2026"; sis15.mkdir()

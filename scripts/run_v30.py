@@ -1151,8 +1151,12 @@ def _extract_salesmen_from_opex_pdf(pdf_path, employee_directory=None):
         print(f"[salesman-extract] PDF read failed for {pdf_path.name}: {e}", flush=True)
         return []
 
-    if not pdf_text.strip():
+    allocation_lines = _sponsorship_allocation_table_lines([
+        re.sub(r"\s+", " ", line).strip() for line in pdf_text.splitlines()
+    ])
+    if not allocation_lines:
         return []
+    allocation_text = "\n".join(allocation_lines)
 
     emp_dir_hint = ""
     if employee_directory:
@@ -1169,8 +1173,8 @@ Rules:
 - If no salesman table found or no valid employee numbers, return: {{"salesmen": []}}
 {emp_dir_hint}
 
-OPEX FORM TEXT:
-{pdf_text[:4000]}
+OPEX ALLOCATION TABLE TEXT:
+{allocation_text[:4000]}
 """
 
     models = ("gemini-2.5-flash", "gemini-2.5-pro", "gemini-pro-latest")
@@ -2186,7 +2190,10 @@ def _ocr_employee_for_allocation_line(
         re.sub(r"[^a-z]", "", token.casefold())
         for token in re.findall(r"[A-Za-z]+", line)
     ]
-    ocr_tokens = [token for token in ocr_tokens if len(token) >= 4]
+    ocr_tokens = [
+        token for token in ocr_tokens
+        if len(token) >= (3 if candidate_div else 4)
+    ]
     ocr_shapes = set(ocr_tokens)
     ocr_shapes.update(a + b for a, b in zip(ocr_tokens, ocr_tokens[1:]))
     if not ocr_shapes:
@@ -2213,7 +2220,10 @@ def _ocr_employee_for_allocation_line(
         )
         scored.append((score, str(emp_no)))
     scored.sort(reverse=True)
-    if not scored or scored[0][0] < 0.84:
+    # A row already constrained to the allocation table's dominant division
+    # can tolerate common OCR transpositions (for example Saied/Said, all/Ali).
+    minimum_score = 0.78 if candidate_div else 0.84
+    if not scored or scored[0][0] < minimum_score:
         return ""
     if scored[0][0] < 0.98 and len(scored) > 1 and scored[0][0] - scored[1][0] < 0.025:
         return ""
@@ -2223,15 +2233,9 @@ def _ocr_employee_for_allocation_line(
 def _extract_ocr_sponsorship_allocations(text: str, manpower: dict) -> list[dict]:
     """Extract image-only allocation rows; fall back to even ratios if amounts blur."""
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
-    start = next(
-        (i for i, line in enumerate(lines) if re.search(
-            r"event allocation details|amount to allocate", line, re.IGNORECASE
-        )),
-        None,
-    )
-    if start is None:
+    table = _sponsorship_allocation_table_lines(lines)
+    if not table:
         return []
-    table = lines[start:]
     allocations = []
     unresolved = []
     seen = set()
@@ -2291,6 +2295,35 @@ def _extract_ocr_sponsorship_allocations(text: str, manpower: dict) -> list[dict
     return allocations
 
 
+def _sponsorship_allocation_table_lines(lines: list[str]) -> list[str]:
+    """Return only the Event Allocation Details table, never approval rows."""
+    start = next(
+        (i for i, line in enumerate(lines) if re.search(
+            r"event allocation details|amount to allocate", line, re.IGNORECASE
+        )),
+        None,
+    )
+    if start is None:
+        return []
+
+    table = []
+    approval_label = re.compile(
+        r"^(?:solution\s*lead|budget\s*m[ae]nager|"
+        r"division(?:\s*/\s*gm)?\s*m[ae]nager|ivd\s*general\s*m[ae]nager|"
+        r"commercial\s*m[ae]nager|compliance\s*(?:m[ae]nager|head)|approved)\s*[:-]",
+        re.IGNORECASE,
+    )
+    for line in lines[start:]:
+        if approval_label.search(line):
+            break
+        table.append(line)
+        # The first Total after the allocation heading closes the table. This
+        # is stronger than relying only on approval labels in noisy OCR.
+        if re.match(r"^total\b", line, re.IGNORECASE):
+            break
+    return table
+
+
 def _extract_sponsorship_allocations_from_opex_pdf(pdf_path, manpower=None):
     """Return ordered ``(employee_no, name, amount)`` rows from the OPEX table.
 
@@ -2309,15 +2342,9 @@ def _extract_sponsorship_allocations_from_opex_pdf(pdf_path, manpower=None):
 
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
     lines = [line for line in lines if line]
-    start = next(
-        (i for i, line in enumerate(lines) if re.search(
-            r"event allocation details|amount to allocate", line, re.IGNORECASE
-        )),
-        None,
-    )
+    table = _sponsorship_allocation_table_lines(lines)
     allocations = []
-    if start is not None:
-        table = lines[start:]
+    if table:
         for i, line in enumerate(table):
             emp_match = re.fullmatch(r"E?(1\d{6})(?:\s+(.+?))?", line, re.IGNORECASE)
             if not emp_match:
@@ -2405,6 +2432,41 @@ def _apply_authoritative_sponsoring_form_promotions(
         row["_evidence_folder"] = folder_str
         row["_agent_method"] = "v30_authoritative_sponsoring_form"
         row["_route_reason"] = "EXACT_SPONSORING_FORM_REF"
+        promoted += 1
+    return promoted
+
+
+def _promote_resolved_folder_sponsorships(
+    hybrid_rows: list[dict], cascade_rows: list[dict]
+) -> int:
+    """Promote rows when their already-resolved evidence folder owns a form.
+
+    Unlike the event-serial index, this also covers invoice/bundle aliases whose
+    ticket reference and sponsoring-form folder use different identifiers.
+    """
+    promoted = 0
+    for row, _cascade_row in zip(hybrid_rows, cascade_rows):
+        folder_str = str(row.get("_evidence_folder", "") or "").strip()
+        if not folder_str or row_verified_emp_locked(row):
+            continue
+        folder = Path(folder_str)
+        if not _find_opex_pdfs(folder):
+            continue
+
+        row["_sponsoring_form_folder"] = folder_str
+        row["account"] = SPONSORSHIP_ACCOUNT
+        row["emp_no"] = ""
+        row["location"] = ""
+        row.pop("_missing_evidence", None)
+        row["_missing_evidence_resolved"] = True
+        row["_agent_method"] = "v30_authoritative_sponsoring_form"
+        row["_route_reason"] = "RESOLVED_FOLDER_SPONSORING_FORM"
+        for key in ("_flags", "Agent Flags"):
+            cleaned, changed = _remove_pipe_flag_text(
+                row.get(key, ""), "FORM_NOT_FOUND_IN_EMAIL"
+            )
+            if changed:
+                row[key] = "" if key == "_flags" and cleaned == "CLEAN" else cleaned
         promoted += 1
     return promoted
 
@@ -5802,6 +5864,13 @@ def stamp_authoritative_sponsorship_metadata(
             and (h.get("_missing_evidence_resolved") or h.get("_sponsoring_form_folder"))
         ):
             ws.cell(row_idx, cols["Evidence Folder Status"]).value = "OK"
+        if "Agent Flags" in cols:
+            flags_cell = ws.cell(row_idx, cols["Agent Flags"])
+            cleaned, changed = _remove_pipe_flag_text(
+                flags_cell.value, "FORM_NOT_FOUND_IN_EMAIL"
+            )
+            if changed:
+                flags_cell.value = cleaned
         stamped += 1
 
     wb.save(str(out_xlsx))
@@ -6225,6 +6294,14 @@ def main():
         reverse_index=reverse_index,
         enable_passenger_name_fallback=batch_dir.name.casefold().startswith("jawal-"),
     )
+    resolved_folder_sponsorships = _promote_resolved_folder_sponsorships(
+        hybrid_rows, cascade_rows
+    )
+    print(
+        f"[sponsor-folder-promote] {resolved_folder_sponsorships} resolved evidence "
+        "folder row(s) promoted before LLM",
+        flush=True,
+    )
     fallback_rows = {
         i for i, h in enumerate(hybrid_rows)
         if h.get("_route_reason") == REFNO_FALLBACK_FLAG
@@ -6237,6 +6314,10 @@ def main():
     for i in emp_filename_fallback_rows:
         routed_by_row[i] = EMP_FILENAME_FALLBACK_FLAG
     routed = sorted(routed_by_row.items())
+    routed = [
+        (i, reason) for i, reason in routed
+        if not hybrid_rows[i].get("_sponsoring_form_folder")
+    ]
     if fallback_rows:
         routed = [
             (i, REFNO_FALLBACK_FLAG if i in fallback_rows else reason)
@@ -6367,6 +6448,19 @@ def main():
                     break
         except KeyboardInterrupt:
             print("\n[interrupt] saving partial...", flush=True)
+
+    # Bundle/alias discovery can occur inside Call 1 rather than the pre-LLM
+    # evidence gate. Re-apply the same deterministic precedence once those
+    # resolved folder paths have been copied back onto the hybrid rows.
+    post_llm_folder_sponsorships = _promote_resolved_folder_sponsorships(
+        hybrid_rows, cascade_rows
+    )
+    if post_llm_folder_sponsorships:
+        print(
+            f"[sponsor-folder-promote] {post_llm_folder_sponsorships} post-LLM "
+            "resolved folder row(s) authoritatively re-promoted",
+            flush=True,
+        )
 
     # ── stage 3b: family cluster unification ──────────────────────────────
     unified = apply_family_cluster_unification_verified_safe(hybrid_rows, cascade_rows)

@@ -79,6 +79,68 @@ def test_exact_form_ref_promotes_after_employee_travel_overlay(
     assert row["_sponsoring_form_folder"] == str(folder)
 
 
+def test_j26_1339_resolved_folder_form_overrides_training_and_uses_requester_allocation(
+    tmp_path, monkeypatch
+):
+    folder = tmp_path / "32-DMS-2026"
+    folder.mkdir()
+    form = folder / "Sponsoring_Payment_Form.pdf"
+    form.write_bytes(b"synthetic sponsoring form")
+    row = {
+        "account": "60308009",
+        "emp_no": "",
+        "cost_center": "250010",
+        "div": "120",
+        "solution": "00000",
+        "agency": "10206",
+        "location": "10100",
+        "_evidence_folder": str(folder),
+        "_flags": "FORM_NOT_FOUND_IN_EMAIL EMP_FILENAME_FALLBACK",
+        "Agent Flags": "FORM_NOT_FOUND_IN_EMAIL | EMP_FILENAME_FALLBACK",
+    }
+    cascade = {
+        "Description": "ANAS ALMAGHRABI - Val Blu Resort Spa Sports - 9 NTS. (26-1215)",
+        "Invoice Ref No": "32-DMS-2026",
+    }
+    manpower = {
+        "1001058": {
+            "cost_center": "999999", "div_code": "999", "solution": "99999",
+            "agency_code": "10999", "location": "10100",
+        },
+        "1002001": {
+            "cost_center": "160013", "div_code": "192", "solution": "10005",
+            "agency_code": "10009", "agency_name": "IVOCLAR", "location": "20100",
+        },
+    }
+
+    monkeypatch.setattr(run_v30, "_find_opex_pdfs", lambda candidate: [form])
+    monkeypatch.setattr(
+        run_v30, "_extract_sponsorship_allocations_from_opex_pdf",
+        lambda candidate, manpower=None: (
+            ["1001058"],
+            [{"emp_no": "1001058", "name": "Abdulrahman AL-Jawish", "amount": "10,000.00"}],
+        ),
+    )
+    monkeypatch.setattr(
+        run_v30, "_parse_opex_event_segments",
+        lambda candidate, cascade_row: {"agency": "10009", "source": form.name},
+    )
+
+    assert run_v30._promote_resolved_folder_sponsorships([row], [cascade]) == 1
+    assert "FORM_NOT_FOUND_IN_EMAIL" not in row["_flags"]
+    assert "FORM_NOT_FOUND_IN_EMAIL" not in row["Agent Flags"]
+    assert run_v30.apply_sponsorship_allocations(
+        [row], [cascade], tmp_path, [folder], {}, manpower
+    ) == (1, 0)
+    assert run_v30.apply_sponsorship_event_segments(
+        [row], [cascade], manpower, tmp_path, [folder], {}
+    ) == 1
+    assert (
+        row["account"], row["emp_no"], row["agency"], row["div"],
+        row["cost_center"], row["solution"],
+    ) == ("60307021", "1001058", "10009", "192", "160013", "10005")
+
+
 def test_j26_1108_exact_forms_flow_through_existing_allocation_and_segment_passes(
     tmp_path, monkeypatch
 ):

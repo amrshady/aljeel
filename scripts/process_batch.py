@@ -166,6 +166,7 @@ from cost_center_resolver import (
 from qc_gates import validate_line, GateResult
 from allocation_resolver import resolve_allocation
 from msg_parser import parse_msg, find_msgs_for_ticket
+from evidence_bundle_index import build_bundled_ticket_aliases
 from oracle_form_parser import parse_form
 from sponsorship_detector import detect_sponsorship, find_requesting_employee_from_form
 from employee_resolver_v2 import resolve_employee, enrich_cache, _normalize_gds_name, ResolutionResult
@@ -608,7 +609,10 @@ def _clear_stale_employee_not_in_master(r, gate, md):
     return changed
 
 
-def _validate_with_email_form(resolved, description, ticket_no, amount, raw_dir, md, no_cache=False):
+def _validate_with_email_form(
+    resolved, description, ticket_no, amount, raw_dir, md, no_cache=False,
+    sibling_ticket_nos=None,
+):
     """Run email-as-validator: parse Oracle form from .msg, compare with Manpower-derived segments.
     
     Returns dict with validator columns.
@@ -641,7 +645,7 @@ def _validate_with_email_form(resolved, description, ticket_no, amount, raw_dir,
     # Find .msg files for this line
     msg_files = []
     if ticket_no:
-        msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+        msg_files = find_msgs_for_ticket(ticket_no, raw_dir, sibling_ticket_nos)
     
     if not msg_files:
         return result, ["FORM_NOT_FOUND_IN_EMAIL"]
@@ -969,6 +973,13 @@ def process_batch(
     _email_enrichment_pairs = []
     _email_extraction_log = []
 
+    bundled_ticket_aliases = (
+        build_bundled_ticket_aliases(Path(raw_dir)) if raw_dir else {}
+    )
+
+    def msg_ticket_aliases(ticket_no):
+        return bundled_ticket_aliases.get(str(ticket_no or ""), ())
+
     for i in range(header_row_idx + 1, len(df)):
         row = df.iloc[i]
         header_id = row.iloc[COL_HEADER_ID]
@@ -1019,7 +1030,9 @@ def process_batch(
         is_corrupt_or_empty = False
         if raw_dir and ticket_no:
             from msg_parser import find_msgs_for_ticket
-            email_msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+            email_msg_files = find_msgs_for_ticket(
+                ticket_no, raw_dir, msg_ticket_aliases(ticket_no)
+            )
             for mf in email_msg_files:
                 if not os.path.exists(mf) or os.path.getsize(mf) == 0:
                     is_corrupt_or_empty = True
@@ -1046,7 +1059,9 @@ def process_batch(
         v2_form_approver = None
         v2_msg_filenames = []
         if raw_dir and ticket_no:
-            v2_msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+            v2_msg_files = find_msgs_for_ticket(
+                ticket_no, raw_dir, msg_ticket_aliases(ticket_no)
+            )
             v2_msg_filenames = [str(f) for f in v2_msg_files]
             # Try parsing Oracle form from msgs for form_emp_no
             for mf in v2_msg_files:
@@ -1084,6 +1099,7 @@ def process_batch(
             msg_filenames=v2_msg_filenames,
             ticket_no=ticket_no,
             raw_dir=raw_dir,
+            sibling_ticket_nos=msg_ticket_aliases(ticket_no),
             md=md,
             extracted_email=extracted_email,
             manpower_emails=manpower_emails,
@@ -1274,7 +1290,9 @@ def process_batch(
             # Find .msg files for this ticket
             msg_bodies = []
             if raw_dir and ticket_no:
-                msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+                msg_files = find_msgs_for_ticket(
+                    ticket_no, raw_dir, msg_ticket_aliases(ticket_no)
+                )
                 for mf in msg_files:
                     parsed = parse_msg(mf, use_cache=True)
                     if parsed.get("body_text"):
@@ -1321,7 +1339,9 @@ def process_batch(
         validator_flags = []
         if raw_dir:
             validator_result, validator_flags = _validate_with_email_form(
-                resolved, description, ticket_no, amount, raw_dir, md, no_cache=no_cache
+                resolved, description, ticket_no, amount, raw_dir, md,
+                no_cache=no_cache,
+                sibling_ticket_nos=msg_ticket_aliases(ticket_no),
             )
             for vf in validator_flags:
                 if vf not in resolved.flags:
@@ -1335,7 +1355,9 @@ def process_batch(
         trip_form = None
         
         if raw_dir and ticket_no:
-            trip_msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+            trip_msg_files = find_msgs_for_ticket(
+                ticket_no, raw_dir, msg_ticket_aliases(ticket_no)
+            )
             for mf in trip_msg_files:
                 trip_parsed = parse_msg(mf, use_cache=True)
                 if trip_parsed.get("parse_method") == "failed":

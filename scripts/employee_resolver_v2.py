@@ -829,6 +829,7 @@ def _layer7_7_email_llm(
     ticket_no,
     raw_dir,
     passenger_name: str,
+    sibling_ticket_nos=None,
 ):
     """L7.7: LLM Email Allocation Extractor (v14).
 
@@ -854,7 +855,9 @@ def _layer7_7_email_llm(
         return None
 
     try:
-        result = extract_allocation_for_ticket(ticket_no, _Path(raw_dir))
+        result = extract_allocation_for_ticket(
+            ticket_no, _Path(raw_dir), sibling_ticket_nos=sibling_ticket_nos
+        )
     except Exception as _exc:
         print(f"[L7.7] Error calling extractor for ticket {ticket_no}: {_exc}")
         return None
@@ -1374,6 +1377,7 @@ def resolve_employee(
     extracted_email: str | None = None,
     manpower_emails: dict = None,
     no_cache: bool = False,
+    sibling_ticket_nos=None,
 ) -> ResolutionResult:
     """Run the 9-layer resolution cascade.
     
@@ -1485,7 +1489,10 @@ def resolve_employee(
     # Returns ALLOCATION_MISSING_FROM_EMAIL if email has no explicit coding.
     # Returns None if no .msg exists (cascade continues to L8_cache).
     if not no_cache:
-        r = _layer7_7_email_llm(ticket_no, raw_dir, passenger_name)
+        r = _layer7_7_email_llm(
+            ticket_no, raw_dir, passenger_name,
+            sibling_ticket_nos=sibling_ticket_nos,
+        )
         if r:
             # L8: Manager CC Fallback (v15.2 new layer)
             # Fires when L7.7 found a person_number but NO cost center in the email.

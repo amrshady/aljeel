@@ -372,6 +372,7 @@ def extract_allocation_from_msg(msg_path: Path) -> AllocationExtractResult:
 def extract_allocation_for_ticket(
     ticket_no: Optional[str],
     raw_dir: Optional[Path],
+    sibling_ticket_nos=None,
 ) -> Optional[AllocationExtractResult]:
     """
     Find all .msg files for a ticket, run LLM extraction on each,
@@ -387,7 +388,7 @@ def extract_allocation_for_ticket(
     sys.path.insert(0, str(Path(__file__).parent))
     from msg_parser import find_msgs_for_ticket
 
-    msg_files = find_msgs_for_ticket(ticket_no, raw_dir)
+    msg_files = find_msgs_for_ticket(ticket_no, raw_dir, sibling_ticket_nos)
     if not msg_files:
         return None
 

@@ -226,17 +226,35 @@ def parse_msg(path, use_cache=True):
     return result
 
 
-def find_msgs_for_ticket(ticket_no, raw_base):
-    """Find all .msg files associated with a ticket number."""
+def find_msgs_for_ticket(ticket_no, raw_base, sibling_ticket_nos=None):
+    """Find ticket messages, falling back to explicit ordered aliases on a miss."""
     raw_base = Path(raw_base)
+    ticket_no = str(ticket_no)
+
+    def _find(candidate_ticket_no):
+        results = []
+        for dirpath, dirnames, filenames in os.walk(raw_base):
+            dirnames.sort()
+            dirname = os.path.basename(dirpath)
+            if dirname.startswith(candidate_ticket_no) or dirname == candidate_ticket_no:
+                for filename in sorted(filenames):
+                    if filename.lower().endswith(".msg"):
+                        results.append(Path(dirpath) / filename)
+        return sorted(set(results), key=lambda path: str(path))
+
+    direct = _find(ticket_no)
+    if direct:
+        return direct
+
     results = []
-    for dirpath, dirnames, filenames in os.walk(raw_base):
-        dirname = os.path.basename(dirpath)
-        if dirname.startswith(ticket_no) or dirname == ticket_no:
-            for f in filenames:
-                if f.lower().endswith(".msg"):
-                    results.append(Path(dirpath) / f)
-    return results
+    seen_aliases = {ticket_no}
+    for sibling_ticket_no in sibling_ticket_nos or ():
+        sibling_ticket_no = str(sibling_ticket_no)
+        if not sibling_ticket_no or sibling_ticket_no in seen_aliases:
+            continue
+        seen_aliases.add(sibling_ticket_no)
+        results.extend(_find(sibling_ticket_no))
+    return sorted(set(results), key=lambda path: str(path))
 
 
 if __name__ == "__main__":

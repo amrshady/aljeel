@@ -93,6 +93,21 @@ except ImportError:
 import run_hybrid_v15_12 as v15
 from code_name_lookup import get_lookup
 from cost_center_resolver import build_gl_description
+from evidence_bundle_index import (
+    BUNDLED_TICKET_SHARED_PDF_FLAG,
+    INVOICE_BASENAME_RE,
+    NON_EVIDENCE_PDF_RE,
+    REFUND_DOCUMENT_RE,
+    TICKET_SCAN_RE,
+    _bundled_host_ticket_no,
+    _invoice_pdf_skip_set,
+    _normalize_reference_token,
+    _pdf_ticket_body_numbers,
+    _reference_tokens_in_text,
+    _should_scan_ticket_body_pdf,
+    build_bundled_ticket_pdf_map,
+    build_ticket_folder_index,
+)
 
 # Import everything from v16 (origin: v16 core logic)
 from run_v16 import (
@@ -3179,7 +3194,6 @@ VERIFIED_EMP_LOCK_FLAG = "VERIFIED_EMP_LOCK"
 MISSING_EVIDENCE_FLAG = "MISSING_EVIDENCE"
 ANCILLARY_EVENT_INHERITED_FLAG = "ANCILLARY_EVENT_ALLOCATION_INHERITED"
 OPEX_EMAIL_ONLY_FLAG = "OPEX_EMAIL_ONLY"
-BUNDLED_TICKET_SHARED_PDF_FLAG = "BUNDLED_TICKET_SHARED_PDF"
 INVOICE_REF_FOLDER_MATCH_FLAG = "INVOICE_REF_FOLDER_MATCH"
 INVOICE_REF_EMP_FILENAME_FLAG = "INVOICE_REF_EMP_FILENAME_MATCH"
 INVOICE_REF_FUZZY_FLAG = "REF_FUZZY"
@@ -3196,19 +3210,7 @@ ANNUAL_TICKET_ACCOUNT = "21070229"
 SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED = "SPONSORSHIP_ANNUAL_OVERRIDE_BLOCKED"
 HASH_EVIDENCE_FOLDER_RE = re.compile(r"^(?=[A-F0-9]{8,}$)(?=.*[A-F])[A-F0-9]+$", re.IGNORECASE)
 EMP_FILENAME_RE = re.compile(r"(?<!\d)(\d{6,7})(?!\d)")
-TICKET_SCAN_RE = re.compile(r"\b(\d{10})\b")
-SHORT_REF_SCAN_RE = re.compile(r"\b(\d{2}-\d{3,})\b")
-PNR_SCAN_RE = re.compile(r"(?<![A-Z0-9])([A-Z0-9]{6})(?![A-Z0-9])", re.IGNORECASE)
 TRAILING_REF_RE = re.compile(r"\(([^)]+)\)\s*$")
-INVOICE_BASENAME_RE = re.compile(r"INV(?:OICE)?", re.IGNORECASE)
-NON_EVIDENCE_PDF_RE = re.compile(
-    r"(?:^|[^A-Z0-9])(?:SOA|STATEMENT[ _-]*OF[ _-]*ACCOUNT)(?:[^A-Z0-9]|$)",
-    re.IGNORECASE,
-)
-REFUND_DOCUMENT_RE = re.compile(
-    r"(?:^|[^A-Z0-9])(?:REFUND|CREDIT[ _-]*(?:NOTE|MEMO))(?:[^A-Z0-9]|$)",
-    re.IGNORECASE,
-)
 ORIGINAL_NOT_IN_BATCH_FLAG = "ORIGINAL_NOT_IN_BATCH"
 REFUND_PARSE_FAILED_FLAG = "REFUND_PARSE_FAILED"
 REFUND_AMOUNT_MATCH_TOLERANCE = 0.01
@@ -3220,36 +3222,11 @@ _BUNDLED_SHARED_HOST_RE = re.compile(
 )
 
 
-def _normalize_reference_token(token: str) -> str:
-    token = str(token or "").strip()
-    if re.fullmatch(r"\d{10}", token):
-        return token
-    if re.fullmatch(r"\d{2}-\d{3,}", token):
-        return token
-    if (
-        re.fullmatch(r"[A-Z0-9]{6}", token, re.IGNORECASE)
-        and re.search(r"[A-Z]", token, re.IGNORECASE)
-        and re.search(r"\d", token)
-    ):
-        return token.upper()
-    return ""
-
-
 def _row_reference_token(cascade_row: dict) -> str:
     """Return the supported ref from the Description's trailing parenthetical."""
     desc = str(cascade_row.get("Description", "") or "")
     m = TRAILING_REF_RE.search(desc)
     return _normalize_reference_token(m.group(1)) if m else ""
-
-
-def _reference_tokens_in_text(text: str) -> set[str]:
-    refs = {m.group(1) for m in TICKET_SCAN_RE.finditer(text)}
-    refs.update(m.group(1) for m in SHORT_REF_SCAN_RE.finditer(text))
-    for m in PNR_SCAN_RE.finditer(text):
-        token = _normalize_reference_token(m.group(1))
-        if token:
-            refs.add(token)
-    return refs
 
 
 def _refund_document_key(path: Path) -> str:
@@ -4049,171 +4026,6 @@ def apply_cc_account_override(hybrid_rows: list[dict]) -> int:
 
     print(f"[cc-override] {applied} rows → cost-center account override applied", flush=True)
     return applied
-
-
-def build_ticket_folder_index(evidence_root: Path) -> set[str]:
-    """Return supported Jawal refs found in evidence folder/file names."""
-    index = set()
-    if not evidence_root or not evidence_root.exists():
-        return index
-    invoice_skip_paths, invoice_skip_stems = _invoice_pdf_skip_set(evidence_root)
-    for root, dirs, files in os.walk(evidence_root):
-        for d in dirs:
-            index.update(_reference_tokens_in_text(d))
-        root_path = Path(root)
-        for fname in files:
-            file_path = root_path / fname
-            if (
-                file_path.resolve(strict=False) in invoice_skip_paths
-                or file_path.stem.lower() in invoice_skip_stems
-                or INVOICE_BASENAME_RE.search(file_path.stem)
-                or NON_EVIDENCE_PDF_RE.search(file_path.stem)
-                or REFUND_DOCUMENT_RE.search(file_path.stem)
-            ):
-                continue
-            index.update(_reference_tokens_in_text(file_path.stem))
-    return index
-
-
-def _batch_id_from_path(path: Path) -> str:
-    for part in path.parts:
-        m = re.search(r"J26-\d+", part, re.IGNORECASE)
-        if m:
-            return m.group(0).upper()
-    return ""
-
-
-def _invoice_pdf_skip_set(evidence_root: Path) -> tuple[set[Path], set[str]]:
-    """Known source invoice PDFs/stems that must never seed ticket evidence."""
-    skip_paths: set[Path] = set()
-    skip_stems: set[str] = set()
-    if not evidence_root:
-        return skip_paths, skip_stems
-
-    batch_id = _batch_id_from_path(evidence_root)
-    candidate_dirs: list[Path] = []
-    for directory in [evidence_root, *evidence_root.parents]:
-        candidate_dirs.append(directory)
-        if batch_id and directory.name.upper() == batch_id:
-            break
-    if batch_id:
-        candidate_dirs.extend([
-            ROOT / "batches" / f"jawal-{batch_id}",
-            VOLUME_BASE / batch_id,
-        ])
-    invoice_sources: list[Path] = []
-    seen_dirs: set[Path] = set()
-    for directory in candidate_dirs:
-        directory = directory.resolve(strict=False)
-        if directory in seen_dirs:
-            continue
-        seen_dirs.add(directory)
-        if not directory.is_dir():
-            continue
-        invoice_sources.extend(
-            p for p in directory.iterdir()
-            if p.is_file()
-            and p.suffix.lower() in {".xlsx", ".xls", ".pdf"}
-            and (
-                p.name == "invoice-source.xlsx"
-                or INVOICE_BASENAME_RE.search(p.stem)
-            )
-        )
-
-    for source in invoice_sources:
-        source_resolved = source.resolve(strict=False)
-        skip_stems.add(source.stem.lower())
-        if source.suffix.lower() == ".pdf":
-            skip_paths.add(source_resolved)
-            continue
-        for directory in candidate_dirs:
-            if directory.is_dir():
-                skip_paths.add((directory / f"{source.stem}.pdf").resolve(strict=False))
-    return skip_paths, skip_stems
-
-
-def _at_or_below_root(path: Path, evidence_root: Path) -> bool:
-    try:
-        rel = path.relative_to(evidence_root)
-    except ValueError:
-        return False
-    return bool(rel.parts)
-
-
-def _should_scan_ticket_body_pdf(
-    pdf_path: Path,
-    evidence_root: Path,
-    invoice_skip_paths: set[Path],
-    invoice_skip_stems: set[str],
-) -> bool:
-    if not _at_or_below_root(pdf_path, evidence_root):
-        return False
-    if pdf_path.resolve(strict=False) in invoice_skip_paths:
-        return False
-    if pdf_path.stem.lower() in invoice_skip_stems:
-        return False
-    if INVOICE_BASENAME_RE.search(pdf_path.stem):
-        return False
-    if NON_EVIDENCE_PDF_RE.search(pdf_path.stem):
-        return False
-    if REFUND_DOCUMENT_RE.search(pdf_path.stem):
-        return False
-    return True
-
-
-def _pdf_ticket_body_numbers(pdf_path: Path, pdf_text_cache: dict[Path, set[str]]) -> set[str]:
-    if pdf_path in pdf_text_cache:
-        return pdf_text_cache[pdf_path]
-    numbers: set[str] = set()
-    try:
-        import fitz  # pymupdf — primary in this pipeline (see full_evidence_agent)
-        doc = fitz.open(str(pdf_path))
-        try:
-            text = "\n".join(page.get_text() for page in doc)
-        finally:
-            doc.close()
-        numbers = _reference_tokens_in_text(text)
-    except Exception as exc:
-        print(f"[ticket-pdf-scan] WARNING: PDF read failed for {pdf_path}: {exc}", flush=True)
-    pdf_text_cache[pdf_path] = numbers
-    return numbers
-
-
-def build_bundled_ticket_pdf_map(
-    evidence_root: Path,
-    pdf_text_cache: dict[Path, set[str]] | None = None,
-) -> dict[str, str]:
-    """Return {embedded_reference_token: host_pdf_path} from evidence PDFs."""
-    bundled: dict[str, str] = {}
-    if not evidence_root or not evidence_root.exists():
-        return bundled
-    cache = pdf_text_cache if pdf_text_cache is not None else {}
-    invoice_skip_paths, invoice_skip_stems = _invoice_pdf_skip_set(evidence_root)
-    for root, _dirs, files in os.walk(evidence_root):
-        root_path = Path(root)
-        for fname in files:
-            if not fname.lower().endswith(".pdf"):
-                continue
-            pdf_path = root_path / fname
-            if not _should_scan_ticket_body_pdf(
-                pdf_path, evidence_root, invoice_skip_paths, invoice_skip_stems
-            ):
-                continue
-            for ticket_no in sorted(_pdf_ticket_body_numbers(pdf_path, cache)):
-                bundled.setdefault(ticket_no, str(pdf_path))
-    return bundled
-
-
-def _bundled_host_ticket_no(host_pdf_path: str) -> str:
-    path = Path(host_pdf_path)
-    m = TICKET_SCAN_RE.search(path.stem)
-    if m:
-        return m.group(1)
-    for parent in [path.parent, *path.parents]:
-        m = re.match(r"^(\d{10})", parent.name)
-        if m:
-            return m.group(1)
-    return ""
 
 
 def cascade_row_no_folder(

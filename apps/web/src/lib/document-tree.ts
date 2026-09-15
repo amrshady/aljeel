@@ -36,6 +36,20 @@ function splitRelativePath(fileName: string): string[] {
     .filter((part) => part.length > 0 && part !== '.' && part !== '..');
 }
 
+/** Prefix a file path with an invoice folder (empty prefix = invoice root). */
+export function joinDocumentPath(
+  prefix: string | undefined | null,
+  relativePath: string,
+): string {
+  const prefixParts = splitRelativePath(prefix ?? '');
+  const pathParts = splitRelativePath(relativePath);
+  if (prefixParts.length === 0) {
+    return pathParts.join('/') || relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  }
+  if (pathParts.length === 0) return prefixParts.join('/');
+  return [...prefixParts, ...pathParts].join('/');
+}
+
 function sortMutable(
   nodes: Array<MutableFolder | Extract<DocumentTreeNode, { kind: 'file' }>>,
 ): void {
@@ -69,8 +83,12 @@ function toPublicNode(
 /**
  * Builds a folder/file tree from document relative paths
  * (e.g. `root/sub/file.pdf`).
+ * `extraFolderPaths` keeps empty destination folders visible before files exist.
  */
-export function buildDocumentTree(documents: DocumentTreeItem[]): DocumentTreeNode[] {
+export function buildDocumentTree(
+  documents: DocumentTreeItem[],
+  extraFolderPaths: string[] = [],
+): DocumentTreeNode[] {
   const rootChildren: Array<
     MutableFolder | Extract<DocumentTreeNode, { kind: 'file' }>
   > = [];
@@ -132,8 +150,29 @@ export function buildDocumentTree(documents: DocumentTreeItem[]): DocumentTreeNo
     });
   }
 
+  for (const extra of extraFolderPaths) {
+    const parts = splitRelativePath(extra);
+    if (parts.length === 0) continue;
+    let folderMap = rootFolders;
+    let children = rootChildren;
+    let pathSoFar = '';
+    for (const name of parts) {
+      pathSoFar = pathSoFar ? `${pathSoFar}/${name}` : name;
+      const folder = ensureFolder(folderMap, children, name, pathSoFar);
+      folderMap = folder.folderMap;
+      children = folder.children;
+    }
+  }
+
   sortMutable(rootChildren);
   return rootChildren.map(toPublicNode);
+}
+
+/** Folder paths in the tree, sorted for destination pickers. */
+export function sortedFolderPaths(tree: DocumentTreeNode[]): string[] {
+  return [...allFolderPaths(tree)].sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' }),
+  );
 }
 
 /** Folder paths that should stay open so matching files remain visible. */

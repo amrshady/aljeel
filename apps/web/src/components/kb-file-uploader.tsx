@@ -5,6 +5,7 @@ import { formatBytes, type KbUploadProgress } from '@aljeel/kb-upload';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { useDropzone, type FileWithPath } from 'react-dropzone';
+import { joinDocumentPath } from '@/lib/document-tree';
 
 export type KbFileStatus =
   | 'pending'
@@ -47,6 +48,12 @@ interface KbFileUploaderProps {
   canRename?: boolean;
   /** Scroll target for the file list (e.g. during submit). */
   listRef?: RefObject<HTMLDivElement | null>;
+  /** Invoice folder to nest new files under (empty = invoice root). */
+  pathPrefix?: string;
+  /** Drag-over label; defaults to dropActive / dropActiveFolder. */
+  activeTitle?: string;
+  /** When false, hide Choose folder / Choose files and click the dropzone instead. */
+  showBrowseButtons?: boolean;
 }
 
 export function kbFileKey(item: Pick<KbQueuedFile, 'file' | 'relativePath'>): string {
@@ -110,6 +117,27 @@ function scannedFromDropzoneFiles(
     const relativePath = path.replace(/^\//, '') || file.name;
     return { file, relativePath };
   });
+}
+
+/** Queue browser files, optionally nested under an invoice folder. */
+export function collectQueuedFiles(
+  incoming: Array<File & { path?: string }>,
+  pathPrefix?: string,
+): { accepted: KbQueuedFile[]; rejected: string[] } {
+  const accepted: KbQueuedFile[] = [];
+  const rejected: string[] = [];
+  for (const file of incoming) {
+    const relativePath = joinDocumentPath(
+      pathPrefix,
+      fileRelativePath(file) ?? file.name,
+    );
+    if (!isAcceptedDocumentFile(file.name, file.type, file.size)) {
+      rejected.push(relativePath);
+    } else {
+      accepted.push({ file, relativePath, progress: 0, status: 'pending' });
+    }
+  }
+  return { accepted, rejected };
 }
 
 /**
@@ -522,6 +550,9 @@ export function KbFileUploader({
   showFileList = true,
   canRename = false,
   listRef,
+  pathPrefix,
+  activeTitle,
+  showBrowseButtons = true,
 }: KbFileUploaderProps) {
   const t = useTranslations('documents');
   const folderInputId = useId();
@@ -539,10 +570,11 @@ export function KbFileUploader({
       const accepted: KbQueuedFile[] = [];
       const rejected: string[] = [];
       for (const { file, relativePath } of incoming) {
+        const nestedPath = joinDocumentPath(pathPrefix, relativePath);
         if (!isAcceptedDocumentFile(file.name, file.type, file.size)) {
-          rejected.push(relativePath);
+          rejected.push(nestedPath);
         } else {
-          accepted.push({ file, relativePath, progress: 0, status: 'pending' });
+          accepted.push({ file, relativePath: nestedPath, progress: 0, status: 'pending' });
         }
       }
       setWarning(rejected.length > 0 ? t('rejected', { files: rejected.join(', ') }) : null);
@@ -553,7 +585,7 @@ export function KbFileUploader({
         onChange(single ? accepted : [...files, ...accepted]);
       }
     },
-    [files, onChange, onFolderName, single, t],
+    [files, onChange, onFolderName, pathPrefix, single, t],
   );
 
   function addFilesFromList(incoming: FileList | null) {
@@ -606,8 +638,8 @@ export function KbFileUploader({
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     // Keep classic <input> so webkitdirectory / multi-file both work on Windows.
     useFsAccessApi: false,
-    noClick: true,
-    noKeyboard: true,
+    noClick: showBrowseButtons,
+    noKeyboard: showBrowseButtons,
     disabled: zoneDisabled,
     multiple,
     onDrop: (accepted) => onDropzoneFiles(accepted as unknown as FileWithPath[]),
@@ -640,7 +672,13 @@ export function KbFileUploader({
               : isUploading
                 ? 'border-primary/40'
                 : 'border-muted-foreground/25 hover:border-primary/50'
-          } ${zoneDisabled ? 'cursor-not-allowed opacity-70' : ''}`,
+          } ${
+            zoneDisabled
+              ? 'cursor-not-allowed opacity-70'
+              : showBrowseButtons
+                ? ''
+                : 'cursor-pointer'
+          }`,
         })}
       >
         <div className="flex flex-col items-center justify-center px-6 py-8 text-center sm:flex-row sm:gap-5 sm:text-start">
@@ -658,42 +696,43 @@ export function KbFileUploader({
               {scanning
                 ? t('scanningFolder')
                 : isDragActive
-                  ? allowFolder
-                    ? t('dropActiveFolder')
-                    : t('dropActive')
+                  ? (activeTitle ??
+                    (allowFolder ? t('dropActiveFolder') : t('dropActive')))
                   : (title ?? (allowFolder ? t('dropTitleFolderFirst') : t('dropTitle')))}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {hint ?? (allowFolder ? t('dropHintFolderFirst') : t('dropHint'))}
             </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              {allowFolder && (
+            {showBrowseButtons && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                {allowFolder && (
+                  <button
+                    type="button"
+                    disabled={zoneDisabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void chooseFolder();
+                    }}
+                    className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {t('chooseFolder')}
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={zoneDisabled}
                   onClick={(e) => {
                     e.stopPropagation();
-                    void chooseFolder();
+                    if (zoneDisabled) return;
+                    // Prefer dropzone open so accept/multiple props stay in sync.
+                    open();
                   }}
-                  className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                 >
-                  {t('chooseFolder')}
+                  {t('chooseFiles')}
                 </button>
-              )}
-              <button
-                type="button"
-                disabled={zoneDisabled}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (zoneDisabled) return;
-                  // Prefer dropzone open so accept/multiple props stay in sync.
-                  open();
-                }}
-                className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                {t('chooseFiles')}
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
 

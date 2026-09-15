@@ -1,10 +1,10 @@
 'use client';
 
 import { Button } from '@aljeel/ui';
-import type { Document } from '@aljeel/shared-types';
+import { sanitizeEvidenceRelativePath, type Document } from '@aljeel/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { HighlightText, textMatchesQuery } from './highlight-text';
 import { ApiClientError } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
@@ -13,6 +13,8 @@ import {
   buildDocumentTree,
   defaultExpandedFolderPaths,
   folderPathsForDocumentIds,
+  joinDocumentPath,
+  sortedFolderPaths,
   type DocumentTreeNode,
 } from '@/lib/document-tree';
 import {
@@ -26,6 +28,7 @@ import {
   KbFileUploader,
   KbUploadRow,
   applyKbUploadProgress,
+  collectQueuedFiles,
   fileIcon,
   formatBytes,
   kbFileKey,
@@ -130,7 +133,14 @@ export function InvoiceDocuments({
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set());
   const [userToggledFolders, setUserToggledFolders] = useState(false);
+  const [uploadFolderPath, setUploadFolderPath] = useState('');
+  const [createdFolderPaths, setCreatedFolderPaths] = useState<string[]>([]);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const destinationRef = useRef('');
+  const folderFileInputRef = useRef<HTMLInputElement>(null);
   const showSearch = compact && viewable;
 
   const { data: documents = [], isLoading } = useQuery({
@@ -144,7 +154,17 @@ export function InvoiceDocuments({
     return map;
   }, [documents]);
 
-  const tree = useMemo(() => buildDocumentTree(documents), [documents]);
+  const extraFolderPaths = useMemo(() => {
+    const paths = new Set(createdFolderPaths);
+    if (uploadFolderPath) paths.add(uploadFolderPath);
+    return [...paths];
+  }, [createdFolderPaths, uploadFolderPath]);
+
+  const tree = useMemo(
+    () => buildDocumentTree(documents, extraFolderPaths),
+    [documents, extraFolderPaths],
+  );
+  const folderOptions = useMemo(() => sortedFolderPaths(tree), [tree]);
 
   const uploadMutation = useMutation({
     mutationFn: async (files: KbQueuedFile[]) => {
@@ -270,7 +290,8 @@ export function InvoiceDocuments({
     isLoading ||
     uploading.length > 0 ||
     pendingUploads.length > 0 ||
-    documents.length > 0;
+    documents.length > 0 ||
+    extraFolderPaths.length > 0;
   const canDownloadAll = !isLoading && documents.length > 0;
   const hasFolders = tree.some((node) => node.kind === 'folder');
 
@@ -307,6 +328,78 @@ export function InvoiceDocuments({
   function collapseAllFolders() {
     setUserToggledFolders(true);
     setExpandedPaths(new Set());
+  }
+
+  function expandFolderAncestors(path: string) {
+    if (!path) return;
+    setUserToggledFolders(true);
+    setExpandedPaths((current) => {
+      const next = new Set(
+        current.size > 0 || userToggledFolders ? current : defaultExpandedFolderPaths(tree),
+      );
+      const parts = path.split('/');
+      let acc = '';
+      for (const part of parts) {
+        acc = acc ? `${acc}/${part}` : part;
+        next.add(acc);
+      }
+      return next;
+    });
+  }
+
+  function selectUploadFolder(path: string) {
+    destinationRef.current = path;
+    setUploadFolderPath(path);
+    expandFolderAncestors(path);
+  }
+
+  function enqueueFilesIntoFolder(files: Array<File & { path?: string }>, folderPath: string) {
+    const { accepted, rejected } = collectQueuedFiles(files, folderPath);
+    if (rejected.length > 0) {
+      setError(t('rejected', { files: rejected.join(', ') }));
+    }
+    if (accepted.length === 0) return;
+    selectUploadFolder(folderPath);
+    setPending((current) => [...current, ...accepted]);
+  }
+
+  function addFilesToFolder(path: string) {
+    selectUploadFolder(path);
+    folderFileInputRef.current?.click();
+  }
+
+  function createUploadFolder() {
+    const parts = newFolderName
+      .replace(/\\/g, '/')
+      .split('/')
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0 && part !== '.' && part !== '..');
+    if (parts.length === 0) {
+      setError(t('newFolderEmpty'));
+      return;
+    }
+    const path = joinDocumentPath(uploadFolderPath, sanitizeEvidenceRelativePath(newFolderName));
+    setCreatedFolderPaths((current) => (current.includes(path) ? current : [...current, path]));
+    selectUploadFolder(path);
+    setNewFolderName('');
+    setCreatingFolder(false);
+    setError(null);
+  }
+
+  function onFolderDragOver(event: DragEvent<HTMLElement>, path: string) {
+    if (!editable || busy) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'copy';
+    setDragOverPath(path);
+  }
+
+  function onFolderDrop(event: DragEvent<HTMLElement>, path: string) {
+    if (!editable || busy) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOverPath(null);
+    enqueueFilesIntoFolder(Array.from(event.dataTransfer.files), path);
   }
 
   function startRename(documentId: string, fileName: string) {
@@ -356,32 +449,74 @@ export function InvoiceDocuments({
 
         rows.push(
           <li key={`folder:${node.path}`} className="list-none text-sm">
-            <button
-              type="button"
-              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50 ${
+            <div
+              className={`flex w-full items-center gap-2 px-3 py-1.5 ${
                 trimmedSearch && !folderMatchesSearch ? 'opacity-40' : ''
+              } ${
+                uploadFolderPath === node.path
+                  ? 'bg-primary/10'
+                  : dragOverPath === node.path
+                    ? 'bg-primary/15 ring-1 ring-inset ring-primary/40'
+                    : ''
               }`}
               style={{ paddingInlineStart: `${10 + depth * 12}px` }}
-              onClick={() => toggleFolder(node.path)}
-              aria-expanded={open}
+              onDragOver={(event) => onFolderDragOver(event, node.path)}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setDragOverPath((current) => (current === node.path ? null : current));
+                }
+              }}
+              onDrop={(event) => onFolderDrop(event, node.path)}
             >
-              <TreeGutter>
-                <Chevron open={open} />
-              </TreeGutter>
-              <span className="text-base leading-none" aria-hidden>
-                📁
-              </span>
-              <span className="min-w-0 flex-1 break-all font-medium" title={node.path}>
-                {trimmedSearch ? (
-                  <HighlightText text={node.name} query={trimmedSearch} />
-                ) : (
-                  node.name
-                )}
-              </span>
+              <button
+                type="button"
+                className="shrink-0 rounded-sm p-0.5 hover:bg-muted"
+                onClick={() => toggleFolder(node.path)}
+                aria-expanded={open}
+                aria-label={node.name}
+              >
+                <TreeGutter>
+                  <Chevron open={open} />
+                </TreeGutter>
+              </button>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-2 text-left hover:bg-muted/40"
+                onClick={() => {
+                  if (editable) selectUploadFolder(node.path);
+                  else toggleFolder(node.path);
+                }}
+                aria-pressed={editable ? uploadFolderPath === node.path : undefined}
+              >
+                <span className="text-base leading-none" aria-hidden>
+                  📁
+                </span>
+                <span className="min-w-0 flex-1 break-all font-medium" title={node.path}>
+                  {trimmedSearch ? (
+                    <HighlightText text={node.name} query={trimmedSearch} />
+                  ) : (
+                    node.name
+                  )}
+                </span>
+              </button>
+              {editable && (
+                <button
+                  type="button"
+                  onClick={() => addFilesToFolder(node.path)}
+                  disabled={busy}
+                  className={`shrink-0 text-xs hover:underline disabled:opacity-50 ${
+                    uploadFolderPath === node.path
+                      ? 'font-medium text-primary'
+                      : 'text-primary'
+                  }`}
+                >
+                  {t('uploadHere')}
+                </button>
+              )}
               <span className="shrink-0 text-xs text-muted-foreground">
                 {t('folderFileCount', { count: node.fileCount })}
               </span>
-            </button>
+            </div>
             {open && (
               <ul className="m-0 list-none p-0">{renderTreeNodes(node.children, depth + 1)}</ul>
             )}
@@ -625,7 +760,91 @@ export function InvoiceDocuments({
       )}
 
       {editable && (
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
+          <input
+            ref={folderFileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            disabled={busy}
+            onChange={(event) => {
+              enqueueFilesIntoFolder(
+                Array.from(event.target.files ?? []),
+                destinationRef.current,
+              );
+              event.target.value = '';
+            }}
+          />
+          <div className="rounded-xl border bg-card p-3 shadow-sm">
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-0 flex-1 text-xs font-medium" htmlFor="invoice-upload-folder">
+                {t('uploadDestinationLabel')}
+                <select
+                  id="invoice-upload-folder"
+                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm font-normal"
+                  value={uploadFolderPath}
+                  disabled={busy}
+                  onChange={(event) => selectUploadFolder(event.target.value)}
+                >
+                  <option value="">{t('uploadDestinationRoot')}</option>
+                  {folderOptions.map((path) => (
+                    <option key={path} value={path}>
+                      {path}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setCreatingFolder((open) => !open);
+                  setError(null);
+                }}
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50"
+              >
+                {t('newFolder')}
+              </button>
+            </div>
+            {creatingFolder && (
+              <form
+                className="mt-2 flex flex-wrap items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  createUploadFolder();
+                }}
+              >
+                <input
+                  autoFocus
+                  value={newFolderName}
+                  onChange={(event) => setNewFolderName(event.target.value)}
+                  placeholder={
+                    uploadFolderPath
+                      ? `${uploadFolderPath}/…`
+                      : t('newFolderPlaceholder')
+                  }
+                  className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1.5 text-sm"
+                  aria-label={t('newFolderPlaceholder')}
+                />
+                <button
+                  type="submit"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  {t('newFolderCreate')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreatingFolder(false);
+                    setNewFolderName('');
+                  }}
+                  className="text-xs text-muted-foreground hover:underline"
+                >
+                  {t('cancelRename')}
+                </button>
+              </form>
+            )}
+          </div>
           <KbFileUploader
             files={pendingUploads}
             onChange={(next) => {
@@ -633,10 +852,17 @@ export function InvoiceDocuments({
               setPending([...kept, ...next]);
             }}
             blockNewFiles={busy}
-            allowFolder
             showFileList={false}
-            title={t('dropTitle')}
-            hint={t('dropHint')}
+            showBrowseButtons={false}
+            pathPrefix={uploadFolderPath}
+            title={t('dropTitleClick')}
+            hint={
+              uploadFolderPath
+                ? t('dropHintSelectedFolder', {
+                    folder: uploadFolderPath.split('/').pop() ?? uploadFolderPath,
+                  })
+                : t('dropHint')
+            }
           />
           {pendingUploads.length > 0 && (
             <Button

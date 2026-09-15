@@ -3,6 +3,7 @@ import {
   buildDocumentTree,
   defaultExpandedFolderPaths,
   folderPathsForDocumentIds,
+  joinDocumentPath,
 } from './document-tree';
 
 describe('buildDocumentTree', () => {
@@ -49,5 +50,32 @@ describe('defaultExpandedFolderPaths', () => {
       { id: '2', fileName: 'B/d.pdf' },
     ]);
     expect([...defaultExpandedFolderPaths(tree)].sort()).toEqual(['A', 'B']);
+  });
+});
+
+describe('joinDocumentPath', () => {
+  it('returns the file path when prefix is empty', () => {
+    expect(joinDocumentPath('', 'scan.pdf')).toBe('scan.pdf');
+    expect(joinDocumentPath(null, 'Invoices/scan.pdf')).toBe('Invoices/scan.pdf');
+  });
+
+  it('nests files under the destination folder', () => {
+    expect(joinDocumentPath('CE-20-2026', 'eticket.pdf')).toBe('CE-20-2026/eticket.pdf');
+    expect(joinDocumentPath('A/b', 'folder/file.pdf')).toBe('A/b/folder/file.pdf');
+  });
+
+  it('strips traversal and extra slashes', () => {
+    expect(joinDocumentPath('/A/', '../b/./c.pdf')).toBe('A/b/c.pdf');
+  });
+});
+
+describe('extra folder paths', () => {
+  it('keeps empty destination folders in the tree', () => {
+    const tree = buildDocumentTree([{ id: '1', fileName: 'root.pdf' }], ['Receipts/May']);
+    expect(tree.map((n) => n.name)).toEqual(['Receipts', 'root.pdf']);
+    const receipts = tree[0];
+    if (receipts?.kind !== 'folder') throw new Error('expected folder');
+    expect(receipts.fileCount).toBe(0);
+    expect(receipts.children).toMatchObject([{ kind: 'folder', path: 'Receipts/May', fileCount: 0 }]);
   });
 });

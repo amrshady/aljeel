@@ -1286,7 +1286,13 @@ def process_batch(
 
         # --- Allocation resolution for "Need to allocate" employees ---
         allocation_result = None
-        if "ALLOCATION_TARGET_MISSING" in resolved.flags and resolved.emp_no:
+        # Finance owns allocation for this status.  Preserve the manager's
+        # resolved segments, but never substitute a subordinate employee.
+        if (
+            "ALLOCATION_TARGET_MISSING" in resolved.flags
+            and resolved.emp_no
+            and resolved.sol_flag != "Need to allocate"
+        ):
             # Find .msg files for this ticket
             msg_bodies = []
             if raw_dir and ticket_no:
@@ -2181,12 +2187,15 @@ def process_batch(
 
         # --- Block 1: Write combo + emp_no ---
         ws.cell(row=excel_row, column=COL_DIST_COMBO + 1, value=r.combo)
-        # Labadi RULE 1 (2026-06-09): emp_no is ALWAYS written — never blank, even
+        # Labadi RULE 1 (2026-06-09): emp_no is normally always written, even
         # for sponsorship/dependent/CHD rows. It represents the AlJeel employee the
         # booking is assigned to (the requestor for sponsorship, the sponsoring
         # employee for dependents). This REVERSES the prior v15.13 rule (which kept
         # the Oracle Employee No column blank) and the v29 dependent-blanking guard.
-        ws.cell(row=excel_row, column=COL_EMP_NO + 1, value=r.emp_no)
+        # Finance exception: manual-allocation rows retain their full account
+        # combination but must reach Oracle with an empty Employee No.
+        output_emp_no = "" if r.sol_flag == "Need to allocate" else r.emp_no
+        ws.cell(row=excel_row, column=COL_EMP_NO + 1, value=output_emp_no)
 
         # v15.11 (Amr May 25): Static-field overrides per Jawal Oracle ingestion spec.
         ws.cell(row=excel_row, column=COL_HEADER_ID  + 1, value=JAWAL_INVOICE_HEADER_ID)   # col A = 1

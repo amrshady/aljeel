@@ -109,7 +109,7 @@ def load_manpower() -> dict[str, dict]:
     hdr = rows[0]
     # Columns: Emp No(0), Old Emp No(1), Name(2), Arabic Name(3), Location(4), Manager No(5), Line Manager(6),
     #  blank(7), Code(8)=DIV code, New Division(9), Code(10)=Agency, New agency(11), New cost center(12),
-    #  New cost center name(13), blank(14), Solution(15)
+    #  New cost center name(13), Manpower status(14), Solution(15)
     emps = {}
     for row in rows[1:]:
         if not row or not row[0]:
@@ -130,6 +130,7 @@ def load_manpower() -> dict[str, dict]:
             "agency_name": str(row[11] or "").strip(),
             "cost_center": str(row[12] or "").strip(),
             "cc_name": str(row[13] or "").strip(),
+            "sol_flag": str(row[14] or "").strip(),
             "solution": str(row[15] or "").strip(),
         }
     wb.close()

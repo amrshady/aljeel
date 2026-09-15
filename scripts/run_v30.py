@@ -4034,6 +4034,63 @@ def _append_hybrid_flag(row: dict, flag: str) -> None:
         row["_flags"] = (str(row.get("_flags", "") or "") + " " + flag).strip()
 
 
+NEED_TO_ALLOCATE_QC_FLAG = "MANUAL_ALLOCATION_REQUIRED"
+
+
+def enforce_need_to_allocate_guard(
+    hybrid_rows: list[dict], manpower: dict, out_xlsx: Path | None = None,
+    hdr_row: int | None = None,
+) -> int:
+    """Apply Finance's manual-allocation rule without changing GL segments."""
+    guarded = []
+    for row in hybrid_rows:
+        original = str(
+            row.get("_need_to_allocate_original_emp_no")
+            or row.get("emp_no") or ""
+        ).strip()
+        emp = manpower.get(original)
+        flag = (
+            str(emp.get("sol_flag") or "").strip() if isinstance(emp, dict)
+            else str(getattr(emp, "sol_flag", "") or "").strip()
+        )
+        flag = flag or str(row.get("sol_flag") or "").strip()
+        if flag != "Need to allocate" and not row.get("_need_to_allocate_guard"):
+            continue
+        # Trace-only: never written to Employee No.
+        row["_need_to_allocate_original_emp_no"] = original
+        row["_need_to_allocate_guard"] = True
+        row["emp_no"] = ""
+        row["sol_flag"] = "Need to allocate"
+        _append_hybrid_flag(row, "ALLOCATION_TARGET_MISSING")
+        _append_hybrid_flag(row, NEED_TO_ALLOCATE_QC_FLAG)
+        guarded.append(row)
+
+    if out_xlsx is None or not guarded:
+        return len(guarded)
+    if hdr_row is None:
+        raise ValueError("hdr_row is required for workbook enforcement")
+    wb = openpyxl.load_workbook(out_xlsx)
+    ws = wb.active
+    cols = {
+        str(ws.cell(hdr_row, ci).value or "").strip(): ci
+        for ci in range(1, ws.max_column + 1)
+        if str(ws.cell(hdr_row, ci).value or "").strip()
+    }
+    for row in guarded:
+        excel_row = row["_row_idx"]
+        if "Employee No" in cols:
+            ws.cell(excel_row, cols["Employee No"]).value = ""
+        if "Manpower Allocation Status" in cols:
+            ws.cell(excel_row, cols["Manpower Allocation Status"]).value = "Need to allocate"
+        if "Row Status" in cols:
+            ws.cell(excel_row, cols["Row Status"]).value = "RED"
+        if "Agent Flags" in cols:
+            _append_cell_token(ws.cell(excel_row, cols["Agent Flags"]), NEED_TO_ALLOCATE_QC_FLAG)
+    wb.save(out_xlsx)
+    wb.close()
+    return len(guarded)
+
+
 def blank_jawal_emp_not_in_master(hybrid_rows: list[dict], manpower: dict) -> int:
     """Blank only settled employee numbers that do not resolve in Manpower."""
     blanked = 0
@@ -5370,8 +5427,8 @@ def sync_final_gl_descriptions(out_xlsx: Path, cascade_xlsx: Path, header_row: i
 
     # Block-2 name columns to re-derive from expand_combo(). Map each output
     # header (if present in the sheet) to the expansion key that feeds it:
-    #   GL (col 20) - Cost Name (22) - Contribution (24) - Solution Name (26)
-    #   - Agency Name (28). GL Description (col 32) is handled separately below.
+    #   GL (col 22) - Cost Name (24) - Contribution (26) - Solution Name (28)
+    #   - Agency Name (30). GL Description (col 34) is handled separately below.
     NAME_COL_KEYS = {
         "GL": "GL",
         "Cost Name": "Cost Name",
@@ -6167,6 +6224,17 @@ def main():
         cascade_rows = cascade_rows[:args.limit]
     backfill_invoice_ref_nos(cascade_rows, batch_id, batch_dir)
 
+    invoice_source_candidates = [
+        VOLUME_BASE / batch_id / "invoice-source.xlsx",
+        batch_dir / "invoice-source.xlsx",
+    ]
+    invoice_source_xlsx = next(
+        (path for path in invoice_source_candidates if path.exists()), None
+    )
+    if invoice_source_xlsx is None:
+        print("[fatal] invoice-source.xlsx not found for VAT output columns", file=sys.stderr)
+        sys.exit(4)
+
     print("[load] master data...", flush=True)
     manpower    = fea.load_manpower()
     lookups     = fea.load_lookups()
@@ -6245,6 +6313,7 @@ def main():
             "solution":      c.get("Solution", "") or "",
             "agency":        c.get("Agency", "") or "",
             "location":      c.get("Location", "") or "",
+            "sol_flag":      c.get("Manpower Allocation Status", "") or "",
         }
         hybrid_rows.append(h)
 
@@ -7017,9 +7086,21 @@ def main():
             flush=True,
         )
 
+    # Last in-memory emp_no mutation before every v30 writer. Accounting
+    # segments and the Distribution Combination remain intact.
+    manual_allocation_rows = enforce_need_to_allocate_guard(hybrid_rows, manpower)
+    print(
+        f"[manual-allocation] {manual_allocation_rows} Need-to-allocate row(s) "
+        "protected with blank Employee No",
+        flush=True,
+    )
+
     normalize_v30_writer_methods(hybrid_rows)
 
-    v15.write_v15_12_xlsx(cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row)
+    v15.write_v15_12_xlsx(
+        cascade_xlsx, out_xlsx, hybrid_rows, cascade_rows, hdr_row,
+        invoice_source_path=invoice_source_xlsx,
+    )
     stamp_own_form_trip_columns(out_xlsx, hybrid_rows, hdr_row)
     stamp_invoice_ref_resolution_columns(out_xlsx, hybrid_rows, hdr_row)
     stamp_sponsorship_allocation_columns(out_xlsx, hybrid_rows, hdr_row)
@@ -7340,8 +7421,8 @@ def main():
                     pass
                     
         for _r in range(4, _ws_loc.max_row+1):
-            _combo = str(_ws_loc.cell(_r, 14).value)
-            _emp_no = str(_ws_loc.cell(_r, 16).value) if _ws_loc.cell(_r, 16).value else ""
+            _combo = str(_ws_loc.cell(_r, 16).value)
+            _emp_no = str(_ws_loc.cell(_r, 18).value) if _ws_loc.cell(_r, 18).value else ""
             if _combo and len(_combo.split('-')) == 10:
                 _parts = _combo.split('-')
                 _new_loc = _parts[1]
@@ -7354,7 +7435,7 @@ def main():
                 else:
                     _new_loc = _parts[1]
                 _parts[1] = _new_loc
-                _ws_loc.cell(_r, 14).value = "-".join(_parts)
+                _ws_loc.cell(_r, 16).value = "-".join(_parts)
         _wb_loc.save(str(out_xlsx))
         print("[v30-loc] Cascade locations explicitly rewritten from Manpower", flush=True)
     except Exception as e:
@@ -7416,6 +7497,10 @@ def main():
                   f"with invoice reference", flush=True)
     except Exception as _dp_err:
         print(f"[v30-desc-serial] error prefixing Descriptions: {_dp_err}", flush=True)
+
+    # Reassert after legacy workbook post-processors and immediately before
+    # refund/split output handling, so no downstream identity backfill survives.
+    enforce_need_to_allocate_guard(hybrid_rows, manpower, out_xlsx, hdr_row)
 
     # Refunds are reconciled only after the main sheet has reached its final
     # account/employee/segment state. With neither separate nor inline refunds,

@@ -26,7 +26,9 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+from copy import copy
 import json
+from numbers import Number
 import os
 import re
 import shutil
@@ -169,11 +171,112 @@ def read_cascade_xlsx(xlsx_path: Path) -> tuple[list[dict], list[str], int]:
     return rows, headers, header_row_idx
 
 
-def write_v15_12_xlsx(src_path: Path, dst_path: Path, hybrid_rows: list[dict], cascade_rows: list[dict], header_row_idx: int):
+def _invoice_tax_values_by_ticket(invoice_source_path: Path) -> dict[str, tuple[object, object]]:
+    """Return ticket -> (invoice amount incl. VAT, VAT amount) from Jawal Sheet rows 28+."""
+    source_wb = openpyxl.load_workbook(invoice_source_path, read_only=True, data_only=True)
+    try:
+        source_ws = source_wb["Sheet"]
+        values = {}
+        for row_idx in range(28, (source_ws.max_row or 27) + 1):
+            ticket_cell = str(source_ws.cell(row_idx, 12).value or "")
+            match = re.search(r"(?<!\d)(\d{10})(?!\d)", ticket_cell)
+            if match:
+                values.setdefault(
+                    match.group(1),
+                    (source_ws.cell(row_idx, 47).value, source_ws.cell(row_idx, 42).value),
+                )
+        return values
+    finally:
+        source_wb.close()
+
+
+def _add_invoice_tax_columns(ws, header_row_idx: int, invoice_source_path: Path) -> None:
+    """Insert and populate v30's two Jawal invoice-source columns on the active sheet."""
+    line_amount_col = next(
+        (
+            ci for ci in range(1, ws.max_column + 1)
+            if str(ws.cell(header_row_idx, ci).value or "").strip() == "*Amount"
+        ),
+        None,
+    )
+    description_col = next(
+        (
+            ci for ci in range(1, ws.max_column + 1)
+            if str(ws.cell(header_row_idx, ci).value or "").strip() == "Description"
+        ),
+        None,
+    )
+    if line_amount_col is None or description_col is None:
+        raise ValueError("Jawal invoice columns require *Amount and Description headers")
+
+    insert_at = line_amount_col + 1
+    # openpyxl cannot reliably unmerge ranges after insert_cols has shifted only
+    # their backing cells, so remove the section bands before inserting.
+    row_two_ranges = [merged for merged in list(ws.merged_cells.ranges) if merged.min_row == merged.max_row == 2]
+    for merged in row_two_ranges:
+        ws.unmerge_cells(str(merged))
+
+    ws.insert_cols(insert_at, 2)
+    # insert_cols does not update merged ranges. Rebuild the v30 section bands
+    # around the expanded Oracle block. The two new columns are inside block 1,
+    # immediately after its per-line *Amount column.
+    if row_two_ranges:
+        ws.merge_cells("A2:R2")
+        ws.merge_cells("S2:AH2")
+        ws.merge_cells("AI2:BQ2")
+        ws["A2"] = "ORACLE FUSION TEMPLATE"
+        ws["S2"] = "CODE & DESCRIPTION"
+        ws["AI2"] = "DEBUG (delete before posting)"
+
+    ws.cell(header_row_idx, insert_at, "VAT Amt.")
+    ws.cell(header_row_idx, insert_at + 1, "Inv. Amt. Incl. VAT")
+    for row_idx in range(1, ws.max_row + 1):
+        template = ws.cell(row_idx, line_amount_col)
+        for col_idx in (insert_at, insert_at + 1):
+            target = ws.cell(row_idx, col_idx)
+            if template.has_style:
+                target._style = copy(template._style)
+            target.number_format = template.number_format
+    ws.column_dimensions[ws.cell(header_row_idx, insert_at).column_letter].width = 12
+    ws.column_dimensions[ws.cell(header_row_idx, insert_at + 1).column_letter].width = 18
+    values_by_ticket = _invoice_tax_values_by_ticket(invoice_source_path)
+    for row_idx in range(header_row_idx + 1, ws.max_row + 1):
+        description = str(ws.cell(row_idx, description_col).value or "")
+        match = re.search(r"(?<!\d)(\d{10})(?!\d)", description)
+        values = values_by_ticket.get(match.group(1)) if match else None
+        incl_vat = values[0] if values else None
+        vat = values[1] if values else None
+        line_amount = ws.cell(row_idx, line_amount_col).value
+        is_real_data_row = isinstance(line_amount, Number) and not isinstance(line_amount, bool)
+        is_real_data_row = is_real_data_row or values is not None
+
+        vat_is_zero_or_blank = vat is None or vat == 0 or (
+            isinstance(vat, str) and not vat.strip()
+        )
+        if is_real_data_row and vat_is_zero_or_blank:
+            vat = 0
+            if incl_vat not in (None, ""):
+                ws.cell(row_idx, line_amount_col, incl_vat)
+
+        ws.cell(row_idx, insert_at, vat)
+        ws.cell(row_idx, insert_at + 1, incl_vat)
+
+
+def write_v15_12_xlsx(
+    src_path: Path,
+    dst_path: Path,
+    hybrid_rows: list[dict],
+    cascade_rows: list[dict],
+    header_row_idx: int,
+    invoice_source_path: Path | None = None,
+):
     """Copy v15.11.2 xlsx -> modify rows where hybrid overrode -> add Agent Method column."""
     shutil.copy2(src_path, dst_path)
     wb = openpyxl.load_workbook(dst_path)
     ws = wb.active
+
+    if invoice_source_path is not None:
+        _add_invoice_tax_columns(ws, header_row_idx, invoice_source_path)
 
     # Find or append "Agent Method" column
     method_col = None
@@ -243,6 +346,16 @@ def write_v15_12_xlsx(src_path: Path, dst_path: Path, hybrid_rows: list[dict], c
                 ws.cell(row=excel_row, column=col_map[DISTRIBUTION_KEY], value=hyb["combo"])
             if "GL Description" in col_map:
                 ws.cell(row=excel_row, column=col_map["GL Description"], value=hyb["gl_description"])
+
+        # v30's finance guard is authoritative regardless of writer method.
+        # It intentionally leaves the Distribution Combination untouched.
+        if hyb.get("_need_to_allocate_guard"):
+            if "Employee No" in col_map:
+                ws.cell(row=excel_row, column=col_map["Employee No"], value="")
+            if "Manpower Allocation Status" in col_map:
+                ws.cell(row=excel_row, column=col_map["Manpower Allocation Status"], value="Need to allocate")
+            if "Row Status" in col_map:
+                ws.cell(row=excel_row, column=col_map["Row Status"], value="RED")
 
     wb.save(str(dst_path))
 

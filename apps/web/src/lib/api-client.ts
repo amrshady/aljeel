@@ -146,6 +146,18 @@ export async function fetchFile(path: string): Promise<Blob> {
   return blob;
 }
 
+/** Triggers a same-origin blob download without navigating away. */
+export function triggerBrowserDownload(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Fetches a binary resource (e.g. a document) and triggers a browser download. */
 export async function downloadFile(
   path: string,
@@ -153,12 +165,5 @@ export async function downloadFile(
   options: { timeoutMs?: number } = {},
 ): Promise<void> {
   const { blob, fileName: headerName } = await fetchBinary(path, options);
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = headerName || fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  triggerBrowserDownload(blob, headerName || fileName);
 }

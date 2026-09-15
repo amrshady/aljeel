@@ -22,7 +22,7 @@ import {
 } from '@aljeel/shared-types';
 import { Prisma } from '@prisma/client';
 import archiver from 'archiver';
-import type { ReadStream } from 'node:fs';
+import type { Readable } from 'node:stream';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../storage/storage.service';
@@ -389,10 +389,7 @@ export class DocumentsService {
   async getForDownload(
     user: AuthUser,
     documentId: string,
-  ): Promise<
-    | { document: DocumentRow; redirectUrl: string }
-    | { document: DocumentRow; stream: ReadStream }
-  > {
+  ): Promise<{ document: DocumentRow; stream: Readable }> {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { invoice: true },
@@ -403,9 +400,12 @@ export class DocumentsService {
     await this.assertInvoiceAccess(user, document.invoiceId, document.invoice.supplierId);
     this.assertDocumentVisible(user, document);
 
+    // Stream through the API instead of 302'ing to a signed Spaces URL.
+    // The web client downloads with credentialed `fetch`, which cannot follow
+    // that cross-origin redirect (Spaces CORS / Access-Control-Allow-Credentials).
     if (this.isKbStorageKey(document.storageKey)) {
-      const url = await this.kb.createDownloadUrl(document.storageKey);
-      return { document, redirectUrl: url };
+      const stream = await this.kb.createReadStream(document.storageKey);
+      return { document, stream };
     }
 
     const localKey = document.storageKey.replace(/^local:/, '');

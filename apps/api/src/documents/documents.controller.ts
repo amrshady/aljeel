@@ -129,22 +129,23 @@ export class DocumentsController {
 
   @Get('documents/:id/download')
   @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
-  @ApiOperation({ summary: 'Download a document (redirects to presigned URL when using KB storage)' })
+  @ApiOperation({
+    summary: 'Download a document (streams from KB storage or local disk)',
+  })
   async download(
     @CurrentUser() user: AuthUser,
     @Param('id') documentId: string,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile | void> {
-    const result = await this.documentsService.getForDownload(user, documentId);
-    if ('redirectUrl' in result) {
-      res.redirect(result.redirectUrl);
-      return;
-    }
-    const { document, stream } = result;
+  ): Promise<StreamableFile> {
+    const { document, stream } = await this.documentsService.getForDownload(
+      user,
+      documentId,
+    );
+    const fileName = document.fileName.split(/[\\/]/).pop() || document.fileName;
+    const mimeType = resolveDocumentMimeType(document.fileName, document.mimeType);
     return new StreamableFile(stream, {
-      type: document.mimeType,
+      type: mimeType,
       length: document.sizeBytes,
-      disposition: `attachment; filename="${encodeURIComponent(document.fileName)}"`,
+      disposition: `attachment; filename="${encodeURIComponent(fileName)}"`,
     });
   }
 

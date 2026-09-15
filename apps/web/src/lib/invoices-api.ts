@@ -17,7 +17,7 @@ import {
   type SupplierErpIntegration,
 } from '@aljeel/shared-types';
 import { z } from 'zod';
-import { apiFetch, downloadFile } from './api-client';
+import { ApiClientError, apiFetch, downloadFile, triggerBrowserDownload } from './api-client';
 
 const DeletedDocumentSchema = z.object({
   id: z.string(),
@@ -166,9 +166,20 @@ export function getDocumentEmailPreview(documentId: string) {
   });
 }
 
-export function downloadInvoiceDocument(documentId: string, fileName: string) {
+export async function downloadInvoiceDocument(documentId: string, fileName: string) {
   const baseName = fileName.split(/[\\/]/).pop() || fileName;
-  return downloadFile(`/documents/${documentId}/download`, baseName);
+  try {
+    await downloadFile(`/documents/${documentId}/download`, baseName);
+  } catch (error) {
+    // Older APIs 302 to a signed Spaces URL. Credentialed fetch cannot follow
+    // that cross-origin redirect, so fall back to the same-origin content proxy.
+    if (!(error instanceof ApiClientError) || error.code !== 'NETWORK_ERROR') {
+      throw error;
+    }
+    const view = await getDocumentViewUrl(documentId, { proxy: true });
+    if (view.kind !== 'blob') throw error;
+    triggerBrowserDownload(view.blob, view.fileName || baseName);
+  }
 }
 
 export function downloadEmailAttachment(

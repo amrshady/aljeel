@@ -66,6 +66,39 @@ describe('SupplierReconciliationService', () => {
     expect(reconSheet?.getCell('B10').fill).toMatchObject({ type: 'pattern', pattern: 'solid' });
   });
 
+  it('labels Aljeel-paid supplier lines as already paid and deducts them on recon', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Invoice Number', 'Unpaid Amount', 'Invoice Amount', 'Supplier or Party'],
+        ['OPEN-1', 90, 90, 'Acme'],
+        ['PAID-1', 0, 80, 'Acme'],
+      ]),
+      'Export to Excel',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['البيان', 'مدين'],
+        ['OPEN-1', 90],
+        ['PAID-1', 80],
+      ]),
+      'Sheet1',
+    );
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    const { output } = await service.reconcileWorkbooks([{ originalname: 'paid.xlsx', buffer }]);
+
+    const match = sheetRows(output, 'Match');
+    const statuses = match.slice(1).map((row) => row[5]);
+    expect(statuses).toContain('Found');
+    expect(statuses).toContain('Already paid');
+
+    const recon = sheetRows(output, 'Reconciliation');
+    expect(recon.some((row) => String(row[1] ?? '').includes('Already paid by Aljeel'))).toBe(true);
+    expect(recon.some((row) => row[4] === 'PAID-1')).toBe(true);
+  });
+
   it('rejects a workbook that only has the Aljeel export', async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

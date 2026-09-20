@@ -2,9 +2,41 @@ import { describe, expect, it } from 'vitest';
 import {
   amountsEqual,
   extractInvoiceNumber,
+  isAljeelPaid,
   paymentDetailsFileName,
   reconcileSupplierStatement,
+  type AljeelInvoiceLine,
+  type SupplierStatementLine,
 } from './supplier-reconciliation';
+
+function aljeelLine(
+  invoiceNumber: string,
+  unpaidAmount: number,
+  extras: Partial<AljeelInvoiceLine> = {},
+): AljeelInvoiceLine {
+  return {
+    invoiceNumber,
+    date: extras.date ?? '2026-01-01',
+    supplierName: extras.supplierName ?? 'Acme',
+    unpaidAmount,
+    invoiceAmount: extras.invoiceAmount ?? unpaidAmount,
+    prepaymentAvailable: extras.prepaymentAvailable ?? 0,
+  };
+}
+
+function supplierLine(
+  invoiceNumber: string,
+  amount: number,
+  extras: Partial<SupplierStatementLine> = {},
+): SupplierStatementLine {
+  return {
+    invoiceNumber,
+    date: extras.date ?? '2026-01-01',
+    amount,
+    description: extras.description ?? null,
+    notes: extras.notes ?? null,
+  };
+}
 
 describe('extractInvoiceNumber', () => {
   it('pulls SL invoice numbers out of Arabic sales-voucher text', () => {
@@ -193,5 +225,92 @@ describe('reconcileSupplierStatement', () => {
 
   it('names the download after the Aljeel books balance', () => {
     expect(paymentDetailsFileName(36380.25)).toBe('36,380 Payment details.xlsx');
+  });
+
+  it('treats unpaid of zero as already paid', () => {
+    expect(isAljeelPaid(0)).toBe(true);
+    expect(isAljeelPaid(0.004)).toBe(true);
+    expect(isAljeelPaid(0.01)).toBe(false);
+  });
+
+  it('drops Aljeel-paid invoices from remaining balance and payment request', () => {
+    const result = reconcileSupplierStatement(
+      [
+        aljeelLine('OPEN-1', 90, { invoiceAmount: 90, date: '2026-06-01' }),
+        aljeelLine('OPEN-2', 110, { invoiceAmount: 110, date: '2026-06-02' }),
+        aljeelLine('PAID-1', 0, { invoiceAmount: 80, date: '2026-01-01' }),
+        aljeelLine('PAID-2', 0, { invoiceAmount: 120, date: '2026-01-02' }),
+      ],
+      [
+        supplierLine('OPEN-1', 90, { date: '2026-06-01' }),
+        supplierLine('OPEN-2', 110, { date: '2026-06-02' }),
+        supplierLine('PAID-1', 80, { date: '2026-01-01' }),
+        supplierLine('PAID-2', 120, { date: '2026-01-02' }),
+      ],
+    );
+
+    expect(result.booksBalance).toBe(200);
+    expect(result.supplierBalance).toBe(400);
+    expect(result.paymentRequest.map((row) => row.invoiceNumber)).toEqual(['OPEN-1', 'OPEN-2']);
+    expect(result.alreadyPaid.map((row) => row.invoiceNumber)).toEqual(['PAID-1', 'PAID-2']);
+    expect(result.alreadyPaidTotal).toBe(200);
+    expect(result.notBookedInAljeel).toEqual([]);
+    expect(result.adjustedBalance).toBe(200);
+    expect(result.beginningDifference).toBe(0);
+  });
+
+  it('matches open invoices by number, not a subset that also sums to the remaining total', () => {
+    const result = reconcileSupplierStatement(
+      [
+        aljeelLine('NEW-1', 100, { invoiceAmount: 100 }),
+        aljeelLine('NEW-2', 100, { invoiceAmount: 100 }),
+        aljeelLine('OLD-1', 0, { invoiceAmount: 100 }),
+        aljeelLine('OLD-2', 0, { invoiceAmount: 100 }),
+      ],
+      [
+        supplierLine('NEW-1', 100),
+        supplierLine('NEW-2', 100),
+        supplierLine('OLD-1', 100),
+        supplierLine('OLD-2', 100),
+      ],
+    );
+
+    expect(result.paymentRequest.map((row) => row.invoiceNumber)).toEqual(['NEW-1', 'NEW-2']);
+    expect(result.alreadyPaid.map((row) => row.invoiceNumber)).toEqual(['OLD-1', 'OLD-2']);
+    expect(result.matches.filter((row) => row.status === 'FOUND').map((row) => row.invoiceNumber)).toEqual([
+      'NEW-1',
+      'NEW-2',
+    ]);
+    expect(result.beginningDifference).toBe(0);
+  });
+
+  it('keeps unpaid supplier-only invoices as not booked, not as already paid', () => {
+    const result = reconcileSupplierStatement(
+      [aljeelLine('OPEN-1', 50, { invoiceAmount: 50 })],
+      [supplierLine('OPEN-1', 50), supplierLine('MISSING-1', 75)],
+    );
+
+    expect(result.notBookedInAljeel.map((row) => row.invoiceNumber)).toEqual(['MISSING-1']);
+    expect(result.alreadyPaid).toEqual([]);
+    expect(result.addNotBookedTotal).toBe(75);
+    expect(result.adjustedBalance).toBe(125);
+    expect(result.beginningDifference).toBe(0);
+  });
+
+  it('omits paid Aljeel invoices that the supplier no longer lists from remaining buckets', () => {
+    const result = reconcileSupplierStatement(
+      [
+        aljeelLine('OPEN-1', 40, { invoiceAmount: 40 }),
+        aljeelLine('PAID-GONE', 0, { invoiceAmount: 200 }),
+      ],
+      [supplierLine('OPEN-1', 40)],
+    );
+
+    expect(result.matches.find((row) => row.invoiceNumber === 'PAID-GONE')?.status).toBe('ALREADY_PAID');
+    expect(result.alreadyPaid).toEqual([]);
+    expect(result.notInSupplierBooks.map((row) => row.invoiceNumber)).toEqual([]);
+    expect(result.paymentRequest.map((row) => row.invoiceNumber)).toEqual(['OPEN-1']);
+    expect(result.booksBalance).toBe(40);
+    expect(result.beginningDifference).toBe(0);
   });
 });

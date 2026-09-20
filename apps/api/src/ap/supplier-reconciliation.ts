@@ -2,7 +2,8 @@ export type SupplierReconMatchStatus =
   | 'FOUND'
   | 'NOT_IN_ALJEEL'
   | 'NOT_IN_SUPPLIER'
-  | 'AMOUNT_MISMATCH';
+  | 'AMOUNT_MISMATCH'
+  | 'ALREADY_PAID';
 
 export interface AljeelInvoiceLine {
   invoiceNumber: string;
@@ -44,8 +45,10 @@ export interface SupplierReconResult {
   notBookedInAljeel: SupplierReconMatchRow[];
   notInSupplierBooks: SupplierReconMatchRow[];
   amountMismatches: SupplierReconMatchRow[];
+  alreadyPaid: SupplierReconMatchRow[];
   addNotBookedTotal: number;
   deductNotInSupplierTotal: number;
+  alreadyPaidTotal: number;
   adjustedBalance: number;
   beginningDifference: number;
 }
@@ -67,6 +70,10 @@ export function roundMoney(value: number): number {
 
 export function amountsEqual(left: number, right: number): boolean {
   return Math.abs(roundMoney(left) - roundMoney(right)) < 0.005;
+}
+
+export function isAljeelPaid(unpaidAmount: number): boolean {
+  return roundMoney(unpaidAmount) <= 0.005;
 }
 
 export function extractInvoiceNumber(value: unknown): string | null {
@@ -134,9 +141,25 @@ export function reconcileSupplierStatement(
     ...new Set([...aljeelByNumber.keys(), ...supplierByNumber.keys()]),
   ].sort();
 
+  // Match by invoice number only. Never pick a subset of invoices because they
+  // happen to sum to the remaining balance — several combinations can total the
+  // same figure. Paid Aljeel lines are dropped from remaining open recon.
   const matches: SupplierReconMatchRow[] = invoiceNumbers.map((invoiceNumber) => {
     const aljeel = aljeelByNumber.get(invoiceNumber);
     const supplier = supplierByNumber.get(invoiceNumber);
+    if (aljeel && isAljeelPaid(aljeel.unpaidAmount)) {
+      return {
+        invoiceNumber,
+        date: supplier?.date ?? aljeel.date,
+        supplierAmount: supplier ? roundMoney(supplier.amount) : null,
+        aljeelAmount: roundMoney(aljeel.invoiceAmount),
+        unpaidAmount: roundMoney(aljeel.unpaidAmount),
+        status: 'ALREADY_PAID',
+        notes: supplier
+          ? 'Aljeel already paid — drop from remaining balance'
+          : 'Aljeel already paid — not part of remaining balance',
+      };
+    }
     if (aljeel && supplier) {
       const mismatch = !amountsEqual(aljeel.invoiceAmount, supplier.amount);
       return {
@@ -177,6 +200,9 @@ export function reconcileSupplierStatement(
   const notBookedInAljeel = matches.filter((row) => row.status === 'NOT_IN_ALJEEL');
   const notInSupplierBooks = matches.filter((row) => row.status === 'NOT_IN_SUPPLIER');
   const amountMismatches = matches.filter((row) => row.status === 'AMOUNT_MISMATCH');
+  const alreadyPaid = matches.filter(
+    (row) => row.status === 'ALREADY_PAID' && row.supplierAmount != null,
+  );
 
   const booksBalance = roundMoney(
     aggregatedAljeelLines.reduce((sum, line) => sum + line.unpaidAmount, 0),
@@ -192,6 +218,9 @@ export function reconcileSupplierStatement(
   );
   const deductNotInSupplierTotal = roundMoney(
     notInSupplierBooks.reduce((sum, row) => sum + (row.unpaidAmount ?? 0), 0),
+  );
+  const alreadyPaidTotal = roundMoney(
+    alreadyPaid.reduce((sum, row) => sum + (row.supplierAmount ?? 0), 0),
   );
   const adjustedBalance = roundMoney(
     booksBalance + addNotBookedTotal - deductNotInSupplierTotal,
@@ -213,10 +242,12 @@ export function reconcileSupplierStatement(
     notBookedInAljeel,
     notInSupplierBooks,
     amountMismatches,
+    alreadyPaid,
     addNotBookedTotal,
     deductNotInSupplierTotal,
+    alreadyPaidTotal,
     adjustedBalance,
-    beginningDifference: roundMoney(supplierBalance - adjustedBalance),
+    beginningDifference: roundMoney(supplierBalance - alreadyPaidTotal - adjustedBalance),
   };
 }
 

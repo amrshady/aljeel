@@ -58,6 +58,11 @@ const notFoundFill: ExcelJS.FillPattern = {
   pattern: 'solid',
   fgColor: { argb: 'FFFCE4D6' },
 };
+const alreadyPaidFill: ExcelJS.FillPattern = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFE7E6E6' },
+};
 
 const thin = (sides: Array<'top' | 'left' | 'bottom' | 'right'> = ['top', 'left', 'bottom', 'right']): Partial<ExcelJS.Borders> => {
   const border: Partial<ExcelJS.Borders> = {};
@@ -113,6 +118,8 @@ function statusLabel(status: SupplierReconMatchRow['status']): string {
       return 'Not in supplier books';
     case 'AMOUNT_MISMATCH':
       return 'Amount mismatch';
+    case 'ALREADY_PAID':
+      return 'Already paid';
   }
 }
 
@@ -192,6 +199,9 @@ function addMatchSheet(workbook: ExcelJS.Workbook, result: SupplierReconResult) 
     });
     if (row.status === 'NOT_IN_ALJEEL') paint(ws, r, [1, 2, 3, 4, 5, 6, 7], (cell) => {
       cell.fill = notFoundFill;
+    });
+    if (row.status === 'ALREADY_PAID') paint(ws, r, [1, 2, 3, 4, 5, 6, 7], (cell) => {
+      cell.fill = alreadyPaidFill;
     });
   });
 }
@@ -542,6 +552,21 @@ function addReconSheet(workbook: ExcelJS.Workbook, result: SupplierReconResult) 
     })),
     result.deductNotInSupplierTotal,
   );
+  if (result.alreadyPaid.length > 0) {
+    row += 1;
+    row = writeReconSection(
+      ws,
+      row,
+      'Already paid by Aljeel (drop from remaining balance — do not treat as open)',
+      result.alreadyPaid.map((item) => ({
+        date: item.date,
+        invoiceNumber: item.invoiceNumber,
+        amount: item.supplierAmount,
+        notes: item.notes,
+      })),
+      result.alreadyPaidTotal,
+    );
+  }
   row += 1;
   row = writeReconSection(
     ws,

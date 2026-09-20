@@ -63,7 +63,7 @@
     "apClerkSolventumTitle": "Solventum",
     "apClerkSolventumBody": "Generate a chargeback from sales rows matched by POD filename TRX, with quantities overridden from POD scans.",
     "apClerkSupplierReconTitle": "Supplier reconciliation",
-    "apClerkSupplierReconBody": "Match the Aljeel Oracle unpaid-invoice export to the supplier statement and download the payment request plus recon buckets.",
+    "apClerkSupplierReconBody": "Match the Aljeel Oracle export to the supplier statement by invoice number. Pay open (unpaid) matches only; drop invoices Aljeel already paid. Download the payment request plus recon buckets.",
     "generateChargeback": "Generate chargeback",
     "runSupplierRecon": "Run reconciliation",
     "viewInvoices": "View invoices",
@@ -170,7 +170,7 @@
     },
     "supplierRecon": {
       "title": "Supplier statement reconciliation",
-      "body": "Upload the Aljeel Oracle unpaid-invoice export and the supplier statement. One workbook with both sheets is enough (Labadi’s Payment details file), or two Excel files. Matching is by invoice number after cleaning Arabic sales-voucher text.",
+      "body": "Upload the Aljeel Oracle export and the supplier statement. One workbook with both sheets is enough, or two Excel files. Matching is by invoice number after cleaning Arabic sales-voucher text. Remaining balance is open (unpaid) invoices only — paid Aljeel lines are dropped, and invoices are never chosen because they happen to sum to the remaining total.",
       "addFiles": "Add files",
       "gateHint": "Upload one Excel workbook that contains both ledgers, or two workbooks (Aljeel export + supplier statement).",
       "selectedFiles": "Selected files",

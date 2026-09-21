@@ -15,6 +15,7 @@ import json
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ SUMMARY_JSON = MATCHED / "asateel-summary.json"
 PDF_HEADERS_JSON = EXTRACT / "asateel-pdf-headers.json"
 
 VAT_RATE = 0.15
+DISTRIBUTION_TOLERANCE_HALALA = 5
 DEFAULT_FOLDER = "CENTRAL"
 DEFAULT_EXPENSES_FORMAT_XLSX = ROOT / "asateel-sample" / "_allocation" / "Central-11-2026.xlsx"
 DEFAULT_SO_DETAIL_XLSX = ROOT / "reference" / "SO_Detail_Labadi_1_R21_AA.xlsx"
@@ -63,6 +65,51 @@ def _money(v: Any) -> float:
         return round(float(v), 2)
     except (TypeError, ValueError):
         return 0.0
+
+
+def _halala(value: Any) -> int:
+    return int(
+        (Decimal(str(value or 0)) * 100)
+        .quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    )
+
+
+def _distribution_balance(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_invoice: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        by_invoice[_code(row.get("*Invoice Number") or row.get("invoice_no"), 5)].append(row)
+
+    failures = []
+    for invoice_no, invoice_rows in sorted(by_invoice.items()):
+        header_gross = max(_halala(r.get("_header_total") or r.get("*Invoice Amount")) for r in invoice_rows)
+        expected_net = int(
+            (Decimal(header_gross) / Decimal("1.15"))
+            .quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        actual_net = sum(_halala(r.get("*Amount") or r.get("line_amount")) for r in invoice_rows)
+        delta = actual_net - expected_net
+        if abs(delta) <= DISTRIBUTION_TOLERANCE_HALALA:
+            continue
+
+        detail = (
+            f"RED: DISTRIBUTION_BALANCE — invoice {invoice_no}; "
+            f"header net {expected_net / 100:.2f}, "
+            f"distribution sum {actual_net / 100:.2f}, "
+            f"delta {delta / 100:+.2f} SAR"
+        )
+        balance = {
+            "passed": False,
+            "expected_net_halala": expected_net,
+            "actual_net_halala": actual_net,
+            "delta_halala": delta,
+            "tolerance_halala": DISTRIBUTION_TOLERANCE_HALALA,
+        }
+        for row in invoice_rows:
+            row["Row_Status"] = "RED"
+            row["notes"] = "; ".join(filter(None, [row.get("notes"), detail]))
+            row["_distribution_balance"] = balance.copy()
+        failures.append({"invoice_no": invoice_no, **balance})
+    return failures
 
 
 def _code(v: Any, width: int | None = None) -> str:
@@ -152,14 +199,21 @@ def _invoice_records(rows: list[dict[str, Any]], trace: dict[str, Any]) -> list[
         inv_rows = by_invoice[inv]
         header_total = max((_money(r.get("_header_total") or r.get("*Invoice Amount")) for r in inv_rows), default=0.0)
         allocation_sum = round(sum(_money(r.get("line_amount") or r.get("*Amount")) for r in inv_rows), 2)
+        expected_net_halala = int(
+            (Decimal(_halala(header_total)) / Decimal("1.15"))
+            .quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        allocation_halala = sum(_halala(r.get("*Amount") or r.get("line_amount")) for r in inv_rows)
+        delta_halala = allocation_halala - expected_net_halala
         expected_gross = round(allocation_sum * (1 + VAT_RATE), 2)
-        delta = round(expected_gross - header_total, 2)
+        delta = round(delta_halala / 100, 2)
         statuses = Counter(_clean(r.get("Row_Status")) or "UNKNOWN" for r in inv_rows)
-        reconciled = abs(delta) < 1.00
+        reconciled = abs(delta_halala) <= DISTRIBUTION_TOLERANCE_HALALA
         record = {
             "invoice_no": inv,
             "invoice_date": inv_rows[0].get("invoice_date") or inv_rows[0].get("*Invoice Date") or "",
             "header_total": header_total,
+            "expected_net_sar": expected_net_halala / 100,
             "allocation_sum": allocation_sum,
             "expected_gross_vat15": expected_gross,
             "delta": delta,
@@ -189,8 +243,9 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
                 "invoice_no": rec["invoice_no"],
                 "value_at_risk_sar": abs(rec["delta"]),
                 "detail": (
-                    f"Header SAR {rec['header_total']:.2f} != allocation x1.15 "
-                    f"SAR {rec['expected_gross_vat15']:.2f} (delta SAR {rec['delta']:+.2f})."
+                    f"Header-derived net SAR {rec['expected_net_sar']:.2f} != "
+                    f"distribution SAR {rec['allocation_sum']:.2f} "
+                    f"(net delta SAR {rec['delta']:+.2f})."
                 ),
                 "evidence": {"allocation_rows": rec["allocation_rows"]},
             })
@@ -308,6 +363,16 @@ def _summary(
         "reconciled_invoices": sum(1 for r in invoice_records if r["reconciled"]),
         "unallocated_invoices": 0,
         "mismatched_invoices": sum(1 for r in invoice_records if not r["reconciled"]),
+        "distribution_balance_failures": [
+            {
+                "invoice_no": r["invoice_no"],
+                "expected_net_sar": r["expected_net_sar"],
+                "actual_net_sar": r["allocation_sum"],
+                "delta_sar": r["delta"],
+            }
+            for r in invoice_records
+            if not r["reconciled"]
+        ],
         "reconciliation_rate": round(
             100 * sum(1 for r in invoice_records if r["reconciled"]) / len(invoice_records),
             1,
@@ -445,6 +510,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     )
     # Apply the AP whole-riyal control on the rows that feed the Oracle workbook.
     whole_riyal_invoice_totals = engine.enforce_whole_riyal_invoice_totals(rows)
+    distribution_balance_failures = _distribution_balance(rows)
     validation = engine.validate(rows, lookups)
     engine.write_excel(rows, ORACLE_XLSX)
     header_diffs = engine.validate_output_headers(ORACLE_XLSX)
@@ -465,6 +531,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "provenance": provenance,
         "validation": validation,
         "whole_riyal_invoice_totals": whole_riyal_invoice_totals,
+        "distribution_balance_failures": distribution_balance_failures,
         "header_validation": summary["header_validation"],
         "output_files": {
             "oracle_xlsx": str(ORACLE_XLSX),

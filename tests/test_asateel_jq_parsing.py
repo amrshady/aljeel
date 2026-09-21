@@ -59,3 +59,26 @@ def test_existing_bare_and_prefixed_jq_behavior_is_preserved():
         "JQ-00000001",
         "JQ-12345678",
     ]
+
+
+def test_space_separated_supplier_jqs_accept_ten_digit_values():
+    engine = asateel._load_v6_engine()
+
+    assert engine._canonical_jq("2600010911") == "JQ-2600010911"
+    assert engine._split_jqs("2600010911 260010912 260010910") == [
+        "JQ-2600010911",
+        "JQ-260010912",
+        "JQ-260010910",
+    ]
+
+
+def test_supplier_amount_is_preserved_when_one_jq_has_ten_digits():
+    engine = asateel._load_v6_engine()
+    jqs = engine._split_jqs("2600010911 260010912 260010910")
+    amounts = [
+        engine._split_supplier_amount(416.67, len(jqs), index)[0]
+        for index in range(1, len(jqs) + 1)
+    ]
+
+    assert amounts == [138.89, 138.89, 138.89]
+    assert round(sum(amounts), 2) == 416.67

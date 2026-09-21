@@ -25,8 +25,11 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass, field
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Callable
+
+import openpyxl
 
 ROOT = Path('/home/clawdbot/.openclaw/workspace/aljeel')
 MATCHED = ROOT / 'matched'
@@ -35,6 +38,8 @@ GOLDEN = ROOT / 'qc' / 'fixtures' / 'golden'
 
 SEVERITY_VALUES = {'LOW', 'MEDIUM', 'MED', 'HIGH', 'CRITICAL', 'INFO'}
 TOTAL_DRIFT_TOLERANCE = 0.005  # 0.5%
+DISTRIBUTION_TOLERANCE_HALALA = 5
+ASATEEL_ORACLE_OVERRIDE: Path | None = None
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Result types
@@ -71,6 +76,65 @@ def _load_json(path: Path) -> Any:
         raise FileNotFoundError(f'output missing: {path}')
     with open(path) as f:
         return json.load(f)
+
+def _halala(value: Any) -> int:
+    return int((Decimal(str(value or 0)) * 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+
+def _asateel_balance_failures(allocs: list[dict[str, Any]]) -> list[str]:
+    failures = []
+    for inv in allocs:
+        header_halala = _halala(inv.get('header_total'))
+        expected_net = int(
+            (Decimal(header_halala) / Decimal('1.15'))
+            .quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        )
+        allocation_rows = inv.get('allocation_rows') or []
+        actual_net = sum(_halala(row.get('amount_sar')) for row in allocation_rows)
+        delta = actual_net - expected_net
+        if abs(delta) > DISTRIBUTION_TOLERANCE_HALALA:
+            failures.append(
+                f"{inv.get('invoice_no')}: expected={expected_net / 100:.2f} "
+                f"actual={actual_net / 100:.2f} delta={delta / 100:+.2f} RED"
+            )
+    return failures
+
+def _asateel_allocations_from_workbook(path: Path) -> list[dict[str, Any]]:
+    workbook = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    try:
+        worksheet = workbook.active
+        headers = {
+            str(cell.value).strip(): index
+            for index, cell in enumerate(next(worksheet.iter_rows(min_row=3, max_row=3)))
+            if cell.value is not None
+        }
+        required = {'*Invoice Number', '*Invoice Amount', '*Amount'}
+        missing = sorted(required - headers.keys())
+        if missing:
+            raise ValueError(f"Oracle workbook missing required columns: {', '.join(missing)}")
+
+        by_invoice: dict[str, dict[str, Any]] = {}
+        current_headers: dict[str, Any] = {}
+        for cells in worksheet.iter_rows(min_row=4):
+            invoice = cells[headers['*Invoice Number']].value
+            if invoice in (None, ''):
+                continue
+            invoice_no = str(invoice).removesuffix('.0').zfill(5)
+            header = cells[headers['*Invoice Amount']].value
+            if header not in (None, ''):
+                current_headers[invoice_no] = header
+            record = by_invoice.setdefault(invoice_no, {
+                'invoice_no': invoice_no,
+                'header_total': current_headers.get(invoice_no, 0),
+                'allocation_rows': [],
+            })
+            if header not in (None, ''):
+                record['header_total'] = header
+            amount = cells[headers['*Amount']].value
+            if amount not in (None, ''):
+                record['allocation_rows'].append({'amount_sar': amount})
+        return list(by_invoice.values())
+    finally:
+        workbook.close()
 
 def _check_required_keys(report: VendorReport, name: str, data: dict, keys: list[str]):
     missing = [k for k in keys if k not in data]
@@ -246,11 +310,30 @@ def check_asateel() -> VendorReport:
                        severity='WARN')  # WARN because new categories are legitimate additions
 
     # Allocation
-    if a_path.exists():
+    if ASATEEL_ORACLE_OVERRIDE is not None:
+        allocs = _asateel_allocations_from_workbook(ASATEEL_ORACLE_OVERRIDE)
+    elif a_path.exists():
         allocs = _load_json(a_path)
+    else:
+        allocs = None
+    if allocs is not None:
         if isinstance(allocs, list):
             _check_no_negatives(report, 'asateel.allocation', allocs,
                                 ['header_total', 'allocation_sum', 'expected_gross_vat15'])
+            balance_failures = _asateel_balance_failures(allocs)
+            report.add(
+                'asateel.distribution_balance',
+                passed=not balance_failures,
+                detail=(
+                    '; '.join(balance_failures[:20])
+                    if balance_failures
+                    else 'all invoices balance within 0.05 SAR net'
+                ),
+                severity='ERROR',
+            )
+    else:
+        report.add('asateel.distribution_balance', False,
+                   'asateel-allocation.json missing', severity='ERROR')
 
     # Golden diff
     _golden_diff(report, 'asateel.summary',
@@ -340,7 +423,13 @@ def main():
     ap.add_argument('--vendor', choices=list(VENDORS), help='check only one vendor')
     ap.add_argument('--no-golden', action='store_true', help='skip golden fixture diff')
     ap.add_argument('--json', action='store_true', help='machine-readable JSON output')
+    ap.add_argument('--asateel-oracle', type=Path,
+                    help='recompute Asateel distribution balance directly from an Oracle workbook')
     args = ap.parse_args()
+
+    if args.asateel_oracle:
+        global ASATEEL_ORACLE_OVERRIDE
+        ASATEEL_ORACLE_OVERRIDE = args.asateel_oracle
 
     if args.no_golden:
         global _golden_diff

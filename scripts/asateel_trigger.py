@@ -447,6 +447,27 @@ def _execute_job(job: AsateelJob) -> None:
         _fail_run(job, title, number, completed.stdout + "\n" + completed.stderr)
         return
 
+    gate_cmd = [
+        "python3",
+        str(ROOT / "qc" / "qc_gate.py"),
+        "--vendor",
+        "asateel",
+        "--no-golden",
+    ]
+    try:
+        gated = _run_command(gate_cmd)
+    except Exception as exc:
+        _fail_run(job, title, number, f"Asateel deterministic QC gate failed: {exc}")
+        return
+    if gated.returncode != 0:
+        _fail_run(
+            job,
+            title,
+            number,
+            "Asateel deterministic QC gate failed:\n" + gated.stdout + "\n" + gated.stderr,
+        )
+        return
+
     stable_oracle, missing_jq_xlsx = stable_output_paths(job.region, job.batch_id)
     stable_oracle.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(MATCHED / "asateel-oracle-upload.xlsx", stable_oracle)

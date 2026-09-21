@@ -1332,7 +1332,7 @@ def _canonical_jq(raw: Any, *, allow_bare: bool = True) -> str:
     m = re.search(r"\bJQ\s*-\s*(\d+)(?=\b|_)", text)
     if m:
         return f"JQ-{m.group(1).zfill(8)}"
-    if allow_bare and re.fullmatch(r"\d{1,9}", text):
+    if allow_bare and re.fullmatch(r"\d{1,10}", text):
         return f"JQ-{text.zfill(8)}"
     return ""
 
@@ -1352,7 +1352,7 @@ def _split_jqs(raw: Any, *, allow_bare: bool = True) -> list[str]:
         if jq not in seen:
             seen.add(jq)
             out.append(jq)
-    if allow_bare and not out and re.fullmatch(r"\d{1,9}(?:\s+\d{1,9})*", text):
+    if allow_bare and not out and re.fullmatch(r"\d{1,10}(?:\s+\d{1,10})*", text):
         for token in text.split():
             jq = f"JQ-{token.zfill(8)}"
             if jq not in seen:
@@ -2787,7 +2787,8 @@ def enforce_whole_riyal_invoice_totals(rows: list[dict[str, Any]]) -> list[dict[
 
         if 0 < abs(adjustment) <= 2 and len(line_rows) >= abs(adjustment):
             direction = 1 if adjustment > 0 else -1
-            for index in range(abs(adjustment)):
+            for offset in range(1, abs(adjustment) + 1):
+                index = -offset
                 amounts[index] += direction
                 adjusted_amount = amounts[index] / 100
                 line_rows[index]["line_amount"] = adjusted_amount

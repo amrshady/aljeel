@@ -1,4 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const { createWorkerMock } = vi.hoisted(() => ({ createWorkerMock: vi.fn() }));
+
+vi.mock('tesseract.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('tesseract.js')>();
+  createWorkerMock.mockImplementation(actual.createWorker);
+  return { ...actual, createWorker: createWorkerMock };
+});
+
 import {
   collectTextItemsFromStream,
   extractPdfRows,
@@ -9,6 +18,7 @@ import {
   ocrWordsFromRecognizeData,
   ocrWordsToTextItems,
   pageNeedsOcr,
+  PDF_EXTRACT_LIMITS,
   pdfTextItemsToRows,
   PdfExtractError,
   PdfExtractSession,
@@ -17,6 +27,7 @@ import {
   runWithDeadline,
   splitLedgerTables,
   tablesFromTextItems,
+  terminateOcrWorker,
   withOcrLock,
 } from './supplier-reconciliation-pdf';
 
@@ -236,6 +247,41 @@ describe('withOcrLock', () => {
     expect(() => withOcrLock(wait)).toThrow(PdfExtractError);
     await Promise.all([first, second]);
   });
+
+  it('releases the lock after worker creation times out and terminates the late worker', async () => {
+    vi.useFakeTimers();
+    await terminateOcrWorker();
+    let resolveLate!: (worker: never) => void;
+    const lateWorker = {
+      setParameters: vi.fn().mockResolvedValue(undefined),
+      terminate: vi.fn().mockResolvedValue(undefined),
+    };
+    const nextWorker = {
+      setParameters: vi.fn().mockResolvedValue(undefined),
+      terminate: vi.fn().mockResolvedValue(undefined),
+      recognize: vi.fn().mockResolvedValue({ data: { blocks: [] } }),
+    };
+    createWorkerMock
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveLate = resolve)))
+      .mockResolvedValueOnce(nextWorker);
+
+    try {
+      const stalled = ocrImageToWords(Buffer.from('stalled'));
+      const timedOut = expect(stalled).rejects.toMatchObject({ code: 'PDF_TIMEOUT' });
+      await vi.advanceTimersByTimeAsync(PDF_EXTRACT_LIMITS.ocrPageTimeoutMs);
+      await timedOut;
+
+      await expect(ocrImageToWords(Buffer.from('next'))).resolves.toEqual([]);
+      expect(nextWorker.recognize).toHaveBeenCalledOnce();
+
+      resolveLate(lateWorker as never);
+      await vi.waitFor(() => expect(lateWorker.terminate).toHaveBeenCalledOnce());
+      expect(lateWorker.setParameters).toHaveBeenCalledOnce();
+    } finally {
+      await terminateOcrWorker();
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('runWithDeadline', () => {
@@ -264,6 +310,26 @@ describe('runWithDeadline', () => {
     ).rejects.toMatchObject({ code: 'PDF_TIMEOUT' });
     expect(renderCancelled).toBe(true);
     expect(ocrTerminated).toBe(true);
+    expect(session.aborted).toBe(true);
+  });
+
+  it('rejects at the deadline when OCR worker creation never resolves', async () => {
+    const session = new PdfExtractSession();
+    session.onTerminateOcr = () => new Promise(() => undefined);
+    const startedAt = Date.now();
+
+    await expect(
+      runWithDeadline(
+        20,
+        async (active) => {
+          active.markOcr();
+          await new Promise(() => undefined);
+        },
+        session,
+      ),
+    ).rejects.toMatchObject({ code: 'PDF_TIMEOUT' });
+
+    expect(Date.now() - startedAt).toBeLessThan(200);
     expect(session.aborted).toBe(true);
   });
 });
@@ -360,6 +426,29 @@ describe('pageNeedsOcr', () => {
         12,
       ),
     ).toBe(false);
+  });
+
+  it('extracts a large digital ledger and a same-page image-only ledger once each', () => {
+    const digital = [
+      Array.from({ length: 40 }, (_, i) => ['Invoice Number', 'Unpaid Amount', `INV-${i}`, 90]),
+    ];
+    expect(pageNeedsOcr(digital, 400, 160, true)).toBe(true);
+
+    const merged = mergeOcrIntoDigital(digital, [
+      [
+        ['Invoice Number', 'Unpaid Amount'],
+        ['INV-0', 90],
+      ],
+      [
+        ['البيان', 'مدين'],
+        ['INV-0', 90],
+      ],
+    ]);
+    expect(merged).toHaveLength(2);
+    expect(
+      merged.filter((table) => table.some((row) => row.includes('Invoice Number'))),
+    ).toHaveLength(1);
+    expect(merged.some((table) => table.some((row) => row.includes('البيان')))).toBe(true);
   });
 });
 

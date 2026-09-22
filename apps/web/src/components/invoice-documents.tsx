@@ -5,7 +5,7 @@ import { sanitizeEvidenceRelativePath, type Document } from '@aljeel/shared-type
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { HighlightText, textMatchesQuery } from './highlight-text';
 import { ApiClientError } from '@/lib/api-client';
 import { markAlreadyUploadedFiles } from '@/lib/document-dedup';
@@ -103,19 +103,64 @@ function RemoveDocumentDialog({
 }) {
   const t = useTranslations('documents');
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(true);
+  const titleId = useId();
+  const bodyId = useId();
   const onCancelRef = useRef(onCancel);
   onCancelRef.current = onCancel;
 
   useEffect(() => {
-    cancelRef.current?.focus();
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    (cancelRef.current ?? dialogRef.current)?.focus();
+    return () => {
+      activeRef.current = false;
+      trigger?.focus();
+    };
   }, []);
 
   useEffect(() => {
+    function keepFocusInside(event: FocusEvent) {
+      const dialog = dialogRef.current;
+      if (
+        activeRef.current &&
+        dialog &&
+        event.target instanceof Node &&
+        !dialog.contains(event.target)
+      ) {
+        dialog.focus();
+      }
+    }
+
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape' && !pending) onCancelRef.current();
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
+    document.addEventListener('focusin', keepFocusInside);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('focusin', keepFocusInside);
+      window.removeEventListener('keydown', onKey);
+    };
   }, [pending]);
 
   return (
@@ -126,10 +171,12 @@ function RemoveDocumentDialog({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
-        aria-labelledby="remove-document-title"
-        aria-describedby="remove-document-body"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
         className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg"
       >
         <div className="flex items-start gap-3">
@@ -137,10 +184,10 @@ function RemoveDocumentDialog({
             <Trash2 className="h-4 w-4" aria-hidden />
           </span>
           <div className="min-w-0">
-            <h3 id="remove-document-title" className="font-semibold leading-snug">
+            <h3 id={titleId} className="font-semibold leading-snug">
               {t('confirmRemoveTitle')}
             </h3>
-            <p id="remove-document-body" className="mt-1 text-sm text-muted-foreground">
+            <p id={bodyId} className="mt-1 text-sm text-muted-foreground">
               {t('confirmRemoveBody')}
             </p>
           </div>

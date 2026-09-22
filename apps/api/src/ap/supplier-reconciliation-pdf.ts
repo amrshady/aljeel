@@ -109,12 +109,13 @@ export async function terminateOcrWorker(owner?: symbol | null): Promise<void> {
     }
   }
   if (creating) {
-    try {
-      const created = await creating;
-      if (created !== worker) await created.terminate();
-    } catch {
-      /* create failed or already terminated */
-    }
+    void creating
+      .then(async (created) => {
+        if (created !== worker) await created.terminate();
+      })
+      .catch(() => {
+        /* create failed or already terminated */
+      });
   }
 }
 
@@ -204,7 +205,8 @@ export async function runWithDeadline<T>(
       if (settled) return;
       settled = true;
       const error = new PdfExtractError('PDF_TIMEOUT', `PDF read timed out after ${timeoutMs}ms.`);
-      void session.abort().finally(() => reject(error));
+      void session.abort();
+      reject(error);
     }, timeoutMs);
     timer.unref?.();
   });
@@ -472,9 +474,11 @@ export function pageNeedsOcr(
   tables: unknown[][][],
   digitalChars: number,
   textItemCount = 0,
+  hasRasterContent = false,
 ): boolean {
   const kinds = ledgerKindsInTables(tables);
   if (kinds.has('aljeel') && kinds.has('supplier')) return false;
+  if (hasRasterContent) return true;
   if (kinds.size === 0) return digitalChars < PDF_EXTRACT_LIMITS.denseDigitalChars;
   // One digital ledger on the page — still OCR if the text layer is too small
   // to be a full second table (same-page image ledger).
@@ -579,7 +583,9 @@ async function extractPdfSheetsUncapped(
       const layout = tablesFromTextItems(items, inherit);
       inherit = layout.inherit;
       const chars = digitalCharCount(layout.tables);
-      const needsOcr = pageNeedsOcr(layout.tables, chars, items.length) && ocrBudget > 0;
+      const hasRasterContent = await pageHasRasterContent(page, pdfjs.OPS);
+      const needsOcr =
+        pageNeedsOcr(layout.tables, chars, items.length, hasRasterContent) && ocrBudget > 0;
       if (needsOcr) ocrBudget -= 1;
       pages.push({ pageNo, tables: layout.tables, needsOcr });
     }
@@ -588,7 +594,11 @@ async function extractPdfSheetsUncapped(
       await withOcrLock(async () => {
         try {
           session.takeOcr();
-          const worker = await getOcrWorker(session);
+          const worker = await runWithDeadline(
+            OCR_PAGE_TIMEOUT_MS,
+            () => getOcrWorker(session),
+            session,
+          );
           for (const page of pages) {
             if (!page.needsOcr) continue;
             session.throwIfAborted();
@@ -661,7 +671,11 @@ export async function ocrImageToWords(png: Buffer): Promise<OcrWordBox[]> {
   return withOcrLock(async () => {
     try {
       session.takeOcr();
-      const worker = await getOcrWorker(session);
+      const worker = await runWithDeadline(
+        OCR_PAGE_TIMEOUT_MS,
+        () => getOcrWorker(session),
+        session,
+      );
       const result = await worker.recognize(png, {}, OCR_OUTPUT_FORMATS);
       return ocrWordsFromRecognizeData(result.data);
     } finally {
@@ -692,11 +706,6 @@ async function getOcrWorker(session: PdfExtractSession): Promise<Worker> {
   try {
     const worker = await create;
     if (!session.ownsOcr() || session.aborted) {
-      try {
-        await worker.terminate();
-      } catch {
-        /* already terminated by abort */
-      }
       throw new PdfExtractError('PDF_TIMEOUT');
     }
     ocrWorker = worker;
@@ -741,7 +750,24 @@ type PdfJsPage = {
   getViewport: (opts: { scale: number }) => { width: number; height: number };
   streamTextContent: (params?: { disableNormalization?: boolean }) => ReadableStream<TextChunk>;
   render: (opts: never) => RenderTaskLike & { promise: Promise<unknown> };
+  getOperatorList: () => Promise<{ fnArray: number[] }>;
 };
+
+async function pageHasRasterContent(
+  page: { getOperatorList: () => Promise<{ fnArray: number[] }> },
+  ops: Record<string, number>,
+): Promise<boolean> {
+  const imageOps = new Set(
+    [
+      ops.paintImageMaskXObject,
+      ops.paintImageXObject,
+      ops.paintInlineImageXObject,
+      ops.paintSolidColorImageMask,
+    ].filter((value): value is number => typeof value === 'number'),
+  );
+  const operatorList = await page.getOperatorList();
+  return operatorList.fnArray.some((operation) => imageOps.has(operation));
+}
 
 function coerceCell(text: string): string | number {
   const compact = text.replace(/,/g, '').trim();

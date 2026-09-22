@@ -150,10 +150,9 @@ export class SupplierReconciliationService {
         message: messages[error.code],
       });
     }
-    const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
     return new BadRequestException({
       code: 'SUPPLIER_RECON_PDF_INVALID',
-      message: `Could not read PDF: ${fileName}${detail}. Upload a PDF or Excel file with the same ledger columns as the spreadsheet export.`,
+      message: `Could not read PDF: ${fileName}. Upload a PDF or Excel file with the same ledger columns as the spreadsheet export.`,
     });
   }
 

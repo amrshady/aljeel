@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
+  collectTextItemsFromStream,
   extractPdfRows,
   OCR_OUTPUT_FORMATS,
+  ocrImageToWords,
   ocrWordsFromRecognizeData,
   ocrWordsToTextItems,
+  pageNeedsOcr,
   pdfTextItemsToRows,
   PdfExtractError,
+  PdfExtractSession,
   renderScaleForPage,
   rowsLookLikeLedger,
+  runWithDeadline,
   splitLedgerTables,
   tablesFromTextItems,
   withOcrLock,
@@ -202,6 +207,68 @@ describe('withOcrLock', () => {
   });
 });
 
+describe('runWithDeadline', () => {
+  it('cancels the pdf.js render task and terminates OCR on timeout', async () => {
+    let renderCancelled = false;
+    let ocrTerminated = false;
+    const session = new PdfExtractSession();
+    session.onTerminateOcr = async () => {
+      ocrTerminated = true;
+    };
+    await expect(
+      runWithDeadline(
+        20,
+        async (active) => {
+          active.attachRender({
+            cancel() {
+              renderCancelled = true;
+            },
+          });
+          active.markOcr();
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          return 'still-running';
+        },
+        session,
+      ),
+    ).rejects.toMatchObject({ code: 'PDF_TIMEOUT' });
+    expect(renderCancelled).toBe(true);
+    expect(ocrTerminated).toBe(true);
+    expect(session.aborted).toBe(true);
+  });
+});
+
+describe('collectTextItemsFromStream', () => {
+  it('stops reading before the full text layer is materialized', async () => {
+    let pulls = 0;
+    const stream = new ReadableStream<{ items?: unknown[] }>({
+      pull(controller) {
+        pulls += 1;
+        if (pulls > 50) {
+          controller.close();
+          return;
+        }
+        controller.enqueue({
+          items: Array.from({ length: 20 }, (_, index) => ({
+            str: `n${pulls}-${index}`,
+            transform: [1, 0, 0, 1, index, pulls],
+            width: 8,
+          })),
+        });
+      },
+    });
+    const items = await collectTextItemsFromStream(stream, new PdfExtractSession(), 25);
+    expect(items).toHaveLength(25);
+    expect(pulls).toBeLessThan(8);
+  });
+});
+
+describe('pageNeedsOcr', () => {
+  it('OCRs a page with no digital ledger even when another page already parsed', () => {
+    expect(pageNeedsOcr([[['scanned image']]], 12)).toBe(true);
+    expect(pageNeedsOcr([[['Invoice Number', 'Unpaid Amount'], ['INV-1', 90]]], 40)).toBe(false);
+  });
+});
+
 describe('extractPdfRows', () => {
   it('reads a text PDF into table rows', async () => {
     const buffer = buildTextPdf([
@@ -214,4 +281,21 @@ describe('extractPdfRows', () => {
     expect(rows.some((row) => row.includes('Invoice Number'))).toBe(true);
     expect(rows.some((row) => row.includes('INV-1'))).toBe(true);
   });
+});
+
+describe('ocrImageToWords', () => {
+  it('requests Tesseract word boxes from a raster image', async () => {
+    const { createCanvas } = await import('@napi-rs/canvas');
+    const canvas = createCanvas(320, 64);
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, 320, 64);
+    context.fillStyle = '#000000';
+    context.font = '28px sans-serif';
+    context.fillText('INV-1', 24, 44);
+    const words = await ocrImageToWords(canvas.toBuffer('image/png'));
+    expect(OCR_OUTPUT_FORMATS.blocks).toBe(true);
+    expect(words.length).toBeGreaterThan(0);
+    expect(words.some((word) => /INV/i.test(word.text))).toBe(true);
+  }, 60_000);
 });

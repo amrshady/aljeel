@@ -58,6 +58,16 @@ const OCR_PAGE_TIMEOUT_MS = 20_000;
 /** Tesseract.js 7 defaults to text-only; word boxes live under blocks. */
 export const OCR_OUTPUT_FORMATS = { text: true, blocks: true } as const;
 
+export const PDF_EXTRACT_LIMITS = {
+  maxPages: MAX_PDF_PAGES,
+  maxOcrPages: MAX_OCR_PAGES,
+  maxRows: MAX_PDF_ROWS,
+  maxItemsPerPage: MAX_PDF_ITEMS_PER_PAGE,
+  extractTimeoutMs: PDF_EXTRACT_TIMEOUT_MS,
+  ocrPageTimeoutMs: OCR_PAGE_TIMEOUT_MS,
+  denseDigitalChars: 80,
+} as const;
+
 let ocrChain: Promise<unknown> = Promise.resolve();
 let ocrQueued = 0;
 let ocrWorker: Worker | null = null;
@@ -80,23 +90,103 @@ export function withOcrLock<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new PdfExtractError('PDF_TIMEOUT', `PDF read timed out after ${timeoutMs}ms.`));
+async function terminateOcrWorker(): Promise<void> {
+  const worker = ocrWorker;
+  ocrWorker = null;
+  if (!worker) return;
+  try {
+    await worker.terminate();
+  } catch {
+    /* worker may already be dead */
+  }
+}
+
+type RenderTaskLike = { cancel: (extraDelay?: number) => void };
+type TextChunk = { items?: unknown[] };
+
+/** Cancels in-flight pdf.js work and kills the Tesseract worker on abort. */
+export class PdfExtractSession {
+  aborted = false;
+  private renderTask: RenderTaskLike | null = null;
+  private reader: ReadableStreamDefaultReader<TextChunk> | null = null;
+  private ocrOwned = false;
+  onTerminateOcr: () => Promise<void> = terminateOcrWorker;
+
+  attachRender(task: RenderTaskLike | null): void {
+    this.renderTask = task;
+    if (task) this.throwIfAborted();
+  }
+
+  attachReader(reader: ReadableStreamDefaultReader<TextChunk> | null): void {
+    this.reader = reader;
+    if (reader) this.throwIfAborted();
+  }
+
+  markOcr(): void {
+    this.ocrOwned = true;
+  }
+
+  throwIfAborted(): void {
+    if (this.aborted) throw new PdfExtractError('PDF_TIMEOUT');
+  }
+
+  async abort(): Promise<void> {
+    const shouldKillOcr = this.ocrOwned && !this.aborted;
+    this.aborted = true;
+    try {
+      this.renderTask?.cancel();
+    } catch {
+      /* already cancelled */
+    }
+    this.renderTask = null;
+    try {
+      await this.reader?.cancel();
+    } catch {
+      /* already cancelled */
+    }
+    this.reader = null;
+    if (shouldKillOcr) {
+      this.ocrOwned = false;
+      try {
+        await this.onTerminateOcr();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+export async function runWithDeadline<T>(
+  timeoutMs: number,
+  work: (session: PdfExtractSession) => Promise<T>,
+  session = new PdfExtractSession(),
+): Promise<T> {
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      const error = new PdfExtractError('PDF_TIMEOUT', `PDF read timed out after ${timeoutMs}ms.`);
+      void session.abort().finally(() => reject(error));
     }, timeoutMs);
     timer.unref?.();
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
   });
+  try {
+    const result = await Promise.race([work(session), timeout]);
+    settled = true;
+    return result;
+  } catch (error) {
+    if (!settled) {
+      settled = true;
+      const timedOut =
+        session.aborted || (error instanceof PdfExtractError && error.code === 'PDF_TIMEOUT');
+      if (timedOut) await session.abort();
+    }
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function renderScaleForPage(width: number, height: number): number {
@@ -331,131 +421,136 @@ export function tablesFromTextItems(
   return { tables, inherit: { xs, kind: inheritKind } };
 }
 
+export function pageNeedsOcr(tables: unknown[][][], digitalChars: number): boolean {
+  if (tables.some((table) => rowsLookLikeLedger(table))) return false;
+  return digitalChars < PDF_EXTRACT_LIMITS.denseDigitalChars;
+}
+
+function digitalCharCount(tables: unknown[][][]): number {
+  return tables
+    .flat()
+    .flat()
+    .map((cell) => String(cell ?? ''))
+    .join('')
+    .replace(/\s/g, '').length;
+}
+
+export async function collectTextItemsFromStream(
+  stream: ReadableStream<TextChunk>,
+  session: PdfExtractSession,
+  maxItems = MAX_PDF_ITEMS_PER_PAGE,
+): Promise<PdfTextItem[]> {
+  const reader = stream.getReader();
+  session.attachReader(reader);
+  const items: PdfTextItem[] = [];
+  let seen = 0;
+  try {
+    while (true) {
+      session.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const item of value?.items ?? []) {
+        seen += 1;
+        if (seen > maxItems * 5) {
+          await reader.cancel();
+          throw new PdfExtractError('PDF_TOO_MANY_ROWS', 'PDF page has too many text items.');
+        }
+        if (items.length >= maxItems) {
+          await reader.cancel();
+          return items;
+        }
+        if (!item || typeof item !== 'object' || !('str' in item) || !(item as { str?: unknown }).str) {
+          continue;
+        }
+        const record = item as { str: unknown; transform?: unknown; width?: unknown };
+        const transform = Array.isArray(record.transform) ? record.transform : [];
+        items.push({
+          str: String(record.str),
+          x: Number(transform[4] ?? 0),
+          y: Number(transform[5] ?? 0),
+          width: Number(record.width ?? 0),
+        });
+      }
+    }
+    return items;
+  } finally {
+    session.attachReader(null);
+    try {
+      reader.releaseLock();
+    } catch {
+      /* cancelled streams already release */
+    }
+  }
+}
+
 export async function extractPdfRows(buffer: Buffer): Promise<unknown[][]> {
   return (await extractPdfSheets(buffer)).flat();
 }
 
 export async function extractPdfSheets(buffer: Buffer): Promise<unknown[][][]> {
-  return withTimeout(extractPdfSheetsUncapped(buffer), PDF_EXTRACT_TIMEOUT_MS);
+  return runWithDeadline(PDF_EXTRACT_TIMEOUT_MS, (session) => extractPdfSheetsUncapped(buffer, session));
 }
 
-async function extractPdfSheetsUncapped(buffer: Buffer): Promise<unknown[][][]> {
-  const digital = await extractDigitalTables(buffer);
-  const digitalRows = digital.flat();
-  if (digital.some((table) => rowsLookLikeLedger(table))) return digital;
-
-  const digitalChars = digitalRows
-    .flat()
-    .map((cell) => String(cell ?? ''))
-    .join('')
-    .replace(/\s/g, '').length;
-  if (digitalChars >= 80) return digital;
-
-  const ocrTables = await withOcrLock(() => ocrPdfToTables(buffer));
-  if (ocrTables.some((table) => rowsLookLikeLedger(table))) return ocrTables;
-  if (ocrTables.some((table) => table.some((row) => row.some((cell) => cell != null && String(cell).trim())))) {
-    return ocrTables;
-  }
-  return digital;
-}
-
-async function extractDigitalTables(buffer: Buffer): Promise<unknown[][][]> {
+async function extractPdfSheetsUncapped(
+  buffer: Buffer,
+  session: PdfExtractSession,
+): Promise<unknown[][][]> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   let document: Awaited<ReturnType<typeof pdfjs.getDocument>['promise']>;
   try {
     document = await pdfjs.getDocument({
       data: new Uint8Array(buffer),
       useSystemFonts: true,
+      maxImageSize: MAX_RENDER_PIXELS,
     }).promise;
   } catch {
     throw new PdfExtractError('UNREADABLE_PDF');
   }
 
   try {
+    session.throwIfAborted();
     const pageCount = Math.min(document.numPages, MAX_PDF_PAGES);
-    const tables: unknown[][][] = [];
+    const pages: { pageNo: number; tables: unknown[][][]; needsOcr: boolean }[] = [];
     let inherit: { xs: number[] | null; kind: LedgerKind | null } = { xs: null, kind: null };
-    let totalRows = 0;
-    const started = Date.now();
+    let ocrBudget = MAX_OCR_PAGES;
 
     for (let pageNo = 1; pageNo <= pageCount; pageNo += 1) {
-      if (Date.now() - started > PDF_EXTRACT_TIMEOUT_MS) {
-        throw new PdfExtractError('PDF_TIMEOUT');
-      }
+      session.throwIfAborted();
       const page = await document.getPage(pageNo);
-      const content = await page.getTextContent();
-      if (content.items.length > MAX_PDF_ITEMS_PER_PAGE * 5) {
-        throw new PdfExtractError('PDF_TOO_MANY_ROWS', 'PDF page has too many text items.');
-      }
-      const items: PdfTextItem[] = [];
-      for (const item of content.items.slice(0, MAX_PDF_ITEMS_PER_PAGE)) {
-        if (!('str' in item) || !item.str) continue;
-        const transform = 'transform' in item && Array.isArray(item.transform) ? item.transform : [];
-        items.push({
-          str: String(item.str),
-          x: Number(transform[4] ?? 0),
-          y: Number(transform[5] ?? 0),
-          width: 'width' in item ? Number(item.width ?? 0) : 0,
-        });
-      }
-      const layout = tablesFromTextItems(items, inherit);
-      inherit = layout.inherit;
-      for (const table of layout.tables) {
-        totalRows += table.length;
-        if (totalRows > MAX_PDF_ROWS) {
-          throw new PdfExtractError('PDF_TOO_MANY_ROWS');
-        }
-        const last = tables[tables.length - 1];
-        const tableKind = table.map(ledgerKindFromValues).find((value) => value != null) ?? inherit.kind;
-        const lastKind = last?.map(ledgerKindFromValues).find((value) => value != null);
-        if (last && tableKind && lastKind && tableKind === lastKind) {
-          last.push(...table);
-        } else if (last && !tableKind) {
-          last.push(...table);
-        } else {
-          tables.push(table);
-        }
-      }
-    }
-    return tables.length ? tables : [[]];
-  } finally {
-    await closePdfDocument(document);
-  }
-}
-
-async function ocrPdfToTables(buffer: Buffer): Promise<unknown[][][]> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const document = await pdfjs.getDocument({
-    data: new Uint8Array(buffer),
-    useSystemFonts: true,
-  }).promise;
-  const worker = await getOcrWorker();
-  const pageCount = Math.min(document.numPages, MAX_OCR_PAGES);
-  const tables: unknown[][][] = [];
-  let inherit: { xs: number[] | null; kind: LedgerKind | null } = { xs: null, kind: null };
-  let totalRows = 0;
-  const started = Date.now();
-
-  try {
-    for (let pageNo = 1; pageNo <= pageCount; pageNo += 1) {
-      if (Date.now() - started > PDF_EXTRACT_TIMEOUT_MS) {
-        throw new PdfExtractError('PDF_TIMEOUT');
-      }
-      const png = await renderPdfPage(document, pageNo);
-      const result = await withTimeout(
-        worker.recognize(png, {}, OCR_OUTPUT_FORMATS),
-        OCR_PAGE_TIMEOUT_MS,
+      const items = await collectTextItemsFromStream(
+        page.streamTextContent({ disableNormalization: true }) as ReadableStream<TextChunk>,
+        session,
       );
-      const items = ocrWordsToTextItems(ocrWordsFromRecognizeData(result.data));
       const layout = tablesFromTextItems(items, inherit);
       inherit = layout.inherit;
-      for (const table of layout.tables) {
+      const chars = digitalCharCount(layout.tables);
+      const needsOcr = pageNeedsOcr(layout.tables, chars) && ocrBudget > 0;
+      if (needsOcr) ocrBudget -= 1;
+      pages.push({ pageNo, tables: layout.tables, needsOcr });
+    }
+
+    if (pages.some((page) => page.needsOcr)) {
+      await withOcrLock(async () => {
+        session.markOcr();
+        const worker = await getOcrWorker();
+        for (const page of pages) {
+          if (!page.needsOcr) continue;
+          session.throwIfAborted();
+          page.tables = await ocrPdfPage(document, page.pageNo, worker, session);
+        }
+      });
+    }
+
+    const tables: unknown[][][] = [];
+    let totalRows = 0;
+    for (const page of pages) {
+      for (const table of page.tables) {
         totalRows += table.length;
         if (totalRows > MAX_PDF_ROWS) {
           throw new PdfExtractError('PDF_TOO_MANY_ROWS');
         }
         const last = tables[tables.length - 1];
-        const tableKind = table.map(ledgerKindFromValues).find((value) => value != null) ?? inherit.kind;
+        const tableKind = table.map(ledgerKindFromValues).find((value) => value != null);
         const lastKind = last?.map(ledgerKindFromValues).find((value) => value != null);
         if (last && ((tableKind && lastKind && tableKind === lastKind) || !tableKind)) {
           last.push(...table);
@@ -468,6 +563,31 @@ async function ocrPdfToTables(buffer: Buffer): Promise<unknown[][][]> {
   } finally {
     await closePdfDocument(document);
   }
+}
+
+async function ocrPdfPage(
+  document: { getPage: (pageNo: number) => Promise<PdfJsPage> },
+  pageNo: number,
+  worker: Worker,
+  session: PdfExtractSession,
+): Promise<unknown[][][]> {
+  const png = await renderPdfPage(document, pageNo, session);
+  session.throwIfAborted();
+  const result = await runWithDeadline(
+    OCR_PAGE_TIMEOUT_MS,
+    async () => worker.recognize(png, {}, OCR_OUTPUT_FORMATS),
+    session,
+  );
+  const items = ocrWordsToTextItems(ocrWordsFromRecognizeData(result.data));
+  return tablesFromTextItems(items).tables;
+}
+
+export async function ocrImageToWords(png: Buffer): Promise<OcrWordBox[]> {
+  return withOcrLock(async () => {
+    const worker = await getOcrWorker();
+    const result = await worker.recognize(png, {}, OCR_OUTPUT_FORMATS);
+    return ocrWordsFromRecognizeData(result.data);
+  });
 }
 
 async function getOcrWorker(): Promise<Worker> {
@@ -487,7 +607,9 @@ async function getOcrWorker(): Promise<Worker> {
 async function renderPdfPage(
   document: { getPage: (pageNo: number) => Promise<PdfJsPage> },
   pageNo: number,
+  session: PdfExtractSession,
 ): Promise<Buffer> {
+  session.throwIfAborted();
   const page = await document.getPage(pageNo);
   const base = page.getViewport({ scale: 1 });
   const scale = renderScaleForPage(base.width, base.height);
@@ -496,17 +618,27 @@ async function renderPdfPage(
   const context = canvas.getContext('2d');
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({
+  const task = page.render({
     canvas,
     canvasContext: context,
     viewport,
-  } as never).promise;
+  } as never);
+  session.attachRender(task);
+  try {
+    await task.promise;
+  } catch (error) {
+    session.throwIfAborted();
+    throw error;
+  } finally {
+    session.attachRender(null);
+  }
   return canvas.toBuffer('image/png');
 }
 
 type PdfJsPage = {
   getViewport: (opts: { scale: number }) => { width: number; height: number };
-  render: (opts: never) => { promise: Promise<unknown> };
+  streamTextContent: (params?: { disableNormalization?: boolean }) => ReadableStream<TextChunk>;
+  render: (opts: never) => RenderTaskLike & { promise: Promise<unknown> };
 };
 
 function coerceCell(text: string): string | number {

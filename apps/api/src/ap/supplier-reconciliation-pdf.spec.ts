@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { extractPdfRows, ocrWordsToTextItems, pdfTextItemsToRows, rowsLookLikeLedger } from './supplier-reconciliation-pdf';
+import {
+  extractPdfRows,
+  OCR_OUTPUT_FORMATS,
+  ocrWordsFromRecognizeData,
+  ocrWordsToTextItems,
+  pdfTextItemsToRows,
+  PdfExtractError,
+  renderScaleForPage,
+  rowsLookLikeLedger,
+  splitLedgerTables,
+  tablesFromTextItems,
+  withOcrLock,
+} from './supplier-reconciliation-pdf';
 
 export function buildTextPdf(lines: Array<{ text: string; x: number; y: number }>): Buffer {
   const ops = lines
@@ -92,6 +104,101 @@ describe('pdfTextItemsToRows', () => {
     ]);
     expect(rows[1]?.[2]).toBe(2472.5);
     expect(rows[1]?.[3]).toBe(2472.5);
+  });
+});
+
+describe('ocrWordsFromRecognizeData', () => {
+  it('does not use Tesseract.js text-only data.words', () => {
+    expect(
+      ocrWordsFromRecognizeData({
+        text: 'INV-1',
+        words: [{ text: 'INV-1', bbox: { x0: 0, y0: 0, x1: 10, y1: 10 } }],
+        blocks: null,
+      } as never),
+    ).toEqual([]);
+  });
+
+  it('walks blocks.paragraphs.lines.words when recognize() requests blocks', () => {
+    expect(OCR_OUTPUT_FORMATS).toEqual({ text: true, blocks: true });
+    expect(
+      ocrWordsFromRecognizeData({
+        blocks: [
+          {
+            paragraphs: [
+              {
+                lines: [
+                  {
+                    words: [{ text: 'INV-1', bbox: { x0: 1, y0: 2, x1: 3, y1: 4 } }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([{ text: 'INV-1', x0: 1, y0: 2, x1: 3, y1: 4 }]);
+  });
+});
+
+describe('splitLedgerTables', () => {
+  it('splits Aljeel and supplier tables when both headers appear', () => {
+    const tables = splitLedgerTables([
+      ['Invoice Number', 'Unpaid Amount'],
+      ['OPEN-1', 90],
+      ['البيان', 'مدين'],
+      ['OPEN-1', 90],
+      ['MISSING-1', 25],
+    ]);
+    expect(tables).toHaveLength(2);
+    expect(tables[0]?.[0]).toEqual(['Invoice Number', 'Unpaid Amount']);
+    expect(tables[1]?.[0]).toEqual(['البيان', 'مدين']);
+  });
+
+  it('does not split when the same ledger header repeats', () => {
+    const tables = splitLedgerTables([
+      ['Invoice Number', 'Unpaid Amount'],
+      ['OPEN-1', 90],
+      ['Invoice Number', 'Unpaid Amount'],
+      ['OPEN-2', 10],
+    ]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0]).toHaveLength(4);
+  });
+});
+
+describe('tablesFromTextItems', () => {
+  it('snaps each ledger to its own header columns on one page', () => {
+    const { tables } = tablesFromTextItems([
+      { str: 'Invoice Number', x: 40, y: 720, width: 80 },
+      { str: 'Unpaid Amount', x: 200, y: 720, width: 80 },
+      { str: 'OPEN-1', x: 40, y: 700, width: 40 },
+      { str: '90', x: 200, y: 700, width: 20 },
+      { str: 'البيان', x: 40, y: 640, width: 40 },
+      { str: 'مدين', x: 200, y: 640, width: 30 },
+      { str: 'OPEN-1', x: 40, y: 620, width: 40 },
+      { str: '90', x: 200, y: 620, width: 20 },
+    ]);
+    expect(tables).toHaveLength(2);
+    expect(tables[0]?.some((row) => row.includes('Invoice Number'))).toBe(true);
+    expect(tables[1]?.some((row) => row.includes('البيان'))).toBe(true);
+  });
+});
+
+describe('renderScaleForPage', () => {
+  it('caps a huge page so the bitmap stays within the pixel budget', () => {
+    const scale = renderScaleForPage(20_000, 20_000);
+    expect(scale).toBeLessThan(2.5);
+    expect(Math.ceil(20_000 * scale) * Math.ceil(20_000 * scale)).toBeLessThanOrEqual(4_000_000 + 20_000);
+  });
+});
+
+describe('withOcrLock', () => {
+  it('rejects a third OCR job while two are in flight', async () => {
+    const wait = () => new Promise((resolve) => setTimeout(resolve, 40));
+    const first = withOcrLock(wait);
+    const second = withOcrLock(wait);
+    expect(() => withOcrLock(wait)).toThrow(PdfExtractError);
+    await Promise.all([first, second]);
   });
 });
 

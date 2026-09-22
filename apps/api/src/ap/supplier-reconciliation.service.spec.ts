@@ -305,4 +305,12 @@ describe('SupplierReconciliationService', () => {
     expect(payment.find((row) => row[1] === 'Net To Pay')?.[2]).toBe(36380.25);
     expect(recon.find((row) => row[5] === 'BALANCE PER BOOKS')?.[6]).toBe(36380.25);
   });
+
+  it('surfaces a distinct error when a PDF cannot be opened', async () => {
+    await expect(
+      service.parseInputs([{ originalname: 'broken.pdf', buffer: Buffer.from('not-a-pdf') }]),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'SUPPLIER_RECON_UNREADABLE_PDF' }),
+    });
+  });
 });

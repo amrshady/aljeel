@@ -8,7 +8,11 @@ import {
   type AljeelInvoiceLine,
   type SupplierStatementLine,
 } from './supplier-reconciliation';
-import { extractPdfRows, isPdfFileName } from './supplier-reconciliation-pdf';
+import {
+  extractPdfSheets,
+  isPdfFileName,
+  PdfExtractError,
+} from './supplier-reconciliation-pdf';
 import { buildSupplierReconWorkbook, COMPANY_NAME } from './supplier-reconciliation-workbook';
 
 export { COMPANY_NAME };
@@ -110,25 +114,47 @@ export class SupplierReconciliationService {
 
   private async readLedgerSheets(file: UploadedWorkbook): Promise<unknown[][][]> {
     if (isPdfFileName(file.originalname)) {
-      let rows: unknown[][];
+      let tables: unknown[][][];
       try {
-        rows = await extractPdfRows(file.buffer);
-      } catch {
-        throw new BadRequestException({
-          code: 'SUPPLIER_RECON_PDF_INVALID',
-          message: `Could not read PDF: ${file.originalname}. Upload a PDF or Excel file with the same ledger columns as the spreadsheet export.`,
-        });
+        tables = await extractPdfSheets(file.buffer);
+      } catch (error) {
+        throw this.pdfReadError(file.originalname, error);
       }
-      if (!rows.some((row) => row.some((cell) => cell != null && String(cell).trim()))) {
+      const sheets = tables
+        .filter((rows) => rows.some((row) => row.some((cell) => cell != null && String(cell).trim())))
+        .flatMap((rows) => this.excelSheetsFromRows(rows));
+      if (!sheets.length) {
         throw new BadRequestException({
           code: 'SUPPLIER_RECON_PDF_EMPTY',
           message: `No ledger table could be read from ${file.originalname}. Use a PDF with Invoice Number / البيان columns, same as Excel.`,
         });
       }
-      return this.excelSheetsFromRows(rows);
+      return sheets;
     }
     const workbook = this.readWorkbook(file);
     return this.sheetRowsFromWorkbook(workbook);
+  }
+
+  private pdfReadError(fileName: string, error: unknown): BadRequestException {
+    if (error instanceof BadRequestException) return error;
+    if (error instanceof PdfExtractError) {
+      const messages: Record<PdfExtractError['code'], string> = {
+        UNREADABLE_PDF: `Could not open PDF: ${fileName}. The file may be damaged.`,
+        PDF_PAGE_TOO_LARGE: `A page in ${fileName} is too large to render for OCR.`,
+        PDF_TIMEOUT: `Reading ${fileName} took too long. Try a smaller PDF or Excel.`,
+        PDF_OCR_BUSY: 'Another scanned PDF is still being read. Try again in a moment.',
+        PDF_TOO_MANY_ROWS: `${fileName} has too many rows or text items (maximum 100,000 rows).`,
+      };
+      return new BadRequestException({
+        code: `SUPPLIER_RECON_${error.code}`,
+        message: messages[error.code],
+      });
+    }
+    const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
+    return new BadRequestException({
+      code: 'SUPPLIER_RECON_PDF_INVALID',
+      message: `Could not read PDF: ${fileName}${detail}. Upload a PDF or Excel file with the same ledger columns as the spreadsheet export.`,
+    });
   }
 
   private excelSheetsFromRows(rows: unknown[][]): unknown[][][] {

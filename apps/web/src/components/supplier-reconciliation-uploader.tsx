@@ -1,13 +1,13 @@
 'use client';
 
 import { Button } from '@aljeel/ui';
-import { FileSpreadsheet, X } from 'lucide-react';
+import { FileSpreadsheet, FileText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ChangeEvent, useRef, useState } from 'react';
 import { generateSupplierReconciliation } from '@/lib/ap-api';
 
-function isWorkbook(file: File) {
-  return /\.xlsx?$/i.test(file.name);
+function isLedgerFile(file: File) {
+  return /\.(xlsx?|pdf)$/i.test(file.name);
 }
 
 export function SupplierReconciliationUploader() {
@@ -16,10 +16,10 @@ export function SupplierReconciliationUploader() {
   const [files, setFiles] = useState<File[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const workbooks = files.filter(isWorkbook);
-  const invalidFiles = files.filter((file) => !isWorkbook(file));
+  const ledgers = files.filter(isLedgerFile);
+  const invalidFiles = files.filter((file) => !isLedgerFile(file));
   const canRun =
-    (workbooks.length === 1 || workbooks.length === 2) &&
+    (ledgers.length === 1 || ledgers.length === 2) &&
     invalidFiles.length === 0 &&
     !running;
 
@@ -35,7 +35,7 @@ export function SupplierReconciliationUploader() {
     setRunning(true);
     setError(null);
     try {
-      await generateSupplierReconciliation(workbooks);
+      await generateSupplierReconciliation(ledgers);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t('runError'));
     } finally {
@@ -56,7 +56,7 @@ export function SupplierReconciliationUploader() {
           className="sr-only"
           type="file"
           multiple
-          accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          accept=".xlsx,.xls,.pdf,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={addFiles}
         />
         <Button type="button" onClick={() => inputRef.current?.click()} disabled={running}>
@@ -69,7 +69,11 @@ export function SupplierReconciliationUploader() {
         <ul className="divide-y rounded-xl border bg-card" aria-label={t('selectedFiles')}>
           {files.map((file, index) => (
             <li key={`${file.name}-${file.size}-${index}`} className="flex items-center gap-3 p-3">
-              <FileSpreadsheet className="h-5 w-5 shrink-0 text-[#1E40AF]" aria-hidden />
+              {/\.pdf$/i.test(file.name) ? (
+                <FileText className="h-5 w-5 shrink-0 text-[#1E40AF]" aria-hidden />
+              ) : (
+                <FileSpreadsheet className="h-5 w-5 shrink-0 text-[#1E40AF]" aria-hidden />
+              )}
               <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
               <button
                 type="button"
@@ -85,13 +89,13 @@ export function SupplierReconciliationUploader() {
         </ul>
       )}
 
-      {files.length > 0 && workbooks.length === 0 && (
+      {files.length > 0 && ledgers.length === 0 && (
         <p className="text-sm text-destructive">{t('missingWorkbook')}</p>
       )}
-      {workbooks.length > 2 && (
+      {ledgers.length > 2 && (
         <p className="text-sm text-destructive">
           {t('tooManyWorkbooks', {
-            names: workbooks
+            names: ledgers
               .slice(2)
               .map((file) => file.name)
               .join(', '),

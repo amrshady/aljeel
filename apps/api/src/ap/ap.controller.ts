@@ -124,26 +124,24 @@ export class ApController {
   @UseInterceptors(FilesInterceptor('files', 2, { limits: { fileSize: 10 * 1024 * 1024 } }))
   @ApiOperation({
     summary:
-      'Match Aljeel Oracle unpaid invoices to a supplier statement and download payment + recon sheets',
+      'Match Aljeel Oracle unpaid invoices to a supplier statement (Excel or PDF) and download payment + recon sheets',
   })
   async reconcileSupplierStatement(
     @UploadedFiles() files: UploadedFile[] | undefined,
     @Res() response: Response,
   ) {
-    const workbooks = (files ?? []).filter((file) => /\.xlsx?$/i.test(file.originalname));
-    if (
-      workbooks.length < 1 ||
-      workbooks.length > 2 ||
-      workbooks.length !== files?.length
-    ) {
+    const ledgers = (files ?? []).filter((file) =>
+      /\.(xlsx?|pdf)$/i.test(file.originalname),
+    );
+    if (ledgers.length < 1 || ledgers.length > 2 || ledgers.length !== files?.length) {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_FILES_INVALID',
         message:
-          'Upload one Excel workbook that contains both ledgers, or two workbooks (Aljeel export + supplier statement).',
+          'Upload one file that contains both ledgers, or two files (Aljeel export + supplier statement). Excel (.xlsx, .xls) or PDF — PDFs are read as a spreadsheet table.',
       });
     }
     const { output, fileName } = await this.supplierRecon.reconcileWorkbooks(
-      workbooks.map((file) => ({ originalname: file.originalname, buffer: file.buffer })),
+      ledgers.map((file) => ({ originalname: file.originalname, buffer: file.buffer })),
     );
     response.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

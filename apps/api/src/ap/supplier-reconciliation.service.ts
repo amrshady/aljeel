@@ -8,6 +8,7 @@ import {
   type AljeelInvoiceLine,
   type SupplierStatementLine,
 } from './supplier-reconciliation';
+import { extractPdfRows, isPdfFileName } from './supplier-reconciliation-pdf';
 import { buildSupplierReconWorkbook, COMPANY_NAME } from './supplier-reconciliation-workbook';
 
 export { COMPANY_NAME };
@@ -32,7 +33,7 @@ const normalizeHeader = (value: unknown) =>
 @Injectable()
 export class SupplierReconciliationService {
   async reconcileWorkbooks(files: UploadedWorkbook[]): Promise<{ output: Buffer; fileName: string }> {
-    const parsed = this.parseInputs(files);
+    const parsed = await this.parseInputs(files);
     const result = reconcileSupplierStatement(parsed.aljeel, parsed.supplier, {
       asOfDate: parsed.asOfDate,
       currency: parsed.currency,
@@ -43,16 +44,17 @@ export class SupplierReconciliationService {
     };
   }
 
-  parseInputs(files: UploadedWorkbook[]): {
+  async parseInputs(files: UploadedWorkbook[]): Promise<{
     aljeel: AljeelInvoiceLine[];
     supplier: SupplierStatementLine[];
     asOfDate: string;
     currency: string;
-  } {
+  }> {
     if (!files.length) {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_FILES_INVALID',
-        message: 'Upload one workbook with both ledgers, or two Excel files (Aljeel export + supplier statement).',
+        message:
+          'Upload one file with both ledgers, or two files (Aljeel export + supplier statement). Excel or PDF.',
       });
     }
 
@@ -60,13 +62,8 @@ export class SupplierReconciliationService {
     let supplier: SupplierStatementLine[] | null = null;
 
     for (const file of files) {
-      const workbook = this.readWorkbook(file);
-      for (const sheetName of workbook.SheetNames) {
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName]!, {
-          header: 1,
-          defval: null,
-          raw: true,
-        });
+      const sheets = await this.readLedgerSheets(file);
+      for (const rows of sheets) {
         const kind = this.detectSheetKind(rows);
         if (kind === 'aljeel') {
           if (aljeel) {
@@ -92,14 +89,14 @@ export class SupplierReconciliationService {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_ALJEEL_MISSING',
         message:
-          'Could not find an Aljeel Oracle export (a sheet with Invoice Number and Unpaid Amount).',
+          'Could not find an Aljeel Oracle export (a sheet or PDF with Invoice Number and Unpaid Amount).',
       });
     }
     if (!supplier?.length) {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_SUPPLIER_MISSING',
         message:
-          'Could not find a supplier statement (a sheet with invoice numbers in البيان / description and amounts).',
+          'Could not find a supplier statement (a sheet or PDF with invoice numbers in البيان / description and amounts).',
       });
     }
 
@@ -109,6 +106,45 @@ export class SupplierReconciliationService {
       asOfDate: new Date().toISOString().slice(0, 10),
       currency: 'SAR',
     };
+  }
+
+  private async readLedgerSheets(file: UploadedWorkbook): Promise<unknown[][][]> {
+    if (isPdfFileName(file.originalname)) {
+      let rows: unknown[][];
+      try {
+        rows = await extractPdfRows(file.buffer);
+      } catch {
+        throw new BadRequestException({
+          code: 'SUPPLIER_RECON_PDF_INVALID',
+          message: `Could not read PDF: ${file.originalname}. Upload a PDF or Excel file with the same ledger columns as the spreadsheet export.`,
+        });
+      }
+      if (!rows.some((row) => row.some((cell) => cell != null && String(cell).trim()))) {
+        throw new BadRequestException({
+          code: 'SUPPLIER_RECON_PDF_EMPTY',
+          message: `No ledger table could be read from ${file.originalname}. Use a PDF with Invoice Number / البيان columns, same as Excel.`,
+        });
+      }
+      return this.excelSheetsFromRows(rows);
+    }
+    const workbook = this.readWorkbook(file);
+    return this.sheetRowsFromWorkbook(workbook);
+  }
+
+  private excelSheetsFromRows(rows: unknown[][]): unknown[][][] {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), 'PDF');
+    return this.sheetRowsFromWorkbook(workbook);
+  }
+
+  private sheetRowsFromWorkbook(workbook: XLSX.WorkBook): unknown[][][] {
+    return workbook.SheetNames.map((sheetName) =>
+      XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName]!, {
+        header: 1,
+        defval: null,
+        raw: true,
+      }),
+    );
   }
 
   private readWorkbook(file: UploadedWorkbook): XLSX.WorkBook {
@@ -156,7 +192,7 @@ export class SupplierReconciliationService {
   }
 
   private findHeaderRow(rows: unknown[][]): { index: number; cells: unknown[] } | null {
-    for (let index = 0; index < Math.min(rows.length, 15); index += 1) {
+    for (let index = 0; index < Math.min(rows.length, 40); index += 1) {
       const cells = rows[index] ?? [];
       const labels = cells.map(normalizeHeader);
       if (

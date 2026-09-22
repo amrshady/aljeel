@@ -71,6 +71,8 @@ export const PDF_EXTRACT_LIMITS = {
 let ocrChain: Promise<unknown> = Promise.resolve();
 let ocrQueued = 0;
 let ocrWorker: Worker | null = null;
+let ocrOwnerId: symbol | null = null;
+let ocrCreate: Promise<Worker> | null = null;
 
 export function withOcrLock<T>(fn: () => Promise<T>): Promise<T> {
   if (ocrQueued >= MAX_OCR_JOBS) {
@@ -90,14 +92,29 @@ export function withOcrLock<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-async function terminateOcrWorker(): Promise<void> {
+export async function terminateOcrWorker(owner?: symbol | null): Promise<void> {
+  if (owner && ocrOwnerId !== owner) return;
+  const creating = ocrCreate;
   const worker = ocrWorker;
-  ocrWorker = null;
-  if (!worker) return;
-  try {
-    await worker.terminate();
-  } catch {
-    /* worker may already be dead */
+  if (!owner || ocrOwnerId === owner) {
+    ocrOwnerId = null;
+    ocrWorker = null;
+    ocrCreate = null;
+  }
+  if (worker) {
+    try {
+      await worker.terminate();
+    } catch {
+      /* worker may already be dead */
+    }
+  }
+  if (creating) {
+    try {
+      const created = await creating;
+      if (created !== worker) await created.terminate();
+    } catch {
+      /* create failed or already terminated */
+    }
   }
 }
 
@@ -109,8 +126,8 @@ export class PdfExtractSession {
   aborted = false;
   private renderTask: RenderTaskLike | null = null;
   private reader: ReadableStreamDefaultReader<TextChunk> | null = null;
-  private ocrOwned = false;
-  onTerminateOcr: () => Promise<void> = terminateOcrWorker;
+  private ocrOwner: symbol | null = null;
+  onTerminateOcr: (owner?: symbol | null) => Promise<void> = terminateOcrWorker;
 
   attachRender(task: RenderTaskLike | null): void {
     this.renderTask = task;
@@ -122,8 +139,27 @@ export class PdfExtractSession {
     if (reader) this.throwIfAborted();
   }
 
+  takeOcr(): symbol {
+    this.throwIfAborted();
+    this.ocrOwner = Symbol('ocr-owner');
+    ocrOwnerId = this.ocrOwner;
+    return this.ocrOwner;
+  }
+
+  /** @deprecated use takeOcr — kept so older tests keep compiling until they switch. */
   markOcr(): void {
-    this.ocrOwned = true;
+    this.takeOcr();
+  }
+
+  releaseOcr(): void {
+    if (this.ocrOwner && ocrOwnerId === this.ocrOwner) {
+      ocrOwnerId = null;
+    }
+    this.ocrOwner = null;
+  }
+
+  ownsOcr(): boolean {
+    return this.ocrOwner != null && ocrOwnerId === this.ocrOwner;
   }
 
   throwIfAborted(): void {
@@ -131,7 +167,6 @@ export class PdfExtractSession {
   }
 
   async abort(): Promise<void> {
-    const shouldKillOcr = this.ocrOwned && !this.aborted;
     this.aborted = true;
     try {
       this.renderTask?.cancel();
@@ -145,13 +180,14 @@ export class PdfExtractSession {
       /* already cancelled */
     }
     this.reader = null;
-    if (shouldKillOcr) {
-      this.ocrOwned = false;
-      try {
-        await this.onTerminateOcr();
-      } catch {
-        /* ignore */
-      }
+    if (!this.ownsOcr()) return;
+    const owner = this.ocrOwner;
+    try {
+      await this.onTerminateOcr(owner);
+    } catch {
+      /* ignore */
+    } finally {
+      this.releaseOcr();
     }
   }
 }
@@ -421,9 +457,28 @@ export function tablesFromTextItems(
   return { tables, inherit: { xs, kind: inheritKind } };
 }
 
-export function pageNeedsOcr(tables: unknown[][][], digitalChars: number): boolean {
-  if (tables.some((table) => rowsLookLikeLedger(table))) return false;
-  return digitalChars < PDF_EXTRACT_LIMITS.denseDigitalChars;
+export function ledgerKindsInTables(tables: unknown[][][]): Set<LedgerKind> {
+  const kinds = new Set<LedgerKind>();
+  for (const table of tables) {
+    for (const row of table) {
+      const kind = ledgerKindFromValues(row);
+      if (kind) kinds.add(kind);
+    }
+  }
+  return kinds;
+}
+
+export function pageNeedsOcr(
+  tables: unknown[][][],
+  digitalChars: number,
+  textItemCount = 0,
+): boolean {
+  const kinds = ledgerKindsInTables(tables);
+  if (kinds.has('aljeel') && kinds.has('supplier')) return false;
+  if (kinds.size === 0) return digitalChars < PDF_EXTRACT_LIMITS.denseDigitalChars;
+  // One digital ledger on the page — still OCR if the text layer is too small
+  // to be a full second table (same-page image ledger).
+  return textItemCount < PDF_EXTRACT_LIMITS.denseDigitalChars;
 }
 
 function digitalCharCount(tables: unknown[][][]): number {
@@ -524,19 +579,24 @@ async function extractPdfSheetsUncapped(
       const layout = tablesFromTextItems(items, inherit);
       inherit = layout.inherit;
       const chars = digitalCharCount(layout.tables);
-      const needsOcr = pageNeedsOcr(layout.tables, chars) && ocrBudget > 0;
+      const needsOcr = pageNeedsOcr(layout.tables, chars, items.length) && ocrBudget > 0;
       if (needsOcr) ocrBudget -= 1;
       pages.push({ pageNo, tables: layout.tables, needsOcr });
     }
 
     if (pages.some((page) => page.needsOcr)) {
       await withOcrLock(async () => {
-        session.markOcr();
-        const worker = await getOcrWorker();
-        for (const page of pages) {
-          if (!page.needsOcr) continue;
-          session.throwIfAborted();
-          page.tables = await ocrPdfPage(document, page.pageNo, worker, session);
+        try {
+          session.takeOcr();
+          const worker = await getOcrWorker(session);
+          for (const page of pages) {
+            if (!page.needsOcr) continue;
+            session.throwIfAborted();
+            const ocrTables = await ocrPdfPage(document, page.pageNo, worker, session);
+            page.tables = mergeOcrIntoDigital(page.tables, ocrTables);
+          }
+        } finally {
+          session.releaseOcr();
         }
       });
     }
@@ -582,26 +642,68 @@ async function ocrPdfPage(
   return tablesFromTextItems(items).tables;
 }
 
+export function mergeOcrIntoDigital(digital: unknown[][][], ocr: unknown[][][]): unknown[][][] {
+  const have = ledgerKindsInTables(digital);
+  if (have.size === 0) return ocr.length ? ocr : digital;
+  const merged = [...digital];
+  for (const table of ocr) {
+    const kind = [...ledgerKindsInTables([table])][0];
+    if (kind && !have.has(kind)) {
+      merged.push(table);
+      have.add(kind);
+    }
+  }
+  return merged;
+}
+
 export async function ocrImageToWords(png: Buffer): Promise<OcrWordBox[]> {
+  const session = new PdfExtractSession();
   return withOcrLock(async () => {
-    const worker = await getOcrWorker();
-    const result = await worker.recognize(png, {}, OCR_OUTPUT_FORMATS);
-    return ocrWordsFromRecognizeData(result.data);
+    try {
+      session.takeOcr();
+      const worker = await getOcrWorker(session);
+      const result = await worker.recognize(png, {}, OCR_OUTPUT_FORMATS);
+      return ocrWordsFromRecognizeData(result.data);
+    } finally {
+      session.releaseOcr();
+    }
   });
 }
 
-async function getOcrWorker(): Promise<Worker> {
-  if (ocrWorker) return ocrWorker;
+async function getOcrWorker(session: PdfExtractSession): Promise<Worker> {
+  session.throwIfAborted();
+  if (ocrWorker && session.ownsOcr()) return ocrWorker;
+
+  const create = (async () => {
+    let worker: Worker;
+    try {
+      worker = await createWorker('ara+eng', 1, { logger: () => undefined });
+    } catch {
+      worker = await createWorker('eng', 1, { logger: () => undefined });
+    }
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.AUTO,
+      preserve_interword_spaces: '1',
+    });
+    return worker;
+  })();
+  ocrCreate = create;
+
   try {
-    ocrWorker = await createWorker('ara+eng', 1, { logger: () => undefined });
-  } catch {
-    ocrWorker = await createWorker('eng', 1, { logger: () => undefined });
+    const worker = await create;
+    if (!session.ownsOcr() || session.aborted) {
+      try {
+        await worker.terminate();
+      } catch {
+        /* already terminated by abort */
+      }
+      throw new PdfExtractError('PDF_TIMEOUT');
+    }
+    ocrWorker = worker;
+    return worker;
+  } finally {
+    if (ocrCreate === create) ocrCreate = null;
   }
-  await ocrWorker.setParameters({
-    tessedit_pageseg_mode: PSM.AUTO,
-    preserve_interword_spaces: '1',
-  });
-  return ocrWorker;
 }
 
 async function renderPdfPage(

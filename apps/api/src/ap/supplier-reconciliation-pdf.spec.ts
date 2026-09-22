@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   collectTextItemsFromStream,
   extractPdfRows,
+  extractPdfSheets,
+  mergeOcrIntoDigital,
   OCR_OUTPUT_FORMATS,
   ocrImageToWords,
   ocrWordsFromRecognizeData,
@@ -50,6 +52,35 @@ export function buildTextPdf(lines: Array<{ text: string; x: number; y: number }
     Buffer.from(xref),
     Buffer.from(trailer),
   ]);
+}
+
+function buildImagePdf(jpeg: Buffer, width: number, height: number): Buffer {
+  const draw = `q ${width} 0 0 ${height} 0 0 cm /Im1 Do Q\n`;
+  const objects = [
+    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n',
+    '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n',
+    '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ' +
+      `${width} ${height}] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >> endobj\n`,
+    `4 0 obj << /Length ${Buffer.byteLength(draw)} >> stream\n${draw}endstream\nendobj\n`,
+  ];
+  const imageDict = `5 0 obj << /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >> stream\n`;
+  const imageEnd = '\nendstream\nendobj\n';
+  let offset = '%PDF-1.4\n'.length;
+  const starts = [0];
+  const parts = [
+    ...objects.map((object) => Buffer.from(object)),
+    Buffer.concat([Buffer.from(imageDict), jpeg, Buffer.from(imageEnd)]),
+  ];
+  for (const part of parts) {
+    starts.push(offset);
+    offset += part.length;
+  }
+  let xref = `xref\n0 ${starts.length}\n0000000000 65535 f \n`;
+  for (let index = 1; index < starts.length; index += 1) {
+    xref += `${String(starts[index]).padStart(10, '0')} 00000 n \n`;
+  }
+  const trailer = `trailer << /Size ${starts.length} /Root 1 0 R >>\nstartxref\n${offset}\n%%EOF\n`;
+  return Buffer.concat([Buffer.from('%PDF-1.4\n'), ...parts, Buffer.from(xref), Buffer.from(trailer)]);
 }
 
 describe('pdfTextItemsToRows', () => {
@@ -262,11 +293,107 @@ describe('collectTextItemsFromStream', () => {
   });
 });
 
+describe('PdfExtractSession OCR ownership', () => {
+  it('does not terminate a Tesseract worker owned by a newer session', async () => {
+    const terminated: string[] = [];
+    const original = new PdfExtractSession();
+    const next = new PdfExtractSession();
+    original.onTerminateOcr = async () => {
+      terminated.push('original');
+    };
+    next.onTerminateOcr = async () => {
+      terminated.push('next');
+    };
+
+    original.takeOcr();
+    original.releaseOcr();
+    next.takeOcr();
+
+    await original.abort();
+    expect(terminated).toEqual([]);
+    expect(next.ownsOcr()).toBe(true);
+
+    await next.abort();
+    expect(terminated).toEqual(['next']);
+    expect(next.ownsOcr()).toBe(false);
+  });
+
+  it('still terminates OCR when the timeout happens while this session owns the worker', async () => {
+    let terminated = false;
+    const session = new PdfExtractSession();
+    session.onTerminateOcr = async () => {
+      terminated = true;
+    };
+    session.takeOcr();
+    await session.abort();
+    expect(terminated).toBe(true);
+  });
+});
+
 describe('pageNeedsOcr', () => {
   it('OCRs a page with no digital ledger even when another page already parsed', () => {
-    expect(pageNeedsOcr([[['scanned image']]], 12)).toBe(true);
-    expect(pageNeedsOcr([[['Invoice Number', 'Unpaid Amount'], ['INV-1', 90]]], 40)).toBe(false);
+    expect(pageNeedsOcr([[['scanned image']]], 12, 0)).toBe(true);
+    expect(
+      pageNeedsOcr(
+        [Array.from({ length: 40 }, (_, i) => ['Invoice Number', 'Unpaid Amount', `INV-${i}`, 90])],
+        400,
+        160,
+      ),
+    ).toBe(false);
   });
+
+  it('OCRs a same-page image ledger when only one digital table is present and small', () => {
+    expect(pageNeedsOcr([[['Invoice Number', 'Unpaid Amount'], ['INV-1', 90]]], 20, 12)).toBe(true);
+    expect(
+      pageNeedsOcr(
+        [
+          [
+            ['Invoice Number', 'Unpaid Amount'],
+            ['INV-1', 90],
+          ],
+          [
+            ['البيان', 'مدين'],
+            ['INV-1', 90],
+          ],
+        ],
+        20,
+        12,
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('mergeOcrIntoDigital', () => {
+  it('keeps the digital ledger and adds only the missing OCR ledger', () => {
+    const merged = mergeOcrIntoDigital(
+      [[['Invoice Number', 'Unpaid Amount'], ['OPEN-1', 90]]],
+      [
+        [['Invoice Number', 'Unpaid Amount'], ['OPEN-1', 90]],
+        [['البيان', 'مدين'], ['OPEN-1', 90]],
+      ],
+    );
+    expect(merged).toHaveLength(2);
+    expect(merged[1]?.[0]).toEqual(['البيان', 'مدين']);
+  });
+});
+
+describe('extractPdfSheets', () => {
+  it('renders an image-only PDF and OCRs it with Tesseract word boxes', async () => {
+    const { createCanvas } = await import('@napi-rs/canvas');
+    const canvas = createCanvas(420, 80);
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, 420, 80);
+    context.fillStyle = '#000000';
+    context.font = '22px sans-serif';
+    context.fillText('Invoice Number    Unpaid Amount', 12, 28);
+    context.fillText('INV-1             90', 12, 58);
+    const jpeg = canvas.toBuffer('image/jpeg');
+    const sheets = await extractPdfSheets(buildImagePdf(jpeg, 420, 80));
+    const rows = sheets.flat();
+    expect(rows.some((row) => row.some((cell) => /Invoice/i.test(String(cell ?? ''))))).toBe(true);
+    expect(rows.some((row) => row.some((cell) => /INV/i.test(String(cell ?? ''))))).toBe(true);
+  }, 60_000);
 });
 
 describe('extractPdfRows', () => {

@@ -3,6 +3,7 @@
 import { Button } from '@aljeel/ui';
 import { sanitizeEvidenceRelativePath, type Document } from '@aljeel/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { HighlightText, textMatchesQuery } from './highlight-text';
@@ -89,6 +90,93 @@ function PendingFileRow({
   );
 }
 
+function RemoveDocumentDialog({
+  fileName,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  fileName: string;
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const t = useTranslations('documents');
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
+
+  useEffect(() => {
+    cancelRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !pending) onCancelRef.current();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pending]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !pending) onCancel();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="remove-document-title"
+        aria-describedby="remove-document-body"
+        className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg"
+      >
+        <div className="flex items-start gap-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <Trash2 className="h-4 w-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h3 id="remove-document-title" className="font-semibold leading-snug">
+              {t('confirmRemoveTitle')}
+            </h3>
+            <p id="remove-document-body" className="mt-1 text-sm text-muted-foreground">
+              {t('confirmRemoveBody')}
+            </p>
+          </div>
+        </div>
+        <p
+          className="mt-3 truncate rounded-md bg-muted px-2.5 py-2 text-sm font-medium"
+          title={fileName}
+        >
+          {fileName}
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button
+            ref={cancelRef}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+            disabled={pending}
+          >
+            {t('confirmRemoveCancel')}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={onConfirm}
+            disabled={pending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {pending ? t('removing') : t('confirmRemoveConfirm')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
@@ -138,6 +226,7 @@ export function InvoiceDocuments({
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const destinationRef = useRef('');
   const folderFileInputRef = useRef<HTMLInputElement>(null);
@@ -608,7 +697,7 @@ export function InvoiceDocuments({
                   </p>
                   {(canRename || editable) && (
                     <div
-                      className="mt-1 flex flex-wrap items-center gap-3"
+                      className="mt-1 flex flex-wrap items-center gap-1"
                       onClick={(event) => event.stopPropagation()}
                     >
                       {canRename && (
@@ -624,11 +713,13 @@ export function InvoiceDocuments({
                       {editable && (
                         <button
                           type="button"
-                          onClick={() => deleteMutation.mutate(doc.id)}
+                          onClick={() => setRemoveTarget({ id: doc.id, name: node.name })}
                           disabled={busy}
-                          className="text-xs text-destructive hover:underline disabled:opacity-50"
+                          aria-label={t('removeNamed', { name: node.name })}
+                          title={t('remove')}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:opacity-50"
                         >
-                          {t('remove')}
+                          <Trash2 className="h-4 w-4" aria-hidden />
                         </button>
                       )}
                     </div>
@@ -880,6 +971,21 @@ export function InvoiceDocuments({
       )}
 
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+
+      {removeTarget && (
+        <RemoveDocumentDialog
+          fileName={removeTarget.name}
+          pending={deleteMutation.isPending}
+          onCancel={() => {
+            if (!deleteMutation.isPending) setRemoveTarget(null);
+          }}
+          onConfirm={() => {
+            deleteMutation.mutate(removeTarget.id, {
+              onSettled: () => setRemoveTarget(null),
+            });
+          }}
+        />
+      )}
     </section>
   );
 }

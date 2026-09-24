@@ -789,6 +789,122 @@ describe('validateJawalEvidencePack', () => {
 
     expect(result.error).toBeNull();
   });
+
+  it('accepts approval and supporting evidence in a nested ticket subtree', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4862054879', 'Staff travel'],
+        ],
+      ]),
+      files: [
+        { fileName: 'J26-1407/4862054879/4862112919/RE_.msg', sizeBytes: 100 },
+        { fileName: 'J26-1407/4862054879/4862112919/eticket.pdf', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.findings.some((f) => f.code === 'JAWAL_APPROVAL_MISSING')).toBe(false);
+    expect(result.findings.some((f) => f.code === 'JAWAL_SUPPORTING_DOC_MISSING')).toBe(false);
+  });
+
+  it('does not count a loose file at the batch root as ticket evidence', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4862054879', 'Staff travel'],
+        ],
+      ]),
+      files: [{ fileName: 'J26-1407/RE_APP_1.MSG', sizeBytes: 100 }],
+    });
+
+    expect(
+      result.findings.some(
+        (f) =>
+          f.code === 'JAWAL_APPROVAL_MISSING' || f.code === 'JAWAL_FOLDER_MISMATCH',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not bleed approval evidence between sibling ticket folders', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4862054879', 'Staff travel'],
+        ],
+      ]),
+      files: [
+        { fileName: 'J26-1407/4862054879/eticket.pdf', sizeBytes: 100 },
+        { fileName: 'J26-1407/4862054878/approval.msg', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.findings.some((f) => f.code === 'JAWAL_APPROVAL_MISSING')).toBe(true);
+  });
+
+  it('still requires OPEX when a sponsorship message is nested under its ref folder', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description', 'Account', 'Type'],
+          ['CE-20-2026', '', 'Sponsorship gala', '60307021', 'Event'],
+        ],
+      ]),
+      files: [
+        { fileName: 'J26-1407/CE-20-2026/correspondence/thread.msg', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.findings.some((f) => f.rule === 'B4')).toBe(true);
+    expect(result.findings.some((f) => f.rule === 'B5')).toBe(true);
+  });
+
+  it('still requires an exact OPEX serial in a nested ticket subtree', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description', 'OPEX'],
+          ['1001200', '065 4862054879', 'Staff travel', 'CE-20-2026'],
+        ],
+      ]),
+      files: [
+        { fileName: '4862054879/forms/OPEX-CE-21-2026.pdf', sizeBytes: 100 },
+        { fileName: '4862054879/forms/approval.msg', sizeBytes: 100 },
+      ],
+    });
+
+    expect(
+      result.findings.some(
+        (f) => f.rule === 'B2' && f.message.includes('does not exactly match'),
+      ),
+    ).toBe(true);
+  });
+
+  it('accepts nested subtree evidence while preserving root-level orphan detection', () => {
+    const result = validateJawalEvidencePack({
+      lines: extractJawalInvoiceLines([
+        [
+          ['Ref.No', 'Ticket', 'Description'],
+          ['1001200', '065 4862054879', 'Staff travel'],
+        ],
+      ]),
+      files: [
+        { fileName: '4862054879/correspondence/approval.msg', sizeBytes: 100 },
+        { fileName: '4862054879/documents/eticket.pdf', sizeBytes: 100 },
+        { fileName: 'SIS-99/orphan.pdf', sizeBytes: 100 },
+      ],
+    });
+
+    expect(result.findings.some((f) => f.code === 'JAWAL_APPROVAL_MISSING')).toBe(false);
+    expect(result.findings.some((f) => f.code === 'JAWAL_SUPPORTING_DOC_MISSING')).toBe(false);
+    expect(
+      result.findings.some(
+        (f) => f.code === 'JAWAL_ORPHAN_FOLDER' && f.path === 'SIS-99',
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('extractJawalInvoiceLines missing-identifier rows', () => {

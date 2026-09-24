@@ -710,10 +710,11 @@ function isSupportingDocName(fileName: string): boolean {
 }
 
 function folderFiles(files: JawalEvidenceFileMeta[], folder: string): JawalEvidenceFileMeta[] {
-  return files.filter((file) => {
-    const name = evidenceFolderName(file.fileName);
-    return name !== null && folderMatchesKey(name, folder);
-  });
+  return files.filter((file) =>
+    pathSegments(file.fileName)
+      .slice(0, -1)
+      .some((segment) => folderMatchesKey(segment, folder)),
+  );
 }
 
 function uniqueFolders(files: JawalEvidenceFileMeta[]): string[] {
@@ -921,6 +922,15 @@ function findEvidenceFolderForLine(
 
   const byKey = folders.find((folder) => keys.some((key) => folderMatchesKey(folder, key)));
   if (byKey) return byKey;
+
+  for (const key of keys) {
+    for (const file of files) {
+      const ancestor = pathSegments(file.fileName)
+        .slice(0, -1)
+        .find((segment) => folderMatchesKey(segment, key));
+      if (ancestor) return normalizeCanonicalToken(ancestor);
+    }
+  }
 
   const ticket = line.ticket ? normalizeJawalTicket(line.ticket) : '';
   if (ticket && !JAWAL_TICKET.test(ticket)) {

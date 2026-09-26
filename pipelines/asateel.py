@@ -180,6 +180,7 @@ def _row_public(row: dict[str, Any]) -> dict[str, Any]:
         "exception_category": row.get("_exception_category") or "",
         "agency_resolution": row.get("_agency_resolution") or "",
         "project_allocation": row.get("_project_allocation_audit"),
+        "employee_agency_collision": row.get("_employee_agency_collision"),
     }
 
 
@@ -251,6 +252,21 @@ def _catch_records(invoice_records: list[dict[str, Any]]) -> list[dict[str, Any]
             })
         for row in rec["allocation_rows"]:
             project_audit = row.get("project_allocation") or {}
+            collision = row.get("employee_agency_collision") or {}
+            if collision:
+                catches.append({
+                    "category": "EMPLOYEE_AGENCY_COLLISION",
+                    "severity": "HIGH",
+                    "invoice_no": rec["invoice_no"],
+                    "employee_no": collision.get("employee_no"),
+                    "agency_code": collision.get("agency_code"),
+                    "agency_name": collision.get("agency_name"),
+                    "home_agency_code": collision.get("home_agency_code"),
+                    "home_agency_name": collision.get("home_agency_name"),
+                    "value_at_risk_sar": 0.0,
+                    "detail": collision.get("note"),
+                    "evidence": {"allocation_rows": [row]},
+                })
             if row.get("exception_category") == "AGENCY_JQ_NOT_IN_SO_DETAIL":
                 catches.append({
                     "category": "AGENCY_JQ_NOT_IN_SO_DETAIL",

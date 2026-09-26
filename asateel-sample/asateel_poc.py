@@ -51,6 +51,20 @@ DEFAULT_PROJECT_ALLOCATION_LOOKUP = ROOT / "pipelines" / "lookups" / "asateel_pr
 STANDARD_ALLOCATION_MODE = "standard"
 PROJECT_ALLOCATION_MODE = "projects-labadi-v1"
 
+COLLISION_GUARDS = [
+    {
+        "employee_no": "1001778",
+        "forbidden_agency_code": "10153",
+        "home_agency_code": "10041",
+        "home_agency_name": "Fujifilm",
+        "note": (
+            "Employee 1001778 (Fujifilm Ahmed Fawzy Elsayed) allocated to BMX "
+            "(10153) — possible name collision with 1002437 (Ahmed Abdelhakim "
+            "Elsayed). AP clerk review required."
+        ),
+    },
+]
+
 GL_ACCOUNT = "61500027"
 GL_FALLBACK_DESC = "Transportation/Freight Expense"
 COMPANY = "03"
@@ -2462,8 +2476,26 @@ def build_rows(
                     notes.append(solution_source.get("solution_note"))
             else:
                 notes.append("No Supplier Expenses Format line matched for Solution")
+            final_agency_code = _code(resolved.get("agency_code"), 5)
+            employee_agency_collision = next(
+                (
+                    {
+                        **guard,
+                        "agency_code": final_agency_code,
+                        "agency_name": _clean(resolved.get("agency_name")),
+                    }
+                    for guard in COLLISION_GUARDS
+                    if output_employee_no == guard["employee_no"]
+                    and final_agency_code == guard["forbidden_agency_code"]
+                ),
+                None,
+            )
+            if employee_agency_collision:
+                notes.append(f"RED: {employee_agency_collision['note']}")
             status = classify(ext, resolved, notes, scan_available=not master_fallback)
             if so_detail_status == "missing":
+                status = "RED"
+            if employee_agency_collision:
                 status = "RED"
             if project_audit and project_audit.get("status") != "applied" and status == "GREEN":
                 status = "YELLOW"
@@ -2596,6 +2628,7 @@ def build_rows(
                 "_supplier_home_agency_discrepancy": supplier_home_agency_discrepancy,
                 "_supplier_jq_count": supplier_match.get("_jq_count") if supplier_match else "",
                 "_project_allocation_audit": project_audit,
+                "_employee_agency_collision": employee_agency_collision,
             }
             row["GL Description"] = _build_gl_description(row)
             finalize_distribution(row, is_warehouse_cc)

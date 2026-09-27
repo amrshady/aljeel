@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
@@ -43,7 +44,8 @@ interface RunStatusResponse {
 /**
  * Mirrors {@link AsateelIntegrationService} for the Jawal Travel reconciliation
  * engine. Differences vs Asateel: no region and no email step; the engine writes
- * a "resolved" spreadsheet (Spreadsheet-<batch>-FILLED-v30.xlsx) instead of an
+ * a human-facing "resolved" spreadsheet (preferably
+ * Spreadsheet-<batch>-FILLED-v30-REVIEW.xlsx) instead of an
  * Oracle upload, which is ingested as the downloadable ORACLE_UPLOAD document.
  *
  * NOTE: source document paths are preserved under `<batch>/src/` so the Jawal
@@ -52,6 +54,7 @@ interface RunStatusResponse {
  */
 @Injectable()
 export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(JawalIntegrationService.name);
   private timer: NodeJS.Timeout | null = null;
   private polling = false;
 
@@ -438,6 +441,16 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
       process.env.JAWAL_BATCHES_ROOT ?? DEFAULT_BATCHES_ROOT,
       `jawal-${invoice.invoiceNumber}`,
       'output',
+    );
+    const expectedReview = join(
+      outputDir,
+      `Spreadsheet-${invoice.invoiceNumber}-FILLED-v30-REVIEW.xlsx`,
+    );
+    if (await this.exists(expectedReview)) {
+      return expectedReview;
+    }
+    this.logger.warn(
+      `Jawal review workbook is missing for invoice ${invoice.id}; falling back to the existing resolved artifact selection.`,
     );
     const expectedSplit = join(
       outputDir,

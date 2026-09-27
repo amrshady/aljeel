@@ -150,15 +150,23 @@ def _atomic_copy(src: Path, dst: Path) -> None:
     os.replace(tmp, dst)
 
 
-def _stage_jawal_portal_docs(batch_id: str, folder_name: str) -> tuple[Path, Path, str | None, int]:
+def _stage_jawal_portal_docs(
+    batch_id: str,
+    folder_name: str,
+    invoice_document_id: str | None = None,
+) -> tuple[Path, Path, str | None, int]:
     """Copy portal-staged docs into batches/jawal-<batch>/{raw,invoice-source.xlsx}."""
     normalized = batch_id.replace("jawal-", "")
     batch_dir = ROOT / "batches" / f"jawal-{normalized}"
     raw_dir = batch_dir / "raw"
-    raw_dir.mkdir(parents=True, exist_ok=True)
     src = Path(folder_name)
     if not src.is_dir():
         raise FileNotFoundError(f"staged folder not found: {folder_name}")
+
+    shutil.rmtree(raw_dir, ignore_errors=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    dst_invoice = batch_dir / "invoice-source.xlsx"
+    dst_invoice.unlink(missing_ok=True)
 
     raw_root = raw_dir.resolve()
 
@@ -185,15 +193,34 @@ def _stage_jawal_portal_docs(batch_id: str, folder_name: str) -> tuple[Path, Pat
     invoice_path = None
     invoice_entry = None
     if excel_candidates:
-        invoice_candidates = [i for i in excel_candidates if "inv" in i[2].lower()]
-        genuine_invoice_candidates = [
-            i for i in invoice_candidates
-            if "refund" not in i[2].lower() and "credit" not in i[2].lower()
-        ]
-        invoice_entry = next(iter(genuine_invoice_candidates or invoice_candidates), excel_candidates[0])
-        dst_invoice = batch_dir / "invoice-source.xlsx"
+        if invoice_document_id:
+            expected_prefix = f"{invoice_document_id}-"
+            exact_matches = [i for i in excel_candidates if i[0].name.startswith(expected_prefix)]
+            if len(exact_matches) != 1:
+                raise ValueError(
+                    f"expected exactly one staged invoice for document {invoice_document_id}; "
+                    f"found {len(exact_matches)}"
+                )
+            invoice_entry = exact_matches[0]
+        else:
+            invoice_candidates = [i for i in excel_candidates if "inv" in i[2].lower()]
+            genuine_invoice_candidates = [
+                i for i in invoice_candidates
+                if "refund" not in i[2].lower() and "credit" not in i[2].lower()
+            ]
+            invoice_entry = next(
+                iter(genuine_invoice_candidates or invoice_candidates), excel_candidates[0]
+            )
+        _logger.info(
+            "Selected Jawal invoice workbook for %s: %s%s",
+            batch_id,
+            invoice_entry[0],
+            f" (document {invoice_document_id})" if invoice_document_id else " (filename fallback)",
+        )
         _atomic_copy(invoice_entry[0], dst_invoice)
         invoice_path = str(dst_invoice)
+    elif invoice_document_id:
+        raise ValueError(f"staged invoice document {invoice_document_id} is not an Excel file")
 
     staged = 0
     for entry, relative_path in other_files:
@@ -216,6 +243,7 @@ def _parse_payload(payload: Any) -> dict[str, Any]:
     archive_date = payload.get("archive_date")
     recipients = _validate_recipients(payload.get("recipients"))
     invoice_path = _validate_invoice_path(payload.get("invoice_path"))
+    invoice_document_id = _clean(payload.get("invoice_document_id")) or None
     no_cache = payload.get("no_cache", True)
     include_log = payload.get("include_log", _default_include_log())
 
@@ -227,12 +255,15 @@ def _parse_payload(payload: Any) -> dict[str, Any]:
         raise ValueError("no_cache must be a boolean")
     if not isinstance(include_log, bool):
         raise ValueError("include_log must be a boolean")
+    if invoice_document_id and not re.fullmatch(r"[A-Za-z0-9_-]+", invoice_document_id):
+        raise ValueError("invoice_document_id is invalid")
 
     return {
         "batch_id": batch_id,
         "folder_name": folder_name,
         "archive_date": archive_date,
         "invoice_path": invoice_path,
+        "invoice_document_id": invoice_document_id,
         "no_cache": no_cache,
         "include_log": include_log,
         "recipients": recipients or _default_recipients(),
@@ -533,14 +564,16 @@ def enqueue_run() -> tuple[Response, int]:
         return _json_error(400, str(exc))
 
     folder_name = payload.pop("folder_name")
+    invoice_document_id = payload.pop("invoice_document_id")
     if folder_name:
         explicit_invoice_path = payload.get("invoice_path")
         try:
             _batch_dir, _raw_dir, staged_invoice_path, staged_count = _stage_jawal_portal_docs(
                 payload["batch_id"],
                 folder_name,
+                invoice_document_id,
             )
-        except FileNotFoundError as exc:
+        except (FileNotFoundError, ValueError) as exc:
             return _json_error(400, str(exc))
         if staged_count == 0 and staged_invoice_path is None:
             return _json_error(400, "no source documents found in folder_name")

@@ -194,6 +194,10 @@ components:
           type: string
           description: Optional absolute path to an uploaded invoice `.xlsx`/`.xls` staged via `/upload`.
           example: "/home/clawdbot/.openclaw/workspace/aljeel/uploads/portal/abc123/invoice.xlsx"
+        invoice_document_id:
+          type: string
+          pattern: '^[A-Za-z0-9_-]+$'
+          description: Optional authoritative database document ID for selecting the invoice workbook from folder_name.
         no_cache:
           type: boolean
           default: true

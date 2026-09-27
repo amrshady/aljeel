@@ -866,6 +866,7 @@ def _run_pipeline_worker(batch_id, no_cache, invoice_path, log_path, lock_fd):
                 log("[API] >> STAGE 5: Splitting multi-employee rows into separate output file...")
                 output_path = f"/home/clawdbot/.openclaw/workspace/aljeel/batches/jawal-{batch_id}/output/Spreadsheet-{batch_id}-FILLED-v30.xlsx"
                 split_output = output_path.replace("-v30.xlsx", "-v30-SPLIT.xlsx")
+                review_output = output_path.replace("-v30.xlsx", "-v30-REVIEW.xlsx")
                 cmd5 = ["python3", "-u", str(SCRIPTS / "split_multi_emp.py"), output_path, split_output]
                 stage5_code = _run_logged_command(cmd5, log_handle, env=env_copy)
                 if stage5_code != 0:
@@ -882,6 +883,9 @@ def _run_pipeline_worker(batch_id, no_cache, invoice_path, log_path, lock_fd):
                 if os.path.exists(split_output):
                     _atomic_copy(split_output, dst_xlsx.replace("-v30.xlsx", "-v30-SPLIT.xlsx"))
                     log(f"[API] Copied {batch_id} SPLIT spreadsheet to public outputs.")
+                if os.path.exists(review_output):
+                    _atomic_copy(review_output, dst_xlsx.replace("-v30.xlsx", "-v30-REVIEW.xlsx"))
+                    log(f"[API] Copied {batch_id} REVIEW spreadsheet to public outputs.")
 
                 review_json = ROOT / "dashboard/public/data" / f"{batch_id.lower().replace('-', '')}-rows-v30.json"
                 if review_json.exists():
@@ -936,7 +940,7 @@ def status():
 @app.route('/files/<batch_id>', methods=['GET'])
 @app.route('/api/files/<batch_id>', methods=['GET'])
 def batch_files(batch_id):
-    """Report which output spreadsheets exist for a batch (full / split)."""
+    """Report which output spreadsheets exist for a batch."""
     batch_id = batch_id.strip().upper()
     if not re.match(r"^J26-\d+$", batch_id):
         return jsonify({"error": "invalid batch id"}), 400
@@ -946,6 +950,7 @@ def batch_files(batch_id):
     for key, name in (
         ("full", f"Spreadsheet-{batch_id}-FILLED-v30.xlsx"),
         ("split", f"Spreadsheet-{batch_id}-FILLED-v30-SPLIT.xlsx"),
+        ("review", f"Spreadsheet-{batch_id}-FILLED-v30-REVIEW.xlsx"),
     ):
         files[key] = {
             "name": name,
@@ -965,8 +970,10 @@ def download_output(batch_id, kind):
         name = f"Spreadsheet-{batch_id}-FILLED-v30.xlsx"
     elif kind == "split":
         name = f"Spreadsheet-{batch_id}-FILLED-v30-SPLIT.xlsx"
+    elif kind == "review":
+        name = f"Spreadsheet-{batch_id}-FILLED-v30-REVIEW.xlsx"
     else:
-        return jsonify({"error": "invalid kind, expected 'full' or 'split'"}), 400
+        return jsonify({"error": "invalid kind, expected 'full', 'split', or 'review'"}), 400
     file_path = ROOT / "batches" / f"jawal-{batch_id}" / "output" / name
     if not file_path.is_file():
         return jsonify({"error": "file not found"}), 404

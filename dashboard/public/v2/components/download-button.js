@@ -1,11 +1,8 @@
 // ============================================================================
-// components/download-button.js — DownloadButton (SPLIT only).
+// components/download-button.js — immutable run-artifact download controls.
 //
-// The single download surface in Portal v2. Serves GET /api/v2/runs/<id>/download
-// which streams the run's snapshotted *-FILLED-v30-SPLIT.xlsx. There is no /full
-// anywhere. The button is disabled until the run's `artifacts.split` manifest is
-// present (i.e. FINALIZING produced one); it shows the artifact name + size and
-// an "as of <ts>" line so the user knows which snapshot they're pulling.
+// Serves the run's snapshotted SPLIT and three-sheet REVIEW workbooks. Controls
+// stay disabled until the corresponding artifact is present in the manifest.
 //
 // Implemented as an <a download> so the browser fetches natively, carrying the
 // Cloudflare Access cookie and honoring Content-Disposition.
@@ -14,7 +11,7 @@
 // ============================================================================
 
 import { el, icon, absTime } from '../app.js';
-import { downloadUrl } from '../api.js';
+import { downloadUrl, reviewDownloadUrl } from '../api.js';
 
 function fmtBytes(n) {
   if (n == null || Number.isNaN(Number(n))) return '';
@@ -54,6 +51,41 @@ export function DownloadButton(runId) {
       meta.textContent = 'No split artifact yet — available once the run finalizes.';
     }
     asOfLine.textContent = asOf ? `as of ${absTime(asOf)}` : '';
+  }
+
+  return { node, update };
+}
+
+export function ReviewDownloadButton(runId) {
+  const btn = el('a', {
+    class: 'btn btn--secondary btn--download is-disabled',
+    role: 'button',
+    'aria-disabled': 'true',
+  }, [icon('file-spreadsheet'), 'Download Review Workbook (3-sheet)']);
+  const name = el('div', { class: 'body-s mono', text: '' });
+  const meta = el('div', { class: 'caption muted', text: 'Available once the run finalizes.' });
+  const node = el('div', { class: 'stack gap-2' }, [
+    btn,
+    el('div', { class: 'stack gap-1' }, [name, meta]),
+  ]);
+
+  function update(review) {
+    if (review && review.rel) {
+      btn.setAttribute('href', reviewDownloadUrl(runId));
+      btn.setAttribute('download', review.name || '');
+      btn.classList.remove('is-disabled');
+      btn.removeAttribute('aria-disabled');
+      name.textContent = review.name || review.rel;
+      meta.textContent = [fmtBytes(review.bytes), review.sha256 ? `sha256 ${String(review.sha256).slice(0, 12)}…` : '']
+        .filter(Boolean).join(' · ');
+    } else {
+      btn.removeAttribute('href');
+      btn.removeAttribute('download');
+      btn.classList.add('is-disabled');
+      btn.setAttribute('aria-disabled', 'true');
+      name.textContent = '';
+      meta.textContent = 'No review workbook yet — available once the run finalizes.';
+    }
   }
 
   return { node, update };

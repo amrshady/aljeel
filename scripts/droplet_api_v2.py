@@ -568,6 +568,7 @@ def _history_row(run: dict[str, Any]) -> dict[str, Any]:
         "hard_count": run.get("hard_count"),
         "has_report": bool(artifacts.get("report")),
         "has_split": bool(artifacts.get("split")),
+        "has_review": bool(artifacts.get("review")),
     }
 
 
@@ -599,6 +600,7 @@ def _run_payload(run: dict[str, Any]) -> dict[str, Any]:
         },
         "artifacts": {
             "split": artifacts.get("split"),
+            "review": artifacts.get("review"),
             "report": artifacts.get("report"),
             "summary": artifacts.get("summary"),
             "evidence_snapshot": artifacts.get("evidence_snapshot"),
@@ -843,6 +845,21 @@ def download_split(run_id: str) -> tuple[Response, int] | Response:
     if not path.is_relative_to(run_dir) or not path.is_file():
         return _json_error(404, "no_split_artifact")
     return send_file(path, as_attachment=True, download_name=split.get("name") or path.name)
+
+
+@bp.get("/runs/<run_id>/download/review")
+def download_review(run_id: str) -> tuple[Response, int] | Response:
+    run = run_store.get_run(run_id)
+    if not run:
+        return _json_error(404, "run_not_found")
+    review = _parse_artifacts(run).get("review")
+    if not review or not review.get("rel") or not run.get("run_dir"):
+        return _json_error(404, "no_review_artifact")
+    run_dir = Path(run["run_dir"]).resolve(strict=False)
+    path = (run_dir / review["rel"]).resolve(strict=False)
+    if not path.is_relative_to(run_dir) or not path.is_file():
+        return _json_error(404, "no_review_artifact")
+    return send_file(path, as_attachment=True, download_name=review.get("name") or path.name)
 
 
 @bp.get("/runs/<run_id>/evidence/tree")

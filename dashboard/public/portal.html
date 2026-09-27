@@ -369,6 +369,7 @@
             📥 Download Output (Excel)
           </a>
           <a id="btn-download-split" href="#" class="btn btn-success" download style="width:100%; margin-top:8px; display:none;">📥 Download Split Output</a>
+          <a id="btn-download-review" href="#" class="btn btn-primary" download style="width:100%; margin-top:8px; display:none;">Download Review Workbook (3-sheet)</a>
         </div>
       </div>
 
@@ -1434,8 +1435,10 @@
     // Show the split-output download button only when the SPLIT file exists for this batch.
     async function updateSplitDownloadButton(folderId) {
       const splitBtn = document.getElementById('btn-download-split');
-      if (!splitBtn) return;
+      const reviewBtn = document.getElementById('btn-download-review');
+      if (!splitBtn || !reviewBtn) return;
       splitBtn.style.display = 'none';
+      reviewBtn.style.display = 'none';
       try {
         const resp = await fetch(API_BASE + `/api/files/${encodeURIComponent(folderId)}`, { cache: 'no-store' });
         if (!resp.ok) return;
@@ -1446,8 +1449,14 @@
           splitBtn.setAttribute('download', name);
           splitBtn.style.display = 'inline-block';
         }
+        if (data && data.files && data.files.review && data.files.review.exists) {
+          const name = data.files.review.name;
+          reviewBtn.href = API_BASE + `/api/download/${encodeURIComponent(folderId)}/review`;
+          reviewBtn.setAttribute('download', name);
+          reviewBtn.style.display = 'inline-block';
+        }
       } catch (err) {
-        // API unreachable — leave the split button hidden.
+        // API unreachable — leave optional output buttons hidden.
       }
     }
 

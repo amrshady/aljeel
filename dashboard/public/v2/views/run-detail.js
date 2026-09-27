@@ -4,7 +4,7 @@
 // THE COMPLETION-VIA-POLL MODEL (no SSE anywhere):
 //   On mount we GET /api/v2/runs/<id> ONCE and render the correct screen
 //   immediately. If the state is already terminal (SUCCEEDED/FAILED/CANCELLED)
-//   we render "done" — with the SPLIT download wired straight from the store's
+//   we render "done" — with output downloads wired straight from the store's
 //   artifacts manifest — and DO NOT start polling. Otherwise we start the shared
 //   visibility-aware poller (~2s) which re-reads run-state, drives the StateChip
 //   + StageBar + RunTimeline, and stops the instant the state goes terminal.
@@ -20,7 +20,7 @@
 // Tabs (Phase 8: FLIP collapsing-columns strip — the active tab expands, the
 // siblings collapse, animated by a tiny measure→transform FLIP helper at 200ms;
 // honors prefers-reduced-motion):
-//   • Output     — fully built: SPLIT-only DownloadButton.
+//   • Output     — SPLIT output plus the three-sheet finance review workbook.
 //   • Exceptions — fully built (Phase 7): "Risk & Inconsistencies" ReportView
 //                  (KPIs + category bars + severity table + regenerate + .xlsx/.md
 //                  downloads), lazy-loaded the first time the tab is opened.
@@ -39,7 +39,7 @@ import { poll } from '../poll.js';
 import { flip, crossFade } from '../motion.js';
 import { StageBar } from '../components/stage-bar.js';
 import { RunTimeline } from '../components/timeline.js';
-import { DownloadButton } from '../components/download-button.js';
+import { DownloadButton, ReviewDownloadButton } from '../components/download-button.js';
 import { EvidenceView } from './evidence.js';
 import { ReportView } from './report.js';
 import { LogsView } from './logs.js';
@@ -87,10 +87,12 @@ export async function mount(view, { batchId, runId }) {
 
   // ── Tab strip + panels ───────────────────────────────────────────────────────
   const download = DownloadButton(runId);
+  const reviewDownload = ReviewDownloadButton(runId);
   const outputPanel = el('div', { class: 'stack gap-3' }, [
     el('h3', { class: 'h5', text: 'Reconciliation output' }),
-    el('p', { class: 'body-s muted', text: 'The split-by-employee spreadsheet — the only download Portal v2 serves.' }),
+    el('p', { class: 'body-s muted', text: 'Download the split output or the three-sheet workbook prepared for finance review.' }),
     download.node,
+    reviewDownload.node,
   ]);
 
   // Latest run object — kept fresh by applyState so the LogTail can ask whether
@@ -189,7 +191,9 @@ export async function mount(view, { batchId, runId }) {
     }
 
     const split = run.artifacts && run.artifacts.split;
+    const review = run.artifacts && run.artifacts.review;
     download.update(split, split ? (run.ended_at || run.heartbeat_at) : null);
+    reviewDownload.update(review);
   }
 
   // ── Load once, then poll only if not already terminal ─────────────────────────

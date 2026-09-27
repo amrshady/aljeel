@@ -229,6 +229,7 @@ def test_artifact_path_traversal_fuzz_for_download_and_report(api_env):
     outside.write_bytes(b"outside")
     artifacts = {
         "split": {"name": "outside.xlsx", "rel": "../outside.xlsx", "bytes": outside.stat().st_size, "sha256": "x"},
+        "review": {"name": "outside.xlsx", "rel": "../outside.xlsx", "bytes": outside.stat().st_size, "sha256": "x"},
         "report": {"xlsx": "../outside.xlsx", "md": "../outside.md", "generated_at": run_store.utc_now()},
     }
     assert run_store.cas_transition(run["run_id"], "QUEUED", "PREFLIGHT", root=api_env["root"])
@@ -238,11 +239,62 @@ def test_artifact_path_traversal_fuzz_for_download_and_report(api_env):
     assert run_dir.exists()
 
     download = api_env["client"].get(f"/v2/runs/{run['run_id']}/download", headers=ACCESS_HEADERS)
+    review_download = api_env["client"].get(
+        f"/v2/runs/{run['run_id']}/download/review", headers=ACCESS_HEADERS
+    )
     report = api_env["client"].get(f"/v2/runs/{run['run_id']}/report", headers=ACCESS_HEADERS, query_string={"format": "xlsx"})
     invalid_report_format = api_env["client"].get(
         f"/v2/runs/{run['run_id']}/report", headers=ACCESS_HEADERS, query_string={"format": "../xlsx"}
     )
 
     assert download.status_code == 404
+    assert review_download.status_code == 404
     assert report.status_code == 404
     assert invalid_report_format.status_code == 400
+
+
+def test_review_workbook_download_uses_snapshotted_manifest_artifact(api_env):
+    run = run_store.insert_run("J26-1407", "manual", root=api_env["root"])
+    run_dir = Path(run["run_dir"])
+    review = run_dir / "Spreadsheet-J26-1407-FILLED-v30-REVIEW.xlsx"
+    review.write_bytes(b"three-sheet-review")
+    artifacts = {
+        "review": {
+            "name": review.name,
+            "rel": review.name,
+            "bytes": review.stat().st_size,
+            "sha256": "fixture",
+        }
+    }
+    assert run_store.cas_transition(run["run_id"], "QUEUED", "PREFLIGHT", root=api_env["root"])
+    assert run_store.cas_transition(run["run_id"], "PREFLIGHT", "RUNNING", root=api_env["root"])
+    assert run_store.cas_transition(run["run_id"], "RUNNING", "FINALIZING", root=api_env["root"])
+    assert run_store.finalize_run(run["run_id"], "SUCCEEDED", artifacts, root=api_env["root"])
+
+    response = api_env["client"].get(
+        f"/v2/runs/{run['run_id']}/download/review", headers=ACCESS_HEADERS
+    )
+
+    assert response.status_code == 200
+    assert response.data == b"three-sheet-review"
+    assert review.name in response.headers["Content-Disposition"]
+
+
+def test_legacy_batch_api_lists_and_downloads_review_workbook(api_env):
+    output_dir = api_env["root"] / "batches" / "jawal-J26-1407" / "output"
+    output_dir.mkdir(parents=True)
+    review = output_dir / "Spreadsheet-J26-1407-FILLED-v30-REVIEW.xlsx"
+    review.write_bytes(b"legacy-three-sheet-review")
+    client = droplet_api_v2.v1.app.test_client()
+
+    listing = client.get("/files/J26-1407")
+    response = client.get("/download/J26-1407/review")
+
+    assert listing.status_code == 200
+    assert listing.get_json()["files"]["review"] == {
+        "name": review.name,
+        "exists": True,
+    }
+    assert response.status_code == 200
+    assert response.data == b"legacy-three-sheet-review"
+    assert review.name in response.headers["Content-Disposition"]

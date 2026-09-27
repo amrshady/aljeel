@@ -67,12 +67,14 @@ export const triggerRun = (batchId, { no_cache = false, invoice_path = null, tri
 // → {run_id,batch_id,state,trigger,stage,stage_index,stage_total,
 //    created_at,started_at,ended_at,heartbeat_at,stalled,duration_sec,
 //    summary:{total_rows,flagged_rows,sar_at_risk,hard_count},
-//    artifacts:{split,report,summary,evidence_snapshot}, failure_reason}
+//    artifacts:{split,review,report,summary,evidence_snapshot}, failure_reason}
 export const getRun = (runId) => apiFetch(`/runs/${enc(runId)}`);
 
-// ── Download — SPLIT only ─────────────────────────────────────────────────────
+// ── Output downloads ──────────────────────────────────────────────────────────
 // GET /v2/runs/<run_id>/download → binary (Content-Disposition: attachment)
 export const downloadUrl = (runId) => `${API_BASE}/runs/${enc(runId)}/download`;
+// GET /v2/runs/<run_id>/download/review → three-sheet finance review workbook
+export const reviewDownloadUrl = (runId) => `${API_BASE}/runs/${enc(runId)}/download/review`;
 
 // ── Evidence ──────────────────────────────────────────────────────────────────
 // GET /v2/runs/<run_id>/evidence/tree → {run_id,evidence_root,folders:[...]}

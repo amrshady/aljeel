@@ -393,8 +393,10 @@ def _finalize_success(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     split_src = output_dir / f"Spreadsheet-{batch_id}-FILLED-v30-SPLIT.xlsx"
+    review_src = output_dir / f"Spreadsheet-{batch_id}-FILLED-v30-REVIEW.xlsx"
     summary_src = output_dir / "summary-v30.json"
     split_dst = _copy_artifact(split_src, run_dir)
+    review_dst = _copy_artifact(review_src, run_dir)
     summary_dst = _copy_artifact(summary_src, run_dir)
     evidence_snapshot = _write_evidence_tree(raw_dir, run_dir)
     report_manifest, report_kpis, hard_count = _build_and_snapshot_report(
@@ -413,6 +415,7 @@ def _finalize_success(
     total_rows = summary.get("total_rows") or summary.get("total_lines")
     artifacts = {
         "split": _artifact_entry(split_dst, run_dir),
+        "review": _artifact_entry(review_dst, run_dir),
         "report": report_manifest,
         "summary": {"rel": summary_dst.relative_to(run_dir).as_posix()},
         "evidence_snapshot": evidence_snapshot,

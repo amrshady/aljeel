@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { AuditService } from '../audit/audit.service';
@@ -160,11 +160,12 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
     });
 
     try {
-      const folderName = await this.stageInvoiceDocuments(invoice);
+      const { folderName, invoiceDocumentId } = await this.stageInvoiceDocuments(invoice);
       const payload = {
         archive_date: this.archiveDate(invoice),
         folder_name: folderName,
         batch_id: invoice.invoiceNumber,
+        ...(invoiceDocumentId ? { invoice_document_id: invoiceDocumentId } : {}),
       };
       const trigger = await this.enqueueRun(payload);
 
@@ -198,19 +199,46 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async stageInvoiceDocuments(invoice: InvoiceWithIntegration): Promise<string> {
+  private async stageInvoiceDocuments(
+    invoice: InvoiceWithIntegration,
+  ): Promise<{ folderName: string; invoiceDocumentId: string | null }> {
     const batchesRoot = resolve(process.env.JAWAL_BATCHES_ROOT ?? DEFAULT_BATCHES_ROOT);
     const batchDir = resolve(batchesRoot, `jawal-${invoice.invoiceNumber}`);
     if (batchDir !== batchesRoot && !batchDir.startsWith(batchesRoot + '/')) {
       throw new Error('Invalid Jawal batch path.');
     }
     const srcDir = join(batchDir, 'src');
-    await mkdir(srcDir, { recursive: true });
 
     const documents = invoice.documents.filter((doc) => doc.type !== 'ORACLE_UPLOAD');
     if (documents.length === 0) {
       throw new Error('Invoice has no source documents to stage for Jawal.');
     }
+    const excelDocuments = documents
+      .filter((doc) => /\.xlsx?$/i.test(doc.fileName))
+      .sort(
+        (a, b) =>
+          a.fileName.toLowerCase().localeCompare(b.fileName.toLowerCase()) ||
+          a.id.localeCompare(b.id),
+      );
+    const invoiceCandidates = excelDocuments.filter((doc) =>
+      basename(doc.fileName).toLowerCase().includes('inv'),
+    );
+    const genuineInvoiceCandidates = invoiceCandidates.filter((doc) => {
+      const name = basename(doc.fileName).toLowerCase();
+      return !name.includes('refund') && !name.includes('credit');
+    });
+    const typedInvoiceDocuments = excelDocuments.filter((doc) => doc.type === 'INVOICE');
+    const invoiceDocument =
+      (typedInvoiceDocuments.length === 1 ? typedInvoiceDocuments[0] : null) ??
+      genuineInvoiceCandidates[0] ??
+      invoiceCandidates[0] ??
+      excelDocuments[0] ??
+      null;
+
+    // Rebuild only this batch's source staging area so removed/replaced DB documents
+    // cannot survive a rerun. The batch's outputs and other directories are untouched.
+    await rm(srcDir, { recursive: true, force: true });
+    await mkdir(srcDir, { recursive: true });
 
     for (const doc of documents) {
       const hasPathSeparator = /[\\/]/.test(doc.fileName);
@@ -248,7 +276,7 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    return srcDir;
+    return { folderName: srcDir, invoiceDocumentId: invoiceDocument?.id ?? null };
   }
 
   private archiveDate(invoice: InvoiceWithIntegration): string {
@@ -263,6 +291,7 @@ export class JawalIntegrationService implements OnModuleInit, OnModuleDestroy {
     archive_date: string;
     folder_name: string;
     batch_id: string;
+    invoice_document_id?: string;
   }): Promise<TriggerResponse> {
     const key = process.env.JAWAL_TRIGGER_KEY;
     if (!key) {

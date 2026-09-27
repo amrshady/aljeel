@@ -4,6 +4,7 @@ import json
 import openpyxl
 from pathlib import Path
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from oracle_reviewer_workbook import build_reviewer_workbook
 
 def inject_fraud(batch_id):
     print(f"\n[inject_fraud] Starting AI Consistency Check injection for {batch_id}...")
@@ -117,6 +118,14 @@ def inject_fraud(batch_id):
 
     # Save
     wb.save(excel_path)
+    wb.close()
+    staged_invoice = root / "batches" / f"jawal-{batch_id}" / "invoice-source.xlsx"
+    if not staged_invoice.is_file():
+        staged_invoice = Path("/mnt/aljeel_ap_kb/current") / batch_id / "invoice-source.xlsx"
+    build_reviewer_workbook(
+        excel_path,
+        staged_invoice,
+    )
     print(f"✅ Successfully injected AI Consistency Check data and saved: {excel_path}")
     return True
 

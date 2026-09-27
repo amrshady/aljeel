@@ -7510,6 +7510,12 @@ def main():
         inline_refund_workbooks=inline_refund_workbooks,
     )
 
+    # Keep the Oracle import artifact unchanged: many downstream consumers use
+    # its active (first) sheet.  Build a separate source/output/refunds workbook
+    # for finance review; the fraud injector refreshes it after its later edits.
+    from oracle_reviewer_workbook import build_reviewer_workbook
+    build_reviewer_workbook(out_xlsx, invoice_source_xlsx)
+
     # ── stage 6: fraud detection ───────────────────────────────────────────
     evidence_identity_catches = run_evidence_identity_catches(
         cascade_rows, hybrid_rows, manpower, all_folders

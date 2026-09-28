@@ -207,7 +207,13 @@ export class SupplierReconciliationService {
     if (labels.has('invoice number') && (labels.has('unpaid amount') || labels.has('invoice amount'))) {
       return 'aljeel';
     }
-    if (labels.has('البيان') || (labels.has('مدين') && labels.has('تاريخ المعاملة'))) {
+    if (
+      labels.has('البيان') ||
+      (labels.has('مدين') && labels.has('تاريخ المعاملة')) ||
+      labels.has('رقم الفاتورة') ||
+      labels.has('رقم الفاورة') ||
+      (labels.has('المبلغ') && labels.has('التاريخ'))
+    ) {
       return 'supplier';
     }
     if (labels.has('doc.no') || labels.has('balance per books')) {
@@ -223,7 +229,10 @@ export class SupplierReconciliationService {
       if (
         labels.includes('invoice number') ||
         labels.includes('البيان') ||
-        labels.includes('مدين')
+        labels.includes('مدين') ||
+        labels.includes('رقم الفاتورة') ||
+        labels.includes('رقم الفاورة') ||
+        labels.includes('المبلغ')
       ) {
         return { index, cells };
       }
@@ -270,10 +279,11 @@ export class SupplierReconciliationService {
     const indexOf = (...names: string[]) =>
       header.cells.findIndex((cell) => names.includes(normalizeHeader(cell)));
 
-    const descriptionIdx = indexOf('البيان', 'description', 'invoice no', 'invoice number');
-    const amountIdx = indexOf('مدين', 'amount', 'debit');
-    const dateIdx = indexOf('تاريخ المعاملة', 'date');
-    const notesIdx = indexOf('ملاحظات', 'notes', 'remarks');
+    const descriptionIdx = indexOf('البيان', 'description', 'invoice no', 'invoice number', 'رقم الفاتورة');
+    const invoiceIdx = indexOf('رقم الفاورة');
+    const amountIdx = indexOf('مدين', 'amount', 'debit', 'المبلغ');
+    const dateIdx = indexOf('تاريخ المعاملة', 'date', 'التاريخ');
+    const notesIdx = indexOf('ملاحظات', 'notes', 'remarks', 'رقم po');
     const extractedIdx = header.cells.findIndex(
       (_cell, index) => index > Math.max(descriptionIdx, 0) && extractInvoiceNumber(rows[header.index + 1]?.[index]),
     );
@@ -281,6 +291,7 @@ export class SupplierReconciliationService {
     const lines: SupplierStatementLine[] = [];
     for (const row of rows.slice(header.index + 1)) {
       const invoiceNumber =
+        (invoiceIdx >= 0 ? extractInvoiceNumber(row[invoiceIdx]) : null) ??
         extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
         (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null);
       if (!invoiceNumber) continue;

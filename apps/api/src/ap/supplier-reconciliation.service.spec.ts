@@ -189,6 +189,72 @@ describe('SupplierReconciliationService', () => {
     expect(recon.some((row) => row[4] === 'PAID-1')).toBe(true);
   });
 
+  it('reconciles an S-series Oracle export with an Arabic unpaid-invoice sheet', async () => {
+    const aljeelBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      aljeelBook,
+      XLSX.utils.aoa_to_sheet([
+        [
+          'Invoice Number',
+          null,
+          null,
+          null,
+          'Invoice Date',
+          'Creation Date',
+          'Supplier or Party',
+          'Supplier Site',
+          'Unpaid Amount',
+          'Invoice Amount',
+        ],
+        ['S1 0010971', 'S1 0010971', null, null, '2026-04-02', null, 'شركة درة', 'Riyadh', 228.85, 228.85],
+        ['S1 0011957', null, null, null, '2026-07-22', null, 'شركة درة', 'Riyadh', 38939, 38939],
+      ]),
+      'Sheet2',
+    );
+    const supplierBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      supplierBook,
+      XLSX.utils.aoa_to_sheet([
+        ['الفواتير الغير مسددة - الجيل الطبية'],
+        ['المبلغ', 'التاريخ', 'رقم PO', 'رقم الفاتورة', 'رقم الفاورة'],
+        [228.85, '02-04-2026', 'ثامر قاسم', 'فاتورة مبيعات S1  0010971', 'S1 0010971'],
+        [100, '22-07-2026', null, 'فاتورة مبيعات S1  0010964', 'S1 0010964'],
+        [null, null, 'الاجمالى'],
+      ]),
+      'Sheet1',
+    );
+
+    const parsed = await service.parseInputs([
+      {
+        originalname: 'export.xlsx',
+        buffer: XLSX.write(aljeelBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+      },
+      {
+        originalname: 'supplier.xlsx',
+        buffer: XLSX.write(supplierBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+      },
+    ]);
+    expect(parsed.aljeel.map((line) => line.invoiceNumber)).toEqual(['S1 0010971', 'S1 0011957']);
+    expect(parsed.supplier.map((line) => line.invoiceNumber)).toEqual(['S1 0010971', 'S1 0010964']);
+
+    const { output } = await service.reconcileWorkbooks([
+      {
+        originalname: 'export.xlsx',
+        buffer: XLSX.write(aljeelBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+      },
+      {
+        originalname: 'supplier.xlsx',
+        buffer: XLSX.write(supplierBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+      },
+    ]);
+    const match = sheetRows(output, 'Match');
+    const statuses = match.slice(1).map((row) => row[5]);
+    expect(statuses).toContain('Found');
+    expect(statuses).toContain('Not found');
+    expect(match.some((row) => row[0] === 'S1 0010971' && row[5] === 'Found')).toBe(true);
+    expect(match.some((row) => row[0] === 'S1 0010964' && row[5] === 'Not found')).toBe(true);
+  });
+
   it('rejects a workbook that only has the Aljeel export', async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

@@ -52,6 +52,12 @@ describe('extractInvoiceNumber', () => {
   it('ignores totals', () => {
     expect(extractInvoiceNumber('الإجمالي')).toBeNull();
     expect(extractInvoiceNumber('Total')).toBeNull();
+    expect(extractInvoiceNumber('الاجمالى')).toBeNull();
+  });
+
+  it('reads S-series invoice numbers from Oracle exports and Arabic voucher text', () => {
+    expect(extractInvoiceNumber('S1 0011957')).toBe('S1 0011957');
+    expect(extractInvoiceNumber('فاتورة مبيعات S1  0010964')).toBe('S1 0010964');
   });
 });
 

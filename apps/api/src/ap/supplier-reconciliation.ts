@@ -55,7 +55,8 @@ export interface SupplierReconResult {
 
 const MARKS = /[\u202d\u202c\u200e\u200f]/g;
 const SL_INVOICE = /SL\s*\/\s*\d+\s*\/\s*\d{6}\s*\/\s*\d+/i;
-const TOTAL_LABEL = /^(total|net to pay|الإجمالي|اجمالي)$/i;
+const SERIES_INVOICE = /S\d+\s+\d{4,}/i;
+const TOTAL_LABEL = /^(total|net to pay|الإجمالي|اجمالي|الاجمالى)$/i;
 
 export function cleanCell(value: unknown): string {
   return String(value ?? '')
@@ -82,6 +83,12 @@ export function extractInvoiceNumber(value: unknown): string | null {
 
   const sl = text.match(SL_INVOICE);
   if (sl) return sl[0].replace(/\s+/g, '').toUpperCase();
+
+  const series = text.match(SERIES_INVOICE);
+  if (series) {
+    const [code, number] = series[0].trim().split(/\s+/);
+    return `${code!.toUpperCase()} ${number}`;
+  }
 
   const beforeColon = text.split(':')[0]?.trim() ?? '';
   if (

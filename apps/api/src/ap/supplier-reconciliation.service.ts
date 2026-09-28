@@ -211,6 +211,12 @@ export class SupplierReconciliationService {
       labels.has('البيان') ||
       labels.has('invoice number') ||
       labels.has('invoice no');
+    const hasStatementSignal =
+      labels.has('document type') ||
+      labels.has('document date') ||
+      labels.has('net due date') ||
+      labels.has('document header text') ||
+      labels.has('currency');
     if (labels.has('invoice number') && (labels.has('unpaid amount') || labels.has('invoice amount'))) {
       return 'aljeel';
     }
@@ -220,7 +226,7 @@ export class SupplierReconciliationService {
       labels.has('رقم الفاتورة') ||
       labels.has('رقم الفاورة') ||
       (labels.has('المبلغ') && labels.has('التاريخ') && hasInvoiceLabel) ||
-      (labels.has('document') && labels.has('amount'))
+      (labels.has('document') && labels.has('amount') && hasStatementSignal)
     ) {
       return 'supplier';
     }
@@ -239,6 +245,12 @@ export class SupplierReconciliationService {
         labels.includes('رقم الفاورة') ||
         labels.includes('البيان') ||
         labels.includes('invoice number');
+      const hasStatementSignal =
+        labels.includes('document type') ||
+        labels.includes('document date') ||
+        labels.includes('net due date') ||
+        labels.includes('document header text') ||
+        labels.includes('currency');
       if (
         labels.includes('invoice number') ||
         labels.includes('البيان') ||
@@ -246,7 +258,7 @@ export class SupplierReconciliationService {
         labels.includes('رقم الفاتورة') ||
         labels.includes('رقم الفاورة') ||
         (labels.includes('المبلغ') && hasInvoiceLabel) ||
-        (labels.includes('document') && labels.includes('amount'))
+        (labels.includes('document') && labels.includes('amount') && hasStatementSignal)
       ) {
         return { index, cells };
       }
@@ -293,8 +305,8 @@ export class SupplierReconciliationService {
     const indexOf = (...names: string[]) =>
       header.cells.findIndex((cell) => names.includes(normalizeHeader(cell)));
 
-    const descriptionIdx = indexOf('البيان', 'description', 'invoice no', 'invoice number', 'رقم الفاتورة');
-    const invoiceIdx = indexOf('رقم الفاورة');
+    const descriptionIdx = indexOf('البيان', 'description');
+    const invoiceIdx = indexOf('رقم الفاورة', 'رقم الفاتورة', 'invoice no', 'invoice number');
     const documentIdx = indexOf('document');
     const amountIdx = indexOf('مدين', 'amount', 'debit', 'المبلغ');
     const dateIdx = indexOf('تاريخ المعاملة', 'date', 'التاريخ', 'document date');
@@ -306,9 +318,9 @@ export class SupplierReconciliationService {
     const lines: SupplierStatementLine[] = [];
     for (const row of rows.slice(header.index + 1)) {
       const invoiceNumber =
-        (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
         (invoiceIdx >= 0 ? invoiceKey(row[invoiceIdx]) : null) ??
         extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
+        (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
         (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null);
       if (!invoiceNumber) continue;
       if (isTotalLabel(row[descriptionIdx]) || isTotalLabel(row[amountIdx])) continue;

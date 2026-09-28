@@ -63,11 +63,19 @@ describe('extractInvoiceNumber', () => {
     expect(extractInvoiceNumber('PO S1 12345')).toBeNull();
   });
 
-  it('keeps debit-memo labels from a dedicated invoice column', () => {
+  it('keeps meaningful dedicated-column identifiers and rejects summary labels', () => {
     expect(invoiceKey(1012886924)).toBe('1012886924');
     expect(invoiceKey('1012873541-2')).toBe('1012873541-2');
     expect(invoiceKey('Close DN 2500173')).toBe('Close DN 2500173');
+    expect(invoiceKey('S03009B')).toBe('S03009B');
     expect(invoiceKey('Retroactive commission 2025')).toBe('Retroactive commission 2025');
+    for (const label of [
+      'Grand Total', 'Subtotal', 'Opening Balance', 'Closing Balance', 'Balance Due',
+      'Balance', 'Total EUR', 'Net to Pay', 'الرصيد', 'الإجمالي',
+      'الرصيد الافتتاحي', 'المستحق',
+    ]) {
+      expect(invoiceKey(label)).toBeNull();
+    }
   });
 });
 

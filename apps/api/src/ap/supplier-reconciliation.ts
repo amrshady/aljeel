@@ -56,7 +56,11 @@ export interface SupplierReconResult {
 const MARKS = /[\u202d\u202c\u200e\u200f]/g;
 const SL_INVOICE = /SL\s*\/\s*\d+\s*\/\s*\d{6}\s*\/\s*\d+/i;
 const SERIES_INVOICE = /(?<!\bPO\s)(?<![A-Z0-9])S\d+\s+\d{4,}(?![A-Z0-9])/i;
-const TOTAL_LABEL = /^(total|net to pay|الإجمالي|اجمالي|الاجمالى)$/i;
+const TOTAL_LABEL = /^(?:total(?:\s+\p{L}{2,})?|grand\s+total|sub\s*total|opening\s+balance|closing\s+balance|balance(?:\s+due)?|net\s+to\s+pay|الرصيد|رصيد|الرصيد\s+الافتتاحي|رصيد\s+افتتاحي|الرصيد\s+الختامي|رصيد\s+ختامي|الإجمالي|الإجمالى|اجمالي|الاجمالى|المستحق|مستحق)$/iu;
+
+function isSummaryLabel(text: string): boolean {
+  return !/\d/.test(text) && TOTAL_LABEL.test(text);
+}
 
 export function cleanCell(value: unknown): string {
   return String(value ?? '')
@@ -79,7 +83,7 @@ export function isAljeelPaid(unpaidAmount: number): boolean {
 
 export function extractInvoiceNumber(value: unknown): string | null {
   const text = cleanCell(value);
-  if (!text || TOTAL_LABEL.test(text)) return null;
+  if (!text || isSummaryLabel(text)) return null;
 
   const sl = text.match(SL_INVOICE);
   if (sl) return sl[0].replace(/\s+/g, '').toUpperCase();
@@ -107,12 +111,12 @@ export function invoiceKey(value: unknown): string | null {
   const extracted = extractInvoiceNumber(value);
   if (extracted) return extracted;
   const text = cleanCell(value);
-  if (!text || TOTAL_LABEL.test(text)) return null;
+  if (!text || isSummaryLabel(text)) return null;
   return text;
 }
 
 export function isTotalLabel(value: unknown): boolean {
-  return TOTAL_LABEL.test(cleanCell(value));
+  return isSummaryLabel(cleanCell(value));
 }
 
 export function reconcileSupplierStatement(

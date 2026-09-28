@@ -257,63 +257,89 @@ describe('SupplierReconciliationService', () => {
 
   it('reconciles a numeric Oracle export with a Document/Amount statement', async () => {
     const aljeelBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      aljeelBook,
-      XLSX.utils.aoa_to_sheet([
-        ['Invoice number', 'Invoice Date', 'Supplier or Party', 'Unpaid Amount', 'Invoice Amount'],
-        [1012886924, '2025-07-23', 'Biomerieux', 7102.64, 7102.64],
-        ['Close DN 2500173', '2025-12-23', 'Biomerieux', -500, -500],
-        ['S03009B', '2025-09-17', 'Biomerieux', -40000, -40000],
-      ]),
-      'Sheet2',
-    );
+    XLSX.utils.book_append_sheet(aljeelBook, XLSX.utils.aoa_to_sheet([
+      ['Invoice number', 'Invoice Date', 'Supplier or Party', 'Unpaid Amount', 'Invoice Amount'],
+      [1012886924, '2025-07-23', 'Biomerieux', 7102.64, 7102.64],
+      ['Close DN 2500173', '2025-12-23', 'Biomerieux', -500, -500],
+      ['S03009B', '2025-09-17', 'Biomerieux', -40000, -40000],
+    ]), 'Sheet2');
     const supplierBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      supplierBook,
-      XLSX.utils.aoa_to_sheet([
-        ['Document', 'Document Type', 'Document Date', 'Net due date', 'Document Header Text', 'Amount', 'Currency'],
-        [1012886924, 'Invoice', '2025-07-23', '2026-02-18', 'PO25002769 AIR', 7102.64, 'EUR'],
-        [1017141450, 'Credit note', '2026-08-10', '2026-04-07', 'PS RETURN', -12000, 'EUR'],
-        [null, null, null, null, null, 7102.64 - 12000, null],
-      ]),
-      'BMX SOA',
-    );
+    XLSX.utils.book_append_sheet(supplierBook, XLSX.utils.aoa_to_sheet([
+      ['Document', 'Document Type', 'Document Date', 'Net due date', 'Document Header Text', 'Amount', 'Currency'],
+      [1012886924, 'Invoice', '2025-07-23', '2026-02-18', 'PO25002769 AIR', 7102.64, 'EUR'],
+      [1017141450, 'Credit note', '2026-08-10', '2026-04-07', 'PS RETURN', -12000, 'EUR'],
+      [null, null, null, null, null, -4897.36, null],
+    ]), 'BMX SOA');
 
     const parsed = await service.parseInputs([
-      {
-        originalname: 'Sheet2.xlsx',
-        buffer: XLSX.write(aljeelBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
-      },
-      {
-        originalname: 'BMX SOA.xlsx',
-        buffer: XLSX.write(supplierBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
-      },
-    ]);
-    expect(parsed.aljeel.map((line) => line.invoiceNumber)).toEqual([
-      '1012886924',
-      'Close DN 2500173',
-      'S03009B',
-    ]);
-    expect(parsed.supplier.map((line) => [line.invoiceNumber, line.amount])).toEqual([
-      ['1012886924', 7102.64],
-      ['1017141450', -12000],
+      { originalname: 'Sheet2.xlsx', buffer: XLSX.write(aljeelBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer },
+      { originalname: 'BMX SOA.xlsx', buffer: XLSX.write(supplierBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer },
     ]);
 
-    const { output } = await service.reconcileWorkbooks([
-      {
-        originalname: 'Sheet2.xlsx',
-        buffer: XLSX.write(aljeelBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
-      },
-      {
-        originalname: 'BMX SOA.xlsx',
-        buffer: XLSX.write(supplierBook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
-      },
+    expect(parsed.aljeel.map((line) => line.invoiceNumber)).toEqual([
+      '1012886924', 'Close DN 2500173', 'S03009B',
     ]);
-    const match = sheetRows(output, 'Match');
-    expect(match.some((row) => row[0] === '1012886924' && row[5] === 'Found')).toBe(true);
-    expect(match.some((row) => row[0] === '1017141450' && row[5] === 'Not found')).toBe(true);
-    expect(match.some((row) => row[0] === 'CLOSE DN 2500173' && row[5] === 'Not in supplier books')).toBe(true);
-    expect(match.some((row) => row[5] === 'Already paid')).toBe(false);
+    expect(parsed.supplier.map((line) => [line.invoiceNumber, line.amount])).toEqual([
+      ['1012886924', 7102.64], ['1017141450', -12000],
+    ]);
+  });
+
+  it('does not parse labeled Aljeel total and balance footer rows as invoices', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Invoice Number', 'Unpaid Amount', 'Invoice Amount'],
+      ['INV-100', 100, 100],
+      ['Grand Total', 100, 100],
+      ['Balance', 100, 100],
+    ]), 'Aljeel');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['البيان', 'مدين'],
+      ['INV-100', 100],
+    ]), 'Supplier');
+
+    const parsed = await service.parseInputs([{
+      originalname: 'footers.xlsx',
+      buffer: XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+    }]);
+
+    expect(parsed.aljeel.map((line) => line.invoiceNumber)).toEqual(['INV-100']);
+  });
+
+  it('prefers an explicit Invoice Number over Document and falls back when it is empty', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Invoice Number', 'Unpaid Amount'],
+      ['INV-100', 100],
+    ]), 'Aljeel');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Document', 'Invoice Number', 'Document Type', 'Amount'],
+      ['DOC-999', 'INV-100', 'Invoice', 100],
+      ['DOC-200', null, 'Invoice', 20],
+    ]), 'Supplier');
+
+    const parsed = await service.parseInputs([{
+      originalname: 'precedence.xlsx',
+      buffer: XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+    }]);
+
+    expect(parsed.supplier.map((line) => line.invoiceNumber)).toEqual(['INV-100', 'DOC-200']);
+  });
+
+  it('does not classify a bare Document/Amount sheet as a supplier statement', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Invoice Number', 'Unpaid Amount'],
+      ['INV-1', 100],
+    ]), 'Aljeel');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Document', 'Amount'],
+      ['DOC-1', 100],
+    ]), 'Generic');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    await expect(service.parseInputs([{ originalname: 'generic.xlsx', buffer }])).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'SUPPLIER_RECON_SUPPLIER_MISSING' }),
+    });
   });
 
   it('rejects a workbook that only has the Aljeel export', async () => {

@@ -204,6 +204,12 @@ export class SupplierReconciliationService {
     const header = this.findHeaderRow(rows);
     if (!header) return 'other';
     const labels = new Set(header.cells.map(normalizeHeader).filter(Boolean));
+    const hasInvoiceLabel =
+      labels.has('رقم الفاتورة') ||
+      labels.has('رقم الفاورة') ||
+      labels.has('البيان') ||
+      labels.has('invoice number') ||
+      labels.has('invoice no');
     if (labels.has('invoice number') && (labels.has('unpaid amount') || labels.has('invoice amount'))) {
       return 'aljeel';
     }
@@ -212,7 +218,7 @@ export class SupplierReconciliationService {
       (labels.has('مدين') && labels.has('تاريخ المعاملة')) ||
       labels.has('رقم الفاتورة') ||
       labels.has('رقم الفاورة') ||
-      (labels.has('المبلغ') && labels.has('التاريخ'))
+      (labels.has('المبلغ') && labels.has('التاريخ') && hasInvoiceLabel)
     ) {
       return 'supplier';
     }
@@ -226,13 +232,18 @@ export class SupplierReconciliationService {
     for (let index = 0; index < Math.min(rows.length, 40); index += 1) {
       const cells = rows[index] ?? [];
       const labels = cells.map(normalizeHeader);
+      const hasInvoiceLabel =
+        labels.includes('رقم الفاتورة') ||
+        labels.includes('رقم الفاورة') ||
+        labels.includes('البيان') ||
+        labels.includes('invoice number');
       if (
         labels.includes('invoice number') ||
         labels.includes('البيان') ||
         labels.includes('مدين') ||
         labels.includes('رقم الفاتورة') ||
         labels.includes('رقم الفاورة') ||
-        labels.includes('المبلغ')
+        (labels.includes('المبلغ') && hasInvoiceLabel)
       ) {
         return { index, cells };
       }

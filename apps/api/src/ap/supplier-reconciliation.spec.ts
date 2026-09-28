@@ -56,8 +56,10 @@ describe('extractInvoiceNumber', () => {
   });
 
   it('reads S-series invoice numbers from Oracle exports and Arabic voucher text', () => {
+    expect(extractInvoiceNumber('S1 0010971')).toBe('S1 0010971');
     expect(extractInvoiceNumber('S1 0011957')).toBe('S1 0011957');
     expect(extractInvoiceNumber('فاتورة مبيعات S1  0010964')).toBe('S1 0010964');
+    expect(extractInvoiceNumber('PO S1 12345')).toBeNull();
   });
 });
 

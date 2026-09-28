@@ -272,6 +272,61 @@ describe('SupplierReconciliationService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('does not classify amount-and-date columns without an invoice column as supplier data', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Invoice Number', 'Unpaid Amount'],
+        ['INV-1', 100],
+      ]),
+      'Aljeel',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['المبلغ', 'التاريخ'],
+        [100, '2026-01-01'],
+      ]),
+      'Summary',
+    );
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    await expect(
+      service.parseInputs([{ originalname: 'summary.xlsx', buffer }]),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'SUPPLIER_RECON_SUPPLIER_MISSING' }),
+    });
+  });
+
+  it('skips an amount-only pre-header row when finding the supplier header', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Invoice Number', 'Unpaid Amount'],
+        ['INV-1', 100],
+      ]),
+      'Aljeel',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['المبلغ'],
+        ['البيان', 'مدين'],
+        ['INV-1', 100],
+      ]),
+      'Supplier',
+    );
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    const parsed = await service.parseInputs([{ originalname: 'ledgers.xlsx', buffer }]);
+
+    expect(parsed.supplier).toEqual([
+      expect.objectContaining({ invoiceNumber: 'INV-1', amount: 100 }),
+    ]);
+  });
+
   it('rejects a workbook with too many rows using a controlled error code', async () => {
     const workbook = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([['Invoice Number', 'Unpaid Amount']]);

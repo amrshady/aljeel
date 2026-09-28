@@ -55,7 +55,7 @@ export interface SupplierReconResult {
 
 const MARKS = /[\u202d\u202c\u200e\u200f]/g;
 const SL_INVOICE = /SL\s*\/\s*\d+\s*\/\s*\d{6}\s*\/\s*\d+/i;
-const SERIES_INVOICE = /S\d+\s+\d{4,}/i;
+const SERIES_INVOICE = /(?<!\bPO\s)(?<![A-Z0-9])S\d+\s+\d{4,}(?![A-Z0-9])/i;
 const TOTAL_LABEL = /^(total|net to pay|الإجمالي|اجمالي|الاجمالى)$/i;
 
 export function cleanCell(value: unknown): string {

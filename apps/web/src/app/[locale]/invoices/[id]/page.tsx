@@ -37,7 +37,8 @@ import {
 } from '@/lib/invoices-api';
 import { Link } from '@/i18n/routing';
 
-const AP_ROLES = new Set<UserRole>(['AP_CLERK', 'AP_APPROVER']);
+const INTERNAL_AP_ROLES = new Set<UserRole>(['AP_STAFF', 'AP_CLERK', 'AP_APPROVER']);
+const REVIEW_ROLES = new Set<UserRole>(['AP_CLERK', 'AP_APPROVER']);
 
 function InvoiceDetailContent() {
   const t = useTranslations('invoiceDetail');
@@ -47,7 +48,8 @@ function InvoiceDetailContent() {
   const fileSearch = searchParams.get('q')?.trim() ?? '';
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const isApUser = !!(user && AP_ROLES.has(user.role));
+  const isInternalApUser = !!(user && INTERNAL_AP_ROLES.has(user.role));
+  const isReviewUser = !!(user && REVIEW_ROLES.has(user.role));
   const [submitting, setSubmitting] = useState(false);
   const [savingRegion, setSavingRegion] = useState(false);
   const [savingFolderName, setSavingFolderName] = useState(false);
@@ -62,8 +64,8 @@ function InvoiceDetailContent() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
-    queryFn: () => (isApUser ? getApInvoice(params.id) : getInvoice(params.id)),
+    queryKey: ['invoices', params.id, isReviewUser ? 'ap' : 'general'],
+    queryFn: () => (isReviewUser ? getApInvoice(params.id) : getInvoice(params.id)),
     enabled: !!user,
     // Large submissions return while server-side evidence validation continues.
     refetchInterval: (query) => (query.state.data?.status === 'SUBMITTED' ? 3_000 : false),
@@ -76,10 +78,10 @@ function InvoiceDetailContent() {
       apiFetch('/suppliers/me', {
         schema: z.union([SupplierProfileSchema, z.null()]),
       }),
-    enabled: !!user?.supplierId && !isApUser,
+    enabled: !!user?.supplierId && !isInternalApUser,
   });
   const apErpIntegration =
-    isApUser && invoice && 'erpIntegration' in invoice ? invoice.erpIntegration : null;
+    isReviewUser && invoice && 'erpIntegration' in invoice ? invoice.erpIntegration : null;
   const isJawalSupplier = apErpIntegration
     ? apErpIntegration === 'JAWAL'
     : supplier?.erpIntegration === 'JAWAL';
@@ -160,7 +162,7 @@ function InvoiceDetailContent() {
       setError(formatInvoiceError(err, tForm, t('submitError')));
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
       await queryClient.refetchQueries({
-        queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
+        queryKey: ['invoices', params.id, isReviewUser ? 'ap' : 'general'],
         exact: true,
       });
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -192,13 +194,13 @@ function InvoiceDetailContent() {
       }
       const submittedInvoice = await submitInvoice(invoice.id);
       queryClient.setQueryData(
-        ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
+        ['invoices', params.id, isReviewUser ? 'ap' : 'general'],
         (current: typeof invoice | undefined) =>
           current ? { ...current, ...submittedInvoice } : current,
       );
       await queryClient.invalidateQueries({ queryKey: ['invoices'] });
       await queryClient.refetchQueries({
-        queryKey: ['invoices', params.id, isApUser ? 'ap' : 'supplier'],
+        queryKey: ['invoices', params.id, isReviewUser ? 'ap' : 'general'],
         exact: true,
       });
     } catch (err) {
@@ -221,10 +223,10 @@ function InvoiceDetailContent() {
       <AppShell>
         <p className="text-destructive">{t('notFound')}</p>
         <Link
-          href={isApUser ? '/ap/review' : '/dashboard'}
+          href={isReviewUser ? '/ap/review' : '/dashboard'}
           className="mt-4 inline-block text-primary underline"
         >
-          {isApUser ? t('backToReview') : t('back')}
+          {isReviewUser ? t('backToReview') : t('back')}
         </Link>
       </AppShell>
     );
@@ -232,12 +234,13 @@ function InvoiceDetailContent() {
 
   const canSubmit =
     (invoice.status === 'DRAFT' || String(invoice.status) === 'CHANGES_REQUESTED') &&
-    (!isApUser || user?.role === 'AP_CLERK');
-  const canUploadDocs = isApUser || !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
-  const canRenameDocs = isApUser || (canSubmit && isJawalSupplier);
-  const canEditFolderName = isApUser;
+    (!isReviewUser || user?.role === 'AP_CLERK');
+  const canUploadDocs =
+    isInternalApUser || !['APPROVED', 'SCHEDULED', 'PAID'].includes(invoice.status);
+  const canRenameDocs = isInternalApUser || (canSubmit && isJawalSupplier);
+  const canEditFolderName = isReviewUser;
   const supplierName = 'supplierName' in invoice ? invoice.supplierName : undefined;
-  const apInvoice = isApUser ? (invoice as ApInvoiceDetail) : null;
+  const apInvoice = isReviewUser ? (invoice as ApInvoiceDetail) : null;
 
   return (
     <AppShell>
@@ -245,11 +248,15 @@ function InvoiceDetailContent() {
         <div>
           <Link
             href={
-              isApUser ? (user?.role === 'AP_CLERK' ? '/dashboard' : '/ap/review') : '/dashboard'
+              isReviewUser
+                ? user?.role === 'AP_CLERK'
+                  ? '/dashboard'
+                  : '/ap/review'
+                : '/dashboard'
             }
             className="text-sm text-primary underline"
           >
-            {isApUser ? (user?.role === 'AP_CLERK' ? t('back') : t('backToReview')) : t('back')}
+            {isReviewUser ? (user?.role === 'AP_CLERK' ? t('back') : t('backToReview')) : t('back')}
           </Link>
           {canEditFolderName ? (
             editingFolderName ? (
@@ -384,7 +391,7 @@ function InvoiceDetailContent() {
         </div>
       )}
 
-      {isApUser && (
+      {isReviewUser && (
         <div className="mt-6 space-y-4">
           <ApReviewActions invoiceId={invoice.id} status={invoice.status} />
           {apInvoice && (
@@ -397,7 +404,7 @@ function InvoiceDetailContent() {
         <h2 className="text-lg font-semibold">{t('documentsTitle')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {canRenameDocs
-            ? isApUser
+            ? isReviewUser
               ? t('documentsApEditHint')
               : t('documentsRenameHint')
             : invoice.status === 'DRAFT'

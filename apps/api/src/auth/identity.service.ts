@@ -9,10 +9,7 @@ interface CachedIdentity {
 }
 
 const IDENTITY_CACHE_MS = 60 * 1000;
-const AP_STAFF_ROLES = new Set<UserRole>([
-  'AP_CLERK',
-  'AP_APPROVER',
-]);
+const AP_STAFF_ROLES = new Set<UserRole>(['AP_STAFF', 'AP_CLERK', 'AP_APPROVER']);
 
 @Injectable()
 export class IdentityService {
@@ -67,7 +64,10 @@ export class IdentityService {
         throw new ForbiddenException({ code: 'USER_INACTIVE', message: 'User is inactive.' });
       }
       if (!AP_STAFF_ROLES.has(appUser.role)) {
-        throw new ForbiddenException({ code: 'APP_USER_ROLE_INVALID', message: 'Staff user role is not allowed.' });
+        throw new ForbiddenException({
+          code: 'APP_USER_ROLE_INVALID',
+          message: 'Staff user role is not allowed.',
+        });
       }
       return this.remember(normalizedEmail, {
         sub: appUser.id,

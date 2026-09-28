@@ -12,6 +12,7 @@ export const SUPPLIER_SCOPED_KEY = 'supplierScoped';
 export const SupplierScoped = () => SetMetadata(SUPPLIER_SCOPED_KEY, true);
 
 const INTERNAL_ROLES = new Set([
+  'AP_STAFF',
   'AP_CLERK',
   'AP_APPROVER',
   'PROCUREMENT',
@@ -54,10 +55,12 @@ export class TenantGuard implements CanActivate {
       throw new ForbiddenException({ code: 'NO_TENANT', message: 'Supplier scope required.' });
     }
 
-  const requestedSupplierId =
-      request.params.supplierId ?? request.query.supplierId;
+    const requestedSupplierId = request.params.supplierId ?? request.query.supplierId;
     if (requestedSupplierId && requestedSupplierId !== user.supplierId) {
-      throw new ForbiddenException({ code: 'TENANT_MISMATCH', message: 'Cross-tenant access denied.' });
+      throw new ForbiddenException({
+        code: 'TENANT_MISMATCH',
+        message: 'Cross-tenant access denied.',
+      });
     }
 
     return true;

@@ -13,13 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiConsumes,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MAX_DOCUMENT_SIZE_BYTES, resolveDocumentMimeType } from '@aljeel/shared-types';
 import { DocumentsService } from './documents.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -44,7 +38,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post('invoices/:id/documents/upload-url')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Get a presigned URL for direct upload to KB storage (Spaces/MinIO)' })
   createUploadUrl(
     @CurrentUser() user: AuthUser,
@@ -55,7 +49,7 @@ export class DocumentsController {
   }
 
   @Post('invoices/:id/documents/complete')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Register a document after KB storage upload completes' })
   completeUpload(
     @CurrentUser() user: AuthUser,
@@ -66,7 +60,7 @@ export class DocumentsController {
   }
 
   @Post('invoices/:id/documents')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Upload a document via multipart (local dev fallback only)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -82,9 +76,7 @@ export class DocumentsController {
       },
     },
   })
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: MAX_DOCUMENT_SIZE_BYTES } }),
-  )
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_DOCUMENT_SIZE_BYTES } }))
   upload(
     @CurrentUser() user: AuthUser,
     @Param('id') invoiceId: string,
@@ -95,20 +87,16 @@ export class DocumentsController {
   }
 
   @Get('invoices/:id/documents/archive')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({
-    summary:
-      'Download all invoice documents as a zip (entry paths preserve folder hierarchy)',
+    summary: 'Download all invoice documents as a zip (entry paths preserve folder hierarchy)',
   })
   async archive(
     @CurrentUser() user: AuthUser,
     @Param('id') invoiceId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { buffer, fileName } = await this.documentsService.createArchive(
-      user,
-      invoiceId,
-    );
+    const { buffer, fileName } = await this.documentsService.createArchive(user, invoiceId);
     res.set({
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
@@ -121,14 +109,14 @@ export class DocumentsController {
   }
 
   @Get('invoices/:id/documents')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'List documents attached to an invoice' })
   list(@CurrentUser() user: AuthUser, @Param('id') invoiceId: string) {
     return this.documentsService.list(user, invoiceId);
   }
 
   @Get('documents/:id/download')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({
     summary: 'Download a document (streams from KB storage or local disk)',
   })
@@ -136,10 +124,7 @@ export class DocumentsController {
     @CurrentUser() user: AuthUser,
     @Param('id') documentId: string,
   ): Promise<StreamableFile> {
-    const { document, stream } = await this.documentsService.getForDownload(
-      user,
-      documentId,
-    );
+    const { document, stream } = await this.documentsService.getForDownload(user, documentId);
     const fileName = document.fileName.split(/[\\/]/).pop() || document.fileName;
     const mimeType = resolveDocumentMimeType(document.fileName, document.mimeType);
     return new StreamableFile(stream, {
@@ -150,7 +135,7 @@ export class DocumentsController {
   }
 
   @Get('documents/:id/content')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Preview URL or inline stream (never forces download)' })
   async content(
     @CurrentUser() user: AuthUser,
@@ -177,15 +162,13 @@ export class DocumentsController {
     res.set({
       'Content-Type': mimeType,
       'Content-Disposition': `inline; filename="${encodeURIComponent(document.fileName)}"`,
-      ...(document.sizeBytes != null
-        ? { 'Content-Length': String(document.sizeBytes) }
-        : {}),
+      ...(document.sizeBytes != null ? { 'Content-Length': String(document.sizeBytes) } : {}),
     });
     stream.pipe(res);
   }
 
   @Get('documents/:id/email')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({
     summary: 'Parse a stored .msg/.eml document into a renderable email preview',
   })
@@ -194,7 +177,7 @@ export class DocumentsController {
   }
 
   @Get('documents/:id/email/attachments/:index')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Download a file attached to a stored email' })
   async emailAttachment(
     @CurrentUser() user: AuthUser,
@@ -215,21 +198,16 @@ export class DocumentsController {
   }
 
   @Patch('documents/:id')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({
-    summary:
-      'Rename a document (Jawal pre-submit for suppliers; any status for AP)',
+    summary: 'Rename a document (Jawal pre-submit for suppliers; any status for AP)',
   })
-  rename(
-    @CurrentUser() user: AuthUser,
-    @Param('id') documentId: string,
-    @Body() body: unknown,
-  ) {
+  rename(@CurrentUser() user: AuthUser, @Param('id') documentId: string, @Body() body: unknown) {
     return this.documentsService.rename(user, documentId, body);
   }
 
   @Delete('documents/:id')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Delete a document from an editable invoice' })
   remove(@CurrentUser() user: AuthUser, @Param('id') documentId: string) {
     return this.documentsService.remove(user, documentId);

@@ -18,7 +18,7 @@ import { PtMappingsService, type PtUploadedFile } from './pt-mappings.service';
 
 @ApiTags('P&T PROJECTS mappings')
 @ApiBearerAuth()
-@Roles('AP_CLERK')
+@Roles('AP_CLERK', 'AP_APPROVER')
 @Controller('ap/pt-mappings')
 export class PtMappingsController {
   constructor(private readonly service: PtMappingsService) {}

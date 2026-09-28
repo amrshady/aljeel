@@ -63,7 +63,7 @@ export class ApController {
   }
 
   @Post('solventum/chargeback')
-  @Roles('AP_CLERK')
+  @Roles('AP_STAFF', 'AP_CLERK')
   @UseInterceptors(SolventumUploadInterceptor)
   @ApiOperation({
     summary:
@@ -88,7 +88,7 @@ export class ApController {
 
   @Post('solventum/chargeback/jobs')
   @HttpCode(202)
-  @Roles('AP_CLERK')
+  @Roles('AP_STAFF', 'AP_CLERK')
   @UseInterceptors(SolventumUploadInterceptor)
   @ApiOperation({ summary: 'Queue a Solventum chargeback workbook for background generation' })
   createSolventumChargebackJob(@UploadedFiles() files: UploadedFile[] | undefined) {
@@ -100,14 +100,14 @@ export class ApController {
   }
 
   @Get('solventum/chargeback/jobs/:jobId')
-  @Roles('AP_CLERK')
+  @Roles('AP_STAFF', 'AP_CLERK')
   @ApiOperation({ summary: 'Get Solventum chargeback generation status' })
   getSolventumChargebackJob(@Param('jobId') jobId: string) {
     return this.solventumJobs.get(jobId);
   }
 
   @Get('solventum/chargeback/jobs/:jobId/result')
-  @Roles('AP_CLERK')
+  @Roles('AP_STAFF', 'AP_CLERK')
   @ApiOperation({ summary: 'Download a completed Solventum chargeback workbook' })
   async getSolventumChargebackResult(@Param('jobId') jobId: string, @Res() response: Response) {
     const output = await this.solventumJobs.result(jobId);
@@ -120,7 +120,7 @@ export class ApController {
   }
 
   @Post('supplier-reconciliation')
-  @Roles('AP_CLERK')
+  @Roles('AP_STAFF', 'AP_CLERK')
   @UseInterceptors(FilesInterceptor('files', 2, { limits: { fileSize: 10 * 1024 * 1024 } }))
   @ApiOperation({
     summary:
@@ -130,9 +130,7 @@ export class ApController {
     @UploadedFiles() files: UploadedFile[] | undefined,
     @Res() response: Response,
   ) {
-    const ledgers = (files ?? []).filter((file) =>
-      /\.(xlsx?|pdf)$/i.test(file.originalname),
-    );
+    const ledgers = (files ?? []).filter((file) => /\.(xlsx?|pdf)$/i.test(file.originalname));
     if (ledgers.length < 1 || ledgers.length > 2 || ledgers.length !== files?.length) {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_FILES_INVALID',

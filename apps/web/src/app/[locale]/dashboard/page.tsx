@@ -236,7 +236,7 @@ function SupplierDashboard() {
 function DashboardContent() {
   const { user } = useAuth();
 
-  if (user?.role === 'AP_CLERK') {
+  if (user?.role === 'AP_STAFF' || user?.role === 'AP_CLERK') {
     return <ApClerkDashboard />;
   }
 

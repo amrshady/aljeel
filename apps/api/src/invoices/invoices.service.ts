@@ -43,8 +43,8 @@ const JAWAL_INVALID_BATCH_ID_MESSAGE =
 // object-storage reads. Keep that work outside the request/response lifetime.
 const ASYNC_SUBMIT_DOCUMENT_THRESHOLD = 100;
 
-function isApClerk(user: AuthUser): boolean {
-  return user.role === 'AP_CLERK';
+function isApIntakeUser(user: AuthUser): boolean {
+  return user.role === 'AP_STAFF' || user.role === 'AP_CLERK';
 }
 
 export function serializeInvoice(invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>) {
@@ -217,7 +217,7 @@ export class InvoicesService {
       after: {
         status: 'DRAFT',
         invoiceNumber: invoice.invoiceNumber,
-        ...(isApClerk(user) && erpIntegration ? { erpIntegration } : {}),
+        ...(isApIntakeUser(user) && erpIntegration ? { erpIntegration } : {}),
       },
     });
 
@@ -324,7 +324,7 @@ export class InvoicesService {
 
   async list(user: AuthUser, query: Record<string, string | undefined>) {
     const params: InvoiceListQuery = InvoiceListQuerySchema.parse(query);
-    const supplierId = isApClerk(user)
+    const supplierId = isApIntakeUser(user)
       ? (await this.resolveSupplierContext(user, params.erpIntegration)).supplierId
       : requireSupplierId(user);
 
@@ -910,7 +910,7 @@ export class InvoicesService {
     user: AuthUser,
     erpIntegration?: SupplierErpIntegration,
   ): Promise<{ supplierId: string; erpIntegration: SupplierErpIntegration | null }> {
-    if (isApClerk(user)) {
+    if (isApIntakeUser(user)) {
       if (!erpIntegration) {
         throw new BadRequestException({
           code: 'ERP_INTEGRATION_REQUIRED',
@@ -940,7 +940,7 @@ export class InvoicesService {
   }
 
   private async findInvoiceForUser(user: AuthUser, id: string) {
-    if (isApClerk(user)) {
+    if (isApIntakeUser(user)) {
       const invoice = await this.prisma.invoice.findFirst({
         where: { id },
         include: { lines: true },

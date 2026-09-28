@@ -64,9 +64,11 @@ function InvoiceUploadContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const isApClerk = user?.role === 'AP_CLERK';
-  const selectedIntegration = isApClerk ? parseIntegration(searchParams.get('integration')) : null;
-  const isSupplierRecon = isApClerk && searchParams.get('integration') === 'SUPPLIER';
+  const isApIntakeUser = user?.role === 'AP_STAFF' || user?.role === 'AP_CLERK';
+  const selectedIntegration = isApIntakeUser
+    ? parseIntegration(searchParams.get('integration'))
+    : null;
+  const isSupplierRecon = isApIntakeUser && searchParams.get('integration') === 'SUPPLIER';
 
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
@@ -86,10 +88,10 @@ function InvoiceUploadContent() {
       }),
     enabled: !!user?.supplierId,
   });
-  const isJawalSupplier = isApClerk
+  const isJawalSupplier = isApIntakeUser
     ? selectedIntegration === 'JAWAL'
     : supplier?.erpIntegration === 'JAWAL';
-  const isAsateelSupplier = isApClerk
+  const isAsateelSupplier = isApIntakeUser
     ? selectedIntegration === 'ASATEEL'
     : supplier?.erpIntegration === 'ASATEEL';
   const skipXlsxRequirement = isJawalSupplier || Boolean(user?.supplierId && !supplierFetched);
@@ -107,9 +109,9 @@ function InvoiceUploadContent() {
         archived: 'false',
         pageSize: '25',
         sort: '-createdAt',
-        ...(isApClerk && selectedIntegration ? { erpIntegration: selectedIntegration } : {}),
+        ...(isApIntakeUser && selectedIntegration ? { erpIntegration: selectedIntegration } : {}),
       }),
-    enabled: !isApClerk || !!selectedIntegration,
+    enabled: !isApIntakeUser || !!selectedIntegration,
   });
 
   if (isSupplierRecon) {
@@ -282,7 +284,7 @@ function InvoiceUploadContent() {
         const invoice = await createInvoiceDraft(
           folderName ?? undefined,
           isAsateelSupplier ? asateelRegion || undefined : undefined,
-          isApClerk ? (selectedIntegration ?? undefined) : undefined,
+          isApIntakeUser ? (selectedIntegration ?? undefined) : undefined,
         );
         invoiceId = invoice.id;
         setDraftInvoiceId(invoice.id);
@@ -340,7 +342,7 @@ function InvoiceUploadContent() {
       : t('uploadingFiles')
     : null;
 
-  if (isApClerk && !selectedIntegration && !isSupplierRecon) {
+  if (isApIntakeUser && !selectedIntegration && !isSupplierRecon) {
     return (
       <AppShell>
         <div className="max-w-3xl">
@@ -401,7 +403,7 @@ function InvoiceUploadContent() {
         </Link>
         <h1 className="mt-2 text-2xl font-bold">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isApClerk
+          {isApIntakeUser
             ? selectedIntegration === 'JAWAL'
               ? t('integrationJawal')
               : t('integrationAsateel')

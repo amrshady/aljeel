@@ -416,7 +416,7 @@ function Content() {
 export default function PtMappingsPage() {
   return (
     <RequireAuth>
-      <RequireRole roles={['AP_CLERK']}>
+      <RequireRole roles={['AP_CLERK', 'AP_APPROVER']}>
         <Content />
       </RequireRole>
     </RequireAuth>

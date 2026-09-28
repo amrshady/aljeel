@@ -87,4 +87,17 @@ describe('getSupplierScope', () => {
       }),
     ).toBeNull();
   });
+
+  it('returns null for limited AP staff users', () => {
+    expect(
+      getSupplierScope({
+        sub: 'u3',
+        id: 'u3',
+        email: 'staff@aljeel.com',
+        fullName: 'AP Staff',
+        role: 'AP_STAFF',
+        supplierId: null,
+      }),
+    ).toBeNull();
+  });
 });

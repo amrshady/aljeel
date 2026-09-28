@@ -23,6 +23,7 @@ enum SupplierErpIntegration {
 enum UserRole {
   SUPPLIER_ADMIN
   SUPPLIER_USER
+  AP_STAFF
   AP_CLERK
   AP_APPROVER
   PROCUREMENT

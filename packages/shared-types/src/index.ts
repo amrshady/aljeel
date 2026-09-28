@@ -6,6 +6,7 @@ export type SupplierStatus = z.infer<typeof SupplierStatusSchema>;
 export const UserRoleSchema = z.enum([
   'SUPPLIER_ADMIN',
   'SUPPLIER_USER',
+  'AP_STAFF',
   'AP_CLERK',
   'AP_APPROVER',
   'PROCUREMENT',

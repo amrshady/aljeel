@@ -5,10 +5,7 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import {
-  DocumentCompleteUploadSchema,
-  DocumentUploadUrlRequestSchema,
-} from '@aljeel/kb-upload';
+import { DocumentCompleteUploadSchema, DocumentUploadUrlRequestSchema } from '@aljeel/kb-upload';
 import {
   MAX_DOCUMENT_SIZE_BYTES,
   RenameDocumentSchema,
@@ -39,7 +36,7 @@ import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
 
 type DocumentRow = Prisma.DocumentGetPayload<Record<string, never>>;
 
-const AP_ROLES = new Set(['AP_CLERK', 'AP_APPROVER']);
+const AP_ROLES = new Set(['AP_STAFF', 'AP_CLERK', 'AP_APPROVER']);
 
 function canAccessAnyInvoice(user: AuthUser): boolean {
   return AP_ROLES.has(user.role);
@@ -117,11 +114,7 @@ export class DocumentsService {
     return this.kb.isEnabled();
   }
 
-  async createUploadUrl(
-    user: AuthUser,
-    invoiceId: string,
-    body: unknown,
-  ) {
+  async createUploadUrl(user: AuthUser, invoiceId: string, body: unknown) {
     if (!this.kb.isEnabled()) {
       throw new ServiceUnavailableException({
         code: 'KB_UPLOAD_NOT_CONFIGURED',
@@ -495,21 +488,14 @@ export class DocumentsService {
     return { document, format };
   }
 
-  private async readDocumentBuffer(
-    document: DocumentRow,
-    maxBytes?: number,
-  ): Promise<Buffer> {
+  private async readDocumentBuffer(document: DocumentRow, maxBytes?: number): Promise<Buffer> {
     if (this.isKbStorageKey(document.storageKey)) {
       return this.kb.readObject(document.storageKey, maxBytes);
     }
     return this.storage.read(document.storageKey.replace(/^local:/, ''), maxBytes);
   }
 
-  async getForView(
-    user: AuthUser,
-    documentId: string,
-    options: { proxy?: boolean } = {},
-  ) {
+  async getForView(user: AuthUser, documentId: string, options: { proxy?: boolean } = {}) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { invoice: true },
@@ -722,11 +708,7 @@ export class DocumentsService {
     }
   }
 
-  private async assertInvoiceAccess(
-    user: AuthUser,
-    invoiceId: string,
-    supplierId?: string,
-  ) {
+  private async assertInvoiceAccess(user: AuthUser, invoiceId: string, supplierId?: string) {
     if (canAccessAnyInvoice(user)) {
       const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
       if (!invoice) {

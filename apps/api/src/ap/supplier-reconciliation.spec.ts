@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   amountsEqual,
   extractInvoiceNumber,
+  invoiceKey,
   isAljeelPaid,
   paymentDetailsFileName,
   reconcileSupplierStatement,
@@ -60,6 +61,13 @@ describe('extractInvoiceNumber', () => {
     expect(extractInvoiceNumber('S1 0011957')).toBe('S1 0011957');
     expect(extractInvoiceNumber('فاتورة مبيعات S1  0010964')).toBe('S1 0010964');
     expect(extractInvoiceNumber('PO S1 12345')).toBeNull();
+  });
+
+  it('keeps debit-memo labels from a dedicated invoice column', () => {
+    expect(invoiceKey(1012886924)).toBe('1012886924');
+    expect(invoiceKey('1012873541-2')).toBe('1012873541-2');
+    expect(invoiceKey('Close DN 2500173')).toBe('Close DN 2500173');
+    expect(invoiceKey('Retroactive commission 2025')).toBe('Retroactive commission 2025');
   });
 });
 
@@ -239,6 +247,7 @@ describe('reconcileSupplierStatement', () => {
     expect(isAljeelPaid(0)).toBe(true);
     expect(isAljeelPaid(0.004)).toBe(true);
     expect(isAljeelPaid(0.01)).toBe(false);
+    expect(isAljeelPaid(-500)).toBe(false);
   });
 
   it('drops Aljeel-paid invoices from remaining balance and payment request', () => {

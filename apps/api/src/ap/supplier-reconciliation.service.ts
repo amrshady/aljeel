@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import {
   extractInvoiceNumber,
+  invoiceKey,
   isTotalLabel,
   paymentDetailsFileName,
   reconcileSupplierStatement,
@@ -100,7 +101,7 @@ export class SupplierReconciliationService {
       throw new BadRequestException({
         code: 'SUPPLIER_RECON_SUPPLIER_MISSING',
         message:
-          'Could not find a supplier statement (a sheet or PDF with invoice numbers in البيان / description and amounts).',
+          'Could not find a supplier statement (a sheet or PDF with invoice numbers in البيان / description, or a Document and Amount statement).',
       });
     }
 
@@ -218,7 +219,8 @@ export class SupplierReconciliationService {
       (labels.has('مدين') && labels.has('تاريخ المعاملة')) ||
       labels.has('رقم الفاتورة') ||
       labels.has('رقم الفاورة') ||
-      (labels.has('المبلغ') && labels.has('التاريخ') && hasInvoiceLabel)
+      (labels.has('المبلغ') && labels.has('التاريخ') && hasInvoiceLabel) ||
+      (labels.has('document') && labels.has('amount'))
     ) {
       return 'supplier';
     }
@@ -243,7 +245,8 @@ export class SupplierReconciliationService {
         labels.includes('مدين') ||
         labels.includes('رقم الفاتورة') ||
         labels.includes('رقم الفاورة') ||
-        (labels.includes('المبلغ') && hasInvoiceLabel)
+        (labels.includes('المبلغ') && hasInvoiceLabel) ||
+        (labels.includes('document') && labels.includes('amount'))
       ) {
         return { index, cells };
       }
@@ -267,7 +270,7 @@ export class SupplierReconciliationService {
 
     const lines: AljeelInvoiceLine[] = [];
     for (const row of rows.slice(header.index + 1)) {
-      const invoiceNumber = extractInvoiceNumber(row[invoiceIdx]);
+      const invoiceNumber = invoiceKey(row[invoiceIdx]);
       if (!invoiceNumber || isTotalLabel(row[invoiceIdx]) || isTotalLabel(row[unpaidIdx])) continue;
       const invoiceAmount = this.asNumber(row[amountIdx] ?? row[unpaidIdx]);
       const unpaidAmount = this.asNumber(row[unpaidIdx] ?? row[amountIdx]);
@@ -292,9 +295,10 @@ export class SupplierReconciliationService {
 
     const descriptionIdx = indexOf('البيان', 'description', 'invoice no', 'invoice number', 'رقم الفاتورة');
     const invoiceIdx = indexOf('رقم الفاورة');
+    const documentIdx = indexOf('document');
     const amountIdx = indexOf('مدين', 'amount', 'debit', 'المبلغ');
-    const dateIdx = indexOf('تاريخ المعاملة', 'date', 'التاريخ');
-    const notesIdx = indexOf('ملاحظات', 'notes', 'remarks', 'رقم po');
+    const dateIdx = indexOf('تاريخ المعاملة', 'date', 'التاريخ', 'document date');
+    const notesIdx = indexOf('ملاحظات', 'notes', 'remarks', 'رقم po', 'document header text');
     const extractedIdx = header.cells.findIndex(
       (_cell, index) => index > Math.max(descriptionIdx, 0) && extractInvoiceNumber(rows[header.index + 1]?.[index]),
     );
@@ -302,7 +306,8 @@ export class SupplierReconciliationService {
     const lines: SupplierStatementLine[] = [];
     for (const row of rows.slice(header.index + 1)) {
       const invoiceNumber =
-        (invoiceIdx >= 0 ? extractInvoiceNumber(row[invoiceIdx]) : null) ??
+        (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
+        (invoiceIdx >= 0 ? invoiceKey(row[invoiceIdx]) : null) ??
         extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
         (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null);
       if (!invoiceNumber) continue;

@@ -74,7 +74,7 @@ export function amountsEqual(left: number, right: number): boolean {
 }
 
 export function isAljeelPaid(unpaidAmount: number): boolean {
-  return roundMoney(unpaidAmount) <= 0.005;
+  return Math.abs(roundMoney(unpaidAmount)) <= 0.005;
 }
 
 export function extractInvoiceNumber(value: unknown): string | null {
@@ -100,6 +100,15 @@ export function extractInvoiceNumber(value: unknown): string | null {
   }
 
   return null;
+}
+
+/** Identifier from a dedicated invoice or document column, including debit-memo labels. */
+export function invoiceKey(value: unknown): string | null {
+  const extracted = extractInvoiceNumber(value);
+  if (extracted) return extracted;
+  const text = cleanCell(value);
+  if (!text || TOTAL_LABEL.test(text)) return null;
+  return text;
 }
 
 export function isTotalLabel(value: unknown): boolean {

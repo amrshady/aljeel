@@ -27,10 +27,12 @@ import { InvoiceDocuments } from '@/components/invoice-documents';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
 import { apiFetch } from '@/lib/api-client';
-import { formatInvoiceError } from '@/lib/format-error';
+import { formatInvoiceError, formatJawalEvidenceIssue } from '@/lib/format-error';
+import { validateLocalJawalEvidence } from '@/lib/jawal-evidence-validation';
 import { getApInvoice, renameApInvoiceFolder } from '@/lib/ap-api';
 import {
   getInvoice,
+  getDocumentViewUrl,
   listInvoiceDocuments,
   submitInvoice,
   updateInvoiceAsateelRegion,
@@ -189,6 +191,31 @@ function InvoiceDetailContent() {
     setSubmitting(true);
     setError(null);
     try {
+      if (isJawalSupplier) {
+        const folderFiles = await Promise.all(
+          (documents ?? []).map(async (document) => {
+            const view = await getDocumentViewUrl(document.id, { proxy: true });
+            if (view.kind !== 'blob') {
+              throw new Error('Could not load document');
+            }
+            return {
+              file: new File([view.blob], document.fileName, {
+                type: document.mimeType || view.mimeType,
+              }),
+              relativePath: document.fileName,
+            };
+          }),
+        );
+        const jawal = await validateLocalJawalEvidence(folderFiles);
+        if (jawal === null) {
+          setError(tForm('errors.jawalTableRequired'));
+          return;
+        }
+        if (jawal.error) {
+          setError(formatJawalEvidenceIssue(jawal.error, tForm));
+          return;
+        }
+      }
       if (isAsateelSupplier && asateelRegion && invoice.asateelRegion !== asateelRegion) {
         await updateInvoiceAsateelRegion(invoice.id, asateelRegion);
       }

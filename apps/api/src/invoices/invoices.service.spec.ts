@@ -766,6 +766,123 @@ describe('InvoicesService corrective submission state', () => {
   });
 });
 
+describe('InvoicesService Jawal evidence submission gate', () => {
+  const missingFolderError = {
+    code: 'VALIDATION_FAILED',
+    message: 'Evidence validation failed.',
+    details: {
+      findings: [
+        {
+          code: 'EVIDENCE_FOLDER_MISSING',
+          message: 'Upload the missing evidence folder.',
+          gate: 'B',
+        },
+      ],
+    },
+  };
+
+  function createService(documentCount: number, evidence: object) {
+    const invoice = draftInvoice('J26-1407');
+    const documents = Array.from({ length: documentCount }, (_, index) => ({
+      id: `doc_${index}`,
+      fileName: index === 0 ? 'invoice.pdf' : `evidence/file-${index}.pdf`,
+      storageKey: `invoices/${invoice.id}/doc_${index}`,
+      sizeBytes: 100,
+      checksumSha256: null,
+      virusScanStatus: 'CLEAN',
+    }));
+    const prisma = {
+      invoice: {
+        findFirst: vi.fn().mockResolvedValueOnce(invoice).mockResolvedValueOnce(null),
+        findUnique: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        update: vi
+          .fn()
+          .mockResolvedValueOnce({ ...invoice, status: 'SUBMITTED' })
+          .mockResolvedValueOnce({ ...invoice, status: 'UNDER_REVIEW' }),
+      },
+      document: {
+        findMany: vi.fn().mockResolvedValue(documents),
+      },
+      supplier: {
+        findUnique: vi.fn().mockResolvedValue({
+          erpIntegration: 'JAWAL',
+          legalName: 'Jawal',
+        }),
+      },
+    };
+    const audit = { record: vi.fn().mockResolvedValue(undefined) };
+    const jawalEvidence = {
+      validateUploadedFolder: vi.fn().mockResolvedValue(evidence),
+    };
+    const service = new InvoicesService(
+      prisma as never,
+      audit as never,
+      { validateUploadedFolder: vi.fn() } as never,
+      jawalEvidence as never,
+      { notifyInvoiceSubmitted: vi.fn().mockResolvedValue(undefined) } as never,
+    );
+    return { service, prisma, audit, jawalEvidence, invoice };
+  }
+
+  it('rejects a Jawal batch over 100 documents before SUBMITTED or a SUBMIT audit', async () => {
+    const { service, prisma, audit, invoice } = createService(101, {
+      error: missingFolderError,
+      warning: null,
+    });
+
+    await expect(service.submit(supplierUser, invoice.id)).rejects.toMatchObject({
+      status: 422,
+      response: missingFolderError,
+    });
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+    expect(prisma.invoice.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'SUBMITTED' }) }),
+    );
+    expect(audit.record).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'SUBMIT' }));
+  });
+
+  it('continues to reject a Jawal batch at or below 100 documents with a missing folder', async () => {
+    const { service, prisma, audit, invoice } = createService(2, {
+      error: missingFolderError,
+      warning: null,
+    });
+
+    await expect(service.submit(supplierUser, invoice.id)).rejects.toMatchObject({
+      status: 422,
+      response: missingFolderError,
+    });
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'SUBMIT' }));
+  });
+
+  it('submits a clean Jawal batch and records its advisory warning', async () => {
+    const warning = {
+      code: 'EVIDENCE_ADVISORY',
+      message: 'One evidence attachment needs review.',
+      details: { paths: ['evidence/file-1.pdf'] },
+    };
+    const { service, audit, jawalEvidence, invoice } = createService(2, {
+      error: null,
+      warning,
+    });
+
+    await expect(service.submit(supplierUser, invoice.id)).resolves.toMatchObject({
+      status: 'UNDER_REVIEW',
+    });
+    expect(jawalEvidence.validateUploadedFolder).toHaveBeenCalledOnce();
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'SUBMIT',
+        after: expect.objectContaining({
+          status: 'SUBMITTED',
+          jawalEvidenceWarning: warning,
+        }),
+      }),
+    );
+  });
+});
+
 describe('InvoicesService AP clerk intake', () => {
   const apClerk = {
     sub: 'clerk',

@@ -554,6 +554,19 @@ export class InvoicesService {
       }
     }
 
+    let jawalWarning: JawalEvidenceIssue | null = null;
+    if (!resumeAsyncSubmission && supplier?.erpIntegration === 'JAWAL') {
+      const evidence = await this.jawalEvidence.validateUploadedFolder(documents);
+      if (evidence.error) {
+        throw new UnprocessableEntityException({
+          code: evidence.error.code,
+          message: evidence.error.message,
+          details: evidence.error.details,
+        });
+      }
+      jawalWarning = evidence.warning;
+    }
+
     if (!resumeAsyncSubmission && documents.length > ASYNC_SUBMIT_DOCUMENT_THRESHOLD) {
       const claimed = await this.prisma.invoice.updateMany({
         where: { id, status: invoice.status },
@@ -579,7 +592,19 @@ export class InvoicesService {
         entityId: id,
         action: 'SUBMIT',
         before: { status: invoice.status },
-        after: { status: 'SUBMITTED', async: true },
+        after: {
+          status: 'SUBMITTED',
+          async: true,
+          ...(jawalWarning
+            ? {
+                jawalEvidenceWarning: {
+                  code: jawalWarning.code,
+                  message: jawalWarning.message,
+                  details: jawalWarning.details ?? null,
+                },
+              }
+            : {}),
+        } as Prisma.InputJsonValue,
       });
 
       setImmediate(() => {
@@ -591,7 +616,6 @@ export class InvoicesService {
       return { id, status: 'SUBMITTED' as const };
     }
 
-    let jawalWarning: JawalEvidenceIssue | null = null;
     if (supplier?.erpIntegration === 'ASATEEL') {
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
       if (manifest.error) {
@@ -602,18 +626,6 @@ export class InvoicesService {
         });
       }
     }
-    if (supplier?.erpIntegration === 'JAWAL') {
-      const evidence = await this.jawalEvidence.validateUploadedFolder(documents);
-      if (evidence.error) {
-        throw new UnprocessableEntityException({
-          code: evidence.error.code,
-          message: evidence.error.message,
-          details: evidence.error.details,
-        });
-      }
-      jawalWarning = evidence.warning;
-    }
-
     if (supplier?.erpIntegration === 'ASATEEL') {
       const documentChecksums = [
         ...new Set(

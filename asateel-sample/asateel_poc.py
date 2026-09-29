@@ -1719,19 +1719,22 @@ def supplier_jq_units_for_invoice(invoice_no: Any, supplier_index: dict[str, lis
     for rec in supplier_index.get(_code(invoice_no, 5), []):
         jq = _canonical_jq(rec.get("jq"))
         source_jq = _clean(rec.get("_source_jq_cell"))
-        # A supplier row with a genuinely blank JQ is still an allocation unit.
-        # Warehouse rows legitimately have no JQ, so dropping them here loses
-        # supplier amount/segments before the Warehouse pin can be applied.
-        # Keep rejecting nonblank malformed JQs to preserve existing validation.
-        if source_jq and not jq:
-            continue
+        # Every row-local supplier distribution with an amount is an allocation
+        # unit, even when its delivery-note reference is not a canonical JQ.
+        # Such references must contribute to invoice balance, but remain
+        # explicitly non-joinable to SO_Detail.
         if rec.get("amount") is None or not (jq or rec.get("_invoice_is_rowlocal")):
             # Header fill-down also associates template/signature/total rows
             # with an invoice. They are not supplier allocation lines.
             continue
         out = dict(rec)
-        out["jq"] = jq
-        out["_match_method"] = "supplier_jq_unit" if jq else "supplier_blank_jq_unit"
+        out["jq"] = jq or source_jq
+        out["_so_detail_joinable"] = bool(jq)
+        out["_match_method"] = (
+            "supplier_jq_unit" if jq
+            else "supplier_non_jq_reference_unit" if source_jq
+            else "supplier_blank_jq_unit"
+        )
         out["_amount_match"] = True
         units.append(out)
     return units
@@ -2265,12 +2268,17 @@ def build_rows(
                 supplier_match
                 and not _clean(supplier_match.get("_source_jq_cell"))
             )
+            non_joinable_supplier_reference = bool(
+                supplier_match
+                and _clean(supplier_match.get("_source_jq_cell"))
+                and not supplier_match.get("_so_detail_joinable", True)
+            )
             if supplier_match and _canonical_jq(supplier_match.get("jq")):
                 unit_jqs.append(_canonical_jq(supplier_match.get("jq")))
             # A PDF line may be reused as the visual source for multiple supplier
             # allocation units. Do not attach that PDF JQ to an explicitly
             # blank-JQ supplier row or attempt an SO_Detail join for it.
-            if not blank_supplier_jq:
+            if not blank_supplier_jq and not non_joinable_supplier_reference:
                 unit_jqs.extend(_extract_pdf_jqs(ln, ext))
             unit_jq = next((jq for jq in unit_jqs if jq), "")
             matched_so_detail = so_detail_index.get(unit_jq) if unit_jq else None
@@ -2375,6 +2383,8 @@ def build_rows(
             so_detail_status = (
                 "not_applicable_blank_jq"
                 if blank_supplier_jq
+                else "missing"
+                if non_joinable_supplier_reference
                 else _clean((matched_so_detail or {}).get("agency_status")) or "missing"
             )
             agency_resolution = "supplier_blank_jq" if blank_supplier_jq else "so_detail_clean"
@@ -2426,7 +2436,10 @@ def build_rows(
                 resolved["agency_resolve_method"] = agency_resolution
                 if so_detail_status == "missing":
                     reason = (
-                        f"JQ {unit_jq or 'missing canonical JQ'} is not in SO_Detail; "
+                        f"Supplier reference {_clean(supplier_match.get('_source_jq_cell'))} is not a canonical JQ "
+                        "and is not joinable to SO_Detail; supplier agency used pending review"
+                        if non_joinable_supplier_reference
+                        else f"JQ {unit_jq or 'missing canonical JQ'} is not in SO_Detail; "
                         "supplier agency used pending review"
                     )
                     notes.append(f"RED: {reason}")

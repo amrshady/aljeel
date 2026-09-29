@@ -84,3 +84,25 @@ def test_qc_gate_recomputes_rows_without_trusting_reconciled_flag():
     assert qc_gate._asateel_balance_failures(records) == [
         "04672: expected=1250.00 actual=833.34 delta=-416.66 RED"
     ]
+
+
+def test_non_jq_delivery_reference_remains_a_non_joinable_allocation_unit():
+    engine = asateel._load_v6_engine()
+    supplier_index = {
+        "04543": [{
+            "row": 14,
+            "invoice_no": "04543",
+            "jq": "MDN-1300",
+            "_source_jq_cell": "MDN-1300",
+            "_invoice_is_rowlocal": True,
+            "amount": 283.33,
+        }]
+    }
+
+    units = engine.supplier_jq_units_for_invoice("04543", supplier_index)
+
+    assert len(units) == 1
+    assert units[0]["amount"] == 283.33
+    assert units[0]["jq"] == "MDN-1300"
+    assert units[0]["_so_detail_joinable"] is False
+    assert units[0]["_match_method"] == "supplier_non_jq_reference_unit"

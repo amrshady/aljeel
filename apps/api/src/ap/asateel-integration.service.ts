@@ -11,7 +11,7 @@ import {
 } from '@aljeel/shared-types';
 import type { AsateelRegion, Prisma } from '@prisma/client';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { AuditService } from '../audit/audit.service';
@@ -205,6 +205,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       throw new Error('Invalid Asateel batch path.');
     }
     const srcDir = join(batchDir, 'src');
+    await rm(srcDir, { recursive: true, force: true });
     await mkdir(srcDir, { recursive: true });
 
     const documents = invoice.documents.filter((doc) => doc.type !== 'ORACLE_UPLOAD');

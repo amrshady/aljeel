@@ -220,13 +220,25 @@ export class SupplierReconciliationService {
     if (labels.has('invoice number') && (labels.has('unpaid amount') || labels.has('invoice amount'))) {
       return 'aljeel';
     }
+    const hasMoney =
+      labels.has('مدين') ||
+      labels.has('المبلغ') ||
+      labels.has('amount') ||
+      labels.has('total') ||
+      labels.has('vat');
+    const isVatInvoiceStatement =
+      labels.has('invoice no') &&
+      hasMoney &&
+      !labels.has('doc.no') &&
+      !labels.has('balance per books');
     if (
       labels.has('البيان') ||
       (labels.has('مدين') && labels.has('تاريخ المعاملة')) ||
       labels.has('رقم الفاتورة') ||
       labels.has('رقم الفاورة') ||
       (labels.has('المبلغ') && labels.has('التاريخ') && hasInvoiceLabel) ||
-      (labels.has('document') && labels.has('amount') && hasStatementSignal)
+      (labels.has('document') && labels.has('amount') && hasStatementSignal) ||
+      isVatInvoiceStatement
     ) {
       return 'supplier';
     }
@@ -258,7 +270,9 @@ export class SupplierReconciliationService {
         labels.includes('رقم الفاتورة') ||
         labels.includes('رقم الفاورة') ||
         (labels.includes('المبلغ') && hasInvoiceLabel) ||
-        (labels.includes('document') && labels.includes('amount') && hasStatementSignal)
+        (labels.includes('document') && labels.includes('amount') && hasStatementSignal) ||
+        (labels.includes('invoice no') &&
+          (labels.includes('amount') || labels.includes('total') || labels.includes('vat')))
       ) {
         return { index, cells };
       }
@@ -305,23 +319,48 @@ export class SupplierReconciliationService {
     const indexOf = (...names: string[]) =>
       header.cells.findIndex((cell) => names.includes(normalizeHeader(cell)));
 
-    const descriptionIdx = indexOf('البيان', 'description');
+    const labels = new Set(header.cells.map(normalizeHeader).filter(Boolean));
+    const isVatInvoiceStatement =
+      labels.has('invoice no') &&
+      (labels.has('vat') || labels.has('area') || labels.has('net 60 days'));
+    const descriptionIdx = indexOf(
+      'البيان',
+      'description',
+      ...(isVatInvoiceStatement ? (['area'] as const) : []),
+    );
     const invoiceIdx = indexOf('رقم الفاورة', 'رقم الفاتورة', 'invoice no', 'invoice number');
     const documentIdx = indexOf('document');
-    const amountIdx = indexOf('مدين', 'amount', 'debit', 'المبلغ');
-    const dateIdx = indexOf('تاريخ المعاملة', 'date', 'التاريخ', 'document date');
-    const notesIdx = indexOf('ملاحظات', 'notes', 'remarks', 'رقم po', 'document header text');
+    const netIdx = indexOf('مدين', 'amount', 'debit', 'المبلغ');
+    const totalIdx = indexOf('total');
+    const amountIdx = isVatInvoiceStatement && totalIdx >= 0 ? totalIdx : netIdx;
+    const dateIdx = indexOf(
+      'تاريخ المعاملة',
+      'date',
+      'التاريخ',
+      'document date',
+      ...(isVatInvoiceStatement ? (['net 60 days'] as const) : []),
+    );
+    const notesIdx = indexOf(
+      'ملاحظات',
+      'notes',
+      'remarks',
+      'رقم po',
+      'document header text',
+      ...(isVatInvoiceStatement ? (['status'] as const) : []),
+    );
     const extractedIdx = header.cells.findIndex(
       (_cell, index) => index > Math.max(descriptionIdx, 0) && extractInvoiceNumber(rows[header.index + 1]?.[index]),
     );
 
     const lines: SupplierStatementLine[] = [];
     for (const row of rows.slice(header.index + 1)) {
-      const invoiceNumber =
-        (invoiceIdx >= 0 ? invoiceKey(row[invoiceIdx]) : null) ??
-        extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
-        (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
-        (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null);
+      const fromInvoiceColumn = invoiceIdx >= 0 ? invoiceKey(row[invoiceIdx]) : null;
+      const invoiceNumber = isVatInvoiceStatement
+        ? fromInvoiceColumn
+        : (fromInvoiceColumn ??
+          extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
+          (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
+          (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null));
       if (!invoiceNumber) continue;
       if (isTotalLabel(row[descriptionIdx]) || isTotalLabel(row[amountIdx])) continue;
       const amount = this.asNumber(amountIdx >= 0 ? row[amountIdx] : null);

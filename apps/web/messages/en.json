@@ -380,6 +380,8 @@
     "rejected": "Rejected by AP",
     "hold": "Put on hold",
     "resume": "Review resumed",
+    "oracleEntered": "Marked as uploaded to Oracle",
+    "oracleEnteredCleared": "Oracle upload mark removed",
     "status": {
       "DRAFT": "Draft",
       "SUBMITTED": "Submitted",
@@ -461,6 +463,14 @@
     "timeline": "Status history",
     "actionError": "Action failed",
     "alreadyApproved": "This invoice has been approved",
+    "oracleColumn": "In Oracle",
+    "oracleAdded": "Uploaded",
+    "oracleNotAdded": "Not uploaded",
+    "oracleSwitchLabel": "Uploaded to Oracle",
+    "oracleNotYet": "Not uploaded yet",
+    "oracleEnteredOn": "Uploaded {when}",
+    "oracleToggleHint": "Mark this batch after you have reviewed it and uploaded it to Oracle.",
+    "oracleError": "Could not update the Oracle mark",
     "status": {
       "DRAFT": "Draft",
       "SUBMITTED": "Submitted",

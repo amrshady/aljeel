@@ -35,6 +35,10 @@ function describeEvent(
       return t('hold');
     case 'RESUME':
       return t('resume');
+    case 'ORACLE_ENTERED':
+      return t('oracleEntered');
+    case 'ORACLE_ENTERED_CLEARED':
+      return t('oracleEnteredCleared');
     default:
       if (afterStatus && beforeStatus) {
         return t('statusChange', { status: t(`status.${afterStatus}`) });

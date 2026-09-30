@@ -12,6 +12,7 @@ import { PaginatedResponseSchema } from './index';
 export const ApExceptionInvoiceSchema = InvoiceFolderListItemSchema.extend({
   supplierName: z.string(),
   status: InvoiceStatusSchema,
+  oracleEnteredAt: z.string().nullable(),
 });
 export type ApExceptionInvoice = z.infer<typeof ApExceptionInvoiceSchema>;
 
@@ -27,6 +28,7 @@ export type ApExceptionListQuery = z.infer<typeof ApExceptionListQuerySchema>;
 export const ApInvoiceDetailSchema = InvoiceSchema.extend({
   supplierName: z.string(),
   erpIntegration: SupplierErpIntegrationSchema.nullable(),
+  oracleEnteredAt: z.string().nullable(),
   reconciliation: z
     .object({
       vendor: SupplierErpIntegrationSchema.nullable(),
@@ -82,3 +84,16 @@ export const ApRenameInvoiceFolderResponseSchema = z.object({
 export type ApRenameInvoiceFolderResponse = z.infer<
   typeof ApRenameInvoiceFolderResponseSchema
 >;
+
+export const ApSetOracleEnteredSchema = z
+  .object({
+    entered: z.boolean(),
+  })
+  .strict();
+export type ApSetOracleEntered = z.infer<typeof ApSetOracleEnteredSchema>;
+
+export const ApOracleEnteredResponseSchema = z.object({
+  id: z.string(),
+  oracleEnteredAt: z.string().nullable(),
+});
+export type ApOracleEnteredResponse = z.infer<typeof ApOracleEnteredResponseSchema>;

@@ -205,6 +205,17 @@ export class ApController {
     return this.apService.resume(user, id);
   }
 
+  @Patch('invoices/:id/oracle-entered')
+  @Roles('AP_CLERK', 'AP_APPROVER')
+  @ApiOperation({ summary: 'Mark whether a batch has been reviewed and uploaded to Oracle' })
+  setOracleEntered(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.apService.setOracleEntered(user, id, body);
+  }
+
   @Patch('invoices/:id/folder-name')
   @Roles('AP_CLERK', 'AP_APPROVER')
   @ApiOperation({ summary: 'Rename an invoice folder (any status)' })

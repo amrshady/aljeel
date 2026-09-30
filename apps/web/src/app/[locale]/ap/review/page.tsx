@@ -6,10 +6,12 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import {
+  displayInvoiceName,
   InvoiceFolderPagination,
   InvoiceFolderTable,
   type InvoiceFolderRow,
 } from '@/components/invoice-folder-table';
+import { OracleEnteredToggle } from '@/components/oracle-entered-toggle';
 import { RequireAuth } from '@/components/require-auth';
 import { RequireRole } from '@/components/require-role';
 import { listApExceptions } from '@/lib/ap-api';
@@ -62,6 +64,7 @@ function ApReviewContent() {
       totalSizeBytes: item.totalSizeBytes,
       updatedAt: item.updatedAt,
       supplierName: item.supplierName,
+      oracleEnteredAt: item.oracleEnteredAt,
     })) ?? [];
 
   const selectTab = (nextTab: ApReviewTab) => {
@@ -136,6 +139,16 @@ function ApReviewContent() {
             showSupplier
             showSize={false}
             highlightQuery={searchQuery}
+            trailingColumn={{
+              header: t('oracleColumn'),
+              render: (row) => (
+                <OracleEnteredToggle
+                  invoiceId={row.id}
+                  batchName={displayInvoiceName(row.invoiceNumber)}
+                  oracleEnteredAt={row.oracleEnteredAt ?? null}
+                />
+              ),
+            }}
           />
           <div className="border-t px-3 py-2">
             <InvoiceFolderPagination

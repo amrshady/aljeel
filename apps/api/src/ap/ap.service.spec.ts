@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ApService } from './ap.service';
 import type { AuthUser } from '../auth/auth.types';
 
@@ -349,6 +349,89 @@ describe('ApService', () => {
         before: { invoiceNumber: 'OLD-NAME' },
         after: { invoiceNumber: 'NEW-NAME' },
       }),
+    );
+  });
+
+  it('returns the Oracle checklist timestamp on queue rows', async () => {
+    const enteredAt = new Date('2026-09-29T06:00:00.000Z');
+    const prisma = {
+      invoice: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([{ ...listRow('UNDER_REVIEW'), oracleEnteredAt: enteredAt }]),
+      },
+      document: { groupBy: vi.fn().mockResolvedValue([]) },
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const result = await service.listExceptions({ page: '1', pageSize: '10' });
+
+    expect(result.data[0]?.oracleEnteredAt).toBe(enteredAt.toISOString());
+  });
+
+  it('marks a batch as entered in Oracle without treating a repeat as a new mark', async () => {
+    const enteredAt = new Date('2026-09-28T06:00:00.000Z');
+    const prisma = {
+      invoice: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'inv1', oracleEnteredAt: null }),
+      },
+      $executeRaw: vi.fn().mockResolvedValue(1),
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const marked = await service.setOracleEntered(clerk, 'inv1', { entered: true });
+    expect(marked.oracleEnteredAt).toEqual(expect.any(String));
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ORACLE_ENTERED',
+        before: { oracleEnteredAt: null },
+      }),
+    );
+
+    prisma.invoice.findUnique.mockResolvedValue({ id: 'inv1', oracleEnteredAt: enteredAt });
+    const repeat = await service.setOracleEntered(clerk, 'inv1', { entered: true });
+    expect(repeat).toEqual({ id: 'inv1', oracleEnteredAt: enteredAt.toISOString() });
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the Oracle mark and rejects an unknown batch', async () => {
+    const enteredAt = new Date('2026-09-28T06:00:00.000Z');
+    const prisma = {
+      invoice: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'inv1', oracleEnteredAt: enteredAt }),
+      },
+      $executeRaw: vi.fn().mockResolvedValue(1),
+    };
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    const cleared = await service.setOracleEntered(clerk, 'inv1', { entered: false });
+    expect(cleared).toEqual({ id: 'inv1', oracleEnteredAt: null });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ORACLE_ENTERED_CLEARED',
+        before: { oracleEnteredAt: enteredAt.toISOString() },
+        after: { oracleEnteredAt: null },
+      }),
+    );
+
+    prisma.invoice.findUnique.mockResolvedValue(null);
+    await expect(service.setOracleEntered(clerk, 'missing', { entered: true })).rejects.toBeInstanceOf(
+      NotFoundException,
     );
   });
 });

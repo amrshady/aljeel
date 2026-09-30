@@ -23,6 +23,7 @@ import { PageLoading } from '@/components/loading-spinner';
 import { useAuth } from '@/components/auth-provider';
 import { DocumentEvidenceViewer } from '@/components/document-evidence-viewer';
 import { displayInvoiceName } from '@/components/invoice-folder-table';
+import { OracleEnteredToggle } from '@/components/oracle-entered-toggle';
 import { InvoiceDocuments } from '@/components/invoice-documents';
 import { InvoiceTimeline } from '@/components/invoice-timeline';
 import { RequireAuth } from '@/components/require-auth';
@@ -350,10 +351,22 @@ function InvoiceDetailContent() {
             {new Date(invoice.invoiceDate).toLocaleDateString()} · {t(`status.${invoice.status}`)}
           </p>
         </div>
-        {canSubmit && (
-          <Button onClick={onSubmit} disabled={submitting || savingRegion}>
-            {submitting ? t('submitting') : t('submit')}
-          </Button>
+        {(canSubmit || (isReviewUser && apInvoice)) && (
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            {isReviewUser && apInvoice && (
+              <OracleEnteredToggle
+                invoiceId={invoice.id}
+                batchName={displayInvoiceName(invoice.invoiceNumber)}
+                oracleEnteredAt={apInvoice.oracleEnteredAt}
+                variant="panel"
+              />
+            )}
+            {canSubmit && (
+              <Button onClick={onSubmit} disabled={submitting || savingRegion}>
+                {submitting ? t('submitting') : t('submit')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 

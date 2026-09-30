@@ -263,6 +263,7 @@ model Invoice {
   rejectionReason         String?
   rejectionFindings       Json?
   archivedAt              DateTime?
+  oracleEnteredAt         DateTime?
   asateelRunId            String?           @unique
   asateelStatus           AsateelRunStatus?
   asateelQueuePosition    Int?

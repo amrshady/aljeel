@@ -359,6 +359,41 @@ describe('SupplierReconciliationService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('reads an Invoice No statement that includes area, VAT, total, status, and net 60 days', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Invoice Number', 'Unpaid Amount'],
+        ['00929', 1322.5],
+      ]),
+      'Aljeel',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['كشف حساب شركة الجيل الطبية و التجارية'],
+        ['No', 'Invoice No', 'Area', null, 'Date', 'Amount', 'Vat', 'Total', 'Status', 'Net 60 Days'],
+        [1, '00929', 'الوسطي', 'Central 4-2025', '2025-12-09', 1150, 172.5, 1322.5, 'المالية', '2026-02-07'],
+        [null, null, null, null, 'Total :', 1150, 172.5, 1322.5, null, null],
+      ]),
+      'كشف حساب',
+    );
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    const parsed = await service.parseInputs([{ originalname: 'statement.xlsx', buffer }]);
+
+    expect(parsed.supplier).toEqual([
+      expect.objectContaining({
+        invoiceNumber: '00929',
+        amount: 1322.5,
+        description: 'الوسطي',
+        notes: 'المالية',
+        date: '2025-12-09',
+      }),
+    ]);
+  });
+
   it('does not classify amount-and-date columns without an invoice column as supplier data', async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

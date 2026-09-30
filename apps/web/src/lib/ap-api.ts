@@ -5,8 +5,10 @@ import {
   ApInvoiceDetailSchema,
   ApReconciliationStatusSchema,
   ApRejectRequestSchema,
+  ApOracleEnteredResponseSchema,
   ApRenameInvoiceFolderResponseSchema,
   ApRenameInvoiceFolderSchema,
+  ApSetOracleEnteredSchema,
 } from '@aljeel/shared-types';
 import { apiFetch } from './api-client';
 
@@ -228,6 +230,15 @@ export function rerunApReconciliation(id: string) {
   return apiFetch(`/ap/invoices/${id}/reconciliation/rerun`, {
     method: 'POST',
     schema: ApReconciliationStatusSchema,
+  });
+}
+
+export function setInvoiceOracleEntered(id: string, entered: boolean) {
+  const body = ApSetOracleEnteredSchema.parse({ entered });
+  return apiFetch(`/ap/invoices/${id}/oracle-entered`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    schema: ApOracleEnteredResponseSchema,
   });
 }
 

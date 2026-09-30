@@ -16,6 +16,7 @@ export type InvoiceFolderRow = {
   updatedAt: string;
   status?: string;
   supplierName?: string;
+  oracleEnteredAt?: string | null;
 };
 
 function formatModified(iso: string, locale: string) {
@@ -45,6 +46,10 @@ type InvoiceFolderTableProps = {
   statusNamespace?: 'invoices' | 'apReview';
   highlightQuery?: string;
   renderActions?: (row: InvoiceFolderRow) => ReactNode;
+  trailingColumn?: {
+    header: string;
+    render: (row: InvoiceFolderRow) => ReactNode;
+  };
 };
 
 export function InvoiceFolderTable({
@@ -61,6 +66,7 @@ export function InvoiceFolderTable({
   statusNamespace = 'invoices',
   highlightQuery,
   renderActions,
+  trailingColumn,
 }: InvoiceFolderTableProps) {
   const t = useTranslations('invoices');
   const tStatus = useTranslations(statusNamespace);
@@ -117,6 +123,7 @@ export function InvoiceFolderTable({
           <col className="w-[11rem]" />
           {showSize && <col className="w-[6rem]" />}
           {showStatus && <col className="w-[8rem]" />}
+          {trailingColumn && <col className="w-[9.5rem]" />}
           {renderActions && <col className="w-[7rem]" />}
         </colgroup>
         <thead>
@@ -129,6 +136,9 @@ export function InvoiceFolderTable({
             <th className="p-3 text-start font-medium">{t('columns.modified')}</th>
             {showSize && <th className="p-3 text-start font-medium">{t('columns.size')}</th>}
             {showStatus && <th className="p-3 text-start font-medium">{t('columns.status')}</th>}
+            {trailingColumn && (
+              <th className="p-3 text-start font-medium">{trailingColumn.header}</th>
+            )}
             {renderActions && <th className="p-3 text-end font-medium">{t('columns.actions')}</th>}
           </tr>
         </thead>
@@ -181,6 +191,11 @@ export function InvoiceFolderTable({
                       {tStatus(`status.${row.status}`)}
                     </span>
                   )}
+                </td>
+              )}
+              {trailingColumn && (
+                <td className="p-3 text-start" onClick={(event) => event.stopPropagation()}>
+                  {trailingColumn.render(row)}
                 </td>
               )}
               {renderActions && (

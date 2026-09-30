@@ -380,6 +380,8 @@
     "rejected": "تم الرفض من قسم الحسابات",
     "hold": "تم التعليق",
     "resume": "تم استئناف المراجعة",
+    "oracleEntered": "تم التعليم كمرفوعة إلى أوراكل",
+    "oracleEnteredCleared": "أُزيلت علامة الرفع إلى أوراكل",
     "status": {
       "DRAFT": "مسودة",
       "SUBMITTED": "مُقدَّمة",
@@ -461,6 +463,14 @@
     "timeline": "سجل الحالة",
     "actionError": "فشل الإجراء",
     "alreadyApproved": "تمت الموافقة على هذه الفاتورة",
+    "oracleColumn": "في أوراكل",
+    "oracleAdded": "رُفع",
+    "oracleNotAdded": "لم يُرفع",
+    "oracleSwitchLabel": "رُفع إلى أوراكل",
+    "oracleNotYet": "لم يُرفع بعد",
+    "oracleEnteredOn": "رُفع {when}",
+    "oracleToggleHint": "علّم هذه الدفعة بعد مراجعتها ورفعها إلى أوراكل.",
+    "oracleError": "تعذر تحديث علامة أوراكل",
     "status": {
       "DRAFT": "مسودة",
       "SUBMITTED": "مُقدَّمة",

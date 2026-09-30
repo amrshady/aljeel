@@ -4,6 +4,7 @@ import {
   ApHoldRequestSchema,
   ApRejectRequestSchema,
   ApRenameInvoiceFolderSchema,
+  ApSetOracleEnteredSchema,
   assertInvoiceTransition,
   InvalidInvoiceTransitionError,
   type ApExceptionListQuery,
@@ -92,7 +93,12 @@ export class ApService {
           documentCount: 0,
           totalSizeBytes: 0,
         };
-        return { ...item, ...stats, supplierName: row.supplier.legalName };
+        return {
+          ...item,
+          ...stats,
+          supplierName: row.supplier.legalName,
+          oracleEnteredAt: row.oracleEnteredAt?.toISOString() ?? null,
+        };
       }),
       page: params.page,
       pageSize: params.pageSize,
@@ -113,6 +119,7 @@ export class ApService {
       ...serializeInvoice(invoice),
       supplierName: invoice.supplier.legalName,
       erpIntegration: invoice.supplier.erpIntegration,
+      oracleEnteredAt: invoice.oracleEnteredAt?.toISOString() ?? null,
       reconciliation:
         invoice.supplier.erpIntegration === 'SOLVENTUM'
           ? null
@@ -214,6 +221,40 @@ export class ApService {
     });
 
     return { id, invoiceNumber };
+  }
+
+  async setOracleEntered(user: AuthUser, id: string, body: unknown) {
+    const { entered } = ApSetOracleEnteredSchema.parse(body);
+    const existing = await this.prisma.invoice.findUnique({
+      where: { id },
+      select: { id: true, oracleEnteredAt: true },
+    });
+    if (!existing) {
+      throw invoiceNotFound();
+    }
+
+    if ((existing.oracleEnteredAt !== null) === entered) {
+      return { id, oracleEnteredAt: existing.oracleEnteredAt?.toISOString() ?? null };
+    }
+
+    const oracleEnteredAt = entered ? new Date() : null;
+    // Checklist only. Leave updatedAt alone so "Date modified" still reflects the batch itself.
+    await this.prisma.$executeRaw`
+      UPDATE "Invoice"
+      SET "oracleEnteredAt" = ${oracleEnteredAt}
+      WHERE "id" = ${id}
+    `;
+
+    await this.audit.record({
+      actorId: user.sub,
+      entity: 'Invoice',
+      entityId: id,
+      action: entered ? 'ORACLE_ENTERED' : 'ORACLE_ENTERED_CLEARED',
+      before: { oracleEnteredAt: existing.oracleEnteredAt?.toISOString() ?? null },
+      after: { oracleEnteredAt: oracleEnteredAt?.toISOString() ?? null },
+    });
+
+    return { id, oracleEnteredAt: oracleEnteredAt?.toISOString() ?? null };
   }
 
   private async transition(

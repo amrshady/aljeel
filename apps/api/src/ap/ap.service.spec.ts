@@ -67,6 +67,31 @@ describe('ApService', () => {
     };
   }
 
+  function oraclePrisma(initialOracleEnteredAt: Date | null) {
+    let persistedOracleEnteredAt = initialOracleEnteredAt;
+    const tx = {
+      $queryRaw: vi.fn().mockImplementation(async () => [
+        { id: 'inv1', oracleEnteredAt: persistedOracleEnteredAt },
+      ]),
+      $executeRaw: vi.fn().mockImplementation(async (strings, value: Date | null) => {
+        persistedOracleEnteredAt = value;
+        return 1;
+      }),
+    };
+    const prisma = {
+      $transaction: vi.fn().mockImplementation(async (fn) => {
+        const before = persistedOracleEnteredAt;
+        try {
+          return await fn(tx);
+        } catch (error) {
+          persistedOracleEnteredAt = before;
+          throw error;
+        }
+      }),
+    };
+    return { prisma, tx, getPersisted: () => persistedOracleEnteredAt };
+  }
+
   it('rejects approve when invoice is not under review', async () => {
     const prisma = {
       invoice: {
@@ -374,13 +399,7 @@ describe('ApService', () => {
   });
 
   it('marks a batch as entered in Oracle without treating a repeat as a new mark', async () => {
-    const enteredAt = new Date('2026-09-28T06:00:00.000Z');
-    const prisma = {
-      invoice: {
-        findUnique: vi.fn().mockResolvedValue({ id: 'inv1', oracleEnteredAt: null }),
-      },
-      $executeRaw: vi.fn().mockResolvedValue(1),
-    };
+    const { prisma, tx, getPersisted } = oraclePrisma(null);
     const service = new ApService(
       prisma as never,
       audit as never,
@@ -390,28 +409,27 @@ describe('ApService', () => {
 
     const marked = await service.setOracleEntered(clerk, 'inv1', { entered: true });
     expect(marked.oracleEnteredAt).toEqual(expect.any(String));
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    const firstTimestamp = getPersisted();
+    expect(firstTimestamp).toBeInstanceOf(Date);
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'ORACLE_ENTERED',
         before: { oracleEnteredAt: null },
       }),
+      tx,
     );
 
-    prisma.invoice.findUnique.mockResolvedValue({ id: 'inv1', oracleEnteredAt: enteredAt });
     const repeat = await service.setOracleEntered(clerk, 'inv1', { entered: true });
-    expect(repeat).toEqual({ id: 'inv1', oracleEnteredAt: enteredAt.toISOString() });
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(repeat).toEqual({ id: 'inv1', oracleEnteredAt: firstTimestamp?.toISOString() });
+    expect(getPersisted()).toBe(firstTimestamp);
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(audit.record).toHaveBeenCalledTimes(1);
   });
 
-  it('clears the Oracle mark and rejects an unknown batch', async () => {
+  it('clears the Oracle mark without treating a repeat as a new clear', async () => {
     const enteredAt = new Date('2026-09-28T06:00:00.000Z');
-    const prisma = {
-      invoice: {
-        findUnique: vi.fn().mockResolvedValue({ id: 'inv1', oracleEnteredAt: enteredAt }),
-      },
-      $executeRaw: vi.fn().mockResolvedValue(1),
-    };
+    const { prisma, tx, getPersisted } = oraclePrisma(enteredAt);
     const service = new ApService(
       prisma as never,
       audit as never,
@@ -427,9 +445,42 @@ describe('ApService', () => {
         before: { oracleEnteredAt: enteredAt.toISOString() },
         after: { oracleEnteredAt: null },
       }),
+      tx,
     );
 
-    prisma.invoice.findUnique.mockResolvedValue(null);
+    const repeat = await service.setOracleEntered(clerk, 'inv1', { entered: false });
+    expect(repeat).toEqual({ id: 'inv1', oracleEnteredAt: null });
+    expect(getPersisted()).toBeNull();
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(audit.record).toHaveBeenCalledTimes(1);
+  });
+
+  it('rolls back the Oracle mark when its audit record fails', async () => {
+    const { prisma, getPersisted } = oraclePrisma(null);
+    audit.record.mockRejectedValueOnce(new Error('audit insert failed'));
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
+    await expect(service.setOracleEntered(clerk, 'inv1', { entered: true })).rejects.toThrow(
+      'audit insert failed',
+    );
+    expect(getPersisted()).toBeNull();
+  });
+
+  it('rejects an unknown batch when setting the Oracle mark', async () => {
+    const { prisma, tx } = oraclePrisma(null);
+    tx.$queryRaw.mockResolvedValueOnce([]);
+    const service = new ApService(
+      prisma as never,
+      audit as never,
+      asateel as never,
+      jawal as never,
+    );
+
     await expect(service.setOracleEntered(clerk, 'missing', { entered: true })).rejects.toBeInstanceOf(
       NotFoundException,
     );

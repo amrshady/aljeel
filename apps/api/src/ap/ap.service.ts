@@ -225,36 +225,43 @@ export class ApService {
 
   async setOracleEntered(user: AuthUser, id: string, body: unknown) {
     const { entered } = ApSetOracleEnteredSchema.parse(body);
-    const existing = await this.prisma.invoice.findUnique({
-      where: { id },
-      select: { id: true, oracleEnteredAt: true },
+    return this.prisma.$transaction(async (tx) => {
+      const [existing] = await tx.$queryRaw<Array<{ id: string; oracleEnteredAt: Date | null }>>`
+        SELECT "id", "oracleEnteredAt"
+        FROM "Invoice"
+        WHERE "id" = ${id}
+        FOR UPDATE
+      `;
+      if (!existing) {
+        throw invoiceNotFound();
+      }
+
+      if ((existing.oracleEnteredAt !== null) === entered) {
+        return { id, oracleEnteredAt: existing.oracleEnteredAt?.toISOString() ?? null };
+      }
+
+      const oracleEnteredAt = entered ? new Date() : null;
+      // Checklist only. Leave updatedAt alone so "Date modified" still reflects the batch itself.
+      await tx.$executeRaw`
+        UPDATE "Invoice"
+        SET "oracleEnteredAt" = ${oracleEnteredAt}
+        WHERE "id" = ${id}
+      `;
+
+      await this.audit.record(
+        {
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: id,
+          action: entered ? 'ORACLE_ENTERED' : 'ORACLE_ENTERED_CLEARED',
+          before: { oracleEnteredAt: existing.oracleEnteredAt?.toISOString() ?? null },
+          after: { oracleEnteredAt: oracleEnteredAt?.toISOString() ?? null },
+        },
+        tx,
+      );
+
+      return { id, oracleEnteredAt: oracleEnteredAt?.toISOString() ?? null };
     });
-    if (!existing) {
-      throw invoiceNotFound();
-    }
-
-    if ((existing.oracleEnteredAt !== null) === entered) {
-      return { id, oracleEnteredAt: existing.oracleEnteredAt?.toISOString() ?? null };
-    }
-
-    const oracleEnteredAt = entered ? new Date() : null;
-    // Checklist only. Leave updatedAt alone so "Date modified" still reflects the batch itself.
-    await this.prisma.$executeRaw`
-      UPDATE "Invoice"
-      SET "oracleEnteredAt" = ${oracleEnteredAt}
-      WHERE "id" = ${id}
-    `;
-
-    await this.audit.record({
-      actorId: user.sub,
-      entity: 'Invoice',
-      entityId: id,
-      action: entered ? 'ORACLE_ENTERED' : 'ORACLE_ENTERED_CLEARED',
-      before: { oracleEnteredAt: existing.oracleEnteredAt?.toISOString() ?? null },
-      after: { oracleEnteredAt: oracleEnteredAt?.toISOString() ?? null },
-    });
-
-    return { id, oracleEnteredAt: oracleEnteredAt?.toISOString() ?? null };
   }
 
   private async transition(

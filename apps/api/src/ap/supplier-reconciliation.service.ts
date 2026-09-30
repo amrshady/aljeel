@@ -35,6 +35,16 @@ const normalizeHeader = (value: unknown) =>
     .toLowerCase()
     .replace(/[:.]+$/g, '');
 
+const isDocNoStatementHeader = (labels: ReadonlySet<string>) =>
+  labels.has('doc. no') &&
+  labels.has('debit') &&
+  labels.has('credit') &&
+  (labels.has('date') ||
+    labels.has('description') ||
+    labels.has('type') ||
+    labels.has('balance')) &&
+  !labels.has('doc.no');
+
 @Injectable()
 export class SupplierReconciliationService {
   async reconcileWorkbooks(files: UploadedWorkbook[]): Promise<{ output: Buffer; fileName: string }> {
@@ -231,7 +241,7 @@ export class SupplierReconciliationService {
       hasMoney &&
       !labels.has('doc.no') &&
       !labels.has('balance per books');
-    const isDocNoStatement = labels.has('doc. no') && labels.has('debit') && !labels.has('doc.no');
+    const isDocNoStatement = isDocNoStatementHeader(labels);
     if (
       labels.has('البيان') ||
       (labels.has('مدين') && labels.has('تاريخ المعاملة')) ||
@@ -254,6 +264,7 @@ export class SupplierReconciliationService {
     for (let index = 0; index < Math.min(rows.length, 40); index += 1) {
       const cells = rows[index] ?? [];
       const labels = cells.map(normalizeHeader);
+      const labelSet = new Set(labels.filter(Boolean));
       const hasInvoiceLabel =
         labels.includes('رقم الفاتورة') ||
         labels.includes('رقم الفاورة') ||
@@ -275,7 +286,7 @@ export class SupplierReconciliationService {
         (labels.includes('document') && labels.includes('amount') && hasStatementSignal) ||
         (labels.includes('invoice no') &&
           (labels.includes('amount') || labels.includes('total') || labels.includes('vat'))) ||
-        (labels.includes('doc. no') && labels.includes('debit') && !labels.includes('doc.no'))
+        isDocNoStatementHeader(labelSet)
       ) {
         return { index, cells };
       }
@@ -326,7 +337,7 @@ export class SupplierReconciliationService {
     const isVatInvoiceStatement =
       labels.has('invoice no') &&
       (labels.has('vat') || labels.has('area') || labels.has('net 60 days'));
-    const isDocNoStatement = labels.has('doc. no') && labels.has('debit') && !labels.has('doc.no');
+    const isDocNoStatement = isDocNoStatementHeader(labels);
     const descriptionIdx = indexOf(
       'البيان',
       'description',

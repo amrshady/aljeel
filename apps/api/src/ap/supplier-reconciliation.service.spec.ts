@@ -435,6 +435,47 @@ describe('SupplierReconciliationService', () => {
     ]);
   });
 
+  it('ignores a Doc. No. and Debit register when a genuine statement is present', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Invoice Number', 'Unpaid Amount'],
+        ['J26-925', 173530.05],
+      ]),
+      'Aljeel',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Doc. No.', 'Debit'],
+        ['REGISTER-1', 500],
+      ]),
+      'Debit Register',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['STATEMENT OF ACCOUNT'],
+        ['Date', 'Type', 'Doc. No.', 'Description', 'Debit', 'Credit', 'Balance'],
+        ['2026-06-07', 'INV', 'J26-925', 'Invoice', 173530.05, 0, '173,530.05 Dr'],
+      ]),
+      'Statement',
+    );
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    const parsed = await service.parseInputs([{ originalname: 'ledgers.xlsx', buffer }]);
+
+    expect(parsed.supplier).toEqual([
+      expect.objectContaining({
+        invoiceNumber: 'J26-925',
+        amount: 173530.05,
+        description: 'Invoice',
+        notes: 'INV',
+      }),
+    ]);
+  });
+
   it('does not classify amount-and-date columns without an invoice column as supplier data', async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

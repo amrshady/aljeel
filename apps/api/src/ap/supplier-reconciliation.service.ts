@@ -231,6 +231,7 @@ export class SupplierReconciliationService {
       hasMoney &&
       !labels.has('doc.no') &&
       !labels.has('balance per books');
+    const isDocNoStatement = labels.has('doc. no') && labels.has('debit') && !labels.has('doc.no');
     if (
       labels.has('البيان') ||
       (labels.has('مدين') && labels.has('تاريخ المعاملة')) ||
@@ -238,7 +239,8 @@ export class SupplierReconciliationService {
       labels.has('رقم الفاورة') ||
       (labels.has('المبلغ') && labels.has('التاريخ') && hasInvoiceLabel) ||
       (labels.has('document') && labels.has('amount') && hasStatementSignal) ||
-      isVatInvoiceStatement
+      isVatInvoiceStatement ||
+      isDocNoStatement
     ) {
       return 'supplier';
     }
@@ -272,7 +274,8 @@ export class SupplierReconciliationService {
         (labels.includes('المبلغ') && hasInvoiceLabel) ||
         (labels.includes('document') && labels.includes('amount') && hasStatementSignal) ||
         (labels.includes('invoice no') &&
-          (labels.includes('amount') || labels.includes('total') || labels.includes('vat')))
+          (labels.includes('amount') || labels.includes('total') || labels.includes('vat'))) ||
+        (labels.includes('doc. no') && labels.includes('debit') && !labels.includes('doc.no'))
       ) {
         return { index, cells };
       }
@@ -323,6 +326,7 @@ export class SupplierReconciliationService {
     const isVatInvoiceStatement =
       labels.has('invoice no') &&
       (labels.has('vat') || labels.has('area') || labels.has('net 60 days'));
+    const isDocNoStatement = labels.has('doc. no') && labels.has('debit') && !labels.has('doc.no');
     const descriptionIdx = indexOf(
       'البيان',
       'description',
@@ -330,7 +334,9 @@ export class SupplierReconciliationService {
     );
     const invoiceIdx = indexOf('رقم الفاورة', 'رقم الفاتورة', 'invoice no', 'invoice number');
     const documentIdx = indexOf('document');
+    const docNoIdx = indexOf('doc. no');
     const netIdx = indexOf('مدين', 'amount', 'debit', 'المبلغ');
+    const creditIdx = indexOf('credit');
     const totalIdx = indexOf('total');
     const amountIdx = isVatInvoiceStatement && totalIdx >= 0 ? totalIdx : netIdx;
     const dateIdx = indexOf(
@@ -347,6 +353,7 @@ export class SupplierReconciliationService {
       'رقم po',
       'document header text',
       ...(isVatInvoiceStatement ? (['status'] as const) : []),
+      ...(isDocNoStatement ? (['type'] as const) : []),
     );
     const extractedIdx = header.cells.findIndex(
       (_cell, index) => index > Math.max(descriptionIdx, 0) && extractInvoiceNumber(rows[header.index + 1]?.[index]),
@@ -355,15 +362,24 @@ export class SupplierReconciliationService {
     const lines: SupplierStatementLine[] = [];
     for (const row of rows.slice(header.index + 1)) {
       const fromInvoiceColumn = invoiceIdx >= 0 ? invoiceKey(row[invoiceIdx]) : null;
-      const invoiceNumber = isVatInvoiceStatement
-        ? fromInvoiceColumn
-        : (fromInvoiceColumn ??
-          extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
-          (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
-          (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null));
+      const fromDocNo = docNoIdx >= 0 ? invoiceKey(row[docNoIdx]) : null;
+      const invoiceNumber = isDocNoStatement
+        ? fromDocNo
+        : isVatInvoiceStatement
+          ? fromInvoiceColumn
+          : (fromInvoiceColumn ??
+            extractInvoiceNumber(descriptionIdx >= 0 ? row[descriptionIdx] : null) ??
+            (documentIdx >= 0 ? invoiceKey(row[documentIdx]) : null) ??
+            (extractedIdx >= 0 ? extractInvoiceNumber(row[extractedIdx]) : null));
       if (!invoiceNumber) continue;
       if (isTotalLabel(row[descriptionIdx]) || isTotalLabel(row[amountIdx])) continue;
-      const amount = this.asNumber(amountIdx >= 0 ? row[amountIdx] : null);
+      const debit = this.asNumber(netIdx >= 0 ? row[netIdx] : null);
+      const credit = this.asNumber(creditIdx >= 0 ? row[creditIdx] : null);
+      const amount = isDocNoStatement
+        ? debit == null && credit == null
+          ? null
+          : (debit ?? 0) - (credit ?? 0)
+        : this.asNumber(amountIdx >= 0 ? row[amountIdx] : null);
       if (amount == null) continue;
       lines.push({
         invoiceNumber,

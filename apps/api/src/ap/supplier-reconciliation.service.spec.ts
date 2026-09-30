@@ -394,6 +394,47 @@ describe('SupplierReconciliationService', () => {
     ]);
   });
 
+  it('reads a Doc. No. statement with debit, credit, type, and description', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Invoice Number', 'Unpaid Amount'],
+        ['J26-925', 173530.05],
+      ]),
+      'Aljeel',
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['STATEMENT OF ACCOUNT'],
+        ['Date', 'Br.', 'Type', 'Doc. No.', 'Description', 'Debit', 'Credit', 'Balance'],
+        ['2026-06-07', '01', 'RCN', '26-198', 'PERIOD : 01 - 07 JUN 26', 0, 39394, '39,394.00 Cr'],
+        ['2026-06-07', '01', 'INV', 'J26-925', 'PERIOD : 01 - 07 JUN 26', 173530.05, 0, '134,136.05 Dr'],
+        ['Total :', null, null, null, null, 173530.05, 39394, '134,136.05 Dr'],
+      ]),
+      'Sheet',
+    );
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    const parsed = await service.parseInputs([{ originalname: 'SOA-AL JEEL NOT PAID.xlsx', buffer }]);
+
+    expect(parsed.supplier).toEqual([
+      expect.objectContaining({
+        invoiceNumber: '26-198',
+        amount: -39394,
+        description: 'PERIOD : 01 - 07 JUN 26',
+        notes: 'RCN',
+        date: '2026-06-07',
+      }),
+      expect.objectContaining({
+        invoiceNumber: 'J26-925',
+        amount: 173530.05,
+        notes: 'INV',
+      }),
+    ]);
+  });
+
   it('does not classify amount-and-date columns without an invoice column as supplier data', async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

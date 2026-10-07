@@ -29,7 +29,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir}>
       <head>
-        <meta name="theme-color" content="#1f3b6e" />
+        <meta name="theme-color" content="#006EB3" />
       </head>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider messages={messages}>

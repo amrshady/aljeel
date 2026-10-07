@@ -3,3 +3,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.header-surface {
+  position: relative;
+  isolation: isolate;
+  background-color: #0a4d78;
+  background-image:
+    radial-gradient(ellipse 55% 160% at 50% -40%, rgba(255, 255, 255, 0.09), transparent 70%),
+    linear-gradient(180deg, #08405f 0%, #0a5384 100%);
+  box-shadow: 0 6px 24px -12px rgba(4, 36, 58, 0.45);
+}
+
+.header-surface::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(222, 94, 76, 0.55) 20%,
+    #de5e4c 50%,
+    rgba(222, 94, 76, 0.55) 80%,
+    transparent
+  );
+}

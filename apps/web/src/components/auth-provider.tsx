@@ -34,6 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
+    if (process.env.NEXT_PUBLIC_AUTH_DEV_MODE === 'true') {
+      const locale = window.location.pathname.match(/^\/(en|ar)(\/|$)/)?.[1] ?? 'en';
+      window.location.assign(`/${locale}/login`);
+      return;
+    }
     window.location.assign('/cdn-cgi/access/logout');
   }, []);
 

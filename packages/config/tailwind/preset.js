@@ -14,6 +14,14 @@ module.exports = {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
         },
+        denim: {
+          DEFAULT: 'hsl(var(--denim))',
+          foreground: 'hsl(var(--denim-foreground))',
+        },
+        pimento: {
+          DEFAULT: 'hsl(var(--pimento))',
+          foreground: 'hsl(var(--pimento-foreground))',
+        },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',

@@ -8,7 +8,7 @@ type AljeelLogoProps = {
 };
 
 const LOGO = {
-  light: { src: '/aljeel-logo.svg', width: 640, height: 452 },
+  light: { src: '/aljeel-logo-white.png', width: 594, height: 420 },
   default: { src: '/aljeel-logo-transparent.png', width: 148, height: 113 },
 } as const;
 

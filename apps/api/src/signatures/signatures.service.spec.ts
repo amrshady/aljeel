@@ -16,6 +16,29 @@ const signer = {
   supplierId: null,
 };
 
+/** Runs interactive transactions on the same mock and answers the step row lock. */
+function transactional<T extends object>(
+  prisma: T,
+  { stepAction = 'PENDING', rows = [] as Array<{ id: string; signedAt: Date | null }> } = {},
+) {
+  const client = prisma as T & Record<string, unknown>;
+  const signatures = (client.asateelInvoiceSignature ?? {}) as Record<string, unknown>;
+  Object.assign(client, {
+    $queryRaw: vi.fn().mockResolvedValue([{ action: stepAction }]),
+    $transaction: vi.fn((arg: unknown) =>
+      typeof arg === 'function' ? arg(client) : Promise.all(arg as Promise<unknown>[]),
+    ),
+    asateelInvoiceSignature: {
+      ...signatures,
+      findUnique: vi.fn(
+        async ({ where }: { where: { id: string } }) =>
+          rows.find((row) => row.id === where.id) ?? null,
+      ),
+    },
+  });
+  return client;
+}
+
 function batch(overrides: Record<string, unknown> = {}) {
   return {
     id: 'inv1',
@@ -62,14 +85,18 @@ describe('SignaturesService', () => {
   });
 
   it('approves one row and keeps the batch with the first signer', async () => {
-    const prisma = {
-      invoice: { findFirst: vi.fn().mockResolvedValue(batch()) },
-      asateelInvoiceSignature: {
-        update: vi.fn().mockResolvedValue({}),
-        count: vi.fn().mockResolvedValue(1),
+    const prisma = transactional(
+      {
+        invoice: { findFirst: vi.fn().mockResolvedValue(batch()) },
+        asateelInvoiceSignature: {
+          update: vi.fn().mockResolvedValue({}),
+          count: vi.fn().mockResolvedValue(1),
+        },
+        approvalStep: { update: vi.fn() },
+        auditEvent: { create: vi.fn() },
       },
-      approvalStep: { update: vi.fn() },
-    };
+      { rows: [{ id: 'row1', signedAt: null }] },
+    );
     const audit = { record: vi.fn() };
     const service = new SignaturesService(prisma as never, audit as never);
 
@@ -80,6 +107,7 @@ describe('SignaturesService', () => {
     expect(prisma.approvalStep.update).not.toHaveBeenCalled();
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'ASATEEL_LINE_SIGNED' }),
+      prisma,
     );
   });
 
@@ -106,6 +134,7 @@ describe('SignaturesService', () => {
       },
       approvalStep: { update: vi.fn() },
     };
+    transactional(prisma, { rows: [{ id: 'row2', signedAt: null }] });
     const audit = { record: vi.fn() };
     const service = new SignaturesService(prisma as never, audit as never);
 
@@ -133,6 +162,9 @@ describe('SignaturesService', () => {
       },
       asateelInvoiceSignature: { update: vi.fn().mockResolvedValue({}) },
     };
+    transactional(prisma, {
+      rows: [{ id: 'row1', signedAt: new Date('2026-10-11T01:00:00.000Z') }],
+    });
     const audit = { record: vi.fn() };
     const service = new SignaturesService(prisma as never, audit as never);
 
@@ -147,6 +179,7 @@ describe('SignaturesService', () => {
     );
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'ASATEEL_LINE_UNSIGNED' }),
+      prisma,
     );
   });
 
@@ -156,6 +189,7 @@ describe('SignaturesService', () => {
       asateelInvoiceSignature: { count: vi.fn().mockResolvedValue(1) },
       approvalStep: { update: vi.fn() },
     };
+    transactional(prisma);
     const service = new SignaturesService(prisma as never, { record: vi.fn() } as never);
 
     await expect(service.complete(signer, 'inv1')).rejects.toBeInstanceOf(
@@ -170,6 +204,7 @@ describe('SignaturesService', () => {
       asateelInvoiceSignature: { count: vi.fn().mockResolvedValue(0) },
       approvalStep: { update: vi.fn().mockResolvedValue({}) },
     };
+    transactional(prisma);
     const audit = { record: vi.fn() };
     const service = new SignaturesService(prisma as never, audit as never);
 
@@ -179,12 +214,13 @@ describe('SignaturesService', () => {
     });
     expect(prisma.approvalStep.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'step1', action: 'PENDING' },
+        where: { id: 'step1' },
         data: expect.objectContaining({ action: 'APPROVED' }),
       }),
     );
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'ASATEEL_STAGE1_COMPLETE' }),
+      prisma,
     );
   });
 
@@ -203,8 +239,8 @@ describe('SignaturesService', () => {
       asateelInvoiceSignature: { count: vi.fn().mockResolvedValue(0) },
       approvalStep: { update: vi.fn().mockRejectedValue(alreadyActed) },
       appUser: { findUnique: vi.fn() },
-      $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
+    transactional(prisma, { stepAction: 'APPROVED' });
     const service = new SignaturesService(
       prisma as never,
       audit as never,
@@ -220,6 +256,51 @@ describe('SignaturesService', () => {
     );
     expect(notifyAwaitingSigner).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('refuses a row change that lands after done', async () => {
+    const prisma = {
+      invoice: { findFirst: vi.fn().mockResolvedValue(batch()) },
+      asateelInvoiceSignature: { update: vi.fn() },
+    };
+    transactional(prisma, {
+      stepAction: 'APPROVED',
+      rows: [{ id: 'row1', signedAt: new Date('2026-10-11T01:00:00.000Z') }],
+    });
+    const audit = { record: vi.fn() };
+    const service = new SignaturesService(prisma as never, audit as never);
+
+    await expect(service.unapproveLine(signer, 'inv1', '03041')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    await expect(service.approveLine(signer, 'inv1', '03042')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(prisma.asateelInvoiceSignature.update).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('counts unsigned rows under the step lock before finishing stage 1', async () => {
+    const prisma = transactional({
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(
+          batch({
+            asateelSignatures: [
+              { id: 'row1', invoiceNo: '03041', signedAt: new Date(), approvalStepId: 'step1' },
+            ],
+          }),
+        ),
+      },
+      asateelInvoiceSignature: { count: vi.fn().mockResolvedValue(1) },
+      approvalStep: { update: vi.fn() },
+    });
+    const service = new SignaturesService(prisma as never, { record: vi.fn() } as never);
+
+    await expect(service.complete(signer, 'inv1')).rejects.toBeInstanceOf(
+      UnprocessableEntityException,
+    );
+    expect(prisma.$queryRaw).toHaveBeenCalled();
+    expect(prisma.approvalStep.update).not.toHaveBeenCalled();
   });
 
   it('rejects a signer whose step is not current', async () => {
@@ -286,20 +367,23 @@ describe('SignaturesService', () => {
   it('does not rename the batch or its files', async () => {
     const invoiceUpdate = vi.fn().mockResolvedValue({});
     const documentUpdate = vi.fn();
-    const prismaFor = (invoice: ReturnType<typeof batch>) => ({
-      invoice: {
-        findFirst: vi.fn().mockResolvedValue(invoice),
-        update: invoiceUpdate,
-      },
-      asateelInvoiceSignature: {
-        update: vi.fn().mockResolvedValue({}),
-        count: vi.fn().mockResolvedValue(0),
-      },
-      approvalStep: { update: vi.fn().mockResolvedValue({}) },
-      document: { update: documentUpdate, updateMany: documentUpdate },
-      supplierUser: { findMany: vi.fn().mockResolvedValue([]) },
-      $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
-    });
+    const prismaFor = (invoice: ReturnType<typeof batch>) =>
+      transactional(
+        {
+          invoice: {
+            findFirst: vi.fn().mockResolvedValue(invoice),
+            update: invoiceUpdate,
+          },
+          asateelInvoiceSignature: {
+            update: vi.fn().mockResolvedValue({}),
+            count: vi.fn().mockResolvedValue(0),
+          },
+          approvalStep: { update: vi.fn().mockResolvedValue({}) },
+          document: { update: documentUpdate, updateMany: documentUpdate },
+          supplierUser: { findMany: vi.fn().mockResolvedValue([]) },
+        },
+        { rows: [{ id: 'row1', signedAt: null }] },
+      );
     const audit = { record: vi.fn() };
     const stage1 = new SignaturesService(prismaFor(batch()) as never, audit as never);
     await stage1.approveLine(signer, 'inv1', '03041');
@@ -483,6 +567,7 @@ describe('SignaturesService', () => {
         }),
       },
     };
+    transactional(prisma);
     const service = new SignaturesService(
       prisma as never,
       { record: vi.fn() } as never,

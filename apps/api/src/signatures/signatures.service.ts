@@ -79,20 +79,27 @@ export class SignaturesService {
       });
     }
 
-    const signedAt = row.signedAt ?? new Date();
-    if (!row.signedAt) {
-      await this.prisma.asateelInvoiceSignature.update({
+    const signedAt = await this.prisma.$transaction(async (tx) => {
+      await this.lockPendingStep(tx, step.id);
+      const current = await tx.asateelInvoiceSignature.findUnique({ where: { id: row.id } });
+      if (current?.signedAt) return current.signedAt;
+      const now = new Date();
+      await tx.asateelInvoiceSignature.update({
         where: { id: row.id },
-        data: { signedById: user.sub, signedAt },
+        data: { signedById: user.sub, signedAt: now },
       });
-      await this.audit.record({
-        actorId: user.sub,
-        entity: 'Invoice',
-        entityId: invoice.id,
-        action: 'ASATEEL_LINE_SIGNED',
-        after: { invoiceNo, approvalStepId: step.id },
-      });
-    }
+      await this.audit.record(
+        {
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: invoice.id,
+          action: 'ASATEEL_LINE_SIGNED',
+          after: { invoiceNo, approvalStepId: step.id },
+        },
+        tx,
+      );
+      return now;
+    });
 
     return {
       invoiceId: invoice.id,
@@ -120,19 +127,25 @@ export class SignaturesService {
       });
     }
 
-    if (row.signedAt) {
-      await this.prisma.asateelInvoiceSignature.update({
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockPendingStep(tx, step.id);
+      const current = await tx.asateelInvoiceSignature.findUnique({ where: { id: row.id } });
+      if (!current?.signedAt) return;
+      await tx.asateelInvoiceSignature.update({
         where: { id: row.id },
         data: { signedById: null, signedAt: null },
       });
-      await this.audit.record({
-        actorId: user.sub,
-        entity: 'Invoice',
-        entityId: invoice.id,
-        action: 'ASATEEL_LINE_UNSIGNED',
-        after: { invoiceNo, approvalStepId: step.id },
-      });
-    }
+      await this.audit.record(
+        {
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: invoice.id,
+          action: 'ASATEEL_LINE_UNSIGNED',
+          after: { invoiceNo, approvalStepId: step.id },
+        },
+        tx,
+      );
+    });
 
     return {
       invoiceId: invoice.id,
@@ -152,32 +165,36 @@ export class SignaturesService {
       });
     }
 
-    const unsigned = await this.prisma.asateelInvoiceSignature.count({
-      where: { invoiceId: invoice.id, signedAt: null },
-    });
-    if (unsigned > 0) {
-      throw new UnprocessableEntityException({
-        code: 'SIGNATURE_ROWS_REMAINING',
-        message: 'Approve every invoice before sending the batch on.',
+    const completed = await this.prisma.$transaction(async (tx) => {
+      if (!(await this.lockStep(tx, step.id))) return false;
+      const unsigned = await tx.asateelInvoiceSignature.count({
+        where: { invoiceId: invoice.id, signedAt: null },
       });
-    }
-
-    const completed = await this.ifStillPending(() =>
-      this.prisma.approvalStep.update({
-        where: { id: step.id, action: 'PENDING' },
+      if (unsigned > 0) {
+        throw new UnprocessableEntityException({
+          code: 'SIGNATURE_ROWS_REMAINING',
+          message: 'Approve every invoice before sending the batch on.',
+        });
+      }
+      await tx.approvalStep.update({
+        where: { id: step.id },
         data: { action: 'APPROVED', actedAt: new Date() },
-      }),
-    );
+      });
+      await this.audit.record(
+        {
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: invoice.id,
+          action: 'ASATEEL_STAGE1_COMPLETE',
+          after: { approvalStepId: step.id },
+        },
+        tx,
+      );
+      return true;
+    });
     if (!completed) {
       return { invoiceId: invoice.id, stage1Complete: true };
     }
-    await this.audit.record({
-      actorId: user.sub,
-      entity: 'Invoice',
-      entityId: invoice.id,
-      action: 'ASATEEL_STAGE1_COMPLETE',
-      after: { approvalStepId: step.id },
-    });
 
     await this.notifyNextSigner(invoice);
 
@@ -265,6 +282,23 @@ export class SignaturesService {
     await this.notifySupplierRejected(invoice, reason);
 
     return { invoiceId: invoice.id, status: 'CHANGES_REQUESTED' as const };
+  }
+
+  /** Row-locks the step so line signing, revoking, and Done cannot interleave. */
+  private async lockStep(tx: Prisma.TransactionClient, stepId: string): Promise<boolean> {
+    const [locked] = await tx.$queryRaw<Array<{ action: string }>>`
+      SELECT "action" FROM "ApprovalStep" WHERE "id" = ${stepId} FOR UPDATE
+    `;
+    return locked?.action === 'PENDING';
+  }
+
+  private async lockPendingStep(tx: Prisma.TransactionClient, stepId: string): Promise<void> {
+    if (!(await this.lockStep(tx, stepId))) {
+      throw new ConflictException({
+        code: 'SIGNATURE_ALREADY_ACTED',
+        message: 'This batch was already signed or sent back.',
+      });
+    }
   }
 
   private async ifStillPending<T>(write: () => Promise<T>): Promise<T | null> {

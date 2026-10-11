@@ -4,6 +4,9 @@
 -- East (Jed.) is Shakeer Shaik, West (Dam.) is Hussain Al Ghadeer.
 -- Abdul Ghaffar Ahmed signs second for every area.
 
+-- The region change rewrites "Invoice"; give up rather than queue behind live traffic.
+SET lock_timeout = '10s';
+
 ALTER TYPE "InvoiceStatus" ADD VALUE IF NOT EXISTS 'AWAITING_SIGNATURE';
 
 -- Eastern and Western each split into outbound and inbound. Existing batches had no
@@ -40,7 +43,8 @@ CREATE TABLE "AsateelSignerRoute" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "AsateelSignerRoute_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AsateelSignerRoute_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "AsateelSignerRoute_stage_check" CHECK ("stage" IN (1, 2))
 );
 
 CREATE INDEX "AsateelSignerRoute_region_stage_idx" ON "AsateelSignerRoute"("region", "stage");
@@ -103,6 +107,27 @@ BEGIN
   EXECUTE format('ALTER TABLE "AppUser" ADD CONSTRAINT "AppUser_role_check" %s', widened);
 END $$;
 
+-- An existing account with another role must be handled by hand, not silently demoted.
+DO $$
+DECLARE
+  clash text;
+BEGIN
+  SELECT string_agg(format('%s (%s)', "email", "role"), ', ') INTO clash
+  FROM "AppUser"
+  WHERE lower("email") IN (
+    'wkobessy@aljeel.com',
+    'halghadeer@aljeel.com',
+    'sshaik@aljeel.com',
+    'rabdelshafy@aljeel.com',
+    'agahmed@aljeel.com'
+  )
+    AND "role"::text <> 'ASATEEL_SIGNER';
+
+  IF clash IS NOT NULL THEN
+    RAISE EXCEPTION 'Asateel signer emails already belong to other roles: %', clash;
+  END IF;
+END $$;
+
 INSERT INTO "AppUser" ("id", "email", "fullName", "role", "isActive", "updatedAt")
 VALUES
   ('app_wkobessy_aljeel', 'wkobessy@aljeel.com', 'Waleed Kobessy', 'ASATEEL_SIGNER', true, NOW()),
@@ -112,9 +137,9 @@ VALUES
   ('app_agahmed_aljeel', 'agahmed@aljeel.com', 'Abdul Ghaffar Ahmed', 'ASATEEL_SIGNER', true, NOW())
 ON CONFLICT ("email") DO UPDATE SET
   "fullName" = EXCLUDED."fullName",
-  "role" = EXCLUDED."role",
   "isActive" = EXCLUDED."isActive",
-  "updatedAt" = NOW();
+  "updatedAt" = NOW()
+WHERE "AppUser"."role" = 'ASATEEL_SIGNER';
 
 INSERT INTO "AsateelSignerRoute" ("id", "region", "stage", "signerEmail", "isActive", "updatedAt")
 VALUES
@@ -132,3 +157,5 @@ ON CONFLICT ("id") DO UPDATE SET
   "signerEmail" = EXCLUDED."signerEmail",
   "isActive" = EXCLUDED."isActive",
   "updatedAt" = NOW();
+
+RESET lock_timeout;

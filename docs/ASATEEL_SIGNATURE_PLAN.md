@@ -102,6 +102,7 @@ There is no direction field. Eastern and Western each become two `AsateelRegion`
   - `POST /:invoiceId/reject` with a reason. The current signer, at either stage, sends the whole batch back. Status becomes `CHANGES_REQUESTED`, the reason is stored on the invoice, and the supplier submits it again. A new submit replaces the signature steps.
 - Every action writes an `AuditEvent`.
 - A double click, or two tabs, acts once. Done, Approve batch, and Reject batch only update a step that is still `PENDING`. A second Approve batch or Reject batch gets `409 SIGNATURE_ALREADY_ACTED`, and a second Done does nothing. Neither sends a second email.
+- Row approve, row revoke, and Done lock the step row in one transaction. Done counts the unsigned rows under that lock, so a revoke can't land between the check and the handoff. A row change after Done gets `409 SIGNATURE_ALREADY_ACTED`.
 - While a batch is with a signer, the supplier cannot add or delete files, change the region, or archive it.
 - A new submit deletes the old signature steps and rows. The earlier signatures and the rejection reason stay in the audit log.
 
@@ -167,8 +168,11 @@ Asateel names the batch with its own sequence number, such as 10 or 11. Check th
 - Manual end-to-end test with the dev identities: supplier submits Eastern inbound, Shakeer signs the rows, Abdul Ghaffar signs, Labadi approves, the engine runs.
   - Done locally on 11 Oct 2026 with `SIG-E2E-13` (Eastern inbound), emails off. It covered: Waleed can't see it, Labadi sees it pending and can't approve, reject, or hold it, Shakeer signs and revokes rows, Done is refused until every row is signed, Abdul Ghaffar rejects with a reason, the supplier sees the reason and resubmits, the batch goes back to Shakeer at 0 signed, then Abdul Ghaffar approves and it reaches Labadi under review with its name and region unchanged. The audit log has every step.
   - Not done: Labadi's approval and the engine run, because that calls the vendor. Run it on staging.
+- Checks: run `pnpm typecheck` and `pnpm test` from the repo root after `pnpm install --frozen-lockfile`. They build `shared-types` and generate the Prisma client first. Running `tsc` inside `apps/api` against a stale build fails for that reason only. The API tests read the workspace packages from source, so `vitest` inside `apps/api` works either way.
 - Rollout:
   1. Migrate. The migrations also insert the signer `AppUser` and `AsateelSignerRoute` rows. Check that they exist, and don't add them again.
+     - The region change rewrites the `Invoice` table under an exclusive lock. Rehearse on a copy of production and time it. The migration sets `lock_timeout` to 10 seconds, so if it can't get the lock it fails and rolls back instead of blocking the site. Run it again when traffic is quiet.
+     - If any signer email already belongs to an account with another role, the migration stops with `Asateel signer emails already belong to other roles` and changes nothing. Decide with Labadi what that person's account should be, change or remove it, run `prisma migrate resolve --rolled-back 20261010230100_asateel_signatures`, then migrate again.
   2. Update the Cloudflare allow-list.
   3. Deploy.
   4. Check that the server can send through `gog`.

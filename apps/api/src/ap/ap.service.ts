@@ -18,7 +18,7 @@ import { serializeInvoice, serializeTimelineEvent } from '../invoices/invoices.s
 import { AsateelIntegrationService } from './asateel-integration.service';
 import { JawalIntegrationService } from './jawal-integration.service';
 
-const EXCEPTION_STATUSES = ['UNDER_REVIEW', 'ON_HOLD'] as const;
+const EXCEPTION_STATUSES = ['AWAITING_SIGNATURE', 'UNDER_REVIEW', 'ON_HOLD'] as const;
 const APPROVED_PROCESSED_STATUSES = ['APPROVED', 'SCHEDULED', 'PAID'] as const;
 const REJECTED_PROCESSED_STATUSES = ['REJECTED'] as const;
 

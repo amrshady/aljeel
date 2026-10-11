@@ -153,7 +153,7 @@ describe('ApService', () => {
 
     expect(prisma.invoice.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { status: { in: ['UNDER_REVIEW', 'ON_HOLD'] } },
+        where: { status: { in: ['AWAITING_SIGNATURE', 'UNDER_REVIEW', 'ON_HOLD'] } },
         orderBy: { createdAt: 'desc' },
       }),
     );
@@ -271,7 +271,7 @@ describe('ApService', () => {
     expect(prisma.invoice.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          status: { in: ['UNDER_REVIEW', 'ON_HOLD'] },
+          status: { in: ['AWAITING_SIGNATURE', 'UNDER_REVIEW', 'ON_HOLD'] },
           OR: [
             { invoiceNumber: { contains: 'ticket-99', mode: 'insensitive' } },
             { supplier: { legalName: { contains: 'ticket-99', mode: 'insensitive' } } },

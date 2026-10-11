@@ -11,6 +11,15 @@ describe('invoice FSM', () => {
     expect(() => assertInvoiceTransition('SUBMITTED', 'CHANGES_REQUESTED')).not.toThrow();
     expect(() => assertInvoiceTransition('CHANGES_REQUESTED', 'SUBMITTED')).not.toThrow();
     expect(() => assertInvoiceTransition('CHANGES_REQUESTED', 'DRAFT')).not.toThrow();
+    expect(() => assertInvoiceTransition('SUBMITTED', 'AWAITING_SIGNATURE')).not.toThrow();
+    expect(() => assertInvoiceTransition('AWAITING_SIGNATURE', 'UNDER_REVIEW')).not.toThrow();
+    expect(() => assertInvoiceTransition('AWAITING_SIGNATURE', 'CHANGES_REQUESTED')).not.toThrow();
+    expect(() => assertInvoiceTransition('AWAITING_SIGNATURE', 'APPROVED')).toThrow(
+      InvalidInvoiceTransitionError,
+    );
+    expect(() => assertInvoiceTransition('AWAITING_SIGNATURE', 'REJECTED')).toThrow(
+      InvalidInvoiceTransitionError,
+    );
     expect(() => assertInvoiceTransition('UNDER_REVIEW', 'REJECTED')).not.toThrow();
     expect(() => assertInvoiceTransition('REJECTED', 'DRAFT')).not.toThrow();
     expect(() => assertInvoiceTransition('REJECTED', 'SUBMITTED')).toThrow(

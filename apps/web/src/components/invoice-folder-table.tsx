@@ -19,6 +19,9 @@ export type InvoiceFolderRow = {
   oracleEnteredAt?: string | null;
 };
 
+/** Keeps the name readable; narrower screens scroll the table instead of overlapping columns. */
+const NAME_MIN_REM = 14;
+
 function formatModified(iso: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
@@ -88,17 +91,24 @@ export function InvoiceFolderTable({
 
   const nameCell = (row: InvoiceFolderRow) => {
     const label = (
-      <span className="flex min-w-0 items-center gap-2 font-medium">
-        <span className="text-lg leading-none" aria-hidden>
-          📁
+      <span className="flex min-w-0 flex-col items-start gap-1 font-medium">
+        <span className="flex min-w-0 max-w-full items-center gap-2">
+          <span className="text-lg leading-none" aria-hidden>
+            📁
+          </span>
+          <span className="truncate">
+            {highlightQuery ? (
+              <HighlightText text={displayInvoiceName(row.invoiceNumber)} query={highlightQuery} />
+            ) : (
+              displayInvoiceName(row.invoiceNumber)
+            )}
+          </span>
         </span>
-        <span className="truncate">
-          {highlightQuery ? (
-            <HighlightText text={displayInvoiceName(row.invoiceNumber)} query={highlightQuery} />
-          ) : (
-            displayInvoiceName(row.invoiceNumber)
-          )}
-        </span>
+        {!showStatus && row.status === 'AWAITING_SIGNATURE' && (
+          <span className="inline-flex max-w-full whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900">
+            {tStatus('status.AWAITING_SIGNATURE')}
+          </span>
+        )}
       </span>
     );
 
@@ -113,9 +123,19 @@ export function InvoiceFolderTable({
     return label;
   };
 
+  const minTableRem =
+    NAME_MIN_REM +
+    (showSupplier ? 12 : 0) +
+    6 +
+    11 +
+    (showSize ? 6 : 0) +
+    (showStatus ? 8 : 0) +
+    (trailingColumn ? 9.5 : 0) +
+    (renderActions ? 7 : 0);
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full table-fixed text-sm">
+      <table className="w-full table-fixed text-sm" style={{ minWidth: `${minTableRem}rem` }}>
         <colgroup>
           <col />
           {showSupplier && <col className="w-[12rem]" />}
@@ -183,7 +203,7 @@ export function InvoiceFolderTable({
                   {row.status && (
                     <span
                       className={
-                        row.status === 'CHANGES_REQUESTED'
+                        row.status === 'CHANGES_REQUESTED' || row.status === 'AWAITING_SIGNATURE'
                           ? 'inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900'
                           : 'inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground'
                       }

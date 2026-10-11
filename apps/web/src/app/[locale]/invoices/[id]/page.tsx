@@ -1,12 +1,10 @@
 'use client';
 
 import {
-  ASATEEL_REGION_CODES,
-  ASATEEL_REGION_VALUES,
+  AsateelRegionSchema,
   SupplierProfileSchema,
   validateInvoiceSubmitDocuments,
   type ApInvoiceDetail,
-  type AsateelRegion,
   type UserRole,
 } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
@@ -19,6 +17,7 @@ import { z } from 'zod';
 import { ApReviewActions } from '@/components/ap-review-actions';
 import { ReconciliationPanel } from '@/components/reconciliation-panel';
 import { AppShell } from '@/components/app-shell';
+import { AsateelAreaSelect } from '@/components/asateel-area-select';
 import { PageLoading } from '@/components/loading-spinner';
 import { useAuth } from '@/components/auth-provider';
 import { DocumentEvidenceViewer } from '@/components/document-evidence-viewer';
@@ -60,7 +59,7 @@ function InvoiceDetailContent() {
   const [folderName, setFolderName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
+  const [asateelArea, setAsateelArea] = useState('');
 
   const {
     data: invoice,
@@ -108,9 +107,7 @@ function InvoiceDetailContent() {
   const selectedDocument = documents?.find((doc) => doc.id === selectedDocumentId) ?? null;
 
   useEffect(() => {
-    if (invoice?.asateelRegion) {
-      setAsateelRegion(invoice.asateelRegion);
-    }
+    setAsateelArea(invoice?.asateelRegion ?? '');
   }, [invoice?.asateelRegion]);
 
   useEffect(() => {
@@ -153,13 +150,14 @@ function InvoiceDetailContent() {
     setEditingFolderName(false);
   }
 
-  async function onRegionChange(value: AsateelRegion | '') {
-    setAsateelRegion(value);
+  async function onAreaChange(value: string) {
+    setAsateelArea(value);
     setError(null);
-    if (!invoice || !value) return;
+    const region = AsateelRegionSchema.safeParse(value);
+    if (!invoice || !region.success) return;
     setSavingRegion(true);
     try {
-      await updateInvoiceAsateelRegion(invoice.id, value);
+      await updateInvoiceAsateelRegion(invoice.id, region.data);
       await queryClient.invalidateQueries({ queryKey: ['invoices', params.id] });
     } catch (err) {
       setError(formatInvoiceError(err, tForm, t('submitError')));
@@ -176,7 +174,7 @@ function InvoiceDetailContent() {
 
   async function onSubmit() {
     if (!invoice) return;
-    if (isAsateelSupplier && !asateelRegion) {
+    if (isAsateelSupplier && !asateelArea) {
       setError(tForm('errors.asateelRegionRequired'));
       return;
     }
@@ -217,8 +215,13 @@ function InvoiceDetailContent() {
           return;
         }
       }
-      if (isAsateelSupplier && asateelRegion && invoice.asateelRegion !== asateelRegion) {
-        await updateInvoiceAsateelRegion(invoice.id, asateelRegion);
+      const selectedRegion = AsateelRegionSchema.safeParse(asateelArea);
+      if (
+        isAsateelSupplier &&
+        selectedRegion.success &&
+        invoice.asateelRegion !== selectedRegion.data
+      ) {
+        await updateInvoiceAsateelRegion(invoice.id, selectedRegion.data);
       }
       const submittedInvoice = await submitInvoice(invoice.id);
       queryClient.setQueryData(
@@ -371,30 +374,22 @@ function InvoiceDetailContent() {
       </div>
 
       {canSubmit && isAsateelSupplier && (
-        <div className="mt-4 max-w-xs">
-          <label className="text-sm font-medium" htmlFor="asateel-region">
-            {tForm('asateelRegion')}
-            <span className="text-destructive"> *</span>
-          </label>
-          <select
+        <div className="mt-4">
+          <AsateelAreaSelect
             id="asateel-region"
-            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-            value={asateelRegion}
+            value={asateelArea}
             disabled={submitting || savingRegion}
-            required
-            aria-required="true"
-            onChange={(event) => {
-              void onRegionChange(event.target.value as AsateelRegion | '');
+            onChange={(value) => {
+              void onAreaChange(value);
             }}
-          >
-            <option value="">{tForm('asateelRegionPlaceholder')}</option>
-            {ASATEEL_REGION_VALUES.map((region) => (
-              <option key={region} value={region}>
-                {tForm(`asateelRegions.${region}`, { code: ASATEEL_REGION_CODES[region] })}
-              </option>
-            ))}
-          </select>
+          />
         </div>
+      )}
+
+      {isReviewUser && invoice.status === 'AWAITING_SIGNATURE' && (
+        <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          {t('pendingSignature')}
+        </p>
       )}
 
       {error && <p className="mt-4 text-sm text-destructive">{error}</p>}

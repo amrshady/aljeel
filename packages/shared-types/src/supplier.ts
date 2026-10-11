@@ -20,6 +20,7 @@ export const InvoicePipelineCountsSchema = z.object({
   draft: z.number().int().nonnegative(),
   submitted: z.number().int().nonnegative(),
   changesRequested: z.number().int().nonnegative(),
+  awaitingSignature: z.number().int().nonnegative(),
   underReview: z.number().int().nonnegative(),
   approved: z.number().int().nonnegative(),
   scheduled: z.number().int().nonnegative(),

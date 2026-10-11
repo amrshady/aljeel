@@ -38,6 +38,7 @@ export class InvoicesController {
         draft: 0,
         submitted: 0,
         changesRequested: 0,
+        awaitingSignature: 0,
         underReview: 0,
         approved: 0,
         scheduled: 0,

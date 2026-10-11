@@ -33,6 +33,7 @@ import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth.types';
 import { invoiceNotFound, requireSupplierId } from '../common/tenant.util';
 import { InvoiceSubmitNotificationService } from '../notifications/invoice-submit-notification.service';
+import { SignatureNotificationService } from '../notifications/signature-notification.service';
 import { AsateelInvoiceManifestService } from './asateel-invoice-manifest.service';
 import { JawalEvidenceCheckService } from './jawal-evidence-check.service';
 
@@ -107,6 +108,7 @@ export class InvoicesService {
     private readonly asateelManifest: AsateelInvoiceManifestService,
     private readonly jawalEvidence: JawalEvidenceCheckService,
     private readonly invoiceSubmitNotification: InvoiceSubmitNotificationService,
+    private readonly signatureNotification?: SignatureNotificationService,
   ) {}
 
   async createDraft(user: AuthUser, body: unknown) {
@@ -460,7 +462,10 @@ export class InvoicesService {
     if (!resumeAsyncSubmission && invoice.status === 'SUBMITTED') {
       return { id: invoice.id, status: invoice.status };
     }
-    if (!resumeAsyncSubmission && invoice.status === 'UNDER_REVIEW') {
+    if (
+      !resumeAsyncSubmission &&
+      (invoice.status === 'UNDER_REVIEW' || invoice.status === 'AWAITING_SIGNATURE')
+    ) {
       return {
         id: invoice.id,
         status: invoice.status,
@@ -469,9 +474,7 @@ export class InvoicesService {
     }
 
     try {
-      if (resumeAsyncSubmission && invoice.status === 'SUBMITTED') {
-        assertInvoiceTransition('SUBMITTED', 'UNDER_REVIEW');
-      } else {
+      if (!(resumeAsyncSubmission && invoice.status === 'SUBMITTED')) {
         assertInvoiceTransition(
           invoice.status as Parameters<typeof assertInvoiceTransition>[0],
           'SUBMITTED',
@@ -527,13 +530,11 @@ export class InvoicesService {
       });
     }
 
-    if (supplier?.erpIntegration === 'ASATEEL') {
-      if (!invoice.asateelRegion) {
-        throw new UnprocessableEntityException({
-          code: 'ASATEEL_REGION_REQUIRED',
-          message: 'Select an Asateel region before submitting this invoice.',
-        });
-      }
+    if (supplier?.erpIntegration === 'ASATEEL' && !invoice.asateelRegion) {
+      throw new UnprocessableEntityException({
+        code: 'ASATEEL_REGION_REQUIRED',
+        message: 'Select an Asateel region before submitting this invoice.',
+      });
     }
 
     if (invoice.lines.length > 0) {
@@ -577,7 +578,11 @@ export class InvoicesService {
           where: { id },
           select: { status: true },
         });
-        if (current?.status === 'SUBMITTED' || current?.status === 'UNDER_REVIEW') {
+        if (
+          current?.status === 'SUBMITTED' ||
+          current?.status === 'UNDER_REVIEW' ||
+          current?.status === 'AWAITING_SIGNATURE'
+        ) {
           return { id, status: current.status };
         }
         throw new ConflictException({
@@ -616,6 +621,7 @@ export class InvoicesService {
       return { id, status: 'SUBMITTED' as const };
     }
 
+    let asateelInvoiceNos: string[] | null = null;
     if (supplier?.erpIntegration === 'ASATEEL') {
       const manifest = await this.asateelManifest.validateUploadedFolder(documents);
       if (manifest.error) {
@@ -625,6 +631,7 @@ export class InvoicesService {
           details: manifest.error.details,
         });
       }
+      asateelInvoiceNos = manifest.invoiceNos;
     }
     if (supplier?.erpIntegration === 'ASATEEL') {
       const documentChecksums = [
@@ -755,16 +762,19 @@ export class InvoicesService {
       });
     }
 
-    assertInvoiceTransition('SUBMITTED', 'UNDER_REVIEW');
+    const nextStatus = asateelInvoiceNos ? 'AWAITING_SIGNATURE' : 'UNDER_REVIEW';
+    assertInvoiceTransition('SUBMITTED', nextStatus);
 
-    const reviewed = await this.prisma.invoice.update({
-      where: { id },
-      data: {
-        status: 'UNDER_REVIEW',
-        matchResult: { type: 'MANUAL_REVIEW', withinTolerance: false },
-      },
-      include: { lines: true },
-    });
+    const reviewed = asateelInvoiceNos
+      ? await this.openAsateelSignature(user, invoice, asateelInvoiceNos)
+      : await this.prisma.invoice.update({
+          where: { id },
+          data: {
+            status: 'UNDER_REVIEW',
+            matchResult: { type: 'MANUAL_REVIEW', withinTolerance: false },
+          },
+          include: { lines: true },
+        });
 
     await this.audit.record({
       actorId: user.sub,
@@ -772,23 +782,25 @@ export class InvoicesService {
       entityId: id,
       action: 'STATUS_CHANGE',
       before: { status: 'SUBMITTED' },
-      after: { status: 'UNDER_REVIEW' },
+      after: { status: nextStatus },
     });
 
-    void this.invoiceSubmitNotification
-      .notifyInvoiceSubmitted({
-        invoiceId: reviewed.id,
-        invoiceNumber: reviewed.invoiceNumber,
-        supplierName: supplier?.legalName ?? 'Unknown supplier',
-        submittedByEmail: user.email,
-        submittedByName: user.fullName,
-      })
-      .catch((error: unknown) => {
-        this.logger.error(
-          { invoiceId: reviewed.id, err: error },
-          'Failed to send invoice submit notification email',
-        );
-      });
+    if (nextStatus === 'UNDER_REVIEW') {
+      void this.invoiceSubmitNotification
+        .notifyInvoiceSubmitted({
+          invoiceId: reviewed.id,
+          invoiceNumber: reviewed.invoiceNumber,
+          supplierName: supplier?.legalName ?? 'Unknown supplier',
+          submittedByEmail: user.email,
+          submittedByName: user.fullName,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            { invoiceId: reviewed.id, err: error },
+            'Failed to send invoice submit notification email',
+          );
+        });
+    }
 
     return {
       id: reviewed.id,
@@ -869,6 +881,136 @@ export class InvoicesService {
     return true;
   }
 
+  private async openAsateelSignature(
+    user: AuthUser,
+    invoice: Prisma.InvoiceGetPayload<{ include: { lines: true } }>,
+    invoiceNos: string[],
+  ) {
+    if (!invoice.asateelRegion) {
+      throw new UnprocessableEntityException({
+        code: 'ASATEEL_REGION_REQUIRED',
+        message: 'Select an Asateel region before submitting this invoice.',
+      });
+    }
+    if (invoiceNos.length === 0) {
+      throw new UnprocessableEntityException({
+        code: 'ASATEEL_INVOICE_TABLE_EMPTY',
+        message: 'The uploaded spreadsheet does not contain any invoice numbers.',
+      });
+    }
+
+    const [stage1Route, stage2Route] = await Promise.all([
+      this.prisma.asateelSignerRoute.findFirst({
+        where: { region: invoice.asateelRegion, stage: 1, isActive: true },
+      }),
+      this.prisma.asateelSignerRoute.findFirst({
+        where: { region: null, stage: 2, isActive: true },
+      }),
+    ]);
+    if (!stage1Route || !stage2Route) {
+      throw new UnprocessableEntityException({
+        code: 'ASATEEL_SIGNER_NOT_CONFIGURED',
+        message: 'No signer is configured for this Asateel area.',
+      });
+    }
+
+    const signers = await this.prisma.appUser.findMany({
+      where: {
+        email: { in: [stage1Route.signerEmail, stage2Route.signerEmail] },
+        role: 'ASATEEL_SIGNER',
+        isActive: true,
+      },
+    });
+    const stage1User = signers.find(
+      (signer) => signer.email.toLowerCase() === stage1Route.signerEmail.toLowerCase(),
+    );
+    const stage2User = signers.find(
+      (signer) => signer.email.toLowerCase() === stage2Route.signerEmail.toLowerCase(),
+    );
+    if (!stage1User || !stage2User) {
+      throw new UnprocessableEntityException({
+        code: 'ASATEEL_SIGNER_NOT_CONFIGURED',
+        message: 'No signer is configured for this Asateel area.',
+      });
+    }
+
+    const reviewed = await this.prisma.$transaction(async (tx) => {
+      await tx.asateelInvoiceSignature.deleteMany({ where: { invoiceId: invoice.id } });
+      await tx.approvalStep.deleteMany({ where: { invoiceId: invoice.id } });
+      const stage1 = await tx.approvalStep.create({
+        data: {
+          invoiceId: invoice.id,
+          approverId: stage1User.id,
+          sequence: 1,
+          action: 'PENDING',
+        },
+      });
+      await tx.approvalStep.create({
+        data: {
+          invoiceId: invoice.id,
+          approverId: stage2User.id,
+          sequence: 2,
+          action: 'PENDING',
+        },
+      });
+      await tx.asateelInvoiceSignature.createMany({
+        data: invoiceNos.map((invoiceNo) => ({
+          invoiceId: invoice.id,
+          invoiceNo,
+          approvalStepId: stage1.id,
+        })),
+      });
+      const updated = await tx.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          status: 'AWAITING_SIGNATURE',
+          matchResult: { type: 'MANUAL_REVIEW', withinTolerance: false },
+        },
+        include: { lines: true },
+      });
+      await this.audit.record(
+        {
+          actorId: user.sub,
+          entity: 'Invoice',
+          entityId: invoice.id,
+          action: 'ASATEEL_SIGNATURE_OPENED',
+          after: {
+            status: 'AWAITING_SIGNATURE',
+            region: invoice.asateelRegion,
+            stage1SignerId: stage1User.id,
+            stage2SignerId: stage2User.id,
+            invoiceNos,
+          },
+        },
+        tx,
+      );
+      return updated;
+    });
+
+    if (this.signatureNotification) {
+      const supplierName = await this.prisma.supplier.findUnique({
+        where: { id: invoice.supplierId },
+        select: { legalName: true },
+      });
+      try {
+        await this.signatureNotification.notifyAwaitingSigner({
+          invoiceId: reviewed.id,
+          invoiceNumber: reviewed.invoiceNumber,
+          supplierName: supplierName?.legalName ?? 'Unknown supplier',
+          signerEmail: stage1User.email,
+          signerName: stage1User.fullName,
+        });
+      } catch (error) {
+        this.logger.error(
+          { invoiceId: reviewed.id, err: error },
+          'Failed to send signature notification',
+        );
+      }
+    }
+
+    return reviewed;
+  }
+
   async getSummary(supplierId: string) {
     const groups = await this.prisma.invoice.groupBy({
       by: ['status'],
@@ -880,6 +1022,7 @@ export class InvoicesService {
       draft: 0,
       submitted: 0,
       changesRequested: 0,
+      awaitingSignature: 0,
       underReview: 0,
       approved: 0,
       scheduled: 0,
@@ -892,6 +1035,7 @@ export class InvoicesService {
       DRAFT: 'draft',
       SUBMITTED: 'submitted',
       CHANGES_REQUESTED: 'changesRequested',
+      AWAITING_SIGNATURE: 'awaitingSignature',
       UNDER_REVIEW: 'underReview',
       APPROVED: 'approved',
       SCHEDULED: 'scheduled',

@@ -51,6 +51,29 @@ describe('IdentityService AP_STAFF resolution', () => {
     expect(user).toMatchObject({ id: 'app_staff', fullName: 'Named Staff', role: 'AP_STAFF' });
   });
 
+  it('accepts an Asateel signer AppUser', async () => {
+    const prisma = {
+      supplierUser: { findUnique: vi.fn().mockResolvedValue(null) },
+      appUser: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'app_wkobessy_aljeel',
+          email: 'wkobessy@aljeel.com',
+          fullName: 'Waleed Kobessy',
+          role: 'ASATEEL_SIGNER',
+          isActive: true,
+        }),
+      },
+    };
+
+    const user = await new IdentityService(prisma as never).resolveByEmail('wkobessy@aljeel.com');
+
+    expect(user).toMatchObject({
+      id: 'app_wkobessy_aljeel',
+      role: 'ASATEEL_SIGNER',
+      supplierId: null,
+    });
+  });
+
   it('preserves SupplierUser precedence over AppUser and domain fallback', async () => {
     process.env.AUTH_STAFF_DOMAIN = 'aljeel.com';
     process.env.AUTH_STAFF_DEFAULT_ROLE = 'AP_STAFF';

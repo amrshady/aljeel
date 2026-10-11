@@ -65,6 +65,7 @@ function ApReviewContent() {
       updatedAt: item.updatedAt,
       supplierName: item.supplierName,
       oracleEnteredAt: item.oracleEnteredAt,
+      status: item.status,
     })) ?? [];
 
   const selectTab = (nextTab: ApReviewTab) => {
@@ -137,6 +138,7 @@ function ApReviewContent() {
             isLoading={isLoading}
             linkHref={invoiceHref}
             showSupplier
+            statusNamespace="apReview"
             showSize={false}
             highlightQuery={searchQuery}
             trailingColumn={{

@@ -716,6 +716,18 @@ export class DocumentsService {
       }
       return invoice;
     }
+    if (user.role === 'ASATEEL_SIGNER') {
+      const invoice = await this.prisma.invoice.findFirst({
+        where: {
+          id: invoiceId,
+          approvals: { some: { approverId: user.sub } },
+        },
+      });
+      if (!invoice) {
+        throw invoiceNotFound();
+      }
+      return invoice;
+    }
     const scope = getSupplierScope(user) ?? requireSupplierId(user);
     if (supplierId && supplierId !== scope) {
       throw invoiceNotFound();

@@ -1,12 +1,10 @@
 'use client';
 
 import {
-  ASATEEL_REGION_CODES,
-  ASATEEL_REGION_VALUES,
+  AsateelRegionSchema,
   SupplierProfileSchema,
   isValidJawalBatchId,
   validateInvoiceSubmitDocuments,
-  type AsateelRegion,
   type SupplierErpIntegration,
 } from '@aljeel/shared-types';
 import { Button } from '@aljeel/ui';
@@ -17,6 +15,7 @@ import { FormEvent, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { AppShell } from '@/components/app-shell';
+import { AsateelAreaSelect } from '@/components/asateel-area-select';
 import { SolventumChargebackUploader } from '@/components/solventum-chargeback-uploader';
 import { SupplierReconciliationUploader } from '@/components/supplier-reconciliation-uploader';
 import { displayInvoiceName } from '@/components/invoice-folder-table';
@@ -73,7 +72,7 @@ function InvoiceUploadContent() {
   const listRef = useRef<HTMLDivElement>(null);
   const [files, setFiles] = useState<KbQueuedFile[]>([]);
   const [folderName, setFolderName] = useState<string | null>(null);
-  const [asateelRegion, setAsateelRegion] = useState<AsateelRegion | ''>('');
+  const [asateelArea, setAsateelArea] = useState('');
   const [draftInvoiceId, setDraftInvoiceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -158,7 +157,7 @@ function InvoiceUploadContent() {
     requireFiles: boolean,
     options?: { skipXlsxRequirement?: boolean },
   ): string | null {
-    if (requireFiles && isAsateelSupplier && !asateelRegion) {
+    if (requireFiles && isAsateelSupplier && !asateelArea) {
       return t('errors.asateelRegionRequired');
     }
     if (!requireFiles) return null;
@@ -283,7 +282,9 @@ function InvoiceUploadContent() {
       if (!invoiceId) {
         const invoice = await createInvoiceDraft(
           folderName ?? undefined,
-          isAsateelSupplier ? asateelRegion || undefined : undefined,
+          isAsateelSupplier
+            ? (AsateelRegionSchema.safeParse(asateelArea).data ?? undefined)
+            : undefined,
           isApIntakeUser ? (selectedIntegration ?? undefined) : undefined,
         );
         invoiceId = invoice.id;
@@ -488,32 +489,16 @@ function InvoiceUploadContent() {
           </div>
 
           {isAsateelSupplier && (
-            <div className="max-w-xs">
-              <label className="text-sm font-medium" htmlFor="asateel-region">
-                {t('asateelRegion')}
-                <span className="text-destructive"> *</span>
-              </label>
-              <select
-                id="asateel-region"
-                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={asateelRegion}
-                disabled={uploading}
-                required
-                aria-required="true"
-                onChange={(event) => {
-                  setAsateelRegion(event.target.value as AsateelRegion | '');
-                  setDraftInvoiceId(null);
-                  setError(null);
-                }}
-              >
-                <option value="">{t('asateelRegionPlaceholder')}</option>
-                {ASATEEL_REGION_VALUES.map((region) => (
-                  <option key={region} value={region}>
-                    {t(`asateelRegions.${region}`, { code: ASATEEL_REGION_CODES[region] })}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <AsateelAreaSelect
+              id="asateel-region"
+              value={asateelArea}
+              disabled={uploading}
+              onChange={(value) => {
+                setAsateelArea(value);
+                setDraftInvoiceId(null);
+                setError(null);
+              }}
+            />
           )}
 
           {warning && (

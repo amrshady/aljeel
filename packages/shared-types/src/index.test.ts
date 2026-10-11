@@ -16,4 +16,8 @@ describe('UserRoleSchema', () => {
   it('accepts limited AP staff users', () => {
     expect(UserRoleSchema.parse('AP_STAFF')).toBe('AP_STAFF');
   });
+
+  it('accepts Asateel signers', () => {
+    expect(UserRoleSchema.parse('ASATEEL_SIGNER')).toBe('ASATEEL_SIGNER');
+  });
 });

@@ -90,3 +90,33 @@ describe('DocumentsService.getForDownload', () => {
     expect(kb.createReadStream).not.toHaveBeenCalled();
   });
 });
+
+describe('DocumentsService signer access', () => {
+  const signer = {
+    sub: 'app_w',
+    id: 'app_w',
+    email: 'wkobessy@aljeel.com',
+    fullName: 'Waleed Kobessy',
+    role: 'ASATEEL_SIGNER' as const,
+    supplierId: null,
+  };
+
+  it('lists documents when the signer has a step on the invoice', async () => {
+    const prisma = {
+      invoice: { findFirst: vi.fn().mockResolvedValue({ id: 'inv-1' }) },
+      document: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const service = new DocumentsService(
+      prisma as never,
+      { record: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(service.list(signer, 'inv-1')).resolves.toEqual([]);
+    expect(prisma.invoice.findFirst).toHaveBeenCalledWith({
+      where: { id: 'inv-1', approvals: { some: { approverId: 'app_w' } } },
+    });
+  });
+});

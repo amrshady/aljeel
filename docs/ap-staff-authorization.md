@@ -144,3 +144,25 @@ P&T Mapping. `AP_CLERK` and `AP_APPROVER` remain the privileged review roles.
 
 No deploy, redeploy script, Prisma migration, or database write is part of this
 change set.
+
+## Asateel signers
+
+`ASATEEL_SIGNER` is the warehouse-signature role. These users sign in and see
+only `/signatures`. They do not see the review queue, P&T mappings, or the
+supplier upload.
+
+`20261010230000_asateel_signer_role` adds the role. The schema migration
+`20261010230100_asateel_signatures` then inserts the five `AppUser` rows and the
+`AsateelSignerRoute` rows from Abdul Ghaffar's 7 Oct 2026 email. Apply both with
+the normal migration. On a database that already has `AppUser_role_check`, the
+second migration appends `ASATEEL_SIGNER` to the roles the check already allows.
+It also splits Eastern and Western into outbound and inbound; existing Eastern and
+Western batches become outbound.
+
+Add these addresses to the Cloudflare Access allow-list before they can sign in:
+
+- `wkobessy@aljeel.com` — Waleed Kobessy, stage 1 for every outbound area
+- `sshaik@aljeel.com` — Shakeer Shaik, Eastern inbound (East, Jeddah)
+- `halghadeer@aljeel.com` — Hussain Al Ghadeer, Western inbound (West, Dammam)
+- `rabdelshafy@aljeel.com` — Reda Abdelshafy, Main inbound (Riyadh)
+- `agahmed@aljeel.com` — Abdul Ghaffar Ahmed, stage 2 for every area

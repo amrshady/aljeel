@@ -25,7 +25,7 @@ export class AsateelInvoiceManifestService {
 
   async validateUploadedFolder(
     documents: InvoiceDocument[],
-  ): Promise<AsateelInvoiceManifestValidation> {
+  ): Promise<AsateelInvoiceManifestValidation & { invoiceNos: string[] }> {
     const fileNames = documents.map((document) => document.fileName);
     const spreadsheetDocuments = documents.filter((document) =>
       isSpreadsheetFileName(document.fileName),
@@ -39,6 +39,7 @@ export class AsateelInvoiceManifestService {
             'Upload a spreadsheet containing the Asateel shipping report with an Invoice No column.',
         },
         warning: null,
+        invoiceNos: [],
       };
     }
 
@@ -60,7 +61,8 @@ export class AsateelInvoiceManifestService {
       }
     }
 
-    if (invoiceNos.size === 0) {
+    const invoiceNoList = [...invoiceNos];
+    if (invoiceNoList.length === 0) {
       return {
         error: {
           code: 'ASATEEL_INVOICE_TABLE_REQUIRED',
@@ -68,10 +70,11 @@ export class AsateelInvoiceManifestService {
             'None of the uploaded spreadsheets contain an Invoice No column with invoice numbers.',
         },
         warning: null,
+        invoiceNos: [],
       };
     }
 
-    const manifest = validateAsateelInvoiceManifest([...invoiceNos], fileNames);
+    const manifest = validateAsateelInvoiceManifest(invoiceNoList, fileNames);
     return {
       error: manifest.error
         ? {
@@ -83,6 +86,7 @@ export class AsateelInvoiceManifestService {
           }
         : null,
       warning: manifest.warning,
+      invoiceNos: invoiceNoList,
     };
   }
 

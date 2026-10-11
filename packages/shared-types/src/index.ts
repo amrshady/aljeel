@@ -9,6 +9,7 @@ export const UserRoleSchema = z.enum([
   'AP_STAFF',
   'AP_CLERK',
   'AP_APPROVER',
+  'ASATEEL_SIGNER',
   'PROCUREMENT',
   'TREASURY',
   'VENDOR_MASTER',
@@ -21,6 +22,7 @@ export const InvoiceStatusSchema = z.enum([
   'DRAFT',
   'SUBMITTED',
   'CHANGES_REQUESTED',
+  'AWAITING_SIGNATURE',
   'UNDER_REVIEW',
   'APPROVED',
   'ON_HOLD',
@@ -31,6 +33,7 @@ export const InvoiceStatusSchema = z.enum([
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;
 
 export * from './asateel-region';
+export * from './signatures';
 export * from './asateel-invoice-manifest';
 export * from './jawal-evidence-check';
 

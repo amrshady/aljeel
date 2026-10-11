@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { PageLoading } from '@/components/loading-spinner';
 import { InvoiceListSection } from '@/components/invoice-list-section';
 import { RequireAuth } from '@/components/require-auth';
 import { useAuth } from '@/components/auth-provider';
@@ -16,6 +17,7 @@ import { Link } from '@/i18n/routing';
 const PIPELINE_STAGES = [
   { key: 'draft', status: 'DRAFT' },
   { key: 'changesRequested', status: 'CHANGES_REQUESTED' },
+  { key: 'awaitingSignature', status: 'AWAITING_SIGNATURE' },
   { key: 'underReview', status: 'UNDER_REVIEW' },
   { key: 'onHold', status: 'ON_HOLD' },
   { key: 'approved', status: 'APPROVED' },
@@ -235,6 +237,14 @@ function SupplierDashboard() {
 
 function DashboardContent() {
   const { user } = useAuth();
+
+  if (user?.role === 'ASATEEL_SIGNER') {
+    return (
+      <AppShell>
+        <PageLoading />
+      </AppShell>
+    );
+  }
 
   if (user?.role === 'AP_STAFF' || user?.role === 'AP_CLERK') {
     return <ApClerkDashboard />;

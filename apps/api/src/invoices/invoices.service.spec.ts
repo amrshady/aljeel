@@ -368,7 +368,7 @@ describe('InvoicesService submit duplicate file guard', () => {
     supplierId: 'supplier_a',
     invoiceNumber: 'INV-CURRENT',
     status: 'DRAFT',
-    asateelRegion: 'EASTERN',
+    asateelRegion: 'EASTERN_OUTBOUND',
     lines: [],
   };
   const currentDocuments = [
@@ -449,10 +449,11 @@ describe('InvoicesService submit duplicate file guard', () => {
         update: vi
           .fn()
           .mockResolvedValueOnce({ ...invoice, status: 'SUBMITTED' })
-          .mockResolvedValueOnce({
+          .mockImplementation(async ({ data }: { data: { status: string } }) => ({
             ...invoice,
-            status: 'UNDER_REVIEW',
-          }),
+            ...data,
+            lines: [],
+          })),
       },
       document: {
         findMany: documentFindMany,
@@ -463,18 +464,50 @@ describe('InvoicesService submit duplicate file guard', () => {
           legalName: 'Supplier A',
         }),
       },
+      asateelSignerRoute: {
+        findFirst: vi
+          .fn()
+          .mockImplementation(async ({ where }: { where: { stage: number } }) =>
+            where.stage === 1
+              ? { signerEmail: 'wkobessy@aljeel.com' }
+              : { signerEmail: 'agahmed@aljeel.com' },
+          ),
+      },
+      appUser: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'app_w', email: 'wkobessy@aljeel.com' },
+          { id: 'app_a', email: 'agahmed@aljeel.com' },
+        ]),
+      },
+      approvalStep: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        create: vi
+          .fn()
+          .mockResolvedValueOnce({ id: 'step1' })
+          .mockResolvedValueOnce({ id: 'step2' }),
+      },
+      asateelInvoiceSignature: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     };
+    const tx = prisma;
+    (prisma as unknown as { $transaction: unknown }).$transaction = vi.fn(
+      async (callback: (client: typeof prisma) => Promise<unknown>) => callback(tx),
+    );
     const audit = { record: vi.fn() };
     const service = new InvoicesService(
       prisma as never,
       audit as never,
-      { validateUploadedFolder: vi.fn().mockResolvedValue({ error: null }) } as never,
+      {
+        validateUploadedFolder: vi.fn().mockResolvedValue({ error: null, invoiceNos: ['03041'] }),
+      } as never,
       {
         validateUploadedFolder: vi.fn().mockResolvedValue({ error: null, warning: null }),
       } as never,
       { notifyInvoiceSubmitted: vi.fn().mockResolvedValue(undefined) } as never,
     );
-    return { service, documentFindMany };
+    return { service, documentFindMany, prisma };
   }
 
   it('blocks an Asateel supplier and lists every matching current file with its earliest prior invoice', async () => {
@@ -535,7 +568,7 @@ describe('InvoicesService submit duplicate file guard', () => {
   });
 
   it('skips duplicate file collisions for a Jawal supplier', async () => {
-    const { service, documentFindMany } = createService(
+    const { service, documentFindMany, prisma } = createService(
       [
         {
           checksumSha256: 'hash-current',
@@ -549,6 +582,8 @@ describe('InvoicesService submit duplicate file guard', () => {
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
       status: 'UNDER_REVIEW',
     });
+    expect(prisma.approvalStep.create).not.toHaveBeenCalled();
+    expect(prisma.asateelInvoiceSignature.createMany).not.toHaveBeenCalled();
     expect(documentFindMany).toHaveBeenCalledOnce();
     expect(documentFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { invoiceId: 'inv_current' } }),
@@ -567,7 +602,7 @@ describe('InvoicesService submit duplicate file guard', () => {
       ]);
 
       await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
-        status: 'UNDER_REVIEW',
+        status: 'AWAITING_SIGNATURE',
       });
     },
   );
@@ -582,7 +617,7 @@ describe('InvoicesService submit duplicate file guard', () => {
     ]);
 
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
-      status: 'UNDER_REVIEW',
+      status: 'AWAITING_SIGNATURE',
     });
   });
 
@@ -597,7 +632,7 @@ describe('InvoicesService submit duplicate file guard', () => {
     ]);
 
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
-      status: 'UNDER_REVIEW',
+      status: 'AWAITING_SIGNATURE',
     });
     expect(documentFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -622,7 +657,7 @@ describe('InvoicesService submit duplicate file guard', () => {
     ]);
 
     await expect(service.submit(user, 'inv_current')).resolves.toMatchObject({
-      status: 'UNDER_REVIEW',
+      status: 'AWAITING_SIGNATURE',
     });
     expect(documentFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -946,5 +981,74 @@ describe('InvoicesService AP clerk intake', () => {
     await expect(service.createDraft(apClerk, {})).rejects.toMatchObject({
       response: expect.objectContaining({ code: 'ERP_INTEGRATION_REQUIRED' }),
     });
+  });
+});
+
+describe('InvoicesService Asateel region', () => {
+  const user = {
+    sub: 'u1',
+    id: 'u1',
+    email: 'supplier@test.com',
+    fullName: 'Supplier User',
+    role: 'SUPPLIER_ADMIN' as const,
+    supplierId: 'supplier_a',
+  };
+
+  function areaInvoice(overrides: Record<string, unknown> = {}) {
+    const timestamp = new Date('2026-07-01T12:00:00.000Z');
+    return {
+      id: 'inv1',
+      supplierId: 'supplier_a',
+      invoiceNumber: '10',
+      invoiceDate: timestamp,
+      poId: null,
+      currency: 'SAR',
+      subtotal: 0,
+      vat: 0,
+      total: 0,
+      status: 'DRAFT',
+      source: 'UPLOAD',
+      rejectionReason: null,
+      rejectionFindings: null,
+      archivedAt: null,
+      asateelRegion: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      lines: [],
+      ...overrides,
+    };
+  }
+
+  function serviceFor(invoice: ReturnType<typeof areaInvoice>) {
+    const prisma = {
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(invoice),
+        update: vi
+          .fn()
+          .mockImplementation(async ({ data }) => ({ ...invoice, ...data, lines: [] })),
+      },
+    };
+    return {
+      service: new InvoicesService(
+        prisma as never,
+        { record: vi.fn() } as never,
+        { validateUploadedFolder: vi.fn() } as never,
+        { validateUploadedFolder: vi.fn() } as never,
+        { notifyInvoiceSubmitted: vi.fn() } as never,
+      ),
+      prisma,
+    };
+  }
+
+  it('stores Eastern inbound as the region', async () => {
+    const { service, prisma } = serviceFor(areaInvoice());
+
+    await service.updateAsateelRegion(user, 'inv1', { asateelRegion: 'EASTERN_INBOUND' });
+
+    expect(prisma.invoice.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { asateelRegion: 'EASTERN_INBOUND' },
+      }),
+    );
   });
 });

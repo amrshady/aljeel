@@ -12,6 +12,7 @@ const FILTERS = [
   { labelKey: 'all', status: '' },
   { labelKey: 'unfinished', status: 'DRAFT' },
   { labelKey: 'changesRequested', status: 'CHANGES_REQUESTED' },
+  { labelKey: 'awaitingSignature', status: 'AWAITING_SIGNATURE' },
   { labelKey: 'underReview', status: 'UNDER_REVIEW' },
   { labelKey: 'approved', status: 'APPROVED' },
   { labelKey: 'rejected', status: 'REJECTED' },

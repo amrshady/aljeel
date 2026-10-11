@@ -26,6 +26,7 @@ enum UserRole {
   AP_STAFF
   AP_CLERK
   AP_APPROVER
+  ASATEEL_SIGNER
   PROCUREMENT
   TREASURY
   VENDOR_MASTER
@@ -43,6 +44,7 @@ enum InvoiceStatus {
   DRAFT
   SUBMITTED
   CHANGES_REQUESTED
+  AWAITING_SIGNATURE
   UNDER_REVIEW
   APPROVED
   ON_HOLD
@@ -70,9 +72,11 @@ enum DocumentType {
 
 enum AsateelRegion {
   CENTRAL
-  EASTERN
-  WESTERN
   PT_PROJECT
+  EASTERN_OUTBOUND
+  EASTERN_INBOUND
+  WESTERN_OUTBOUND
+  WESTERN_INBOUND
   MAIN
 }
 
@@ -294,6 +298,7 @@ model Invoice {
   lines       InvoiceLine[]
   documents   Document[]
   approvals   ApprovalStep[]
+  asateelSignatures AsateelInvoiceSignature[]
   messages    Message[]
   allocations PaymentAllocation[]
 
@@ -347,8 +352,25 @@ model ApprovalStep {
   actedAt    DateTime?
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
+  asateelSignatures AsateelInvoiceSignature[]
 
   @@index([invoiceId])
+}
+
+model AsateelInvoiceSignature {
+  id             String    @id @default(cuid())
+  invoiceId      String
+  invoiceNo      String
+  approvalStepId String
+  signedById     String?
+  signedAt       DateTime?
+  createdAt      DateTime  @default(now())
+
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id])
+  approvalStep ApprovalStep @relation(fields: [approvalStepId], references: [id])
+
+  @@unique([invoiceId, invoiceNo])
+  @@index([approvalStepId])
 }
 
 model Payment {
@@ -459,6 +481,19 @@ model PtSalesmanMapping {
 
   @@unique([agencyMappingId, lineHeadEmpNo, salesmanEmpNo])
   @@index([agencyMappingId, lineHeadEmpNo])
+}
+
+model AsateelSignerRoute {
+  id          String         @id @default(cuid())
+  region      AsateelRegion?
+  stage       Int
+  signerEmail String
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([region, stage])
+  @@index([signerEmail])
 }
 
 model PtMappingAudit {

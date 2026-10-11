@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { ASATEEL_SIGNER_ROUTES } from '../src/invoices/asateel-signer-routes';
 
 const prisma = new PrismaClient();
 
@@ -152,6 +153,34 @@ async function main() {
       isActive: true,
     },
   });
+
+  const asateelSigners = [
+    { id: 'app_wkobessy_aljeel', email: 'wkobessy@aljeel.com', fullName: 'Waleed Kobessy' },
+    { id: 'app_halghadeer_aljeel', email: 'halghadeer@aljeel.com', fullName: 'Hussain Al Ghadeer' },
+    { id: 'app_sshaik_aljeel', email: 'sshaik@aljeel.com', fullName: 'Shakeer Shaik' },
+    { id: 'app_rabdelshafy_aljeel', email: 'rabdelshafy@aljeel.com', fullName: 'Reda Abdelshafy' },
+    { id: 'app_agahmed_aljeel', email: 'agahmed@aljeel.com', fullName: 'Abdul Ghaffar Ahmed' },
+  ] as const;
+  for (const signer of asateelSigners) {
+    await prisma.appUser.upsert({
+      where: { email: signer.email },
+      create: { ...signer, role: 'ASATEEL_SIGNER', isActive: true },
+      update: { fullName: signer.fullName, role: 'ASATEEL_SIGNER', isActive: true },
+    });
+  }
+
+  for (const route of ASATEEL_SIGNER_ROUTES) {
+    await prisma.asateelSignerRoute.upsert({
+      where: { id: route.id },
+      create: { ...route, isActive: true },
+      update: {
+        region: route.region,
+        stage: route.stage,
+        signerEmail: route.signerEmail,
+        isActive: true,
+      },
+    });
+  }
 
   const lookupPath = resolve(
     process.cwd(),

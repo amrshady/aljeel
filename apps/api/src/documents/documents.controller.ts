@@ -87,7 +87,7 @@ export class DocumentsController {
   }
 
   @Get('invoices/:id/documents/archive')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER')
   @ApiOperation({
     summary: 'Download all invoice documents as a zip (entry paths preserve folder hierarchy)',
   })
@@ -109,14 +109,14 @@ export class DocumentsController {
   }
 
   @Get('invoices/:id/documents')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER')
   @ApiOperation({ summary: 'List documents attached to an invoice' })
   list(@CurrentUser() user: AuthUser, @Param('id') invoiceId: string) {
     return this.documentsService.list(user, invoiceId);
   }
 
   @Get('documents/:id/download')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER')
   @ApiOperation({
     summary: 'Download a document (streams from KB storage or local disk)',
   })
@@ -135,7 +135,7 @@ export class DocumentsController {
   }
 
   @Get('documents/:id/content')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER')
   @ApiOperation({ summary: 'Preview URL or inline stream (never forces download)' })
   async content(
     @CurrentUser() user: AuthUser,
@@ -168,7 +168,7 @@ export class DocumentsController {
   }
 
   @Get('documents/:id/email')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER')
   @ApiOperation({
     summary: 'Parse a stored .msg/.eml document into a renderable email preview',
   })
@@ -177,7 +177,7 @@ export class DocumentsController {
   }
 
   @Get('documents/:id/email/attachments/:index')
-  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER')
+  @Roles('SUPPLIER_ADMIN', 'SUPPLIER_USER', 'AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER')
   @ApiOperation({ summary: 'Download a file attached to a stored email' })
   async emailAttachment(
     @CurrentUser() user: AuthUser,

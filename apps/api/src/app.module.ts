@@ -17,6 +17,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { ApModule } from './ap/ap.module';
 import { RootModule } from './root.module';
 import { PtMappingsModule } from './pt-mappings/pt-mappings.module';
+import { SignaturesModule } from './signatures/signatures.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PtMappingsModule } from './pt-mappings/pt-mappings.module';
     DocumentsModule,
     ApModule,
     PtMappingsModule,
+    SignaturesModule,
     HealthModule,
     RootModule,
   ],

@@ -6,6 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
+  asateelPipelineRegion,
   getAsateelRegionFilePrefix,
   parseAsateelRegionFromFolderName,
 } from '@aljeel/shared-types';
@@ -162,7 +163,7 @@ export class AsateelIntegrationService implements OnModuleInit, OnModuleDestroy 
       const payload = {
         archive_date: this.archiveDate(invoice),
         folder_name: folderName,
-        region: region,
+        region: asateelPipelineRegion(region),
         batch_id: invoice.invoiceNumber,
       };
       const trigger = await this.enqueueRun(payload);

@@ -7,8 +7,8 @@ import { AljeelLogo } from '@/components/aljeel-logo';
 import { useAuth } from '@/components/auth-provider';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { SiteFooter } from '@/components/site-footer';
-import { Link, usePathname } from '@/i18n/routing';
-import type { ReactNode } from 'react';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
+import { useEffect, type ReactNode } from 'react';
 
 const PRIVILEGED_AP_ROLES = new Set<UserRole>(['AP_CLERK', 'AP_APPROVER']);
 
@@ -37,18 +37,40 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tApNav = useTranslations('apNav');
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const isPrivilegedApUser = user && PRIVILEGED_AP_ROLES.has(user.role);
+  const isAsateelSigner = user?.role === 'ASATEEL_SIGNER';
+
+  useEffect(() => {
+    if (!isAsateelSigner) return;
+    if (pathname === '/signatures' || pathname.startsWith('/signatures/')) return;
+    router.replace('/signatures');
+  }, [isAsateelSigner, pathname, router]);
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
       <header className="header-surface text-primary-foreground">
         <div className="relative z-10 mx-auto flex max-w-[90rem] items-center justify-between gap-6 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="cursor-pointer">
+            <Link href={isAsateelSigner ? '/signatures' : '/dashboard'} className="cursor-pointer">
               <AljeelLogo variant="light" className="h-14 w-auto" />
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            {isAsateelSigner && (
+              <>
+                <nav className="flex items-center gap-1">
+                  <Link
+                    href="/signatures"
+                    className={navLinkClass(pathname.startsWith('/signatures'))}
+                  >
+                    <NavDot active={pathname.startsWith('/signatures')} />
+                    {tApNav('signatures')}
+                  </Link>
+                </nav>
+                <span className="mx-3 h-6 w-px bg-white/20" aria-hidden="true" />
+              </>
+            )}
             {isPrivilegedApUser && (
               <>
                 <nav className="flex items-center gap-1">

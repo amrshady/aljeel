@@ -9,7 +9,7 @@ interface CachedIdentity {
 }
 
 const IDENTITY_CACHE_MS = 60 * 1000;
-const AP_STAFF_ROLES = new Set<UserRole>(['AP_STAFF', 'AP_CLERK', 'AP_APPROVER']);
+const AP_STAFF_ROLES = new Set<UserRole>(['AP_STAFF', 'AP_CLERK', 'AP_APPROVER', 'ASATEEL_SIGNER']);
 
 @Injectable()
 export class IdentityService {

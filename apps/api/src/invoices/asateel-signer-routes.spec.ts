@@ -6,9 +6,9 @@ const STAGE1 = {
   CENTRAL: 'wkobessy@aljeel.com',
   PT_PROJECT: 'wkobessy@aljeel.com',
   EASTERN_OUTBOUND: 'wkobessy@aljeel.com',
-  EASTERN_INBOUND: 'sshaik@aljeel.com',
+  EASTERN_INBOUND: 'halghadeer@aljeel.com',
   WESTERN_OUTBOUND: 'wkobessy@aljeel.com',
-  WESTERN_INBOUND: 'halghadeer@aljeel.com',
+  WESTERN_INBOUND: 'sshaik@aljeel.com',
   MAIN: 'rabdelshafy@aljeel.com',
 } as const;
 

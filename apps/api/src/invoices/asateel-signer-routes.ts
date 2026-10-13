@@ -28,7 +28,7 @@ export const ASATEEL_SIGNER_ROUTES: Array<{
     id: 'asateel_route_eastern_inbound',
     region: 'EASTERN_INBOUND',
     stage: 1,
-    signerEmail: 'sshaik@aljeel.com',
+    signerEmail: 'halghadeer@aljeel.com',
   },
   {
     id: 'asateel_route_western_outbound',
@@ -40,7 +40,7 @@ export const ASATEEL_SIGNER_ROUTES: Array<{
     id: 'asateel_route_western_inbound',
     region: 'WESTERN_INBOUND',
     stage: 1,
-    signerEmail: 'halghadeer@aljeel.com',
+    signerEmail: 'sshaik@aljeel.com',
   },
   {
     id: 'asateel_route_main_inbound',

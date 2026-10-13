@@ -389,15 +389,20 @@ export class SignaturesService {
   ) {
     if (!this.signatureNotification) return;
     try {
-      const users = await this.prisma.supplierUser.findMany({
-        where: { supplierId: invoice.supplierId, isActive: true },
-        select: { email: true },
-      });
+      const submitter = await this.findSubmitter(invoice.id);
+      const supplierEmails = submitter
+        ? [submitter.email]
+        : (
+            await this.prisma.supplierUser.findMany({
+              where: { supplierId: invoice.supplierId, isActive: true },
+              select: { email: true },
+            })
+          ).map((supplierUser) => supplierUser.email);
       await this.signatureNotification.notifyRejected({
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
         reason,
-        supplierEmails: users.map((supplierUser) => supplierUser.email),
+        supplierEmails,
       });
     } catch (error) {
       this.logger.error(

@@ -634,16 +634,27 @@ describe('SignaturesService', () => {
     );
   });
 
-  it('emails the supplier when the batch is rejected', async () => {
+  it('emails only the submitter when the batch is rejected', async () => {
     const notifyRejected = vi.fn().mockResolvedValue(undefined);
+    const findMany = vi.fn().mockResolvedValue([
+      { email: 'ahmed.samy+vendor@accordpartners.ai' },
+      { email: 'ahmed.samy+asateel@accordpartners.ai' },
+    ]);
     const prisma = {
       invoice: {
         findFirst: vi.fn().mockResolvedValue({ ...batch(), supplierId: 'supplier_asateel' }),
         update: vi.fn().mockResolvedValue({}),
       },
       approvalStep: { update: vi.fn().mockResolvedValue({}) },
+      auditEvent: {
+        findFirst: vi.fn().mockResolvedValue({ actorId: 'user_submitter' }),
+      },
       supplierUser: {
-        findMany: vi.fn().mockResolvedValue([{ email: 'amr+asateel@accordpartners.ai' }]),
+        findUnique: vi.fn().mockResolvedValue({
+          email: 'ahmed.samy+vendor@accordpartners.ai',
+          fullName: 'Ahmed Samy',
+        }),
+        findMany,
       },
       $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
@@ -661,8 +672,9 @@ describe('SignaturesService', () => {
       expect.objectContaining({
         invoiceId: 'inv1',
         reason: 'Missing stamp',
-        supplierEmails: ['amr+asateel@accordpartners.ai'],
+        supplierEmails: ['ahmed.samy+vendor@accordpartners.ai'],
       }),
     );
+    expect(findMany).not.toHaveBeenCalled();
   });
 });
